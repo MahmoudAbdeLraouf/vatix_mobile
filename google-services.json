@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1062918026479",
+    "project_id": "vatix-79cde",
+    "storage_bucket": "vatix-79cde.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062918026479:android:cd24ae4aba6f047fcc171a",
+        "android_client_info": {
+          "package_name": "com.vatix.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmGyeXS0gBDt-7S-KG5xTOvBJCfs91NV4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
