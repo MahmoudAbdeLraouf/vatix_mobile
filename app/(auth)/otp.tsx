@@ -60,7 +60,8 @@ export default function OtpScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { direction: isRtl ? 'rtl' : 'ltr' }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
+      enabled={Platform.OS === 'ios'}
     >
       {/* Navy hero */}
       <View style={styles.hero}>

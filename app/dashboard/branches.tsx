@@ -201,10 +201,6 @@ export default function BranchesScreen() {
 
   return (
     <DashboardLayout title={ar ? 'الفروع' : 'Branches'} scroll={false}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -351,7 +347,6 @@ export default function BranchesScreen() {
             </>
           )}
         </ScrollView>
-      </KeyboardAvoidingView>
 
       <Modal
         visible={modalOpen}
@@ -359,7 +354,12 @@ export default function BranchesScreen() {
         animationType="slide"
         onRequestClose={closeModal}
       >
-        <Pressable style={styles.backdrop} onPress={closeModal}>
+        <KeyboardAvoidingView
+          style={styles.backdrop}
+          behavior="padding"
+          enabled={Platform.OS === 'ios'}
+        >
+        <Pressable style={{ flex: 1 }} onPress={closeModal}>
           <Pressable
             style={[
               styles.sheet,
@@ -547,6 +547,7 @@ export default function BranchesScreen() {
             </ScrollView>
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </DashboardLayout>
   )

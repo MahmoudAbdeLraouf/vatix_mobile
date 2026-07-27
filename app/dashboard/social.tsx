@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -106,10 +104,6 @@ export default function SocialScreen() {
 
   return (
     <DashboardLayout title={t.socialMedia}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -186,7 +180,6 @@ export default function SocialScreen() {
             </View>
           )}
         </ScrollView>
-      </KeyboardAvoidingView>
     </DashboardLayout>
   )
 }

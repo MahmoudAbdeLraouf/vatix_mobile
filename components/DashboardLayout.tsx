@@ -3,6 +3,7 @@ import {
   Animated,
   Easing,
   Image,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -257,7 +258,14 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
         </View>
       </View>
 
-      {Body}
+      <KeyboardAvoidingView
+        style={styles.body}
+        behavior="padding"
+        enabled={Platform.OS === 'ios'}
+        keyboardVerticalOffset={insets.top + 52}
+      >
+        {Body}
+      </KeyboardAvoidingView>
 
       {/* DRAWER */}
       <Modal

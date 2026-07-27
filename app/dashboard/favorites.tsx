@@ -144,7 +144,7 @@ export default function FavoritesScreen() {
           />
         ) : (
           <View style={styles.grid}>
-            {favs!.map((f) => {
+            {favs!.filter((f) => f.product).map((f) => {
               const p = f.product
               const thumb = imgUrl(p.images?.[0]?.url)
               const categoryName = p.category

@@ -147,8 +147,8 @@ export default function SubscriptionScreen() {
         </View>
       ) : (
         <View style={{ gap: spacing.md }}>
-          {/* Trial banner */}
-          {isTrial && daysLeft != null && (
+          {/* Trial banner — stores only; clients don't have a subscription */}
+          {!isClient && isTrial && daysLeft != null && (
             <View
               style={[
                 styles.trialBanner,
@@ -202,7 +202,8 @@ export default function SubscriptionScreen() {
             </View>
           )}
 
-          {/* Current plan card */}
+          {/* Current plan card — stores only; clients don't have a subscription */}
+          {!isClient && (
           <View style={styles.planCard}>
             <View style={[styles.planHead, rowDir]}>
               <Ionicons name="diamond" size={18} color={colors.y} />
@@ -257,6 +258,7 @@ export default function SubscriptionScreen() {
               </View>
             )}
           </View>
+          )}
 
           {/* Upgrade CTAs */}
           {isClient && (

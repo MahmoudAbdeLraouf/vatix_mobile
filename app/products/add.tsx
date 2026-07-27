@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  KeyboardAvoidingView,
+  Dimensions,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
@@ -83,8 +85,11 @@ export default function AddProductScreen() {
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   const hydrated = useRef(false)
+  const scrollRef = useRef<ScrollView>(null)
+  const scrollOffsetRef = useRef(0)
 
   const limit = user?.isStore ? STORE_LIMIT : CLIENT_LIMIT
 
@@ -118,6 +123,41 @@ export default function AddProductScreen() {
         }
       })
       .finally(() => { hydrated.current = true })
+  }, [])
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
+    const showSub = Keyboard.addListener(showEvt, (e) => {
+      const kbHeight = e.endCoordinates?.height ?? 0
+      setKeyboardHeight(kbHeight)
+      // Give the layout a beat to grow paddingBottom before scrolling.
+      setTimeout(() => {
+        const focused = TextInput.State.currentlyFocusedInput?.() as
+          | { measureInWindow?: (cb: (x: number, y: number, w: number, h: number) => void) => void }
+          | null
+        if (!focused?.measureInWindow) return
+        focused.measureInWindow((_x, y, _w, h) => {
+          const screenHeight = Dimensions.get('window').height
+          const inputBottom = y + h
+          const keyboardTop = screenHeight - kbHeight
+          const gap = keyboardTop - 40 - inputBottom
+          if (gap < 0) {
+            scrollRef.current?.scrollTo({
+              y: Math.max(0, scrollOffsetRef.current - gap),
+              animated: true,
+            })
+          }
+        })
+      }, 50)
+    })
+    const hideSub = Keyboard.addListener(hideEvt, () => {
+      setKeyboardHeight(0)
+    })
+    return () => {
+      showSub.remove()
+      hideSub.remove()
+    }
   }, [])
 
   useEffect(() => {
@@ -255,16 +295,18 @@ export default function AddProductScreen() {
 
   return (
     <DashboardLayout title={t.addProduct} scroll={false} contentPadding={false}>
-      <KeyboardAvoidingView
+      <ScrollView
+        ref={scrollRef}
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        contentContainerStyle={[
+          styles.scrollContent,
+          Platform.OS === 'android' && { paddingBottom: spacing.xxl + keyboardHeight },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.y }}
+        scrollEventThrottle={16}
       >
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
           {/* Hero card */}
           <View style={styles.hero}>
             <View style={styles.heroAccent} />
@@ -536,8 +578,7 @@ export default function AddProductScreen() {
                 : 'By publishing you agree to Vatix terms of use'}
             </Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </DashboardLayout>
   )
 }

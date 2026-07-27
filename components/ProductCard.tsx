@@ -69,7 +69,7 @@ export function ProductCard({ product, style, variant = 'grid' }: ProductCardPro
             />
           </View>
         )}
-        {product.promotedUntil && (
+        {product.promotedUntil && new Date(product.promotedUntil) > new Date() && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{t.featured}</Text>
           </View>

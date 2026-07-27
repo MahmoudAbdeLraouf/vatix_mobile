@@ -5,7 +5,6 @@ import {
   AppStateStatus,
   FlatList,
   Image,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -206,11 +205,6 @@ export default function ConversationScreen() {
 
   return (
     <DashboardLayout title={otherName} scroll={false} contentPadding={false}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 52 : 0}
-      >
         {/* Custom header row with avatar + role */}
         <View style={[styles.headerRow, rowDir]}>
           <Pressable
@@ -421,7 +415,6 @@ export default function ConversationScreen() {
             </Pressable>
           </View>
         </View>
-      </KeyboardAvoidingView>
     </DashboardLayout>
   )
 }

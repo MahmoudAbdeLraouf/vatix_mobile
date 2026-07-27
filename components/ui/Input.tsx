@@ -34,7 +34,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
   }
   const textStyle = {
     writingDirection: isRtl ? ('rtl' as const) : ('ltr' as const),
-    textAlign: isRtl ? ('right' as const) : ('left' as const),
+    textAlign: 'auto' as const,
   }
   const inputDirStyle = textStyle
 

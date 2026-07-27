@@ -156,7 +156,8 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
           </View>
 
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior="padding"
+            enabled={Platform.OS === 'ios'}
             keyboardVerticalOffset={20}
           >
             <ScrollView

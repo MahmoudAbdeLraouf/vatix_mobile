@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -174,16 +172,12 @@ export default function EditProductScreen() {
 
   return (
     <DashboardLayout title={screenTitle} scroll={false} contentPadding={false}>
-      <KeyboardAvoidingView
+      <ScrollView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
           <View style={styles.section}>
             <Text style={[styles.label, { textAlign: ar ? 'right' : 'left' }]}>
               {t.addPhotos}
@@ -316,8 +310,7 @@ export default function EditProductScreen() {
             disabled={submitting || uploading}
             style={styles.submitBtn}
           />
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </DashboardLayout>
   )
 }

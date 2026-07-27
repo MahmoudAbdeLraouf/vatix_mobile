@@ -548,6 +548,8 @@ export interface SiteSettings {
   androidMinVersion: string | null
   androidLatestVersion: string | null
   androidStoreUrl: string | null
+  maxProductsPerClient: number
+  maxActiveProductsPerStore: number
 }
 
 export function getSubscriptionPlans(): Promise<PlanData[]> {

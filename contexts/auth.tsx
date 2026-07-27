@@ -41,12 +41,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function init() {
       try {
         const loggedIn = await isLoggedIn()
-        if (loggedIn) {
-          const stored = await getStoredUser()
-          setUser(stored)
-          stopRefresher = startTokenRefresher()
-          registerForPushNotifications().catch(() => {})
+        if (!loggedIn) return
+
+        const stored = await getStoredUser()
+        if (!stored) {
+          // Tokens present but the cached user blob is missing or shape-drifted
+          // from an older app install. Clearing the session forces a clean
+          // re-login rather than rendering with a malformed user object.
+          await clearSession()
+          return
         }
+        setUser(stored)
+        stopRefresher = startTokenRefresher()
+        registerForPushNotifications().catch(() => {})
       } finally {
         setLoading(false)
       }

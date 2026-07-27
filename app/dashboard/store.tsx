@@ -2,8 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -121,10 +119,6 @@ export default function StoreInfoScreen() {
 
   return (
     <DashboardLayout title={t.storeInfo}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.y} size="large" />
@@ -318,7 +312,6 @@ export default function StoreInfoScreen() {
             </View>
           </>
         )}
-      </KeyboardAvoidingView>
     </DashboardLayout>
   )
 }

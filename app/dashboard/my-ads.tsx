@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Image,
@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
-import { imgUrl, type Product } from '@/lib/api'
+import { getSiteSettings, imgUrl, type Product, type SiteSettings } from '@/lib/api'
 import { authDelete, authFetch, authPost } from '@/lib/auth'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
@@ -28,15 +28,12 @@ const PACKS: PromoPack[] = [
   { type: 'promotion_5ads', labelAr: '٥ إعلانات', labelEn: '5 Ads', price: 380 },
 ]
 
-const CLIENT_LIMIT = 5
-const STORE_LIMIT = 20
-
 export default function MyAdsScreen() {
   const { t, locale } = useLocale()
   const { user } = useAuth()
   const ar = locale === 'ar'
   const isStore = user?.isStore ?? false
-  const limit = isStore ? STORE_LIMIT : CLIENT_LIMIT
+  const isStorePlus = user?.type === 'store_plus' || user?.type === 'STORE_PLUS'
 
   const dirStyle = {
     textAlign: 'auto' as const,
@@ -49,6 +46,16 @@ export default function MyAdsScreen() {
   const [boostingId, setBoostingId] = useState<number | null>(null)
   const [noCreditsProduct, setNoCreditsProduct] = useState<Product | null>(null)
   const [buyingPack, setBuyingPack] = useState(false)
+  const [settings, setSettings] = useState<SiteSettings | null>(null)
+
+  useEffect(() => {
+    getSiteSettings().then(setSettings).catch(() => {})
+  }, [])
+
+  const limit = isStore
+    ? settings?.maxActiveProductsPerStore ?? 20
+    : settings?.maxProductsPerClient ?? 5
+  const fmt = (n: number) => n.toLocaleString(ar ? 'ar-EG' : 'en-EG')
 
   const load = useCallback(async () => {
     setError(null)
@@ -79,8 +86,11 @@ export default function MyAdsScreen() {
     }
   }, [products])
 
-  const usagePct = Math.min(100, Math.round((stats.total / limit) * 100))
-  const isAtLimit = stats.total >= limit
+  const usedForLimit = isStore ? stats.active : stats.total
+  const usagePct = isStorePlus
+    ? 0
+    : Math.min(100, Math.round((usedForLimit / limit) * 100))
+  const isAtLimit = !isStorePlus && usedForLimit >= limit
 
   function confirmDelete(id: number) {
     Alert.alert(
@@ -153,9 +163,13 @@ export default function MyAdsScreen() {
                 {ar ? 'إعلاناتي' : 'My Listings'}
               </Text>
               <Text style={[styles.summarySub, dirStyle]} numberOfLines={1}>
-                {ar
-                  ? `${stats.total} من ${limit} إعلان مستخدم`
-                  : `${stats.total} of ${limit} listings used`}
+                {isStorePlus
+                  ? ar
+                    ? `${fmt(stats.total)} من غير محدود ∞`
+                    : `${fmt(stats.total)} of Unlimited ∞`
+                  : ar
+                    ? `${fmt(usedForLimit)} من ${fmt(limit)}${isStore ? ' (نشط)' : ''}`
+                    : `${fmt(usedForLimit)} of ${fmt(limit)}${isStore ? ' (active)' : ''}`}
               </Text>
             </View>
             <Pressable
@@ -185,15 +199,17 @@ export default function MyAdsScreen() {
           </View>
 
           {/* Progress bar */}
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${usagePct}%` },
-                isAtLimit && { backgroundColor: colors.red },
-              ]}
-            />
-          </View>
+          {!isStorePlus && (
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${usagePct}%` },
+                  isAtLimit && { backgroundColor: colors.red },
+                ]}
+              />
+            </View>
+          )}
 
           {/* Stat chips */}
           <View style={[styles.statsRow, dirContainer]}>

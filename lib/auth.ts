@@ -82,13 +82,55 @@ export async function saveSession(
   await SecureStore.setItemAsync(KEY_USER, JSON.stringify(stored))
 }
 
+// Normalize a raw SecureStore blob to the current StoredUser shape. Older app
+// installs may have written a subset of fields (or fields of unexpected types);
+// if we render such a value directly, downstream components crash on the first
+// property access. Returns null when essentials (numeric id, non-empty type)
+// are missing, so the caller can force a fresh login.
+function normalizeStoredUser(raw: unknown): StoredUser | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+
+  const id = typeof r.id === 'number' ? r.id : Number(r.id)
+  if (!Number.isFinite(id) || id <= 0) return null
+
+  const type = typeof r.type === 'string' && r.type ? r.type : null
+  if (!type) return null
+
+  const phone = typeof r.phone === 'string' ? r.phone : null
+  const displayName =
+    typeof r.displayName === 'string' && r.displayName ? r.displayName : (phone ?? 'مستخدم')
+  const isStore =
+    typeof r.isStore === 'boolean'
+      ? r.isStore
+      : type === 'STORE' || type === 'store' || type === 'STORE_PLUS' || type === 'store_plus'
+
+  return { id, type, phone, displayName, isStore }
+}
+
 export async function getStoredUser(): Promise<StoredUser | null> {
+  let raw: string | null = null
   try {
-    const raw = await SecureStore.getItemAsync(KEY_USER)
-    return raw ? (JSON.parse(raw) as StoredUser) : null
+    raw = await SecureStore.getItemAsync(KEY_USER)
   } catch {
     return null
   }
+  if (!raw) return null
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    await SecureStore.deleteItemAsync(KEY_USER).catch(() => {})
+    return null
+  }
+
+  const normalized = normalizeStoredUser(parsed)
+  if (!normalized) {
+    await SecureStore.deleteItemAsync(KEY_USER).catch(() => {})
+    return null
+  }
+  return normalized
 }
 
 export async function updateStoredDisplayName(displayName: string): Promise<void> {

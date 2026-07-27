@@ -93,7 +93,8 @@ export default function ForgotScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
+      enabled={Platform.OS === 'ios'}
     >
       {/* Navy hero */}
       <View style={styles.hero}>

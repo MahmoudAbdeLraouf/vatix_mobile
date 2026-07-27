@@ -1,9 +1,7 @@
 import React, { useState } from 'react'
 import {
   Alert,
-  KeyboardAvoidingView,
   Linking,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -199,10 +197,6 @@ export default function SettingsScreen() {
 
   return (
     <DashboardLayout title={t.settings}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
         <Text style={[styles.h2, dirStyle]}>
           {ar ? 'الإعدادات ⚙️' : 'Settings ⚙️'}
         </Text>
@@ -220,7 +214,7 @@ export default function SettingsScreen() {
               pressed && { opacity: 0.85 },
             ]}
           >
-            <Text style={styles.flag}>🇸🇦</Text>
+            <Text style={styles.flag}>🇪🇬</Text>
             <Text
               style={[styles.langLabel, locale === 'ar' && styles.langLabelActive]}
             >
@@ -465,7 +459,6 @@ export default function SettingsScreen() {
             }
           />
         </View>
-      </KeyboardAvoidingView>
     </DashboardLayout>
   )
 }

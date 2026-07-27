@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Text,
   View,
@@ -95,10 +93,7 @@ export default function ProfileScreen() {
 
   return (
     <DashboardLayout title={t.profile}>
-      <KeyboardAvoidingView
-        style={[{ flex: 1 }, dirContainer]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <View style={[{ flex: 1 }, dirContainer]}>
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={colors.y} size="large" />
@@ -279,7 +274,7 @@ export default function ProfileScreen() {
             </View>
           </View>
         )}
-      </KeyboardAvoidingView>
+      </View>
     </DashboardLayout>
   )
 }

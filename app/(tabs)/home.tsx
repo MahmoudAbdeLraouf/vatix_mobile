@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  Animated,
   Dimensions,
   FlatList,
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -523,33 +523,6 @@ export default function HomeScreen() {
   const [activePromo, setActivePromo] = useState(0)
   const [heroQuery, setHeroQuery] = useState('')
 
-  const scrollY = useRef(new Animated.Value(0)).current
-  const collapseOpacity = scrollY.interpolate({
-    inputRange: [30, 140],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  })
-  const heroTextMaxHeight = scrollY.interpolate({
-    inputRange: [30, 140],
-    outputRange: [200, 0],
-    extrapolate: 'clamp',
-  })
-  const heroStatsMaxHeight = scrollY.interpolate({
-    inputRange: [30, 140],
-    outputRange: [80, 0],
-    extrapolate: 'clamp',
-  })
-  const heroTextMarginTop = scrollY.interpolate({
-    inputRange: [30, 140],
-    outputRange: [0, -spacing.sm],
-    extrapolate: 'clamp',
-  })
-  const heroStatsMarginTop = scrollY.interpolate({
-    inputRange: [30, 140],
-    outputRange: [spacing.md, 0],
-    extrapolate: 'clamp',
-  })
-
   useEffect(() => {
     Promise.all([
       getFeaturedStores().catch(() => [] as Store[]),
@@ -605,135 +578,109 @@ export default function HomeScreen() {
       style={[styles.safe, { direction: isRtl ? 'rtl' : 'ltr' }]}
       edges={['top']}
     >
-      {/* Header — mirrors website .hero */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <Logo size="sm" light />
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
-            >
-              <Ionicons name="globe-outline" size={20} color={colors.white} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => router.push('/dashboard/notifications')}
-            >
-              <Ionicons name="notifications-outline" size={22} color={colors.white} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => router.push('/dashboard/messages')}
-            >
-              <Ionicons name="chatbubble-outline" size={22} color={colors.white} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <Animated.View
-          style={{
-            opacity: collapseOpacity,
-            maxHeight: heroTextMaxHeight,
-            marginTop: heroTextMarginTop,
-            overflow: 'hidden',
-          }}
-        >
-          {user?.displayName && (
-            <Text
-              style={[
-                styles.greeting,
-                { textAlign: 'auto', writingDirection: isRtl ? 'rtl' : 'ltr' },
-              ]}
-            >
-              {t.welcomeBack}, {user.displayName} 👋
-            </Text>
-          )}
-
-          {/* h1 */}
-          <Text
-            style={[
-              styles.heroTitle,
-              { textAlign: 'auto', writingDirection: isRtl ? 'rtl' : 'ltr' },
-            ]}
-          >
-            {t.heroTitle}
-          </Text>
-          <Text
-            style={[
-              styles.heroSub,
-              { textAlign: 'auto', writingDirection: isRtl ? 'rtl' : 'ltr' },
-            ]}
-          >
-            {t.heroSub}
-          </Text>
-        </Animated.View>
-
-        {/* .hsearch */}
-        <View style={styles.hsearch}>
-          <TextInput
-            value={heroQuery}
-            onChangeText={setHeroQuery}
-            placeholder={t.heroSearchPlaceholder}
-            placeholderTextColor={colors.g400}
-            style={[styles.hsearchInput, { textAlign: isRtl ? 'right' : 'left' }]}
-            returnKeyType="search"
-            onSubmitEditing={submitHeroSearch}
-          />
+      {/* Persistent top bar — icon row only */}
+      <View style={styles.topBar}>
+        <Logo size="sm" light />
+        <View style={styles.headerActions}>
           <TouchableOpacity
-            style={styles.hsearchBtn}
-            activeOpacity={0.85}
-            onPress={submitHeroSearch}
+            style={styles.iconBtn}
+            onPress={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
           >
-            <Text style={styles.hsearchBtnText}>{t.heroSearchBtn}</Text>
+            <Ionicons name="globe-outline" size={20} color={colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => router.push('/dashboard/notifications')}
+          >
+            <Ionicons name="notifications-outline" size={22} color={colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => router.push('/dashboard/messages')}
+          >
+            <Ionicons name="chatbubble-outline" size={22} color={colors.white} />
           </TouchableOpacity>
         </View>
-
-        {/* .hstats */}
-        <Animated.View
-          style={[
-            styles.hstats,
-            {
-              opacity: collapseOpacity,
-              maxHeight: heroStatsMaxHeight,
-              marginTop: heroStatsMarginTop,
-              overflow: 'hidden',
-            },
-          ]}
-        >
-          <View style={styles.hstat}>
-            <Text style={styles.hstatNum}>{roundedAds > 0 ? `${roundedAds}+` : '—'}</Text>
-            <Text style={styles.hstatLabel}>{t.activeAds}</Text>
-          </View>
-          <View style={styles.hstatDivider} />
-          <View style={styles.hstat}>
-            <Text style={styles.hstatNum}>{storesStat}+</Text>
-            <Text style={styles.hstatLabel}>{t.verifiedStoresLabel}</Text>
-          </View>
-          <View style={styles.hstatDivider} />
-          <View style={styles.hstat}>
-            <Text style={styles.hstatNum}>2K+</Text>
-            <Text style={styles.hstatLabel}>{t.usersLabel}</Text>
-          </View>
-        </Animated.View>
       </View>
 
-      <View style={styles.content}>
       {loading ? (
-        <View style={styles.center}>
+        <View style={[styles.center, { backgroundColor: colors.dk }]}>
           <ActivityIndicator color={colors.y} size="large" />
         </View>
       ) : (
-        <Animated.ScrollView
+        <ScrollView
+          style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false },
-          )}
-          scrollEventThrottle={16}
         >
+          {/* Hero card — scrolls off with content */}
+          <View style={styles.heroCard}>
+            {user?.displayName && (
+              <Text
+                style={[
+                  styles.greeting,
+                  { textAlign: 'auto', writingDirection: isRtl ? 'rtl' : 'ltr' },
+                ]}
+              >
+                {t.welcomeBack}, {user.displayName} 👋
+              </Text>
+            )}
 
+            <Text
+              style={[
+                styles.heroTitle,
+                { textAlign: 'auto', writingDirection: isRtl ? 'rtl' : 'ltr' },
+              ]}
+            >
+              {t.heroTitle}
+            </Text>
+            <Text
+              style={[
+                styles.heroSub,
+                { textAlign: 'auto', writingDirection: isRtl ? 'rtl' : 'ltr' },
+              ]}
+            >
+              {t.heroSub}
+            </Text>
+
+            <View style={styles.hsearch}>
+              <TextInput
+                value={heroQuery}
+                onChangeText={setHeroQuery}
+                placeholder={t.heroSearchPlaceholder}
+                placeholderTextColor={colors.g400}
+                style={[styles.hsearchInput, { textAlign: isRtl ? 'right' : 'left' }]}
+                returnKeyType="search"
+                onSubmitEditing={submitHeroSearch}
+              />
+              <TouchableOpacity
+                style={styles.hsearchBtn}
+                activeOpacity={0.85}
+                onPress={submitHeroSearch}
+              >
+                <Text style={styles.hsearchBtnText}>{t.heroSearchBtn}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.hstats}>
+              <View style={styles.hstat}>
+                <Text style={styles.hstatNum}>{roundedAds > 0 ? `${roundedAds}+` : '—'}</Text>
+                <Text style={styles.hstatLabel}>{t.activeAds}</Text>
+              </View>
+              <View style={styles.hstatDivider} />
+              <View style={styles.hstat}>
+                <Text style={styles.hstatNum}>{storesStat}+</Text>
+                <Text style={styles.hstatLabel}>{t.verifiedStoresLabel}</Text>
+              </View>
+              <View style={styles.hstatDivider} />
+              <View style={styles.hstat}>
+                <Text style={styles.hstatNum}>2K+</Text>
+                <Text style={styles.hstatLabel}>{t.usersLabel}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.content}>
           {/* Promo Carousel */}
           <View style={styles.promoSection}>
             <FlatList
@@ -852,9 +799,9 @@ export default function HomeScreen() {
             </Section>
           )}
 
-        </Animated.ScrollView>
+          </View>
+        </ScrollView>
       )}
-      </View>
     </SafeAreaView>
   )
 }
@@ -863,25 +810,31 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.dk },
-  content: {
+  scrollView: {
     flex: 1,
+    backgroundColor: colors.dk,
+  },
+  content: {
     backgroundColor: colors.g100,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    overflow: 'hidden',
+    paddingBottom: spacing.xl,
   },
 
-  header: {
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.dk,
+  },
+  heroCard: {
     backgroundColor: colors.dk,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
     gap: spacing.sm,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.sm,
   },
   headerActions: {
     flexDirection: 'row',
@@ -988,7 +941,7 @@ const styles = StyleSheet.create({
   },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scroll: { paddingBottom: spacing.xl },
+  scroll: {},
 
   promoSection: {
     marginTop: spacing.lg,
