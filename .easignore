@@ -1,9 +1,50 @@
-# Extends .gitignore for EAS Build tarball uploads.
-# Keep this in sync when adding local-only artifacts.
+# EAS Build tarball exclusions.
+# NOTE: when this file exists, EAS Build ignores .gitignore entirely,
+# so it must mirror every exclusion needed for the upload.
 
-# Local env files (secrets should live in EAS envs, not the tarball)
+# dependencies (EAS reinstalls from package-lock.json)
+node_modules/
+
+# Expo caches / build output
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native (EAS runs `expo prebuild` — do not ship local native folders)
+/ios
+/android
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Firebase / FCM (google-services.json IS committed and needed — see .gitignore override)
+GoogleService-Info.plist
+*service-account*.json
+*firebase-adminsdk*.json
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files (secrets belong in EAS env config, not the tarball)
 .env
 .env.*
+
+# typescript
+*.tsbuildinfo
 
 # Prior release artifacts kept locally for reference
 *.aab
