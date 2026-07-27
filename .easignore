@@ -1,0 +1,16 @@
+# Extends .gitignore for EAS Build tarball uploads.
+# Keep this in sync when adding local-only artifacts.
+
+# Local env files (secrets should live in EAS envs, not the tarball)
+.env
+.env.*
+
+# Prior release artifacts kept locally for reference
+*.aab
+*.apk
+
+# Play Store submission workspace (metadata, listing assets)
+play-store/
+
+# Marketing / device screenshots
+screenshots/
