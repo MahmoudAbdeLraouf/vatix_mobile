@@ -25,6 +25,7 @@ import {
   Product,
 } from '@/lib/api'
 import { ProductCard } from '@/components/ProductCard'
+import { MessagesBell } from '@/components/MessagesBell'
 import { CategoryBar } from '@/components/CategoryBar'
 import { FilterCombobox, ComboOption } from '@/components/FilterCombobox'
 import { trackSearch } from '@/lib/analytics'
@@ -53,7 +54,6 @@ export default function ProductsScreen() {
   const [maxPrice, setMaxPrice] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalListings, setTotalListings] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -108,7 +108,6 @@ export default function ProductsScreen() {
         })
         setProducts(prev => (p === 1 ? res.items : [...prev, ...res.items]))
         setTotalPages(res.meta.pages)
-        setTotalListings(res.meta.total)
         if (p === 1 && q.trim()) trackSearch(q, res.meta.total === 0)
       } catch (e) {
         if (p === 1) {
@@ -155,7 +154,6 @@ export default function ProductsScreen() {
   const hasActiveFilters = activeFilterCount > 0
   const filtersLabel = locale === 'ar' ? 'الفلاتر' : 'Filters'
   const resetLabel = locale === 'ar' ? 'مسح الكل' : 'Clear all'
-  const listingsLabel = locale === 'ar' ? 'إعلان' : 'listings'
   const resultsForLabel = locale === 'ar' ? 'نتائج' : 'Results for'
 
   function resetFilters() {
@@ -181,12 +179,6 @@ export default function ProductsScreen() {
           </Text>
         ) : null}
         <View style={styles.heroMetaRow}>
-          <View style={styles.countPill}>
-            <Text style={styles.countPillIcon}>📦</Text>
-            <Text style={styles.countPillText}>
-              {totalListings.toLocaleString()} {listingsLabel}
-            </Text>
-          </View>
           <TouchableOpacity
             style={styles.postAdBtn}
             onPress={() => router.push('/products/add')}
@@ -344,12 +336,7 @@ export default function ProductsScreen() {
             >
               <Ionicons name="globe-outline" size={20} color={colors.white} />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => router.push('/dashboard/messages')}
-            >
-              <Ionicons name="chatbubble-outline" size={20} color={colors.white} />
-            </TouchableOpacity>
+            <MessagesBell color={colors.white} size={20} style={styles.iconBtn} />
             <TouchableOpacity
               style={styles.iconBtn}
               onPress={() => router.push('/dashboard/notifications')}
@@ -501,27 +488,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.sm,
     flexWrap: 'wrap',
-  },
-  // Listings count pill — yl bg + y border + dk text, matches website's yellow chip.
-  countPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 7,
-    borderRadius: radius.full,
-    backgroundColor: colors.yl,
-    borderWidth: 1,
-    borderColor: colors.y,
-  },
-  countPillIcon: {
-    fontSize: 12,
-  },
-  countPillText: {
-    fontFamily: fonts.extraBold,
-    fontSize: 12,
-    color: colors.dk,
-    letterSpacing: 0.2,
   },
   postAdBtn: {
     flexDirection: 'row',

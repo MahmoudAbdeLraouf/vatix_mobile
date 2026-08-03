@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as Notifications from 'expo-notifications'
@@ -7,10 +7,19 @@ import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
 import { authFetch } from '@/lib/auth'
-import type { Notification } from '@/lib/api'
 import { colors, fonts, radius } from '@/constants/theme'
 
-export function NotificationBell() {
+interface MessagesBellProps {
+  color?: string
+  size?: number
+  style?: ViewStyle
+}
+
+export function MessagesBell({
+  color = colors.dk,
+  size = 22,
+  style,
+}: MessagesBellProps) {
   const { isAuthenticated } = useAuth()
   const { t } = useLocale()
   const { requireLogin } = useLoginGate()
@@ -23,9 +32,9 @@ export function NotificationBell() {
     }
     let cancelled = false
     const load = async () => {
-      const data = await authFetch<Notification[]>('/notifications')
-      if (cancelled || !data) return
-      setUnread(data.filter((n) => !n.isRead).length)
+      const res = await authFetch<{ count: number }>('/conversations/unread-count')
+      if (cancelled || !res) return
+      setUnread(res.count ?? 0)
     }
     load()
     const id = setInterval(load, 30_000)
@@ -41,20 +50,21 @@ export function NotificationBell() {
   }, [isAuthenticated])
 
   const label = unread > 9 ? '9+' : String(unread)
+  const wrapSize = { width: size, height: size }
 
   return (
     <Pressable
       onPress={() => {
         if (!requireLogin()) return
-        router.push('/dashboard/notifications')
+        router.push('/dashboard/messages')
       }}
       hitSlop={8}
       accessibilityRole="button"
-      accessibilityLabel={t.notifications}
-      style={styles.btn}
+      accessibilityLabel={t.messages}
+      style={[styles.btn, style]}
     >
-      <View style={styles.iconWrap}>
-        <Ionicons name="notifications-outline" size={22} color={colors.dk} />
+      <View style={[styles.iconWrap, wrapSize]}>
+        <Ionicons name="chatbubble-outline" size={size} color={color} />
         {unread > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText} numberOfLines={1}>
@@ -75,20 +85,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Wrap the glyph so the badge anchors to the 22px icon, not the 36px hit area.
+  // Wrap the glyph so the badge anchors to the icon, not the 36px hit area.
   iconWrap: {
-    width: 22,
-    height: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Bell glyph tapers at the top-right corner (unlike the chat bubble), so the
-  // shared -6/-8 offset used for the messages badge reads as detached here.
-  // Nudge closer so the badge sits on the bell's shoulder.
   badge: {
     position: 'absolute',
-    top: -3,
-    end: -4,
+    top: -6,
+    end: -8,
     minWidth: 16,
     height: 16,
     paddingHorizontal: 4,

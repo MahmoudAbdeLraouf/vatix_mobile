@@ -40,6 +40,10 @@ export function ProductCard({ product, style, variant = 'grid' }: ProductCardPro
   const storeName = owner?.storeProfile?.name
   const ownerIcon = isStorePlus ? '⭐' : isStore ? '🏪' : null
 
+  const ratingsCount = product.ratingsCount ?? 0
+  const avgRating = product.averageRating ?? 0
+  const hasRating = ratingsCount > 0
+
   return (
     <Pressable
       style={({ pressed }) => [
@@ -84,21 +88,23 @@ export function ProductCard({ product, style, variant = 'grid' }: ProductCardPro
           {product.title}
         </Text>
 
-        <Text style={[styles.category, textDirStyle]} numberOfLines={1}>
-          {categoryName}
-        </Text>
+        <View style={styles.metaRow}>
+          <Text style={[styles.category, textDirStyle]} numberOfLines={1}>
+            {categoryName}
+          </Text>
+          {hasRating ? (
+            <View style={styles.ratingPill}>
+              <Text style={styles.ratingStar}>★</Text>
+              <Text style={styles.ratingValue}>{avgRating.toFixed(1)}</Text>
+              <Text style={styles.ratingCount}>({ratingsCount})</Text>
+            </View>
+          ) : null}
+        </View>
 
         {storeName ? (
-          <View style={[styles.storeTag, isStorePlus && styles.storeTagPlus]}>
-            {ownerIcon ? (
-              <Text style={[styles.storeIcon, isStorePlus && styles.storeIconPlus]}>
-                {ownerIcon}
-              </Text>
-            ) : null}
-            <Text
-              style={[styles.storeText, isStorePlus && styles.storeTextPlus, textDirStyle]}
-              numberOfLines={1}
-            >
+          <View style={styles.storeRow}>
+            {ownerIcon ? <Text style={styles.storeIcon}>{ownerIcon}</Text> : null}
+            <Text style={[styles.storeName, textDirStyle]} numberOfLines={1}>
               {storeName}
             </Text>
           </View>
@@ -141,7 +147,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    aspectRatio: 4 / 3,
+    aspectRatio: 1,
     backgroundColor: colors.g200,
   },
   // Category-icon fallback: neutral g100 bg + soft g400 glyph — reads as a clean
@@ -193,39 +199,52 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
     color: colors.g500,
+    flexShrink: 1,
   },
-  // Store pill: neutral chip for stores, yl+yd for store_plus (matches .prod-tag-plus).
-  storeTag: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  ratingStar: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.y,
+  },
+  ratingValue: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.dk,
+  },
+  ratingCount: {
+    fontFamily: fonts.regular,
+    fontSize: 10,
+    lineHeight: 15,
+    color: colors.g500,
+  },
+  storeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-    backgroundColor: colors.g100,
-    maxWidth: '100%',
     marginTop: 1,
   },
-  storeTagPlus: {
-    backgroundColor: colors.yl,
-  },
   storeIcon: {
-    fontSize: 10,
-    color: colors.g600,
+    fontSize: 11,
+    lineHeight: 15,
   },
-  storeIconPlus: {
-    color: colors.yd,
-  },
-  storeText: {
-    flexShrink: 1,
+  storeName: {
     fontFamily: fonts.semiBold,
-    fontSize: 10,
-    color: colors.g700,
-  },
-  storeTextPlus: {
-    fontFamily: fonts.extraBold,
-    color: colors.yd,
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.dk,
+    flexShrink: 1,
   },
   price: {
     fontFamily: fonts.black,

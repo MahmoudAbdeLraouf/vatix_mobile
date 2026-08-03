@@ -44,3 +44,16 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+vatix-fcm-service-account.json
+
+# env
+.env
+
+# build artifacts
+*.aab
+*.apk
+build*.log
+
+# local-only assets
+screenshots/
+play-store/

@@ -189,7 +189,7 @@ async function _doRefresh(): Promise<boolean> {
   try {
     const res = await fetch(`${BASE}/auth/refresh-token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Client-Platform': 'mobile' },
       body: JSON.stringify({ refreshToken }),
     })
     if (!res.ok) return false
@@ -224,6 +224,7 @@ export async function authFetch<T>(path: string, init?: RequestInit): Promise<T 
       ...init,
       headers: {
         'Content-Type': 'application/json',
+        'X-Client-Platform': 'mobile',
         Authorization: `Bearer ${token}`,
         ...(init?.headers as Record<string, string> | undefined),
       },
@@ -252,7 +253,11 @@ export async function authPost<T>(path: string, body: unknown): Promise<T> {
   }
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Client-Platform': 'mobile',
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(body),
   })
   if (res.status === 401) {
@@ -281,7 +286,11 @@ export async function authPatch<T>(path: string, body: unknown): Promise<T> {
   }
   const res = await fetch(`${BASE}${path}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Client-Platform': 'mobile',
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(body),
   })
   if (res.status === 401) {
@@ -308,7 +317,10 @@ export async function authDelete(path: string, body?: unknown): Promise<boolean>
     await clearSession()
     return false
   }
-  const headers: Record<string, string> = { Authorization: `Bearer ${token}` }
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    'X-Client-Platform': 'mobile',
+  }
   const init: RequestInit = { method: 'DELETE', headers }
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json'
@@ -326,6 +338,41 @@ export async function authDelete(path: string, body?: unknown): Promise<boolean>
   return res.ok || res.status === 204
 }
 
+// Same as authDelete but returns the parsed JSON body (or null on failure).
+// Use when the DELETE endpoint returns useful data (e.g. refreshed counters).
+export async function authDeleteJson<T>(path: string, body?: unknown): Promise<T | null> {
+  const token = await getValidToken()
+  if (!token) {
+    await clearSession()
+    return null
+  }
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    'X-Client-Platform': 'mobile',
+  }
+  const init: RequestInit = { method: 'DELETE', headers }
+  if (body !== undefined) {
+    headers['Content-Type'] = 'application/json'
+    init.body = JSON.stringify(body)
+  }
+  const res = await fetch(`${BASE}${path}`, init)
+  if (res.status === 401) {
+    const refreshed = await refreshAccessToken()
+    if (!refreshed) {
+      await clearSession()
+      return null
+    }
+    return authDeleteJson<T>(path, body)
+  }
+  if (!res.ok && res.status !== 204) return null
+  if (res.status === 204) return null
+  try {
+    return (await res.json()) as T
+  } catch {
+    return null
+  }
+}
+
 // ─── Delete account ──────────────────────────────────────────────────────────
 
 export async function deleteAccount(password: string): Promise<void> {
@@ -336,7 +383,11 @@ export async function deleteAccount(password: string): Promise<void> {
   }
   const res = await fetch(`${BASE}/user/account`, {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Client-Platform': 'mobile',
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({ password }),
   })
   if (res.status === 204) {
@@ -366,7 +417,7 @@ export async function authUploadFile(localUri: string, mimeType = 'image/jpeg'):
   try {
     const res = await fetch(`${BASE}/user/upload`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, 'X-Client-Platform': 'mobile' },
       body: formData,
     })
     if (!res.ok) return null
@@ -375,6 +426,14 @@ export async function authUploadFile(localUri: string, mimeType = 'image/jpeg'):
   } catch {
     return null
   }
+}
+
+// ─── Share tracking ──────────────────────────────────────────────────────────
+
+export type ShareChannel = 'native' | 'clipboard' | 'qr' | 'social' | 'unknown'
+
+export function logShare(targetType: 'store' | 'product', targetId: number, channel: ShareChannel): void {
+  authPost(`/shares/${targetType}/${targetId}`, { channel }).catch(() => {})
 }
 
 // ─── Background proactive refresh ────────────────────────────────────────────

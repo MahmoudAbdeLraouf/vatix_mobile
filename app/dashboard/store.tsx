@@ -32,6 +32,13 @@ export default function StoreInfoScreen() {
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
   const dirContainer = ar ? { direction: 'rtl' as const } : null
+  // Canonical RTL pattern (see settings.tsx / FileUpload.tsx): under inherited
+  // RTL, `textAlign: 'right'` double-flips. `textAlign: 'auto'` resolves to the
+  // start edge of the inherited direction, so text right-aligns in Arabic.
+  const dirStyle = {
+    writingDirection: ar ? ('rtl' as const) : ('ltr' as const),
+    textAlign: 'auto' as const,
+  }
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [locations, setLocations] = useState<LocationNode[]>([])
@@ -136,7 +143,7 @@ export default function StoreInfoScreen() {
           </View>
         ) : (
           <>
-            <Text style={[styles.pageHeading, { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' }]}>
+            <Text style={[styles.pageHeading, dirStyle]}>
               {ar ? 'معلومات المتجر 🏪' : 'Store Info 🏪'}
             </Text>
 
@@ -150,14 +157,11 @@ export default function StoreInfoScreen() {
               />
 
               <View style={styles.field}>
-                <Text style={[styles.label, { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' }]}>
+                <Text style={[styles.label, dirStyle]}>
                   {ar ? 'وصف المتجر' : 'Store Description'}
                 </Text>
                 <TextInput
-                  style={[
-                    styles.textarea,
-                    { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' },
-                  ]}
+                  style={[styles.textarea, dirStyle]}
                   value={description}
                   onChangeText={setDescription}
                   placeholder={
@@ -182,7 +186,7 @@ export default function StoreInfoScreen() {
 
               {isStorePlus && (
                 <View style={styles.field}>
-                  <Text style={[styles.label, { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' }]}>
+                  <Text style={[styles.label, dirStyle]}>
                     {ar ? 'رابط الموقع الخارجي' : 'External Website URL'}
                   </Text>
                   <TextInput
@@ -196,7 +200,7 @@ export default function StoreInfoScreen() {
                     autoCorrect={false}
                     keyboardType="url"
                   />
-                  <Text style={[styles.hint, { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' }]}>
+                  <Text style={[styles.hint, dirStyle]}>
                     {ar
                       ? 'اترك الحقل فارغاً لاستخدام صفحة المتجر الافتراضية من Vatix.'
                       : 'Leave blank to use your default Vatix-hosted store page.'}
@@ -254,7 +258,7 @@ export default function StoreInfoScreen() {
             </View>
 
             {/* Live preview */}
-            <Text style={[styles.previewHeading, { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' }]}>
+            <Text style={[styles.previewHeading, dirStyle]}>
               {ar ? 'معاينة المتجر' : 'STORE PREVIEW'}
             </Text>
             <View style={styles.previewCard}>
@@ -284,13 +288,13 @@ export default function StoreInfoScreen() {
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text
-                      style={[styles.previewName, { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' }]}
+                      style={[styles.previewName, dirStyle]}
                       numberOfLines={1}
                     >
                       {name || (ar ? 'اسم المتجر' : 'Store Name')}
                     </Text>
                     <Text
-                      style={[styles.previewBadge, { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' }]}
+                      style={[styles.previewBadge, dirStyle]}
                     >
                       {isStorePlus
                         ? '⭐ Store Plus'
@@ -302,7 +306,7 @@ export default function StoreInfoScreen() {
                 </View>
                 {description ? (
                   <Text
-                    style={[styles.previewDescription, { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' }]}
+                    style={[styles.previewDescription, dirStyle]}
                   >
                     {description.slice(0, 100)}
                     {description.length > 100 ? '...' : ''}

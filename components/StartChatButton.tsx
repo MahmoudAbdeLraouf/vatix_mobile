@@ -7,43 +7,35 @@ import {
   Text,
   ViewStyle,
 } from 'react-native'
-import { router, usePathname } from 'expo-router'
+import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
+import { useLoginGate } from '@/contexts/loginGate'
 import { authPost } from '@/lib/auth'
 import { ConversationListItem } from '@/lib/api'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 interface StartChatButtonProps {
   recipientId: number
   productId?: number
   label?: string
+  iconOnly?: boolean
   style?: ViewStyle
 }
 
-export function StartChatButton({ recipientId, productId, label, style }: StartChatButtonProps) {
-  const { isAuthenticated } = useAuth()
+export function StartChatButton({
+  recipientId,
+  productId,
+  label,
+  iconOnly,
+  style,
+}: StartChatButtonProps) {
   const { t } = useLocale()
-  const pathname = usePathname()
+  const { requireLogin } = useLoginGate()
   const [loading, setLoading] = useState(false)
 
   const start = async () => {
-    if (!isAuthenticated) {
-      Alert.alert(t.loginRequired, t.loginToAccess, [
-        { text: t.cancel, style: 'cancel' },
-        {
-          text: t.login,
-          onPress: () =>
-            router.push(
-              pathname && pathname.startsWith('/') && !pathname.startsWith('/(auth)')
-                ? { pathname: '/(auth)/login', params: { redirect: pathname } }
-                : '/(auth)/login',
-            ),
-        },
-      ])
-      return
-    }
+    if (!requireLogin()) return
     if (loading) return
     setLoading(true)
     try {
@@ -64,21 +56,28 @@ export function StartChatButton({ recipientId, productId, label, style }: StartC
     <Pressable
       onPress={start}
       disabled={loading}
-      style={({ pressed }) => [styles.btn, style, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [
+        styles.btn,
+        iconOnly && styles.btnIconOnly,
+        style,
+        pressed && { opacity: 0.85 },
+      ]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={colors.dk} />
+        <ActivityIndicator size="small" color={colors.white} />
       ) : (
         <>
           <Ionicons
             name="chatbubble-ellipses-outline"
-            size={18}
-            color={colors.dk}
-            style={styles.iconStart}
+            size={iconOnly ? 22 : 18}
+            color={colors.white}
+            style={iconOnly ? undefined : styles.iconStart}
           />
-          <Text style={styles.label} numberOfLines={1}>
-            {label ?? t.startChat}
-          </Text>
+          {!iconOnly && (
+            <Text style={styles.label} numberOfLines={1}>
+              {label ?? t.startChat}
+            </Text>
+          )}
         </>
       )}
     </Pressable>
@@ -90,13 +89,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
-    borderWidth: 1.5,
-    borderColor: colors.dk,
-    borderRadius: radius.md,
+    backgroundColor: colors.dk,
+    borderRadius: radius.lg,
     paddingVertical: 14,
     paddingHorizontal: spacing.md,
-    minHeight: 52,
+    minHeight: 56,
+    ...shadow.ss,
+  },
+  btnIconOnly: {
+    width: 56,
+    paddingHorizontal: 0,
   },
   iconStart: {
     marginEnd: 8,
@@ -104,6 +106,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.white,
   },
 })

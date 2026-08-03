@@ -15,6 +15,7 @@ import * as SecureStore from 'expo-secure-store'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import { BottomTabBar } from '@/components/BottomTabBar'
 import { MultiImageUpload, ImageItem } from '@/components/MultiImageUpload'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { Button } from '@/components/ui/Button'
@@ -294,7 +295,7 @@ export default function AddProductScreen() {
   }, [ar, brandId, categoryId, condition, description, images, limit, locationId, price, showPhone, t, title, uploading])
 
   return (
-    <DashboardLayout title={t.addProduct} scroll={false} contentPadding={false}>
+    <DashboardLayout title={t.addProduct} scroll={false} contentPadding={false} bottomBar={<BottomTabBar />}>
       <ScrollView
         ref={scrollRef}
         style={styles.flex}
@@ -337,11 +338,6 @@ export default function AddProductScreen() {
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${readyPct}%` }]} />
             </View>
-            <Text style={[styles.heroFoot, dirStyle]}>
-              {ar
-                ? `يمكنك نشر حتى ${limit} إعلانات`
-                : `You can publish up to ${limit} listings`}
-            </Text>
           </View>
 
           {/* Photos */}
@@ -697,12 +693,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: colors.y,
     borderRadius: 3,
-  },
-  heroFoot: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    color: colors.g400,
   },
 
   /* CARDS */

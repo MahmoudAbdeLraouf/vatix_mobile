@@ -2,8 +2,16 @@ const API = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 
 let visitCounted = false
 
+// Backend distinguishes web vs mobile traffic via X-Client-Platform (only the
+// literals 'web' | 'mobile' are accepted; anything else is stored as NULL).
+// Merge it into every tracking request so ProductView / StoreView / search /
+// homepage-view rows are attributed to the mobile client.
 function fireAndForget(url: string, init?: RequestInit) {
-  fetch(url, init).catch(() => {
+  const headers: Record<string, string> = {
+    'X-Client-Platform': 'mobile',
+    ...((init?.headers as Record<string, string> | undefined) ?? {}),
+  }
+  fetch(url, { ...init, headers }).catch(() => {
     // analytics failures are non-critical — swallow
   })
 }

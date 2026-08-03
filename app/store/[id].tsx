@@ -1,22 +1,29 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
+import { useLoginGate } from '@/contexts/loginGate'
 import {
   Branch,
+  ConversationListItem,
   getLocations,
   getStoreBranches,
   getStoreProducts,
@@ -27,13 +34,17 @@ import {
   Product,
   Store,
 } from '@/lib/api'
+import { authPost } from '@/lib/auth'
 import { trackStoreView } from '@/lib/analytics'
 import { FollowButton } from '@/components/FollowButton'
 import { ProductCard } from '@/components/ProductCard'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { colors, fonts, radius, spacing } from '@/constants/theme'
 
-const COVER_HEIGHT = 240
-const LOGO_SIZE = 100
+const COVER_HEIGHT = 180
+const LOGO_SIZE = 76
+// Threshold past which the sticky action row appears (approx hero height).
+const STICKY_THRESHOLD = 260
 
 type SocialKey = 'instagram' | 'facebook' | 'twitter' | 'tiktok' | 'youtube' | 'linkedin'
 
@@ -55,13 +66,20 @@ const SOCIAL_COLORS: Record<SocialKey, string> = {
   linkedin: '#0A66C2',
 }
 
+type TabKey = 'products' | 'about' | 'branches'
+
+type PhoneEntry = {
+  key: string
+  label: string
+  phone: string
+}
+
 export default function StoreDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { t, locale, isRtl, setLocale } = useLocale()
+  const { requireLogin } = useLoginGate()
   const insets = useSafeAreaInsets()
 
-  // Direction-aware text style — applied to every Text so Arabic reads RTL
-  // and English LTR even when the native I18nManager flag lags a hot switch.
   const dir = {
     writingDirection: (isRtl ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
     textAlign: 'auto' as const,
@@ -75,12 +93,32 @@ export default function StoreDetailScreen() {
   const [locs, setLocs] = useState<LocationNode[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
+  const [startingChat, setStartingChat] = useState(false)
+  const [descExpanded, setDescExpanded] = useState(false)
+  const [descTruncatable, setDescTruncatable] = useState(false)
+  const [activeTab, setActiveTab] = useState<TabKey>('products')
+  const [showStickyActions, setShowStickyActions] = useState(false)
+  const [phoneSheetOpen, setPhoneSheetOpen] = useState(false)
 
   const storeId = Number(id)
 
-  // Mirrors website: match title OR category name, case-insensitive.
-  // Must live before any early returns so hook order stays stable across
-  // loading → loaded transitions (Rules of Hooks).
+  const startChat = useCallback(async () => {
+    if (!requireLogin()) return
+    if (startingChat || !storeId) return
+    setStartingChat(true)
+    try {
+      const conv = await authPost<ConversationListItem>('/conversations', {
+        recipientId: storeId,
+      })
+      router.push(`/dashboard/messages/${conv.id}`)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      Alert.alert(t.startChat, msg)
+    } finally {
+      setStartingChat(false)
+    }
+  }, [requireLogin, startingChat, storeId, t])
+
   const filteredProducts = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return products
@@ -122,6 +160,12 @@ export default function StoreDetailScreen() {
     if (Number.isFinite(storeId) && storeId > 0) trackStoreView(storeId)
   }, [storeId])
 
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = e.nativeEvent.contentOffset.y
+    const next = y > STICKY_THRESHOLD
+    setShowStickyActions(prev => (prev === next ? prev : next))
+  }, [])
+
   if (loading) {
     return (
       <View style={styles.loadingWrap}>
@@ -142,20 +186,35 @@ export default function StoreDetailScreen() {
   const logo = imgUrl(storeProfile.logo)
   const cover = imgUrl(storeProfile.cover)
   const isStorePlus = store.type === 'store_plus'
+  const storeIdent = storeProfile.slug ?? store.id
+  const storePlusUrl = isStorePlus
+    ? storeProfile.websiteUrl || `https://vatix.store/s/${storeIdent}`
+    : null
 
   const socialLinks = (Object.keys(SOCIAL_ICONS) as SocialKey[]).filter(
     k => !!(storeProfile as unknown as Record<string, unknown>)[k],
   )
-  const hasSocial = socialLinks.length > 0 || !!storeProfile.websiteUrl
+  const showWebsiteInSocial = !!storeProfile.websiteUrl && !isStorePlus
+  const hasSocial = socialLinks.length > 0 || showWebsiteInSocial
 
-  // Store Plus branches: `general` rows are contact-only extra numbers,
-  // `branch` rows are physical locations that get translated via /locations.
   const generals = branches.filter(b => b.type === 'general')
   const branchList = branches.filter(b => b.type === 'branch')
   const locName = (lid: number | null) =>
     lid ? localeName(locs.find(l => l.id === lid)?.translations ?? [], locale) : null
 
-  // Mirror the website: `01x` → `+201x` → `wa.me/201x`.
+  // Consolidated phone list drives both the "Call" bottom sheet and the About
+  // tab list. Main phone leads, then labeled general lines, then branch lines.
+  const phoneEntries: PhoneEntry[] = []
+  if (store.phone) {
+    phoneEntries.push({ key: 'main', label: t.mainPhone, phone: store.phone })
+  }
+  generals.forEach(g => {
+    if (g.phone) phoneEntries.push({ key: `g-${g.id}`, label: g.name ?? t.phone, phone: g.phone })
+  })
+  branchList.forEach(b => {
+    if (b.phone) phoneEntries.push({ key: `b-${b.id}`, label: b.name ?? t.branches, phone: b.phone })
+  })
+
   const rawPhone = store.phone?.replace(/\s+/g, '') ?? null
   const waPhone = rawPhone
     ? rawPhone.startsWith('+')
@@ -166,11 +225,105 @@ export default function StoreDetailScreen() {
     : null
   const waLink = waPhone ? `https://wa.me/${waPhone}` : null
 
-  const contactLabel = locale === 'ar' ? 'معلومات التواصل' : 'Contact Info'
   const searchPlaceholder = locale === 'ar' ? 'ابحث في منتجات المتجر…' : 'Search store products…'
   const noMatchesText = locale === 'ar' ? 'لا توجد منتجات مطابقة لبحثك.' : 'No products match your search.'
+  const dotSeparator = ' · '
 
-  const ACTION_BAR_HEIGHT = 80 + Math.max(insets.bottom, spacing.md)
+  const TAB_BAR_HEIGHT = 62 + insets.bottom
+
+  // Single-tap Call — direct dial if one number, sheet if multiple.
+  const onCallPress = () => {
+    if (phoneEntries.length === 0) return
+    if (phoneEntries.length === 1) {
+      Linking.openURL(`tel:${phoneEntries[0].phone}`)
+      return
+    }
+    setPhoneSheetOpen(true)
+  }
+
+  const onSharePress = async () => {
+    try {
+      const url = storePlusUrl ?? `https://vatix.store/stores/${storeIdent}`
+      await Share.share({
+        message: `${storeProfile.name ?? ''}\n${url}`,
+        url,
+        title: storeProfile.name ?? '',
+      })
+    } catch {
+      // User dismissed share sheet — nothing to do.
+    }
+  }
+
+  const availableTabs: TabKey[] = ['products', 'about', ...(isStorePlus && branchList.length > 0 ? (['branches'] as TabKey[]) : [])]
+  const tabLabel: Record<TabKey, string> = {
+    products: t.storeProducts,
+    about: t.about,
+    branches: t.branches,
+  }
+
+  const canCall = phoneEntries.length > 0
+  const canWhats = !!waLink
+  const canWebsite = !!storePlusUrl
+
+  const renderActionPill = (
+    key: string,
+    icon: React.ComponentProps<typeof Ionicons>['name'],
+    label: string,
+    onPress: () => void,
+    opts: { primary?: boolean; iconColor?: string; disabled?: boolean; loading?: boolean } = {},
+  ) => (
+    <Pressable
+      key={key}
+      onPress={onPress}
+      disabled={opts.disabled}
+      style={({ pressed }) => [
+        styles.actionPill,
+        opts.primary && styles.actionPillPrimary,
+        pressed && styles.actionPillPressed,
+        opts.disabled && styles.actionPillDisabled,
+      ]}
+    >
+      <View style={[styles.actionIconWrap, opts.primary && styles.actionIconWrapPrimary]}>
+        {opts.loading ? (
+          <ActivityIndicator size="small" color={opts.primary ? colors.dk : colors.y} />
+        ) : (
+          <Ionicons
+            name={icon}
+            size={20}
+            color={opts.primary ? colors.dk : (opts.iconColor ?? colors.dk)}
+          />
+        )}
+      </View>
+      <Text
+        style={[styles.actionLabel, opts.primary && styles.actionLabelPrimary, dir]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
+
+  const actionRow = (
+    <View style={styles.actionRow}>
+      {renderActionPill('chat', 'chatbubbles', t.startChat, startChat, {
+        primary: true,
+        loading: startingChat,
+        disabled: startingChat,
+      })}
+      {canCall &&
+        renderActionPill('call', 'call', t.callSeller, onCallPress, {
+          iconColor: colors.y,
+        })}
+      {canWhats &&
+        renderActionPill('wa', 'logo-whatsapp', t.whatsappSeller, () => Linking.openURL(waLink!), {
+          iconColor: '#25D366',
+        })}
+      {canWebsite &&
+        renderActionPill('web', 'globe-outline', t.storeWebsite, () => Linking.openURL(storePlusUrl!), {
+          iconColor: colors.dk,
+        })}
+    </View>
+  )
 
   return (
     <View style={styles.root}>
@@ -184,21 +337,6 @@ export default function StoreDetailScreen() {
         <View style={styles.circle1} />
         <View style={styles.circle2} />
         <View style={styles.coverOverlay} />
-
-        {/* Type chip — floats above the card edge so the name area stays clean.
-            Reads against the dark cover thanks to the pill's own light bg. */}
-        <View style={styles.coverTypeBadge} pointerEvents="none">
-          {isStorePlus ? (
-            <View style={styles.plusPill}>
-              <Ionicons name="star" size={11} color={colors.dk} />
-              <Text style={[styles.plusPillText, dir]}>Store Plus</Text>
-            </View>
-          ) : (
-            <View style={styles.typePill}>
-              <Text style={[styles.typePillText, dir]}>{t.iAmStore}</Text>
-            </View>
-          )}
-        </View>
       </View>
 
       {/* Floating header */}
@@ -210,6 +348,11 @@ export default function StoreDetailScreen() {
 
           <View style={styles.headerSpacer} />
 
+          <FollowButton storeId={storeId} style={styles.headerFollowBtn} />
+
+          <Pressable style={styles.iconBtn} onPress={onSharePress} hitSlop={8}>
+            <Ionicons name="share-outline" size={20} color={colors.white} />
+          </Pressable>
           <Pressable
             style={styles.iconBtn}
             onPress={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
@@ -219,251 +362,251 @@ export default function StoreDetailScreen() {
           </Pressable>
           <Pressable
             style={styles.iconBtn}
-            onPress={() => router.push('/dashboard/notifications')}
+            onPress={() => {
+              if (!requireLogin()) return
+              router.push('/dashboard/notifications')
+            }}
             hitSlop={8}
           >
             <Ionicons name="notifications-outline" size={22} color={colors.white} />
           </Pressable>
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => router.push('/dashboard/messages')}
-            hitSlop={8}
-          >
-            <Ionicons name="chatbubble-outline" size={22} color={colors.white} />
-          </Pressable>
-
-          <FollowButton storeId={storeId} />
         </View>
       </SafeAreaView>
 
       {/* Scrollable content */}
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: ACTION_BAR_HEIGHT + spacing.lg }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: TAB_BAR_HEIGHT + spacing.lg }]}
         showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
-        <View style={{ height: COVER_HEIGHT - 32 }} />
+        <View style={{ height: COVER_HEIGHT - 40 }} />
 
         <View style={styles.card}>
           <View style={styles.handle} />
 
-          {/* Logo */}
-          <View style={styles.logoWrap}>
-            {logo ? (
-              <Image source={{ uri: logo }} style={styles.logo} resizeMode="cover" />
-            ) : (
-              <View style={[styles.logo, styles.logoFallback]}>
-                <Text style={[styles.logoInitial, dir]}>
-                  {(storeProfile.name?.charAt(0) ?? '?').toUpperCase()}
+          {/* Hero: logo + name column (follow lives up in the cover header) */}
+          <View style={styles.heroRow}>
+            <View style={styles.logoWrap}>
+              {logo ? (
+                <Image source={{ uri: logo }} style={styles.logo} resizeMode="cover" />
+              ) : (
+                <View style={[styles.logo, styles.logoFallback]}>
+                  <Text style={[styles.logoInitial, dir]}>
+                    {(storeProfile.name?.charAt(0) ?? '?').toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              {isStorePlus && (
+                <View style={styles.plusBadge}>
+                  <Ionicons name="star" size={10} color={colors.dk} />
+                </View>
+              )}
+            </View>
+
+            <View style={styles.heroTextCol}>
+              <View style={styles.nameRow}>
+                <Text style={[styles.storeName, dir]} numberOfLines={2}>
+                  {storeProfile.name ?? ''}
                 </Text>
               </View>
-            )}
-            {isStorePlus && (
-              <View style={styles.plusBadge}>
-                <Ionicons name="star" size={11} color={colors.dk} />
+              <View style={styles.metaRow}>
+                {isStorePlus && (
+                  <View style={styles.verifiedPill}>
+                    <Ionicons name="checkmark-circle" size={11} color={colors.y} />
+                    <Text style={[styles.verifiedText, dir]}>{t.storeTypeStorePlus}</Text>
+                  </View>
+                )}
+                <Text style={[styles.metaText, dir]} numberOfLines={1}>
+                  {[
+                    `${products.length} ${t.storeProducts}`,
+                    isStorePlus && branchList.length > 0 ? `${branchList.length} ${t.branches}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(dotSeparator)}
+                </Text>
               </View>
-            )}
+            </View>
           </View>
 
-          {/* Name */}
-          <Text style={[styles.storeName, dir]}>{storeProfile.name ?? ''}</Text>
-
-          {/* Description */}
+          {/* Description with expand/collapse */}
           {!!storeProfile.description && (
-            <Text style={[styles.description, dir]}>{storeProfile.description}</Text>
+            <View style={styles.descWrap}>
+              <Text
+                style={[styles.description, dir]}
+                numberOfLines={descExpanded ? undefined : 2}
+                onTextLayout={e => {
+                  if (!descTruncatable && e.nativeEvent.lines.length > 2) setDescTruncatable(true)
+                }}
+              >
+                {storeProfile.description}
+              </Text>
+              {descTruncatable && (
+                <Pressable
+                  onPress={() => setDescExpanded(v => !v)}
+                  hitSlop={6}
+                  style={styles.descToggleBtn}
+                >
+                  <Text style={[styles.descToggleText, dir]}>
+                    {descExpanded ? t.viewLess : t.viewMore}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
           )}
 
-          {/* Stats */}
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, dir]}>{products.length}</Text>
-              <Text style={[styles.statLabel, dir]}>{t.storeProducts}</Text>
-            </View>
-            {isStorePlus && (
-              <>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, dir]}>{branchList.length}</Text>
-                  <Text style={[styles.statLabel, dir]}>{t.branches}</Text>
-                </View>
-              </>
-            )}
+          {/* Primary action row */}
+          {actionRow}
+
+          {/* Segmented tabs */}
+          <View style={styles.tabsRow}>
+            {availableTabs.map(tab => {
+              const active = tab === activeTab
+              return (
+                <Pressable
+                  key={tab}
+                  style={[styles.tabBtn, active && styles.tabBtnActive]}
+                  onPress={() => setActiveTab(tab)}
+                >
+                  <Text style={[styles.tabLabel, active && styles.tabLabelActive, dir]}>
+                    {tabLabel[tab]}
+                  </Text>
+                </Pressable>
+              )
+            })}
           </View>
 
-          {/* Contact Info — main phone + store_plus generals + WhatsApp */}
-          {(!!store.phone || generals.length > 0 || !!waLink) && (
-            <View style={styles.contactSection}>
-              <View style={styles.contactHeader}>
-                <Ionicons name="call" size={14} color={colors.y} />
-                <Text style={[styles.contactHeaderText, dir]}>{contactLabel}</Text>
-              </View>
-
-              {!!store.phone && (
-                <Pressable
-                  style={styles.contactCard}
-                  onPress={() => Linking.openURL(`tel:${store.phone}`)}
-                >
-                  <View style={styles.contactIconWrap}>
-                    <Ionicons name="call-outline" size={18} color={colors.y} />
-                  </View>
-                  <Text style={[styles.contactText, dir]}>{store.phone}</Text>
-                  <Ionicons name={forwardIcon} size={16} color={colors.g400} />
-                </Pressable>
-              )}
-
-              {generals.map(g => (
-                <Pressable
-                  key={g.id}
-                  style={styles.contactCard}
-                  onPress={() => g.phone && Linking.openURL(`tel:${g.phone}`)}
-                  disabled={!g.phone}
-                >
-                  <View style={styles.contactIconWrap}>
-                    <Ionicons name="call-outline" size={18} color={colors.y} />
-                  </View>
-                  <View style={styles.contactTextWrap}>
-                    <Text style={[styles.contactLabel, dir]} numberOfLines={1}>{g.name}</Text>
-                    {!!g.phone && (
-                      <Text style={[styles.contactText, dir]} numberOfLines={1}>{g.phone}</Text>
-                    )}
-                  </View>
-                  {!!g.phone && (
-                    <Ionicons name={forwardIcon} size={16} color={colors.g400} />
-                  )}
-                </Pressable>
-              ))}
-
-              {!!waLink && (
-                <Pressable
-                  style={styles.contactCard}
-                  onPress={() => Linking.openURL(waLink)}
-                >
-                  <View style={styles.contactIconWrap}>
-                    <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-                  </View>
-                  <Text style={[styles.contactText, dir]}>{t.whatsapp}</Text>
-                  <Ionicons name={forwardIcon} size={16} color={colors.g400} />
-                </Pressable>
-              )}
-            </View>
-          )}
-
-          {/* Social links */}
-          {hasSocial && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.socialRow}
-              style={styles.socialScroll}
-            >
-              {socialLinks.map(key => {
-                const url = (storeProfile as unknown as Record<string, unknown>)[key] as string
-                const brandColor = SOCIAL_COLORS[key]
-                return (
-                  <Pressable
-                    key={key}
-                    style={[
-                      styles.socialBtn,
-                      { backgroundColor: brandColor + '12', borderColor: brandColor + '35' },
-                    ]}
-                    onPress={() => Linking.openURL(url)}
-                  >
-                    <Ionicons name={SOCIAL_ICONS[key]} size={20} color={brandColor} />
-                  </Pressable>
-                )
-              })}
-              {storeProfile.websiteUrl && (
-                <Pressable
-                  style={styles.socialBtn}
-                  onPress={() => Linking.openURL(storeProfile.websiteUrl!)}
-                >
-                  <Ionicons name="globe-outline" size={20} color={colors.dk} />
-                </Pressable>
-              )}
-            </ScrollView>
-          )}
-
-          {/* Section divider */}
-          <View style={styles.divider} />
-
-          {/* Products */}
-          <View style={styles.productsSection}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionAccent} />
-              <Text style={[styles.sectionTitle, dir]}>{t.storeProducts}</Text>
-              {filteredProducts.length > 0 && (
-                <View style={styles.countBadge}>
-                  <Text style={[styles.countBadgeText, dir]}>{filteredProducts.length}</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Store Plus mini-store search — mirrors website /s/[id] filter.
-                Regular stores don't get this control; keeps the plain store
-                page compact. */}
-            {isStorePlus && products.length > 0 && (
-              <View style={styles.searchWrap}>
-                <Ionicons name="search-outline" size={18} color={colors.g500} />
-                <TextInput
-                  style={[styles.searchInput, dir]}
-                  placeholder={searchPlaceholder}
-                  placeholderTextColor={colors.g400}
-                  value={query}
-                  onChangeText={setQuery}
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                  returnKeyType="search"
-                />
-                {query.length > 0 && (
-                  <Pressable
-                    style={styles.searchClearBtn}
-                    onPress={() => setQuery('')}
-                    hitSlop={8}
-                  >
-                    <Ionicons name="close-circle" size={18} color={colors.g500} />
-                  </Pressable>
-                )}
-              </View>
-            )}
-
-            {filteredProducts.length > 0 ? (
-              <FlatList
-                data={filteredProducts}
-                keyExtractor={p => String(p.id)}
-                numColumns={2}
-                scrollEnabled={false}
-                renderItem={({ item }) => (
-                  <ProductCard product={item} style={styles.productCard} />
-                )}
-                contentContainerStyle={styles.productGrid}
-                columnWrapperStyle={styles.productRow}
-              />
-            ) : (
-              <View style={styles.emptyProducts}>
-                <View style={styles.emptyIconWrap}>
-                  <Ionicons
-                    name={query ? 'search-outline' : 'cube-outline'}
-                    size={30}
-                    color={colors.y}
+          {/* Tab content */}
+          {activeTab === 'products' && (
+            <View style={styles.tabPanel}>
+              {products.length > 0 && (
+                <View style={styles.searchWrap}>
+                  <Ionicons name="search-outline" size={18} color={colors.g500} />
+                  <TextInput
+                    style={[styles.searchInput, dir]}
+                    placeholder={searchPlaceholder}
+                    placeholderTextColor={colors.g400}
+                    value={query}
+                    onChangeText={setQuery}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    returnKeyType="search"
                   />
+                  {query.length > 0 && (
+                    <Pressable style={styles.searchClearBtn} onPress={() => setQuery('')} hitSlop={8}>
+                      <Ionicons name="close-circle" size={18} color={colors.g500} />
+                    </Pressable>
+                  )}
                 </View>
-                <Text style={[styles.emptyText, dir]}>
-                  {query ? noMatchesText : t.noResults}
-                </Text>
-              </View>
-            )}
-          </View>
+              )}
 
-          {/* Branches — store_plus only (physical `branch` rows) */}
-          {isStorePlus && branchList.length > 0 && (
-            <View style={styles.branchesSection}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionAccent} />
-                <Text style={[styles.sectionTitle, dir]}>{t.branches}</Text>
-                <View style={styles.countBadge}>
-                  <Text style={[styles.countBadgeText, dir]}>{branchList.length}</Text>
+              {filteredProducts.length > 0 ? (
+                <FlatList
+                  data={filteredProducts}
+                  keyExtractor={p => String(p.id)}
+                  numColumns={2}
+                  scrollEnabled={false}
+                  renderItem={({ item }) => (
+                    <ProductCard product={item} style={styles.productCard} />
+                  )}
+                  contentContainerStyle={styles.productGrid}
+                  columnWrapperStyle={styles.productRow}
+                />
+              ) : (
+                <View style={styles.emptyState}>
+                  <View style={styles.emptyIconWrap}>
+                    <Ionicons
+                      name={query ? 'search-outline' : 'cube-outline'}
+                      size={30}
+                      color={colors.y}
+                    />
+                  </View>
+                  <Text style={[styles.emptyText, dir]}>
+                    {query ? noMatchesText : t.noResults}
+                  </Text>
                 </View>
-              </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === 'about' && (
+            <View style={styles.tabPanel}>
+              {!!storeProfile.description && (
+                <View style={styles.aboutBlock}>
+                  <Text style={[styles.aboutBlockTitle, dir]}>{t.about}</Text>
+                  <Text style={[styles.aboutBody, dir]}>{storeProfile.description}</Text>
+                </View>
+              )}
+
+              {phoneEntries.length > 0 && (
+                <View style={styles.aboutBlock}>
+                  <Text style={[styles.aboutBlockTitle, dir]}>{t.phone}</Text>
+                  <View style={styles.phoneList}>
+                    {phoneEntries.map(entry => (
+                      <Pressable
+                        key={entry.key}
+                        style={styles.contactCard}
+                        onPress={() => Linking.openURL(`tel:${entry.phone}`)}
+                      >
+                        <View style={styles.contactIconWrap}>
+                          <Ionicons name="call-outline" size={18} color={colors.y} />
+                        </View>
+                        <View style={styles.contactTextWrap}>
+                          <Text style={[styles.contactLabel, dir]} numberOfLines={1}>
+                            {entry.label}
+                          </Text>
+                          <Text style={[styles.contactText, dir]} numberOfLines={1}>
+                            {entry.phone}
+                          </Text>
+                        </View>
+                        <Ionicons name={forwardIcon} size={16} color={colors.g400} />
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {hasSocial && (
+                <View style={styles.aboutBlock}>
+                  <Text style={[styles.aboutBlockTitle, dir]}>{t.socialMedia}</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.socialRow}
+                  >
+                    {socialLinks.map(key => {
+                      const url = (storeProfile as unknown as Record<string, unknown>)[key] as string
+                      const brandColor = SOCIAL_COLORS[key]
+                      return (
+                        <Pressable
+                          key={key}
+                          style={[
+                            styles.socialBtn,
+                            { backgroundColor: brandColor + '12', borderColor: brandColor + '35' },
+                          ]}
+                          onPress={() => Linking.openURL(url)}
+                        >
+                          <Ionicons name={SOCIAL_ICONS[key]} size={20} color={brandColor} />
+                        </Pressable>
+                      )
+                    })}
+                    {showWebsiteInSocial && (
+                      <Pressable
+                        style={styles.socialBtn}
+                        onPress={() => Linking.openURL(storeProfile.websiteUrl!)}
+                      >
+                        <Ionicons name="globe-outline" size={20} color={colors.dk} />
+                      </Pressable>
+                    )}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === 'branches' && (
+            <View style={styles.tabPanel}>
               <View style={styles.branchList}>
                 {branchList.map(branch => {
                   const location = locName(branch.locationId)
@@ -504,33 +647,61 @@ export default function StoreDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Action bar */}
-      <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
-        {isStorePlus && storeProfile.websiteUrl ? (
-          <Pressable
-            style={styles.primaryBtn}
-            onPress={() => Linking.openURL(storeProfile.websiteUrl!)}
-          >
-            <Ionicons name="globe-outline" size={20} color={colors.dk} />
-            <Text style={[styles.primaryBtnText, dir]}>{t.storeWebsite}</Text>
-          </Pressable>
-        ) : store.whatsapp ? (
-          <Pressable
-            style={styles.primaryBtn}
-            onPress={() => Linking.openURL(`https://wa.me/${store.whatsapp?.replace(/\D/g, '')}`)}
-          >
-            <Ionicons name="logo-whatsapp" size={20} color={colors.dk} />
-            <Text style={[styles.primaryBtnText, dir]}>{t.contactStore}</Text>
-          </Pressable>
-        ) : null}
-        <Pressable
-          style={styles.secondaryBtn}
-          onPress={() => router.push('/dashboard/messages')}
-        >
-          <Ionicons name="chatbubble-outline" size={20} color={colors.g700} />
-          <Text style={[styles.secondaryBtnText, dir]}>{t.messages}</Text>
-        </Pressable>
+      {/* Sticky action row (appears once hero scrolls off) */}
+      {showStickyActions && (
+        <View style={[styles.stickyActionsWrap, { bottom: TAB_BAR_HEIGHT }]} pointerEvents="box-none">
+          <View style={styles.stickyActionsInner}>{actionRow}</View>
+        </View>
+      )}
+
+      {/* Sticky bottom tab bar */}
+      <View style={styles.tabBarAnchor}>
+        <BottomTabBar />
       </View>
+
+      {/* Phone chooser bottom sheet */}
+      <Modal
+        visible={phoneSheetOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPhoneSheetOpen(false)}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={() => setPhoneSheetOpen(false)}>
+          <Pressable
+            style={[styles.sheet, { paddingBottom: insets.bottom + spacing.md }]}
+            onPress={() => {}}
+          >
+            <View style={styles.sheetHandle} />
+            <Text style={[styles.sheetTitle, dir]}>{t.chooseNumber}</Text>
+            {phoneEntries.map(entry => (
+              <Pressable
+                key={entry.key}
+                style={styles.sheetItem}
+                onPress={() => {
+                  setPhoneSheetOpen(false)
+                  Linking.openURL(`tel:${entry.phone}`)
+                }}
+              >
+                <View style={styles.sheetIconWrap}>
+                  <Ionicons name="call" size={18} color={colors.y} />
+                </View>
+                <View style={styles.sheetTextWrap}>
+                  <Text style={[styles.sheetItemLabel, dir]} numberOfLines={1}>
+                    {entry.label}
+                  </Text>
+                  <Text style={[styles.sheetItemPhone, dir]} numberOfLines={1}>
+                    {entry.phone}
+                  </Text>
+                </View>
+                <Ionicons name={forwardIcon} size={16} color={colors.g400} />
+              </Pressable>
+            ))}
+            <Pressable style={styles.sheetCancel} onPress={() => setPhoneSheetOpen(false)}>
+              <Text style={[styles.sheetCancelText, dir]}>{t.close}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   )
 }
@@ -568,22 +739,22 @@ const styles = StyleSheet.create({
   },
   circle1: {
     position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
     backgroundColor: colors.y,
     opacity: 0.07,
-    top: -110,
+    top: -100,
     end: -70,
   },
   circle2: {
     position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     backgroundColor: colors.white,
     opacity: 0.04,
-    bottom: -50,
+    bottom: -60,
     start: -55,
   },
 
@@ -613,6 +784,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
   },
+  // Follow pill lives in the cover header so the store name below gets the full row.
+  // Match iconBtn height (40) and pull the label in tight to sit alongside the icons.
+  headerFollowBtn: {
+    height: 40,
+    paddingVertical: 0,
+    paddingHorizontal: spacing.md,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+
   // ── Scroll + card ────────────────────────────────────────────────────────────
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
@@ -640,24 +820,31 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 
-  // ── Logo ─────────────────────────────────────────────────────────────────────
-  logoWrap: {
-    alignSelf: 'center',
-    marginTop: -(LOGO_SIZE / 2 + spacing.sm),
+  // ── Hero row ─────────────────────────────────────────────────────────────────
+  // Inline layout replaces the old centered-avatar block. Logo + name column
+  // pack into ~120px vertical so the action row and products sit above the fold.
+  // The follow pill lives up in the cover header — see headerFollowBtn.
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginTop: -(LOGO_SIZE / 2),
     marginBottom: spacing.md,
-    position: 'relative',
   },
+  logoWrap: { position: 'relative' },
   logo: {
     width: LOGO_SIZE,
     height: LOGO_SIZE,
     borderRadius: LOGO_SIZE / 2,
-    borderWidth: 4,
+    borderWidth: 3,
     borderColor: colors.white,
+    backgroundColor: colors.g100,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 10,
+    shadowRadius: 12,
+    elevation: 8,
   },
   logoFallback: {
     backgroundColor: colors.dk,
@@ -666,143 +853,204 @@ const styles = StyleSheet.create({
   },
   logoInitial: {
     fontFamily: fonts.black,
-    fontSize: 36,
+    fontSize: 28,
     color: colors.y,
   },
   plusBadge: {
     position: 'absolute',
-    bottom: 3,
-    end: 1,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    bottom: 0,
+    end: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: colors.y,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2.5,
+    borderWidth: 2,
     borderColor: colors.white,
-    shadowColor: colors.y,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 4,
   },
-
-  // ── Name + badge ─────────────────────────────────────────────────────────────
-  storeName: {
-    fontFamily: fonts.black,
-    fontSize: 24,
-    color: colors.g900,
-    textAlign: 'center',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
+  heroTextCol: {
+    flex: 1,
+    gap: 4,
+    paddingTop: LOGO_SIZE / 2 - 12,
   },
-  // Anchored to the bottom-start of the cover so the chip sits just above
-  // the card's rounded edge, out of the way of the header buttons and logo.
-  coverTypeBadge: {
-    position: 'absolute',
-    bottom: 44,
-    start: spacing.lg,
-    zIndex: 5,
-  },
-  typePill: {
-    backgroundColor: colors.g100,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: colors.g200,
-  },
-  typePillText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 12,
-    color: colors.g600,
-  },
-  plusPill: {
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+  },
+  storeName: {
+    flex: 1,
+    fontFamily: fonts.black,
+    fontSize: 18,
+    lineHeight: 22,
+    color: colors.g900,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flexWrap: 'wrap',
+  },
+  verifiedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: colors.yl,
     borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
-    borderWidth: 1.5,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
     borderColor: colors.y,
   },
-  plusPillText: {
+  verifiedText: {
+    fontFamily: fonts.bold,
+    fontSize: 10,
+    color: colors.dk,
+  },
+  metaText: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.g500,
+    flexShrink: 1,
+  },
+
+  // ── Description ──────────────────────────────────────────────────────────────
+  descWrap: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    gap: 4,
+  },
+  description: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.g600,
+    lineHeight: 20,
+  },
+  descToggleBtn: { alignSelf: 'flex-start' },
+  descToggleText: {
     fontFamily: fonts.bold,
     fontSize: 12,
     color: colors.dk,
   },
 
-  // ── Description ──────────────────────────────────────────────────────────────
-  description: {
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    color: colors.g600,
-    lineHeight: 22,
-    textAlign: 'center',
-    paddingHorizontal: spacing.xl,
-    marginBottom: spacing.lg,
-  },
-
-  // ── Stats ────────────────────────────────────────────────────────────────────
-  statsRow: {
+  // ── Action pills ─────────────────────────────────────────────────────────────
+  // Compact vertical pills (icon + label). Equal flex keeps the row balanced
+  // whether the store has 2, 3, or 4 actions available.
+  actionRow: {
     flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  actionPill: {
+    flex: 1,
+    minHeight: 68,
+    borderRadius: radius.lg,
+    backgroundColor: colors.g100,
+    borderWidth: 1,
+    borderColor: colors.g200,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
+  actionPillPrimary: {
+    backgroundColor: colors.y,
+    borderColor: colors.y,
+    shadowColor: colors.y,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  actionPillPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  actionPillDisabled: {
+    opacity: 0.6,
+  },
+  actionIconWrap: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionIconWrapPrimary: {},
+  actionLabel: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.g700,
+    textAlign: 'center',
+  },
+  actionLabelPrimary: {
+    color: colors.dk,
+  },
+
+  // ── Tabs ─────────────────────────────────────────────────────────────────────
+  tabsRow: {
+    flexDirection: 'row',
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
     backgroundColor: colors.g100,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
+    borderRadius: radius.full,
+    padding: 4,
     borderWidth: 1,
     borderColor: colors.g200,
   },
-  statItem: {
+  tabBtn: {
     flex: 1,
+    paddingVertical: 10,
+    borderRadius: radius.full,
     alignItems: 'center',
-    gap: 2,
+    justifyContent: 'center',
   },
-  statValue: {
-    fontFamily: fonts.black,
-    fontSize: 22,
-    color: colors.y,
+  tabBtnActive: {
+    backgroundColor: colors.white,
+    shadowColor: '#062B5B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  statLabel: {
-    fontFamily: fonts.regular,
-    fontSize: 11,
+  tabLabel: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
     color: colors.g500,
   },
-  statDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: colors.g200,
+  tabLabelActive: {
+    fontFamily: fonts.bold,
+    color: colors.dk,
   },
+  tabPanel: {},
 
-  // ── Contact card ─────────────────────────────────────────────────────────────
-  contactSection: {
-    marginBottom: spacing.md,
+  // ── About tab ────────────────────────────────────────────────────────────────
+  aboutBlock: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
     gap: spacing.sm,
   },
-  contactHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.lg,
-    marginBottom: 2,
-  },
-  contactHeaderText: {
+  aboutBlockTitle: {
     fontFamily: fonts.bold,
-    fontSize: 12,
+    fontSize: 13,
     color: colors.g600,
     letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
+  aboutBody: {
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 22,
+    color: colors.g700,
+  },
+  phoneList: { gap: spacing.sm },
+
+  // ── Contact card (used in About tab phones) ─────────────────────────────────
   contactCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginHorizontal: spacing.lg,
     backgroundColor: colors.g100,
     borderRadius: radius.lg,
     paddingVertical: 12,
@@ -828,17 +1076,14 @@ const styles = StyleSheet.create({
     color: colors.g500,
   },
   contactText: {
-    flex: 1,
     fontFamily: fonts.semiBold,
     fontSize: 14,
     color: colors.g800,
   },
 
   // ── Social ───────────────────────────────────────────────────────────────────
-  socialScroll: { marginBottom: spacing.lg },
   socialRow: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
     gap: spacing.sm,
   },
   socialBtn: {
@@ -852,57 +1097,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ── Divider ──────────────────────────────────────────────────────────────────
-  divider: {
-    height: 8,
-    backgroundColor: colors.g100,
-    marginBottom: spacing.md,
-  },
-
-  // ── Section header ───────────────────────────────────────────────────────────
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  sectionAccent: {
-    width: 4,
-    height: 20,
-    borderRadius: 2,
-    backgroundColor: colors.y,
-  },
-  sectionTitle: {
-    fontFamily: fonts.bold,
-    fontSize: 16,
-    color: colors.g900,
-    flex: 1,
-  },
-  countBadge: {
-    backgroundColor: colors.yl,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    minWidth: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.y,
-  },
-  countBadgeText: {
-    fontFamily: fonts.bold,
-    fontSize: 11,
-    color: colors.dk,
-  },
-
   // ── Products ─────────────────────────────────────────────────────────────────
-  productsSection: {},
   productGrid: { paddingHorizontal: spacing.md },
   productRow: { gap: spacing.sm, marginBottom: spacing.sm },
   productCard: { flex: 1, width: undefined },
 
-  // Store Plus product search — quiet g100 chip so it disappears when idle
-  // and only asserts itself once the user starts typing.
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -928,8 +1127,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ── Empty state ──────────────────────────────────────────────────────────────
-  emptyProducts: {
+  // ── Empty ────────────────────────────────────────────────────────────────────
+  emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
@@ -950,7 +1149,6 @@ const styles = StyleSheet.create({
   },
 
   // ── Branches ─────────────────────────────────────────────────────────────────
-  branchesSection: { marginTop: spacing.md },
   branchList: {
     paddingHorizontal: spacing.lg,
     gap: spacing.sm,
@@ -1002,51 +1200,100 @@ const styles = StyleSheet.create({
     borderColor: colors.y,
   },
 
-  // ── Action bar ───────────────────────────────────────────────────────────────
-  actionBar: {
+  // ── Sticky action row ────────────────────────────────────────────────────────
+  stickyActionsWrap: {
+    position: 'absolute',
+    start: 0,
+    end: 0,
+    zIndex: 5,
+  },
+  stickyActionsInner: {
+    backgroundColor: colors.white,
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.g200,
+    shadowColor: '#062B5B',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+
+  // ── Tab bar anchor ───────────────────────────────────────────────────────────
+  tabBarAnchor: {
     position: 'absolute',
     bottom: 0,
     start: 0,
     end: 0,
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+  },
+
+  // ── Bottom sheet (phone chooser) ─────────────────────────────────────────────
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(6,43,91,0.45)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
     backgroundColor: colors.white,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.g200,
-    ...shadow.md,
+    borderTopStartRadius: 24,
+    borderTopEndRadius: 24,
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
-  primaryBtn: {
-    flex: 1,
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.g300,
+    alignSelf: 'center',
+    marginBottom: spacing.md,
+  },
+  sheetTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 16,
+    color: colors.g900,
+    marginBottom: spacing.md,
+  },
+  sheetItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.y,
-    borderRadius: radius.lg,
-    paddingVertical: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.g200,
   },
-  primaryBtnText: {
+  sheetIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.yl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  sheetItemLabel: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.g500,
+  },
+  sheetItemPhone: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.g900,
   },
-  secondaryBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
+  sheetCancel: {
+    marginTop: spacing.md,
+    paddingVertical: 12,
+    borderRadius: radius.full,
     backgroundColor: colors.g100,
-    borderRadius: radius.lg,
-    paddingVertical: 14,
-    borderWidth: 1.5,
-    borderColor: colors.g200,
+    alignItems: 'center',
   },
-  secondaryBtnText: {
+  sheetCancelText: {
     fontFamily: fonts.bold,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.g700,
   },
 })

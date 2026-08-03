@@ -20,6 +20,17 @@
         "EXPO_PUBLIC_API_URL": "https://api.vatix.store",
         "EXPO_PUBLIC_MINIO_URL": "https://cdn.vatix.store"
       }
+    },
+    "production-apk": {
+      "autoIncrement": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.vatix.store",
+        "EXPO_PUBLIC_MINIO_URL": "https://cdn.vatix.store"
+      }
     }
   },
   "submit": {

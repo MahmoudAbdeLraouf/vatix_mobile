@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
   ViewStyle,
 } from 'react-native'
-import { router, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
+import { useLoginGate } from '@/contexts/loginGate'
 import { authDelete, authFetch, authPost } from '@/lib/auth'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 
@@ -31,7 +30,7 @@ export function FollowButton({
 }: FollowButtonProps) {
   const { isAuthenticated } = useAuth()
   const { t } = useLocale()
-  const pathname = usePathname()
+  const { requireLogin } = useLoginGate()
   const [following, setFollowing] = useState<boolean>(!!initialFollowing)
   const [loading, setLoading] = useState<boolean>(false)
 
@@ -55,21 +54,7 @@ export function FollowButton({
   }, [isAuthenticated, storeId, initialFollowing])
 
   const toggle = async () => {
-    if (!isAuthenticated) {
-      Alert.alert(t.loginRequired, t.loginToAccess, [
-        { text: t.cancel, style: 'cancel' },
-        {
-          text: t.login,
-          onPress: () =>
-            router.push(
-              pathname && pathname.startsWith('/') && !pathname.startsWith('/(auth)')
-                ? { pathname: '/(auth)/login', params: { redirect: pathname } }
-                : '/(auth)/login',
-            ),
-        },
-      ])
-      return
-    }
+    if (!requireLogin()) return
     if (loading) return
     setLoading(true)
     const next = !following

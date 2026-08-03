@@ -38,6 +38,13 @@ export default function SocialScreen() {
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
   const dirContainer = ar ? { direction: 'rtl' as const } : null
+  // Canonical RTL pattern (see settings.tsx / FileUpload.tsx): under inherited
+  // RTL, `textAlign: 'right'` double-flips. `textAlign: 'auto'` resolves to the
+  // start edge of the inherited direction, so text right-aligns in Arabic.
+  const dirStyle = {
+    writingDirection: ar ? ('rtl' as const) : ('ltr' as const),
+    textAlign: 'auto' as const,
+  }
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -113,7 +120,7 @@ export default function SocialScreen() {
               <ActivityIndicator color={colors.y} size="large" />
             </View>
           ) : !profile?.storeProfile ? (
-            <View style={styles.card}>
+            <View style={[styles.card, dirContainer]}>
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyEmoji}>📱</Text>
                 <Text style={[styles.emptyText, { textAlign: 'center' }]}>
@@ -124,11 +131,11 @@ export default function SocialScreen() {
               </View>
             </View>
           ) : (
-            <View style={styles.card}>
-              <Text style={[styles.cardTitle, { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' }]}>
+            <View style={[styles.card, dirContainer]}>
+              <Text style={[styles.cardTitle, dirStyle]}>
                 {ar ? 'روابط التواصل الاجتماعي 📱' : 'Social Media Links 📱'}
               </Text>
-              <Text style={[styles.hint, { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' }]}>
+              <Text style={[styles.hint, dirStyle]}>
                 {ar
                   ? 'أضف روابط حساباتك على منصات التواصل الاجتماعي لتظهر في صفحة متجرك.'
                   : 'Add your social media profile links to display them on your store page.'}

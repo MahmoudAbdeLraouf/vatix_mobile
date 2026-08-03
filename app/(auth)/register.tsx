@@ -1,10 +1,20 @@
 import React from 'react'
-import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { SvgXml } from 'react-native-svg'
 import { Link, router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
+import { BottomTabBar } from '@/components/BottomTabBar'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { accountTypeXml } from '@/assets/auth/account-type'
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -18,7 +28,9 @@ interface AccountTypeCard {
 export default function RegisterScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
+  const { width } = useWindowDimensions()
   const dirStyle = { writingDirection: isRtl ? 'rtl' as const : 'ltr' as const }
+  const artSize = Math.min(width * 0.6, 220)
 
   const cards: AccountTypeCard[] = [
     {
@@ -78,6 +90,9 @@ export default function RegisterScreen() {
 
       {/* White card */}
       <View style={styles.card}>
+        <View style={styles.illustration}>
+          <SvgXml xml={accountTypeXml} width={artSize} height={artSize} />
+        </View>
         <View style={styles.cards}>
           {cards.map(item => (
             <Pressable
@@ -90,7 +105,7 @@ export default function RegisterScreen() {
               }
             >
               <View style={styles.typeIconWrap}>
-                <Ionicons name={item.icon} size={32} color={colors.dk} />
+                <Ionicons name={item.icon} size={22} color={colors.dk} />
               </View>
               <Text style={[styles.typeLabel, dirStyle]}>{item.label}</Text>
               {!!item.description && (
@@ -112,6 +127,8 @@ export default function RegisterScreen() {
           </Link>
         </View>
       </View>
+
+      <BottomTabBar />
     </SafeAreaView>
   )
 }
@@ -168,26 +185,32 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
 
+  illustration: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: spacing.lg,
+  },
+
   cards: {
     flexDirection: 'row',
     gap: spacing.md,
   },
   typeCard: {
     flex: 1,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-    borderWidth: 1.5,
-    borderColor: colors.g300,
-    ...shadow.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.g200,
+    ...shadow.ss,
   },
   typeIconWrap: {
-    width: 64,
-    height: 64,
+    width: 44,
+    height: 44,
     borderRadius: radius.full,
     backgroundColor: colors.yl,
     alignItems: 'center',
@@ -195,13 +218,13 @@ const styles = StyleSheet.create({
   },
   typeLabel: {
     fontFamily: fonts.bold,
-    fontSize: 15,
+    fontSize: 13,
     color: colors.dk,
     textAlign: 'center',
   },
   typeDesc: {
     fontFamily: fonts.regular,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.g500,
     textAlign: 'center',
   },

@@ -15,12 +15,14 @@ import {
   View,
 } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router, usePathname } from 'expo-router'
+import { Redirect, router, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as Notifications from 'expo-notifications'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
 import { Logo } from '@/components/ui/Logo'
+import { MessagesBell } from '@/components/MessagesBell'
 import { NotificationBell } from '@/components/NotificationBell'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -68,9 +70,10 @@ interface Props {
   children: React.ReactNode
   scroll?: boolean
   contentPadding?: boolean
+  bottomBar?: React.ReactNode
 }
 
-export function DashboardLayout({ title, children, scroll = true, contentPadding = true }: Props) {
+export function DashboardLayout({ title, children, scroll = true, contentPadding = true, bottomBar }: Props) {
   const { user, isAuthenticated, loading, logout } = useAuth()
   const { t, isRtl, locale, setLocale } = useLocale()
   const pathname = usePathname()
@@ -88,13 +91,6 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
   const drawerWidth = Math.min(320, width * 0.86)
 
   useEffect(() => {
-    if (loading) return
-    if (!isAuthenticated) {
-      router.replace('/(auth)/login')
-    }
-  }, [loading, isAuthenticated])
-
-  useEffect(() => {
     if (!isAuthenticated) {
       setUnread(0)
       return
@@ -106,9 +102,14 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
     }
     fetchUnread()
     const id = setInterval(fetchUnread, 30_000)
+    // Refresh immediately on foreground push arrival so the chat badge doesn't wait for the 30s poll.
+    const sub = Notifications.addNotificationReceivedListener(() => {
+      fetchUnread()
+    })
     return () => {
       cancelled = true
       clearInterval(id)
+      sub.remove()
     }
   }, [isAuthenticated])
 
@@ -163,11 +164,11 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
   const displayName = user?.displayName || t.profile
   const phone = user?.phone || ''
   const badge = isStorePlus
-    ? { text: 'Store Plus', bg: colors.y, fg: colors.dk }
+    ? { text: `⭐ ${t.storePlusPlan}`, bg: colors.y, fg: colors.dk }
     : isStore
-    ? { text: t.iAmStore ?? 'Store', bg: colors.dk, fg: colors.white }
+    ? { text: `🏪 ${t.storeTypeStore}`, bg: colors.dk, fg: colors.white }
     : isClient
-    ? { text: t.iAmClient ?? 'Client', bg: colors.g200, fg: colors.dk }
+    ? { text: locale === 'ar' ? '👤 مستخدم' : '👤 User', bg: colors.g200, fg: colors.dk }
     : { text: '', bg: 'transparent', fg: colors.dk }
 
   const translateX = drawerX.interpolate({
@@ -178,6 +179,9 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
     inputRange: [0, 1],
     outputRange: [0, 0.45],
   })
+
+  if (loading) return null
+  if (!isAuthenticated) return <Redirect href="/(auth)/login" />
 
   const Body = scroll ? (
     <ScrollView
@@ -219,22 +223,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
         </Pressable>
 
         <View style={styles.topRight}>
-          <Pressable
-            onPress={() => router.push('/dashboard/messages')}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t.messages}
-            style={styles.topIconBtn}
-          >
-            <Ionicons name="chatbubble-outline" size={22} color={colors.dk} />
-            {unread > 0 && (
-              <View style={styles.topBadge}>
-                <Text style={styles.topBadgeText} numberOfLines={1}>
-                  {unread > 9 ? '9+' : String(unread)}
-                </Text>
-              </View>
-            )}
-          </Pressable>
+          <MessagesBell />
           <Pressable
             onPress={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
             hitSlop={8}
@@ -266,6 +255,8 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
       >
         {Body}
       </KeyboardAvoidingView>
+
+      {bottomBar}
 
       {/* DRAWER */}
       <Modal
@@ -496,26 +487,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  topBadge: {
-    position: 'absolute',
-    top: -2,
-    end: -2,
-    minWidth: 16,
-    height: 16,
-    paddingHorizontal: 4,
-    borderRadius: radius.full,
-    backgroundColor: colors.red,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.white,
-  },
-  topBadgeText: {
-    fontFamily: fonts.bold,
-    fontSize: 9,
-    color: colors.white,
-    lineHeight: 12,
   },
   langCode: {
     position: 'absolute',

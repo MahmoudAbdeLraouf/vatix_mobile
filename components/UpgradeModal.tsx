@@ -271,12 +271,14 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
 
   // ─── Title ─────────────────────────────────────────────────────────────────
 
+  const currencyLabel = ar ? 'ج.م' : 'EGP'
+  const priceLabel = `${selectedPlan.amount} ${currencyLabel}`
   const title =
     mode === 'cancel-store'
       ? t.cancelStore
       : mode === 'upgrade-to-plus'
-        ? t.upgradeToStorePlus
-        : t.upgradeToStore
+        ? `${t.upgradeToStorePlus} · ${priceLabel}`
+        : `${t.upgradeToStore} · ${priceLabel}`
 
   return (
     <Modal
@@ -291,7 +293,12 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
           onPress={e => e.stopPropagation()}
         >
           <View style={[styles.sheetHeader, rowDir]}>
-            <Text style={styles.sheetTitle}>{title}</Text>
+            <Text
+              style={[styles.sheetTitle, { writingDirection: ar ? 'rtl' : 'ltr' }]}
+              numberOfLines={1}
+            >
+              {title}
+            </Text>
             <Pressable onPress={onClose} hitSlop={8}>
               <Ionicons name="close" size={22} color={colors.white} />
             </Pressable>
@@ -954,6 +961,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radius.xl,
   },
   sheetTitle: {
+    flexShrink: 1,
+    marginEnd: spacing.sm,
     fontFamily: fonts.black,
     fontSize: 16,
     color: colors.white,

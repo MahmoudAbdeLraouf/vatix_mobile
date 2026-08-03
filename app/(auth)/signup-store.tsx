@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -9,6 +10,8 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import { Image } from 'expo-image'
+import * as ImagePicker from 'expo-image-picker'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
@@ -17,12 +20,17 @@ import {
   checkOtp,
   checkPhoneAvailable,
   getSiteSettings,
+  getSubscriptionPlans,
   registerStore,
   sendOtp,
 } from '@/lib/api'
+import { authPatch, authUploadFile } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { BottomTabBar } from '@/components/BottomTabBar'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
+
+type StoreType = 'store' | 'store_plus'
 
 type Step = 'phone' | 'otp' | 'info'
 
@@ -49,6 +57,14 @@ export default function SignupStoreScreen() {
   const codeRef = useRef<TextInput>(null)
 
   const [storeName, setStoreName] = useState('')
+  const [storeType, setStoreType] = useState<StoreType>('store')
+  const [description, setDescription] = useState('')
+  const [logoUri, setLogoUri] = useState<string | null>(null)
+  const [coverUri, setCoverUri] = useState<string | null>(null)
+  const [planAmounts, setPlanAmounts] = useState<{ store: number; store_plus: number }>({
+    store: 0,
+    store_plus: 0,
+  })
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -58,6 +74,59 @@ export default function SignupStoreScreen() {
       .then(s => setOtpEnabled(s.otpVerificationEnabled))
       .catch(() => setOtpEnabled(true))
   }, [])
+
+  useEffect(() => {
+    getSubscriptionPlans()
+      .then(plans => {
+        const s = plans.find(p => p.storeType === 'store')
+        const sp = plans.find(p => p.storeType === 'store_plus')
+        setPlanAmounts({
+          store: s ? Math.round(Number(s.price)) : 0,
+          store_plus: sp ? Math.round(Number(sp.price)) : 0,
+        })
+      })
+      .catch(() => {})
+  }, [])
+
+  async function pickLogo() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!perm.granted) {
+      Alert.alert(
+        isRtl ? 'الأذونات مطلوبة' : 'Permission required',
+        isRtl ? 'يرجى السماح بالوصول إلى الصور' : 'Please allow access to your photo library',
+      )
+      return
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsMultipleSelection: false,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    })
+    if (result.canceled || !result.assets?.length) return
+    setLogoUri(result.assets[0].uri)
+  }
+
+  async function pickCover() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!perm.granted) {
+      Alert.alert(
+        isRtl ? 'الأذونات مطلوبة' : 'Permission required',
+        isRtl ? 'يرجى السماح بالوصول إلى الصور' : 'Please allow access to your photo library',
+      )
+      return
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsMultipleSelection: false,
+      allowsEditing: true,
+      aspect: [4, 1],
+      quality: 0.85,
+    })
+    if (result.canceled || !result.assets?.length) return
+    setCoverUri(result.assets[0].uri)
+  }
 
   const STEPS: Step[] = otpEnabled ? ['phone', 'otp', 'info'] : ['phone', 'info']
 
@@ -108,10 +177,19 @@ export default function SignupStoreScreen() {
       const response = await registerStore({
         phone: phone.trim(),
         password,
-        type: 'store',
+        type: storeType,
         storeName: storeName.trim(),
+        description: description.trim() || undefined,
       })
       await login(response, redirect)
+      if (logoUri) {
+        try {
+          const url = await authUploadFile(logoUri)
+          if (url) await authPatch('/stores/me', { logo: url })
+        } catch {
+          // logo upload failure is non-fatal — user can edit later in dashboard
+        }
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t.serverError)
     } finally {
@@ -234,7 +312,71 @@ export default function SignupStoreScreen() {
 
           {step === 'info' && (
             <>
+              <Text style={styles.sectionLabel}>{t.storeType}</Text>
+              <View style={styles.typeRow}>
+                {(['store', 'store_plus'] as const).map(opt => {
+                  const active = storeType === opt
+                  const label = opt === 'store' ? t.storeTypeStore : t.storeTypeStorePlus
+                  const icon = opt === 'store' ? '🏪' : '⭐'
+                  const price = opt === 'store' ? planAmounts.store : planAmounts.store_plus
+                  return (
+                    <Pressable
+                      key={opt}
+                      onPress={() => setStoreType(opt)}
+                      style={[styles.typeBtn, active && styles.typeBtnActive]}
+                    >
+                      <Text style={[styles.typeIcon, active && styles.typeIconActive]}>{icon}</Text>
+                      <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>{label}</Text>
+                      {price > 0 ? (
+                        <Text style={[styles.typePrice, active && styles.typePriceActive]}>
+                          {price} {t.monthlyBilling}
+                        </Text>
+                      ) : null}
+                      <View style={styles.freeMonthBadge}>
+                        <Text style={styles.freeMonthText}>{t.freeMonthFirst}</Text>
+                      </View>
+                    </Pressable>
+                  )
+                })}
+              </View>
+
               <Input label={t.storeName} value={storeName} onChangeText={setStoreName} autoCapitalize="words" />
+
+              <Text style={styles.sectionLabel}>{t.storeDescription}</Text>
+              <TextInput
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+                style={styles.textarea}
+              />
+
+              <Text style={styles.sectionLabel}>{t.storeLogo}</Text>
+              <View style={styles.logoRow}>
+                <Pressable style={styles.logoPreview} onPress={pickLogo}>
+                  {logoUri ? (
+                    <Image source={{ uri: logoUri }} style={styles.logoImage} contentFit="cover" />
+                  ) : (
+                    <Ionicons name="image-outline" size={26} color={colors.g400} />
+                  )}
+                </Pressable>
+                <View style={styles.logoControls}>
+                  <Button
+                    label={logoUri ? (isRtl ? 'تغيير الصورة' : 'Change') : (isRtl ? '+ اختر صورة' : '+ Choose image')}
+                    variant="outline"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={pickLogo}
+                  />
+                  {logoUri ? (
+                    <Pressable onPress={() => setLogoUri(null)} hitSlop={6}>
+                      <Text style={styles.removeText}>{isRtl ? 'حذف الصورة' : 'Remove image'}</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+
               {!!error && (
                 <View style={styles.errorBox}>
                   <Ionicons name="alert-circle-outline" size={16} color="#C53030" />
@@ -246,6 +388,8 @@ export default function SignupStoreScreen() {
           )}
         </ScrollView>
       </View>
+
+      <BottomTabBar />
     </KeyboardAvoidingView>
   )
 }
@@ -373,5 +517,102 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 14,
     color: colors.y,
+  },
+
+  sectionLabel: {
+    fontFamily: fonts.semiBold,
+    fontSize: 14,
+    color: colors.g700,
+    marginBottom: spacing.xs,
+    marginTop: spacing.sm,
+    textAlign: 'auto',
+  },
+
+  typeRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  typeBtn: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: colors.g200,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+    gap: 4,
+  },
+  typeBtnActive: {
+    borderColor: colors.y,
+    backgroundColor: colors.yl,
+  },
+  typeIcon: {
+    fontSize: 22,
+  },
+  typeIconActive: {},
+  typeLabel: {
+    fontFamily: fonts.bold,
+    fontSize: 14,
+    color: colors.g700,
+  },
+  typeLabelActive: {
+    color: colors.dk,
+  },
+  typePrice: {
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    color: colors.g500,
+  },
+  typePriceActive: {
+    color: colors.dk,
+  },
+
+  textarea: {
+    minHeight: 80,
+    borderWidth: 1.5,
+    borderColor: colors.g300,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    color: colors.dk,
+    marginBottom: spacing.md,
+    textAlign: 'auto',
+  },
+
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+    marginBottom: spacing.md,
+  },
+  logoPreview: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.g200,
+    backgroundColor: colors.g100,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  logoControls: {
+    flex: 1,
+    gap: spacing.xs,
+    alignItems: 'flex-start',
+  },
+  removeText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.red,
   },
 })

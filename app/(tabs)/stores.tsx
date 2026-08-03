@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { getStores, Store } from '@/lib/api'
 import { StoreCard } from '@/components/StoreCard'
+import { MessagesBell } from '@/components/MessagesBell'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -57,12 +58,7 @@ export default function StoresScreen() {
             >
               <Ionicons name="globe-outline" size={20} color={colors.white} />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.notifBtn}
-              onPress={() => router.push('/dashboard/messages')}
-            >
-              <Ionicons name="chatbubble-outline" size={20} color={colors.white} />
-            </TouchableOpacity>
+            <MessagesBell color={colors.white} size={20} style={styles.notifBtn} />
             <TouchableOpacity
               style={styles.notifBtn}
               onPress={() => router.push('/dashboard/notifications')}

@@ -1,17 +1,30 @@
+import { useEffect, useState } from 'react'
 import { Redirect } from 'expo-router'
-import { useAuth } from '@/contexts/auth'
 import { ActivityIndicator, View } from 'react-native'
+import * as SecureStore from 'expo-secure-store'
+import { useAuth } from '@/contexts/auth'
 import { colors } from '@/constants/theme'
 
-export default function Index() {
-  const { isAuthenticated, loading } = useAuth()
+const ONBOARDED_KEY = 'vatix_onboarded'
 
-  if (loading) {
+export default function Index() {
+  const { loading } = useAuth()
+  const [onboarded, setOnboarded] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    SecureStore.getItemAsync(ONBOARDED_KEY).then(v => setOnboarded(v === '1'))
+  }, [])
+
+  if (loading || onboarded === null) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
         <ActivityIndicator color={colors.y} size="large" />
       </View>
     )
+  }
+
+  if (!onboarded) {
+    return <Redirect href="/(onboarding)/welcome" />
   }
 
   return <Redirect href="/(tabs)/home" />

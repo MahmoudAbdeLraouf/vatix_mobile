@@ -86,6 +86,7 @@ export interface Translations {
   callSeller: string
   whatsappSeller: string
   startChat: string
+  chatSubtitle: string
   shareProduct: string
   similarProducts: string
   // Store
@@ -94,6 +95,7 @@ export interface Translations {
   storeProducts: string
   contactStore: string
   storeWebsite: string
+  websiteSubtitle: string
   // Dashboard
   myAds: string
   favorites: string
@@ -241,10 +243,25 @@ export interface Translations {
   storePlusActiveSub: string
   manageSubscription: string
   storeInfo: string
+  about: string
+  viewMore: string
+  viewLess: string
+  chooseNumber: string
+  mainPhone: string
+  share: string
   socialMedia: string
   promote: string
   menu: string
   close: string
+  // Store share dialog
+  storeShareTitle: string
+  storeShareDescription: string
+  storeShareUrlLabel: string
+  storeShareCopy: string
+  storeShareCopied: string
+  storeShareShare: string
+  storeShareGotIt: string
+  storeShareText: (name: string) => string
   // Profile screen
   personalInfo: string
   changePhoto: string
@@ -270,6 +287,7 @@ export interface Translations {
   cancelStoreConfirm: string
   renewNow: string
   freeTrialBadge: string
+  freeMonthFirst: string
   expiresOn: string
   paymentMethod: string
   choosePaymentMethod: string
@@ -369,6 +387,40 @@ export interface Translations {
   updateAvailableBody: string
   updateNow: string
   updateLater: string
+  // Reviews
+  reviews: string
+  noReviewsYet: string
+  addReview: string
+  editReview: string
+  saveReview: string
+  savingReview: string
+  deleteReview: string
+  reviewCommentPlaceholder: string
+  selectStars: string
+  reviewSaved: string
+  reviewDeleted: string
+  reviewSaveError: string
+  signInToReview: string
+  signIn: string
+  starPoor: string
+  starFair: string
+  starGood: string
+  starVeryGood: string
+  starExcellent: string
+  minutesAgo: (n: number) => string
+  hoursAgo: (n: number) => string
+  daysAgo: (n: number) => string
+  reviewsCount: (n: number) => string
+  // Onboarding
+  onboarding: {
+    skip: string
+    next: string
+    back: string
+    getStarted: string
+    slide1: { title: string; desc: string }
+    slide2: { title: string; desc: string }
+    slide3: { title: string; desc: string }
+  }
 }
 
 export const translations: Record<Locale, Translations> = {
@@ -454,6 +506,7 @@ export const translations: Record<Locale, Translations> = {
     callSeller: 'اتصال',
     whatsappSeller: 'واتساب',
     startChat: 'مراسلة',
+    chatSubtitle: 'رد سريع خلال دقائق',
     shareProduct: 'مشاركة',
     similarProducts: 'منتجات مشابهة',
     // Store
@@ -461,7 +514,8 @@ export const translations: Record<Locale, Translations> = {
     unfollowStore: 'إلغاء المتابعة',
     storeProducts: 'منتجات المتجر',
     contactStore: 'تواصل مع المتجر',
-    storeWebsite: 'الموقع الإلكتروني',
+    storeWebsite: 'زيارة الموقع',
+    websiteSubtitle: 'تسوّق من الموقع الرسمي',
     // Dashboard
     myAds: 'إعلاناتي',
     favorites: 'المفضلة',
@@ -609,10 +663,25 @@ export const translations: Record<Locale, Translations> = {
     storePlusActiveSub: 'استمتع بجميع مزايا الاشتراك المميز.',
     manageSubscription: 'إدارة الاشتراك',
     storeInfo: 'بيانات المتجر',
+    about: 'عن المتجر',
+    viewMore: 'المزيد',
+    viewLess: 'أقل',
+    chooseNumber: 'اختر رقماً للاتصال',
+    mainPhone: 'الرقم الرئيسي',
+    share: 'مشاركة',
     socialMedia: 'التواصل الاجتماعي',
     promote: 'إعلانات مروّجة',
     menu: 'القائمة',
     close: 'إغلاق',
+    // Store share dialog
+    storeShareTitle: 'شارك متجرك مع عملائك',
+    storeShareDescription: 'كل ما تحتاج مشاركته هو رابط واحد. عملاؤك سيرون كل منتجاتك في مكان واحد.',
+    storeShareUrlLabel: 'رابط متجرك',
+    storeShareCopy: 'نسخ الرابط',
+    storeShareCopied: 'تم النسخ',
+    storeShareShare: 'مشاركة',
+    storeShareGotIt: 'فهمت، شكراً',
+    storeShareText: (name: string) => `تابع متجر ${name} على ڤاتيكس`,
     // Profile screen
     personalInfo: 'المعلومات الشخصية',
     changePhoto: 'تغيير الصورة',
@@ -638,6 +707,7 @@ export const translations: Record<Locale, Translations> = {
     cancelStoreConfirm: 'هل أنت متأكد من إلغاء المتجر؟ سيتم تحويل حسابك إلى عميل.',
     renewNow: 'تجديد الآن',
     freeTrialBadge: 'تجربة مجانية',
+    freeMonthFirst: 'أول شهر مجاناً 🎁',
     expiresOn: 'ينتهي في',
     paymentMethod: 'طريقة الدفع',
     choosePaymentMethod: 'اختر طريقة الدفع',
@@ -737,6 +807,48 @@ export const translations: Record<Locale, Translations> = {
     updateAvailableBody: 'إصدار أحدث من ڤاتيكس أصبح متاحاً. حدّث الآن للحصول على أفضل تجربة.',
     updateNow: 'تحديث الآن',
     updateLater: 'لاحقاً',
+    // Reviews
+    reviews: 'التقييمات',
+    noReviewsYet: 'لا يوجد تقييمات بعد',
+    addReview: 'أضف تقييمك',
+    editReview: 'تعديل تقييمك',
+    saveReview: '✓ حفظ التقييم',
+    savingReview: 'جاري الحفظ...',
+    deleteReview: 'حذف',
+    reviewCommentPlaceholder: 'شارك تجربتك مع هذا الإعلان (اختياري)...',
+    selectStars: 'يرجى اختيار عدد النجوم',
+    reviewSaved: 'تم حفظ تقييمك ✓',
+    reviewDeleted: 'تم حذف تقييمك',
+    reviewSaveError: 'تعذّر حفظ التقييم',
+    signInToReview: 'لإضافة تقييم',
+    signIn: 'سجّل الدخول',
+    starPoor: 'سيء',
+    starFair: 'مقبول',
+    starGood: 'جيد',
+    starVeryGood: 'جيد جداً',
+    starExcellent: 'ممتاز',
+    minutesAgo: (n) => `منذ ${n || 1} دقيقة`,
+    hoursAgo: (n) => `منذ ${n} ساعة`,
+    daysAgo: (n) => `منذ ${n} يوم`,
+    reviewsCount: (n) => `${n} ${n === 1 ? 'تقييم' : 'تقييمات'}`,
+    onboarding: {
+      skip: 'تخطي',
+      next: 'التالي',
+      back: 'السابق',
+      getStarted: 'ابدأ الآن',
+      slide1: {
+        title: 'أهلاً بك في ڤاتيكس',
+        desc: 'سوق الإلكترونيات الأول في مصر — تصفّح أحدث المنتجات من متاجر موثوقة قريبة منك.',
+      },
+      slide2: {
+        title: 'انشر إعلانك في دقائق',
+        desc: 'صوّر منتجك، اكتب تفاصيله، وابدأ في استقبال المشترين مباشرة عبر الواتساب أو الشات.',
+      },
+      slide3: {
+        title: 'تواصل بأمان',
+        desc: 'تقييمات حقيقية، متاجر موثّقة، ودردشة داخل التطبيق تحفظ محادثاتك في مكان واحد.',
+      },
+    },
   },
   en: {
     appName: 'Vatix',
@@ -820,6 +932,7 @@ export const translations: Record<Locale, Translations> = {
     callSeller: 'Call',
     whatsappSeller: 'WhatsApp',
     startChat: 'Chat',
+    chatSubtitle: 'Fast reply in minutes',
     shareProduct: 'Share',
     similarProducts: 'Similar Products',
     // Store
@@ -827,7 +940,8 @@ export const translations: Record<Locale, Translations> = {
     unfollowStore: 'Unfollow',
     storeProducts: 'Store Products',
     contactStore: 'Contact Store',
-    storeWebsite: 'Website',
+    storeWebsite: 'Visit Website',
+    websiteSubtitle: 'Shop the official site',
     // Dashboard
     myAds: 'My Ads',
     favorites: 'Favorites',
@@ -975,10 +1089,25 @@ export const translations: Record<Locale, Translations> = {
     storePlusActiveSub: 'Enjoy all premium subscription benefits.',
     manageSubscription: 'Manage Subscription',
     storeInfo: 'Store Info',
+    about: 'About',
+    viewMore: 'More',
+    viewLess: 'Less',
+    chooseNumber: 'Choose a number to call',
+    mainPhone: 'Main line',
+    share: 'Share',
     socialMedia: 'Social Media',
     promote: 'Promoted Ads',
     menu: 'Menu',
     close: 'Close',
+    // Store share dialog
+    storeShareTitle: 'Share your store with customers',
+    storeShareDescription: 'All you need to share is a single link. Your customers will see all your products in one place.',
+    storeShareUrlLabel: 'Your store link',
+    storeShareCopy: 'Copy link',
+    storeShareCopied: 'Copied',
+    storeShareShare: 'Share',
+    storeShareGotIt: 'Got it, thanks',
+    storeShareText: (name: string) => `Check out ${name} on Vatix`,
     // Profile screen
     personalInfo: 'Personal Info',
     changePhoto: 'Change Photo',
@@ -1004,6 +1133,7 @@ export const translations: Record<Locale, Translations> = {
     cancelStoreConfirm: 'Are you sure you want to cancel your store? Your account will revert to a client account.',
     renewNow: 'Renew Now',
     freeTrialBadge: 'Free Trial',
+    freeMonthFirst: 'First month free 🎁',
     expiresOn: 'Expires on',
     paymentMethod: 'Payment Method',
     choosePaymentMethod: 'Choose Payment Method',
@@ -1103,5 +1233,47 @@ export const translations: Record<Locale, Translations> = {
     updateAvailableBody: 'A newer version of Vatix is available. Update now for the best experience.',
     updateNow: 'Update Now',
     updateLater: 'Later',
+    // Reviews
+    reviews: 'Reviews',
+    noReviewsYet: 'No reviews yet',
+    addReview: 'Add Your Review',
+    editReview: 'Edit Your Review',
+    saveReview: '✓ Save Review',
+    savingReview: 'Saving...',
+    deleteReview: 'Delete',
+    reviewCommentPlaceholder: 'Share your experience with this listing (optional)...',
+    selectStars: 'Please select a star rating',
+    reviewSaved: 'Your review has been saved ✓',
+    reviewDeleted: 'Your review has been deleted',
+    reviewSaveError: 'Could not save your review',
+    signInToReview: 'to add a review',
+    signIn: 'Sign in',
+    starPoor: 'Poor',
+    starFair: 'Fair',
+    starGood: 'Good',
+    starVeryGood: 'Very Good',
+    starExcellent: 'Excellent',
+    minutesAgo: (n) => `${n || 1}m ago`,
+    hoursAgo: (n) => `${n}h ago`,
+    daysAgo: (n) => `${n}d ago`,
+    reviewsCount: (n) => `${n} review${n === 1 ? '' : 's'}`,
+    onboarding: {
+      skip: 'Skip',
+      next: 'Next',
+      back: 'Back',
+      getStarted: 'Get Started',
+      slide1: {
+        title: 'Welcome to Vatix',
+        desc: "Egypt's leading electronics marketplace — browse the latest products from trusted stores near you.",
+      },
+      slide2: {
+        title: 'Post your ad in minutes',
+        desc: 'Snap your product, add details, and start hearing from buyers directly via WhatsApp or chat.',
+      },
+      slide3: {
+        title: 'Connect with confidence',
+        desc: 'Real reviews, verified stores, and in-app chat that keeps every conversation in one place.',
+      },
+    },
   },
 }

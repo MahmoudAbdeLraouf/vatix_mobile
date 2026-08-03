@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
+import { useLoginGate } from '@/contexts/loginGate'
 import { colors, fonts } from '@/constants/theme'
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
@@ -20,6 +21,7 @@ const FAB_LIFT = 18
 export default function TabsLayout() {
   const { t, locale, isRtl } = useLocale()
   const insets = useSafeAreaInsets()
+  const { requireLogin } = useLoginGate()
 
   const tabBarHeight = 62 + insets.bottom
 
@@ -70,7 +72,10 @@ export default function TabsLayout() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t.postFreeAd}
-                onPress={() => router.push('/products/add')}
+                onPress={() => {
+                  if (!requireLogin()) return
+                  router.push('/products/add')
+                }}
                 style={({ pressed }) => [
                   styles.fab,
                   { transform: [{ translateY: -FAB_LIFT }, { scale: pressed ? 0.96 : 1 }] },
@@ -87,12 +92,21 @@ export default function TabsLayout() {
         listeners={{
           tabPress: e => {
             e.preventDefault()
+            if (!requireLogin()) return
             router.push('/products/add')
           },
         }}
       />
       <Tabs.Screen name="stores" options={{ title: t.stores }} />
-      <Tabs.Screen name="dashboard" options={{ title: t.dashboard }} />
+      <Tabs.Screen
+        name="dashboard"
+        options={{ title: t.dashboard }}
+        listeners={{
+          tabPress: e => {
+            if (!requireLogin()) e.preventDefault()
+          },
+        }}
+      />
     </Tabs>
   )
 }

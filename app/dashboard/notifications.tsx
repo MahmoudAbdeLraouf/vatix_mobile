@@ -51,11 +51,6 @@ export default function NotificationsScreen() {
     setRefreshing(false)
   }, [load])
 
-  async function markAllRead() {
-    await authPatch('/notifications/read-all', {})
-    setNotifications(prev => (prev ? prev.map(n => ({ ...n, isRead: true })) : prev))
-  }
-
   async function markRead(id: number) {
     await authPatch(`/notifications/${id}/read`, {})
     setNotifications(prev =>
@@ -63,25 +58,20 @@ export default function NotificationsScreen() {
     )
   }
 
-  const unreadCount = (notifications ?? []).filter(n => !n.isRead).length
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, dirContainer]}>
-        <Pressable style={styles.markAllBtn} onPress={markAllRead} disabled={unreadCount === 0}>
-          <Text style={[styles.markAllText, unreadCount === 0 && { opacity: 0.4 }]}>
-            {t.markAllRead}
-          </Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>{t.notifications}</Text>
         <Pressable style={styles.iconBtn} onPress={() => router.back()}>
           <Ionicons
-            name={locale === 'ar' ? 'chevron-forward-outline' : 'chevron-back-outline'}
+            name={ar ? 'chevron-forward-outline' : 'chevron-back-outline'}
             size={22}
             color={colors.white}
           />
         </Pressable>
+        <Text style={styles.headerTitle}>{t.notifications}</Text>
+        {/* Spacer mirroring iconBtn width so the title stays visually centered. */}
+        <View style={styles.headerSpacer} />
       </View>
 
       {/* Content */}
@@ -169,16 +159,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  markAllBtn: {
+  headerSpacer: {
     width: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  markAllText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 11,
-    color: colors.y,
-    textAlign: 'center',
+    height: 36,
   },
   headerTitle: {
     flex: 1,

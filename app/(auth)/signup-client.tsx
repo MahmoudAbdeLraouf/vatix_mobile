@@ -22,6 +22,7 @@ import {
 } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { BottomTabBar } from '@/components/BottomTabBar'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 
 type Step = 'form' | 'otp'
@@ -223,6 +224,8 @@ export default function SignupClientScreen() {
           )}
         </ScrollView>
       </View>
+
+      <BottomTabBar />
     </KeyboardAvoidingView>
   )
 }

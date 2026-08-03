@@ -37,6 +37,11 @@ async function ensureAndroidChannel(): Promise<void> {
     importance: Notifications.AndroidImportance.MAX,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: '#F5B800',
+    sound: 'default',
+    enableVibrate: true,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    bypassDnd: false,
+    showBadge: true,
   })
 }
 
@@ -100,7 +105,38 @@ function routeFromData(data: NotificationDataRoute | undefined): string | null {
   return null
 }
 
+// Guard against the same cold-start response being routed twice
+// (getLastNotificationResponseAsync + response listener can both fire for it).
+let _handledResponseIds = new Set<string>()
+
+function navigateFromResponse(response: Notifications.NotificationResponse, source: string): void {
+  const id = response.notification.request.identifier
+  if (_handledResponseIds.has(id)) return
+  _handledResponseIds.add(id)
+  const data = response.notification.request.content.data as NotificationDataRoute | undefined
+  const path = routeFromData(data)
+  console.log(`[push] tapped (${source})`, { id, data, path })
+  if (!path) return
+  // Defer one tick so the root Stack is mounted before router.push runs —
+  // required on cold start where the response fires before layout renders.
+  setTimeout(() => {
+    try {
+      router.push(path as never)
+    } catch (err) {
+      console.warn('[push] router.push failed', path, err)
+    }
+  }, 300)
+}
+
 export function attachNotificationTapHandler(): () => void {
+  // Cold start: the tap that launched the app fired before this handler
+  // was attached, so pull it from the OS via getLastNotificationResponseAsync.
+  Notifications.getLastNotificationResponseAsync()
+    .then((response) => {
+      if (response) navigateFromResponse(response, 'cold-start')
+    })
+    .catch(() => undefined)
+
   const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
     const data = notification.request.content.data
     console.log('[push] received (foreground)', {
@@ -110,10 +146,7 @@ export function attachNotificationTapHandler(): () => void {
     })
   })
   const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
-    const data = response.notification.request.content.data as NotificationDataRoute | undefined
-    console.log('[push] tapped', data)
-    const path = routeFromData(data)
-    if (path) router.push(path as never)
+    navigateFromResponse(response, 'warm')
   })
   return () => {
     receivedSub.remove()

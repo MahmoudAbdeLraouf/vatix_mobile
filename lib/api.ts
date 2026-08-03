@@ -50,6 +50,7 @@ export interface ProductImage {
 
 export interface Product {
   id: number
+  slug: string | null
   title: string
   description: string
   condition: string
@@ -69,7 +70,7 @@ export interface Product {
     type: string
     phone: string | null
     whatsapp?: string | null
-    storeProfile?: { id: number; name: string; logo: string | null } | null
+    storeProfile?: { id: number; name: string; slug: string | null; logo: string | null } | null
     clientProfile?: { id: number; firstName: string; lastName?: string } | null
   }
   location?: { id: number; translations: Translation[] } | null
@@ -85,6 +86,7 @@ export interface ProductListResponse {
 export interface StoreProfile {
   id: number
   name: string
+  slug: string | null
   description: string | null
   logo: string | null
   cover: string | null
@@ -143,6 +145,7 @@ export interface UserProfile {
     status: string
   } | null
   createdAt: string
+  storeShareDialogSeenAt?: string | null
 }
 
 export interface FavoriteProduct {
@@ -151,6 +154,16 @@ export interface FavoriteProduct {
   productId: number
   product: Product
   createdAt: string
+}
+
+export interface ProductRatingItem {
+  id: number
+  productId: number
+  userId: number
+  rating: number
+  comment: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -163,6 +176,39 @@ export function localeName(translations: Translation[], locale: Locale): string 
   )
 }
 
+// ─── URL Helpers (mirror vatix_website/lib/api.ts) ───────────────────────────
+// All share URLs prefer the slug and fall back to the numeric id, so that
+// links keep working even for legacy stores/products that haven't been
+// slugified yet.
+
+type OwnerLike = {
+  id: number
+  type: string
+  storeProfile?: { slug: string | null } | null
+} | null | undefined
+
+export function storeHref(owner: OwnerLike): string | null {
+  if (!owner?.storeProfile) return null
+  const t = owner.type
+  const isStore = t === 'store' || t === 'STORE' || t === 'store_plus' || t === 'STORE_PLUS'
+  if (!isStore) return null
+  const slug = owner.storeProfile.slug
+  return `/stores/${slug ?? owner.id}`
+}
+
+export function storePlusHref(owner: OwnerLike): string | null {
+  if (!owner?.storeProfile) return null
+  const t = owner.type
+  if (t !== 'store_plus' && t !== 'STORE_PLUS') return null
+  const slug = owner.storeProfile.slug
+  return `/s/${slug ?? owner.id}`
+}
+
+export function productHref(product: { id: number; slug: string | null } | null | undefined): string {
+  if (!product) return '/products'
+  return `/products/${product.slug ?? product.id}`
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${BASE}${path}`
   let res: Response
@@ -171,6 +217,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       ...init,
       headers: {
         'Content-Type': 'application/json',
+        'X-Client-Platform': 'mobile',
         ...(init?.headers as Record<string, string> | undefined),
       },
     })
@@ -232,6 +279,10 @@ export function getProducts(params?: GetProductsParams): Promise<ProductListResp
 
 export function getProduct(id: number): Promise<Product> {
   return apiFetch(`/products/${id}`)
+}
+
+export function getProductRatings(productId: number): Promise<ProductRatingItem[]> {
+  return apiFetch(`/products/${productId}/ratings`)
 }
 
 export function getStores(): Promise<Store[]> {
@@ -562,4 +613,14 @@ export function getPromotionBundles(): Promise<Bundle[]> {
 
 export function getSiteSettings(): Promise<SiteSettings> {
   return apiFetch('/site-settings')
+}
+
+export interface SiteStats {
+  users: number
+  stores: number
+  products: number
+}
+
+export function getSiteStats(): Promise<SiteStats> {
+  return apiFetch('/site-stats')
 }

@@ -17,6 +17,7 @@ import { useLocale } from '@/contexts/locale'
 import { loginUser } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { BottomTabBar } from '@/components/BottomTabBar'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 
 export default function LoginScreen() {
@@ -174,6 +175,8 @@ export default function LoginScreen() {
             </Pressable>
           </ScrollView>
         </View>
+
+        <BottomTabBar />
       </SafeAreaView>
     </KeyboardAvoidingView>
   )

@@ -9,6 +9,7 @@ import {
   NativeSyntheticEvent,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -18,18 +19,21 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
+import { useLoginGate } from '@/contexts/loginGate'
 import { getProduct, imgUrl, localeName, Product, ProductImage } from '@/lib/api'
 import { trackProductView } from '@/lib/analytics'
 import { FavoriteButton } from '@/components/FavoriteButton'
+import { MessagesBell } from '@/components/MessagesBell'
 import { RevealPhone } from '@/components/RevealPhone'
 import { StartChatButton } from '@/components/StartChatButton'
 import { StarRating } from '@/components/StarRating'
+import { RatingSection } from '@/components/RatingSection'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 const { width: SCREEN_W } = Dimensions.get('window')
 const HERO_H = 340
 
-const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'http://localhost:3003'
+const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://vatix.store'
 const WA_GREEN = '#25D366'
 
 function normalizeWhatsapp(raw: string | null | undefined): string | null {
@@ -44,12 +48,12 @@ function buildWaLink(
   whatsapp: string | null | undefined,
   title: string,
   price: number,
-  productId: number,
+  productIdent: number | string,
   ar: boolean,
 ): string | null {
   const n = normalizeWhatsapp(whatsapp)
   if (!n) return null
-  const url = `${SITE_URL}/products/${productId}`
+  const url = `${SITE_URL}/products/${productIdent}`
   const msg = ar
     ? `مرحباً، أنا مهتم بالمنتج:\n${title}\nالسعر: ${price} جنيه\n${url}`
     : `Hi, I'm interested in:\n${title}\nPrice: ${price} EGP\n${url}`
@@ -72,6 +76,7 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { t, locale, isRtl, setLocale } = useLocale()
   const { user } = useAuth()
+  const { requireLogin } = useLoginGate()
   const insets = useSafeAreaInsets()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
@@ -128,8 +133,8 @@ export default function ProductDetailScreen() {
   }
 
   const images = product.images
-  const categoryName = localeName(product.category.translations, locale)
-  const brandName = localeName(product.brand.translations, locale)
+  const categoryName = product.category ? localeName(product.category.translations, locale) : ''
+  const brandName = product.brand ? localeName(product.brand.translations, locale) : ''
   const locationName = product.location ? localeName(product.location.translations, locale) : ''
   const isNew = product.condition === 'new'
   const conditionLabel =
@@ -162,12 +167,13 @@ export default function ProductDetailScreen() {
     waSource,
     product.title,
     product.price,
-    product.id,
+    product.slug ?? product.id,
     locale === 'ar',
   )
   const hasPhoneReveal = product.showPhone && !!owner?.phone
   const hasActions = !!owner?.id || !!waLink || hasPhoneReveal
-  const bottomBarH = Math.max(insets.bottom, spacing.md) + 56 + spacing.md * 2
+  const bottomBarH =
+    Math.max(insets.bottom, spacing.md) + 56 + spacing.md + spacing.lg + spacing.md
 
   const avg = product.averageRating ?? 0
   const ratingsCount = product.ratingsCount ?? 0
@@ -264,6 +270,16 @@ export default function ProductDetailScreen() {
             </View>
             <Pressable
               style={styles.iconBtn}
+              onPress={() => {
+                const url = `${SITE_URL}/products/${product.slug ?? product.id}`
+                Share.share({ message: url, url, title: product.title }).catch(() => {})
+              }}
+              hitSlop={8}
+            >
+              <Ionicons name="share-social-outline" size={20} color={colors.white} />
+            </Pressable>
+            <Pressable
+              style={styles.iconBtn}
               onPress={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
               hitSlop={8}
             >
@@ -271,18 +287,15 @@ export default function ProductDetailScreen() {
             </Pressable>
             <Pressable
               style={styles.iconBtn}
-              onPress={() => router.push('/dashboard/notifications')}
+              onPress={() => {
+                if (!requireLogin()) return
+                router.push('/dashboard/notifications')
+              }}
               hitSlop={8}
             >
               <Ionicons name="notifications-outline" size={22} color={colors.white} />
             </Pressable>
-            <Pressable
-              style={styles.iconBtn}
-              onPress={() => router.push('/dashboard/messages')}
-              hitSlop={8}
-            >
-              <Ionicons name="chatbubble-outline" size={22} color={colors.white} />
-            </Pressable>
+            <MessagesBell color={colors.white} style={styles.iconBtn} />
             {owner?.id && user?.id === owner.id && (
               <Pressable
                 style={styles.iconBtn}
@@ -497,39 +510,62 @@ export default function ProductDetailScreen() {
               />
             </View>
           </View>
+
+          {/* Ratings */}
+          <RatingSection
+            productId={product.id}
+            initialAvg={avg}
+            initialCount={ratingsCount}
+            ownerId={owner?.id}
+          />
         </View>
       </ScrollView>
 
       {/* ── Sticky action bar ── */}
       <View
-        style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}
+        style={[
+          styles.actionBar,
+          { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
+        ]}
       >
         <View style={styles.actionRow}>
           {owner?.id ? (
-            <View style={styles.actionChat}>
-              <StartChatButton recipientId={owner.id} productId={product.id} />
-            </View>
+            hasPhoneReveal ? (
+              <StartChatButton recipientId={owner.id} productId={product.id} iconOnly />
+            ) : (
+              <View style={styles.actionFlex}>
+                <StartChatButton recipientId={owner.id} productId={product.id} />
+              </View>
+            )
           ) : null}
           {waLink ? (
             <Pressable
-              onPress={() => Linking.openURL(waLink).catch(() => {})}
-              style={({ pressed }) => [styles.waBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => {
+                if (!requireLogin()) return
+                Linking.openURL(waLink).catch(() => {})
+              }}
+              style={({ pressed }) => [
+                hasPhoneReveal ? styles.waBtn : styles.waBtnWide,
+                pressed && { opacity: 0.85 },
+              ]}
               accessibilityRole="button"
               accessibilityLabel={locale === 'ar' ? 'واتساب' : 'WhatsApp'}
             >
               <Ionicons
                 name="logo-whatsapp"
-                size={20}
+                size={hasPhoneReveal ? 22 : 18}
                 color={colors.white}
-                style={styles.waIcon}
+                style={hasPhoneReveal ? undefined : styles.waIconStart}
               />
-              <Text style={styles.waBtnText}>
-                {locale === 'ar' ? 'تواصل عبر واتساب' : 'Chat on WhatsApp'}
-              </Text>
+              {hasPhoneReveal ? null : (
+                <Text style={styles.waBtnText} numberOfLines={1}>
+                  {locale === 'ar' ? 'واتساب' : 'WhatsApp'}
+                </Text>
+              )}
             </Pressable>
           ) : null}
           {hasPhoneReveal ? (
-            <View style={styles.actionPhone}>
+            <View style={styles.actionFlex}>
               <RevealPhone
                 productId={product.id}
                 phone={owner?.phone ?? null}
@@ -1106,28 +1142,42 @@ const styles = StyleSheet.create({
     start: 0,
     end: 0,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.lg,
     backgroundColor: colors.white,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.g200,
     ...shadow.md,
   },
   actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
-  actionChat: {},
-  actionPhone: {},
+  actionFlex: {
+    flex: 1,
+  },
   waBtn: {
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: WA_GREEN,
+    borderRadius: radius.lg,
+    ...shadow.ss,
+  },
+  waBtnWide: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: WA_GREEN,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     paddingVertical: 14,
     paddingHorizontal: spacing.md,
-    minHeight: 52,
+    minHeight: 56,
+    ...shadow.ss,
   },
-  waIcon: {
+  waIconStart: {
     marginEnd: 8,
   },
   waBtnText: {

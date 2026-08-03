@@ -26,16 +26,19 @@ import {
   getCategories,
   getBrands,
   getProducts,
+  getSiteStats,
   getStores,
   imgUrl,
   localeName,
   Product,
+  SiteStats,
   Store,
 } from '@/lib/api'
 import { getBrandIcon } from '@/lib/brand-icons'
 import { getCategoryIcon, type IoniconName as SharedIoniconName } from '@/lib/category-icons'
 import { ProductCard } from '@/components/ProductCard'
 import { StoreCard } from '@/components/StoreCard'
+import { MessagesBell } from '@/components/MessagesBell'
 import { Logo } from '@/components/ui/Logo'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -337,133 +340,6 @@ const brandCardStyles = StyleSheet.create({
   name: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.g700, textAlign: 'center' },
 })
 
-function UpgradeBanner() {
-  const { t } = useLocale()
-  const feats = [t.upgFeat1, t.upgFeat2, t.upgFeat3, t.upgFeat4]
-  return (
-    <View style={bannerStyles.card}>
-      <View style={bannerStyles.header}>
-        <View style={bannerStyles.iconWrap}>
-          <Ionicons name="storefront-outline" size={22} color={colors.y} />
-        </View>
-        <View style={bannerStyles.headerText}>
-          <Text style={bannerStyles.title}>{t.upgradeBannerTitle}</Text>
-          <Text style={bannerStyles.sub}>{t.upgradeBannerSubtitle}</Text>
-        </View>
-      </View>
-
-      {/* .upg-feats */}
-      <View style={bannerStyles.feats}>
-        {feats.map((f, i) => (
-          <View key={i} style={bannerStyles.feat}>
-            <Text style={bannerStyles.featText}>{f}</Text>
-          </View>
-        ))}
-      </View>
-
-      {/* .upg-btns */}
-      <View style={bannerStyles.btnRow}>
-        <TouchableOpacity
-          activeOpacity={0.88}
-          onPress={() => router.push('/(tabs)/dashboard')}
-          style={bannerStyles.btnY}
-        >
-          <Text style={bannerStyles.btnYText}>{t.upgradeBannerTitle}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          activeOpacity={0.88}
-          onPress={() => router.push('/(tabs)/dashboard')}
-          style={bannerStyles.btnOut}
-        >
-          <Text style={bannerStyles.btnOutText}>{t.viewPlans}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  )
-}
-
-const bannerStyles = StyleSheet.create({
-  card: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    backgroundColor: colors.yl,
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.y,
-    padding: spacing.md,
-    gap: spacing.sm,
-    ...shadow.sm,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  headerText: { flex: 1, gap: 3 },
-  iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.dk,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontFamily: fonts.bold, fontSize: 14, color: colors.dk },
-  sub: { fontFamily: fonts.regular, fontSize: 11, color: colors.g700 },
-  feats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
-  },
-  feat: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.y,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-  },
-  featText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 11,
-    color: colors.dk,
-  },
-  btnRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: 4,
-  },
-  btnY: {
-    flex: 1,
-    backgroundColor: colors.y,
-    borderRadius: radius.md,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnYText: {
-    fontFamily: fonts.bold,
-    fontSize: 13,
-    color: colors.dk,
-  },
-  btnOut: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: colors.dk,
-    borderRadius: radius.md,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnOutText: {
-    fontFamily: fonts.bold,
-    fontSize: 13,
-    color: colors.dk,
-  },
-})
-
 function Section({
   title,
   children,
@@ -508,7 +384,7 @@ interface CategoryItem {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const { t, locale, isRtl, setLocale } = useLocale()
+  const { t, locale, isRtl } = useLocale()
   const { user } = useAuth()
 
   const [stores, setStores] = useState<Store[]>([])
@@ -517,11 +393,11 @@ export default function HomeScreen() {
   const [brands, setBrands] = useState<Brand[]>([])
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
   const [latestProducts, setLatestProducts] = useState<Product[]>([])
-  const [totalAds, setTotalAds] = useState(0)
+  const [stats, setStats] = useState<SiteStats>({ users: 0, stores: 0, products: 0 })
 
   const [loading, setLoading] = useState(true)
   const [activePromo, setActivePromo] = useState(0)
-  const [heroQuery, setHeroQuery] = useState('')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     Promise.all([
@@ -537,7 +413,8 @@ export default function HomeScreen() {
         meta: { total: 0, page: 1, limit: 12, pages: 0 },
       })),
       getStores().catch(() => [] as Store[]),
-    ]).then(([s, c, b, fp, lp, allS]) => {
+      getSiteStats().catch(() => ({ users: 0, stores: 0, products: 0 } as SiteStats)),
+    ]).then(([s, c, b, fp, lp, allS, st]) => {
       setStores(s)
       setAllStores(allS)
       setCategories([
@@ -551,7 +428,7 @@ export default function HomeScreen() {
       setBrands(b.filter(br => br.isActive))
       setFeaturedProducts(fp.items.length > 0 ? fp.items : lp.items.slice(0, 8))
       setLatestProducts(lp.items)
-      setTotalAds(lp.meta?.total ?? 0)
+      setStats(st)
       setLoading(false)
     })
   }, [])
@@ -561,8 +438,8 @@ export default function HomeScreen() {
     setActivePromo(Math.round(x / (PROMO_W + spacing.md)))
   }
 
-  function submitHeroSearch() {
-    const q = heroQuery.trim()
+  function submitSearch() {
+    const q = search.trim()
     if (q) {
       router.push({ pathname: '/(tabs)/products', params: { search: q } })
     } else {
@@ -570,117 +447,88 @@ export default function HomeScreen() {
     }
   }
 
-  const roundedAds = totalAds < 100 ? totalAds : Math.round(totalAds / 100) * 100
-  const storesStat = allStores.length || 850
-
   return (
-    <SafeAreaView
-      style={[styles.safe, { direction: isRtl ? 'rtl' : 'ltr' }]}
-      edges={['top']}
-    >
-      {/* Persistent top bar — icon row only */}
-      <View style={styles.topBar}>
-        <Logo size="sm" light />
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
-          >
-            <Ionicons name="globe-outline" size={20} color={colors.white} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => router.push('/dashboard/notifications')}
-          >
-            <Ionicons name="notifications-outline" size={22} color={colors.white} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => router.push('/dashboard/messages')}
-          >
-            <Ionicons name="chatbubble-outline" size={22} color={colors.white} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {loading ? (
-        <View style={[styles.center, { backgroundColor: colors.dk }]}>
-          <ActivityIndicator color={colors.y} size="large" />
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scroll}
-        >
-          {/* Hero card — scrolls off with content */}
-          <View style={styles.heroCard}>
-            {user?.displayName && (
-              <Text
-                style={[
-                  styles.greeting,
-                  { textAlign: 'auto', writingDirection: isRtl ? 'rtl' : 'ltr' },
-                ]}
-              >
-                {t.welcomeBack}, {user.displayName} 👋
-              </Text>
-            )}
-
-            <Text
-              style={[
-                styles.heroTitle,
-                { textAlign: 'auto', writingDirection: isRtl ? 'rtl' : 'ltr' },
-              ]}
-            >
-              {t.heroTitle}
-            </Text>
-            <Text
-              style={[
-                styles.heroSub,
-                { textAlign: 'auto', writingDirection: isRtl ? 'rtl' : 'ltr' },
-              ]}
-            >
-              {t.heroSub}
-            </Text>
-
-            <View style={styles.hsearch}>
-              <TextInput
-                value={heroQuery}
-                onChangeText={setHeroQuery}
-                placeholder={t.heroSearchPlaceholder}
-                placeholderTextColor={colors.g400}
-                style={[styles.hsearchInput, { textAlign: isRtl ? 'right' : 'left' }]}
-                returnKeyType="search"
-                onSubmitEditing={submitHeroSearch}
-              />
-              <TouchableOpacity
-                style={styles.hsearchBtn}
-                activeOpacity={0.85}
-                onPress={submitHeroSearch}
-              >
-                <Text style={styles.hsearchBtnText}>{t.heroSearchBtn}</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.hstats}>
-              <View style={styles.hstat}>
-                <Text style={styles.hstatNum}>{roundedAds > 0 ? `${roundedAds}+` : '—'}</Text>
-                <Text style={styles.hstatLabel}>{t.activeAds}</Text>
-              </View>
-              <View style={styles.hstatDivider} />
-              <View style={styles.hstat}>
-                <Text style={styles.hstatNum}>{storesStat}+</Text>
-                <Text style={styles.hstatLabel}>{t.verifiedStoresLabel}</Text>
-              </View>
-              <View style={styles.hstatDivider} />
-              <View style={styles.hstat}>
-                <Text style={styles.hstatNum}>2K+</Text>
-                <Text style={styles.hstatLabel}>{t.usersLabel}</Text>
-              </View>
-            </View>
+    <SafeAreaView style={[styles.safe, { direction: isRtl ? 'rtl' : 'ltr' }]} edges={['top']}>
+      <View style={styles.container}>
+        {loading ? (
+          <View style={[styles.center, { backgroundColor: colors.g100 }]}>
+            <ActivityIndicator color={colors.y} size="large" />
           </View>
-
-          <View style={styles.content}>
+        ) : (
+          <>
+            <View style={styles.hero}>
+              <View style={styles.titleRow}>
+                <Logo size="sm" light />
+                <View style={styles.headerActions}>
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => router.push('/dashboard/notifications')}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="notifications-outline" size={22} color={colors.white} />
+                  </TouchableOpacity>
+                  <MessagesBell color={colors.white} style={styles.iconBtn} />
+                </View>
+              </View>
+              {user?.displayName ? (
+                <Text style={styles.welcomeText} numberOfLines={1}>
+                  {t.welcomeBack} {user.displayName} 👋
+                </Text>
+              ) : null}
+              <View style={styles.heroSearchRow}>
+                <View style={styles.heroSearchBar}>
+                  <Ionicons name="search-outline" size={20} color={colors.g500} />
+                  <TextInput
+                    style={[styles.searchInput, { textAlign: 'auto' }]}
+                    value={search}
+                    onChangeText={setSearch}
+                    placeholder={t.search}
+                    placeholderTextColor={colors.g400}
+                    returnKeyType="search"
+                    onSubmitEditing={submitSearch}
+                  />
+                  {search.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearch('')}>
+                      <Ionicons name="close-circle" size={18} color={colors.g400} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={styles.heroSearchBtn}
+                  onPress={submitSearch}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="search" size={22} color={colors.dk} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.statsRow}>
+                <View style={styles.statCol}>
+                  <Text style={styles.statNum}>
+                    {stats.users.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}
+                  </Text>
+                  <Text style={styles.statLbl}>{t.usersLabel}</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statCol}>
+                  <Text style={styles.statNum}>
+                    {stats.stores.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}
+                  </Text>
+                  <Text style={styles.statLbl}>{t.verifiedStoresLabel}</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statCol}>
+                  <Text style={styles.statNum}>
+                    {stats.products.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}
+                  </Text>
+                  <Text style={styles.statLbl}>{t.activeAds}</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.content}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+              >
           {/* Promo Carousel */}
           <View style={styles.promoSection}>
             <FlatList
@@ -697,9 +545,6 @@ export default function HomeScreen() {
             />
             <PromoDots count={PROMO_BANNERS.length} active={activePromo} />
           </View>
-
-          {/* Upgrade Banner — clients only */}
-          {user && !user.isStore && <UpgradeBanner />}
 
           {/* Category Icons */}
           {categories.length > 1 && (
@@ -799,9 +644,11 @@ export default function HomeScreen() {
             </Section>
           )}
 
-          </View>
-        </ScrollView>
-      )}
+              </ScrollView>
+            </View>
+          </>
+        )}
+      </View>
     </SafeAreaView>
   )
 }
@@ -810,31 +657,94 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.dk },
-  scrollView: {
-    flex: 1,
-    backgroundColor: colors.dk,
-  },
+  container: { flex: 1 },
   content: {
+    flex: 1,
     backgroundColor: colors.g100,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
+    overflow: 'hidden',
+  },
+  scrollContent: {
     paddingBottom: spacing.xl,
   },
 
-  topBar: {
+  hero: {
+    backgroundColor: colors.dk,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  welcomeText: {
+    fontFamily: fonts.bold,
+    fontSize: 16,
+    color: colors.white,
+    marginTop: spacing.xs,
+  },
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.dk,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.sm,
   },
-  heroCard: {
-    backgroundColor: colors.dk,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+  statCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  statNum: {
+    fontFamily: fonts.black,
+    fontSize: 15,
+    color: colors.y,
+    lineHeight: 20,
+  },
+  statLbl: {
+    fontFamily: fonts.regular,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  heroSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  heroSearchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    height: 44,
+    ...shadow.sm,
+  },
+  heroSearchBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.y,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.sm,
+  },
+
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   headerActions: {
     flexDirection: 'row',
@@ -848,100 +758,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  greeting: {
-    fontFamily: fonts.semiBold,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  // ── Hero (mirrors website .hero / .h-badge / .hsearch / .hstats) ──
-  heroBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.yl,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.full,
-    marginTop: spacing.sm,
-  },
-  heroBadgeText: {
-    fontFamily: fonts.bold,
-    fontSize: 11,
-    color: colors.yd,
-    letterSpacing: 0.3,
-  },
-  heroTitle: {
-    fontFamily: fonts.black,
-    fontSize: 30,
-    color: colors.white,
-    lineHeight: 42,
-    marginTop: spacing.lg,
-    textShadowColor: 'rgba(0,0,0,0.25)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-  },
-  heroSub: {
-    fontFamily: fonts.semiBold,
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.82)',
-    lineHeight: 24,
-    marginTop: 10,
-  },
-  hsearch: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  hsearchInput: {
+  searchInput: {
     flex: 1,
-    height: 46,
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
     fontFamily: fonts.regular,
     fontSize: 14,
     color: colors.g900,
   },
-  hsearchBtn: {
-    height: 46,
-    backgroundColor: colors.y,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  hsearchBtnText: {
-    fontFamily: fonts.bold,
-    fontSize: 13,
-    color: colors.dk,
-  },
-  hstats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.md,
-    gap: spacing.sm,
-  },
-  hstat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  hstatNum: {
-    fontFamily: fonts.black,
-    fontSize: 18,
-    color: colors.y,
-  },
-  hstatLabel: {
-    fontFamily: fonts.regular,
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  hstatDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scroll: {},
 
   promoSection: {
     marginTop: spacing.lg,

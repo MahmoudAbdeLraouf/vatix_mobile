@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { router } from 'expo-router'
+import { Redirect, router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useAuth } from '@/contexts/auth'
@@ -20,7 +20,7 @@ function normalizeType(t: string | null | undefined): 'client' | 'store' | 'stor
 
 export default function DashboardScreen() {
   const { t, locale } = useLocale()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, loading } = useAuth()
   const ar = locale === 'ar'
 
   const [adsCount, setAdsCount] = useState<number | null>(null)
@@ -48,6 +48,9 @@ export default function DashboardScreen() {
       cancelled = true
     }
   }, [isAuthenticated])
+
+  if (loading) return null
+  if (!isAuthenticated) return <Redirect href="/(auth)/login" />
 
   const type = normalizeType(user?.type)
   const isClient = type === 'client'
@@ -237,7 +240,9 @@ function UpgradeBanner({
         style={({ pressed }) => [styles.upgCta, pressed && { opacity: 0.9 }]}
         accessibilityRole="button"
       >
-        <Text style={styles.upgCtaText}>{ctaLabel}</Text>
+        <Text style={[styles.upgCtaText, dirStyle]} numberOfLines={1}>
+          {ctaLabel}
+        </Text>
         <Ionicons
           name={ar ? 'arrow-back' : 'arrow-forward'}
           size={16}
@@ -457,6 +462,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   upgCtaText: {
+    flexShrink: 1,
     fontFamily: fonts.bold,
     fontSize: 14,
     color: colors.dk,

@@ -19,10 +19,16 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AuthProvider } from '@/contexts/auth'
 import { LocaleProvider, useLocale } from '@/contexts/locale'
+import { LoginGateProvider } from '@/contexts/loginGate'
 import { trackHomepageView } from '@/lib/analytics'
 import { attachNotificationTapHandler } from '@/lib/notifications'
 import { getSiteSettings, type SiteSettings } from '@/lib/api'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
+import { StoreShareDialogTrigger } from '@/components/StoreShareDialogTrigger'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { installGlobalErrorHandler } from '@/lib/globalErrorHandler'
+
+if (__DEV__) installGlobalErrorHandler()
 
 SplashScreen.preventAutoHideAsync()
 
@@ -87,17 +93,22 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) return null
 
-  return (
+  const tree = (
     <SafeAreaProvider>
       <LocaleProvider>
         <AuthProvider>
-          <StatusBar style="auto" />
-          <RootStack />
-          <UpdatePrompt settings={siteSettings} />
+          <LoginGateProvider>
+            <StatusBar style="auto" />
+            <RootStack />
+            <UpdatePrompt settings={siteSettings} />
+            <StoreShareDialogTrigger />
+          </LoginGateProvider>
         </AuthProvider>
       </LocaleProvider>
     </SafeAreaProvider>
   )
+
+  return __DEV__ ? <ErrorBoundary>{tree}</ErrorBoundary> : tree
 }
 
 // Nested so useLocale() can see LocaleProvider. `contentStyle.direction` sets
