@@ -94,7 +94,7 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) return null
 
   const tree = (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ backgroundColor: '#1A2540' }}>
       <LocaleProvider>
         <AuthProvider>
           <LoginGateProvider>
@@ -123,7 +123,7 @@ function RootStack() {
       key={locale}
       screenOptions={{
         headerShown: false,
-        contentStyle: { direction: isRtl ? 'rtl' : 'ltr' },
+        contentStyle: { direction: isRtl ? 'rtl' : 'ltr', backgroundColor: '#1A2540' },
       }}
     />
   )
