@@ -272,7 +272,10 @@ export default function ProductDetailScreen() {
               style={styles.iconBtn}
               onPress={() => {
                 const url = `${SITE_URL}/products/${product.slug ?? product.id}`
-                Share.share({ message: url, url, title: product.title }).catch(() => {})
+                const msg = locale === 'ar'
+                  ? `${product.title}\nالسعر: ${product.price} جنيه\n${url}`
+                  : `${product.title}\nPrice: ${product.price} EGP\n${url}`
+                Share.share({ message: msg, url, title: product.title }).catch(() => {})
               }}
               hitSlop={8}
             >

@@ -29,9 +29,9 @@ import { Input } from '@/components/ui/Input'
 import { FileUpload } from '@/components/ui/FileUpload'
 
 // Mirrors vatix_website/components/upgrade-modal.tsx
-// Three modes × seven-step flow:
+// Three modes × six-step flow:
 //   Mode: upgrade-to-store | upgrade-to-plus | cancel-store
-//   Step: store-info → pay-method → card | instapay → instapay-done
+//   Step: store-info → pay-method → instapay → instapay-done
 //         pay-method → wallet → wallet-done
 // upgrade-to-plus skips store-info (user already has store profile).
 
@@ -215,14 +215,6 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
     }
   }
 
-  function handleCardPayment() {
-    onClose()
-    router.push({
-      pathname: '/checkout',
-      params: { context: 'subscription', type: selectedPlan.code, gateway: 'kashier' },
-    })
-  }
-
   async function handleInstapaySubmit() {
     if (!screenshotUrl) {
       setErr(ar ? 'صورة التحويل مطلوبة' : 'Screenshot required')
@@ -356,13 +348,6 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
                   onBack={() =>
                     needsStoreCreation ? setStep('store-info') : onClose()
                   }
-                  onPickCard={async () => {
-                    if (needsStoreCreation) {
-                      const ok = await handleCreateStore()
-                      if (!ok) return
-                    }
-                    handleCardPayment()
-                  }}
                   onPickInstapay={async () => {
                     if (needsStoreCreation) {
                       const ok = await handleCreateStore()
@@ -538,14 +523,12 @@ function PayMethodPanel(props: {
   hasBack: boolean
   isCreatingStore: boolean
   onBack: () => void
-  onPickCard: () => void
   onPickInstapay: () => void
   onPickWallet: () => void
 }) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
   const { settings, walletBalance, price } = props
-  const kashierOn = settings?.kashierEnabled ?? false
   const instapayOn = settings?.instapayEnabled ?? false
   const walletShort = walletBalance != null && walletBalance < price
 
@@ -565,16 +548,6 @@ function PayMethodPanel(props: {
       </View>
 
       <View style={styles.methodList}>
-        {kashierOn ? (
-          <MethodCard
-            icon="card-outline"
-            iconColor={colors.dk}
-            title={t.payWithCard}
-            subtitle={ar ? 'دفع فوري بالبطاقة' : 'Instant card payment'}
-            onPress={props.onPickCard}
-            disabled={props.busy}
-          />
-        ) : null}
         {instapayOn ? (
           <MethodCard
             icon="phone-portrait-outline"

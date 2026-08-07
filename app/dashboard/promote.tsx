@@ -34,11 +34,9 @@ import {
 } from '@/lib/api'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
-type Method = 'card' | 'instapay' | 'wallet'
 type Step = 'pick' | 'method' | 'instapay' | 'instapay-done' | 'wallet-done'
 
 const DEFAULT_SETTINGS: SiteSettings = {
-  kashierEnabled: true,
   instapayEnabled: true,
   instapayAccount: '',
   instapayName: 'Vatix',
@@ -182,21 +180,6 @@ export default function PromoteScreen() {
     setError('')
     setScreenshot('')
     setPhone('')
-  }
-
-  const payCard = () => {
-    if (!bundle) return
-    setError('')
-    router.push({
-      pathname: '/checkout',
-      params: {
-        context: 'promotion',
-        bundleId: String(bundle.id),
-        amount: String(bundle.price),
-        title: bundleT?.name ?? '',
-        gateway: 'kashier',
-      },
-    })
   }
 
   const payInstapay = async () => {
@@ -467,17 +450,6 @@ export default function PromoteScreen() {
               </View>
 
               <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-                {paySettings.kashierEnabled && (
-                  <MethodCard
-                    icon="card"
-                    color={colors.dk}
-                    bg={colors.g100}
-                    title={ar ? 'بطاقة ائتمان' : 'Credit / Debit Card'}
-                    subtitle={ar ? 'دفع فوري عبر Kashier' : 'Instant via Kashier'}
-                    onPress={payCard}
-                    disabled={loading}
-                  />
-                )}
                 {paySettings.instapayEnabled && (
                   <MethodCard
                     icon="phone-portrait"

@@ -223,7 +223,10 @@ export default function StoreDetailScreen() {
         ? '20' + rawPhone.slice(1)
         : rawPhone
     : null
-  const waLink = waPhone ? `https://wa.me/${waPhone}` : null
+  const shareStoreUrl = storePlusUrl ?? `https://vatix.store/stores/${storeIdent}`
+  const shareGreeting = locale === 'ar' ? 'تفضلوا بزيارة متجري على VATIX' : 'Visit my store on VATIX'
+  const waMessage = `${storeProfile.name ?? ''}\n${shareGreeting}\n${shareStoreUrl}`
+  const waLink = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
 
   const searchPlaceholder = locale === 'ar' ? 'ابحث في منتجات المتجر…' : 'Search store products…'
   const noMatchesText = locale === 'ar' ? 'لا توجد منتجات مطابقة لبحثك.' : 'No products match your search.'
@@ -243,10 +246,9 @@ export default function StoreDetailScreen() {
 
   const onSharePress = async () => {
     try {
-      const url = storePlusUrl ?? `https://vatix.store/stores/${storeIdent}`
       await Share.share({
-        message: `${storeProfile.name ?? ''}\n${url}`,
-        url,
+        message: waMessage,
+        url: shareStoreUrl,
         title: storeProfile.name ?? '',
       })
     } catch {

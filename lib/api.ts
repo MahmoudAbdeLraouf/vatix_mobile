@@ -448,7 +448,7 @@ export function resetPassword(
 
 export type SubscriptionStatus = 'trial' | 'active' | 'expired'
 export type PaymentStatus = 'success' | 'pending' | 'failed' | 'pending_verification'
-export type PaymentMethod = 'paymob' | 'kashier' | 'instapay' | 'wallet'
+export type PaymentMethod = 'instapay' | 'wallet'
 
 export interface SubStatus {
   type: string
@@ -472,7 +472,6 @@ export interface PaymentRecord {
   amount: number
   status: PaymentStatus | string
   method: PaymentMethod | string | null
-  paymobTransactionId: string | null
   createdAt: string
 }
 
@@ -579,7 +578,6 @@ export interface Analytics {
 }
 
 export interface SiteSettings {
-  kashierEnabled: boolean
   instapayEnabled: boolean
   instapayAccount: string | null
   instapayName: string | null

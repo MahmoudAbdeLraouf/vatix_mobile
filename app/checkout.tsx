@@ -10,7 +10,6 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
-import type { WebBrowserResult } from 'expo-web-browser'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -27,28 +26,19 @@ import {
 } from '@/lib/api'
 import {
   PaymentContext,
-  PaymentGateway,
   SubscriptionType,
   finalizePaymentSuccess,
   initiateInstapayPromotion,
   initiateInstapaySubscription,
   initiateInstapayWalletTopup,
-  initiateKashierPromotion,
-  initiateKashierSubscription,
-  initiateKashierWalletTopup,
-  initiatePaymobPromotion,
-  initiatePaymobSubscription,
-  initiatePaymobWalletTopup,
-  openGatewayInBrowser,
   payWithWalletForPromotion,
   payWithWalletForSubscription,
 } from '@/lib/payment'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
-type Panel = 'pick' | 'instapay' | 'processing'
+type Panel = 'pick' | 'instapay'
 
 const DEFAULT_SETTINGS: SiteSettings = {
-  kashierEnabled: true,
   instapayEnabled: true,
   instapayAccount: '',
   instapayName: 'Vatix',
@@ -88,14 +78,12 @@ export default function CheckoutScreen() {
     bundleId?: string
     amount?: string
     title?: string
-    gateway?: PaymentGateway
   }>()
 
   const context = (params.context ?? 'subscription') as PaymentContext
   const subType = params.type as SubscriptionType | undefined
   const bundleId = params.bundleId ? Number(params.bundleId) : null
   const amountParam = params.amount ? Number(params.amount) : null
-  const preferredGateway: PaymentGateway = params.gateway === 'paymob' ? 'paymob' : 'kashier'
 
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS)
   const [wallet, setWallet] = useState<number | null>(null)
@@ -157,81 +145,6 @@ export default function CheckoutScreen() {
   const canWallet = wallet !== null && amount > 0 && wallet >= amount
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
-
-  const openWithGateway = async (url: string): Promise<WebBrowserResult | null> => {
-    try {
-      return await openGatewayInBrowser(url)
-    } catch {
-      return null
-    }
-  }
-
-  const routeToCallback = (gateway: PaymentGateway, paymentId: number) => {
-    if (gateway === 'kashier') {
-      router.replace({ pathname: '/payment/kashier/callback', params: { paymentId: String(paymentId) } })
-    } else {
-      router.replace({ pathname: '/payment/callback', params: { paymentId: String(paymentId) } })
-    }
-  }
-
-  const payCard = async () => {
-    if (amount <= 0) {
-      setError(ar ? 'المبلغ غير صحيح' : 'Invalid amount')
-      return
-    }
-    setBusy(true)
-    setError('')
-    try {
-      let url = ''
-      let paymentId = 0
-      const gw = preferredGateway
-      if (gw === 'kashier') {
-        if (context === 'subscription' && subType) {
-          const res = await initiateKashierSubscription({ type: subType })
-          url = res.sessionUrl
-          paymentId = res.paymentId
-        } else if (context === 'promotion' && bundleId) {
-          const res = await initiateKashierPromotion({ bundleId })
-          url = res.sessionUrl
-          paymentId = res.paymentId
-        } else if (context === 'wallet_topup') {
-          const res = await initiateKashierWalletTopup({ amount })
-          url = res.sessionUrl
-          paymentId = res.paymentId
-        }
-      } else {
-        if (context === 'subscription' && subType) {
-          const res = await initiatePaymobSubscription({ type: subType })
-          url = res.iframeUrl
-          paymentId = res.paymentId
-        } else if (context === 'promotion' && bundleId) {
-          const res = await initiatePaymobPromotion({ bundleId })
-          url = res.iframeUrl
-          paymentId = res.paymentId
-        } else if (context === 'wallet_topup') {
-          const res = await initiatePaymobWalletTopup({ amount })
-          url = res.iframeUrl
-          paymentId = res.paymentId
-        }
-      }
-
-      if (!url || !paymentId) {
-        setError(ar ? 'تعذّر بدء عملية الدفع' : 'Could not start payment')
-        return
-      }
-
-      setPanel('processing')
-      await openWithGateway(url)
-      // Any result (opened/cancel/dismiss) — hand off to the callback screen,
-      // which polls status and decides success vs. failed.
-      routeToCallback(gw, paymentId)
-    } catch (e: any) {
-      setError(e?.message || (ar ? 'فشل الدفع' : 'Payment failed'))
-      setPanel('pick')
-    } finally {
-      setBusy(false)
-    }
-  }
 
   const payWallet = async () => {
     if (!canWallet) {
@@ -353,25 +266,6 @@ export default function CheckoutScreen() {
                 {t.choosePaymentMethod}
               </Text>
               <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-                {settings.kashierEnabled && (
-                  <MethodCard
-                    icon="card"
-                    color={colors.dk}
-                    bg={colors.g100}
-                    title={t.payWithCard}
-                    subtitle={
-                      preferredGateway === 'kashier'
-                        ? ar
-                          ? 'دفع فوري عبر Kashier'
-                          : 'Instant via Kashier'
-                        : ar
-                          ? 'دفع فوري عبر PayMob'
-                          : 'Instant via PayMob'
-                    }
-                    onPress={payCard}
-                    disabled={busy}
-                  />
-                )}
                 {settings.instapayEnabled && (
                   <MethodCard
                     icon="phone-portrait"
@@ -472,18 +366,6 @@ export default function CheckoutScreen() {
                 />
                 {error ? <ErrorBox text={error} /> : null}
               </View>
-            </View>
-          )}
-
-          {/* Processing panel — awaiting return from gateway browser */}
-          {panel === 'processing' && (
-            <View style={[styles.card, { alignItems: 'center', gap: spacing.md }]}>
-              <ActivityIndicator color={colors.dk} size="large" />
-              <Text style={styles.processingText}>
-                {ar
-                  ? 'يتم فتح بوابة الدفع… أكمل العملية ثم عد إلى التطبيق.'
-                  : 'Opening the payment gateway… complete the payment and return to the app.'}
-              </Text>
             </View>
           )}
         </ScrollView>
@@ -742,14 +624,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 12,
     color: colors.dk,
-    lineHeight: 20,
-  },
-
-  processingText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 13,
-    color: colors.g700,
-    textAlign: 'center',
     lineHeight: 20,
   },
 

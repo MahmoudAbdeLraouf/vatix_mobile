@@ -154,23 +154,17 @@ Goal: subscriptions, wallet, promotions, analytics.
 
 ## Phase 5 — Payments & Checkout  (est. 2 weeks)
 
-Goal: complete PayMob + Kashier flow inside the app.
+Goal: complete InstaPay (manual screenshot → admin review) + Wallet (internal balance debit) flow inside the app.
 
 ### 5.1 Checkout
-- [x] `app/checkout.tsx` — unified order summary + pay method selection (subscription / promotion / wallet_topup)
-- [x] `lib/payment.ts` — gateway helpers: `initiateKashier*`, `initiatePaymob*`, `initiateInstapay*`, `payWithWallet*`, `openGatewayInBrowser`, `pollKashierStatus`, `pollPaymobStatus`, `verifyPaymobRedirect`, `confirmKashierRedirect`, `finalizePaymentSuccess`
-- [x] Migrate card flows to unified `/checkout`: `components/UpgradeModal.tsx`, `components/WalletTopupModal.tsx`, `app/dashboard/promote.tsx`
+- [x] `lib/payment.ts` — helpers: `initiateInstapaySubscription`, `initiateInstapayPromotion`, `initiateInstapayWalletTopup`, `payWithWalletForSubscription`, `payWithWalletForPromotion`, `finalizePaymentSuccess`
+- [x] In-modal flows: `components/UpgradeModal.tsx` (subscription), `components/WalletTopupModal.tsx` (wallet top-up), `app/dashboard/promote.tsx` (promotion)
 
 ### 5.2 Payment callbacks
 - [x] `app/payment/success.tsx`
 - [x] `app/payment/failed.tsx`
-- [x] `app/payment/callback.tsx` (PayMob — verify + poll)
-- [x] `app/payment/kashier/callback.tsx` (Kashier — confirm + poll)
-- [x] Deep-link handler in `app/_layout.tsx` for `vatix://payment/...` (cold-start + warm) — routes to typed callback screens
 
-**Deliverable:** any paid action (subscription, promotion, wallet top-up) round-trips through the gateway on-device.
-
-**Gap logged:** backend uses `SITE_URL` for gateway redirect base — points at web (`localhost:3003`) not the mobile scheme (`vatix://`). Deep-link handler currently intercepts `vatix://payment/*`, but until backend accepts a per-request redirect override (or a mobile-specific `SITE_URL`), on-device Kashier/PayMob redirects still land in a browser rather than the app. Confirm approach with backend before shipping.
+**Deliverable:** any paid action (subscription, promotion, wallet top-up) is handled in-app via InstaPay screenshot submission or wallet debit — no external gateway round-trip needed.
 
 ---
 
@@ -218,7 +212,7 @@ Goal: parity for tracking, informational pages, and RTL polish.
 | 2 — Dashboard Foundation | 3–4 | [x] |
 | 3 — Product & Store Mgmt | 2–3 | [~] delivery-area picker blocked on backend |
 | 4 — Monetization | 3–4 | [~] `TrackView` reuse in analytics pending Phase 6 event bus |
-| 5 — Payments & Checkout | 2 | [~] `SITE_URL` mobile-redirect confirmation pending backend |
+| 5 — Payments & Checkout | 2 | [x] InstaPay + Wallet only (PayMob/Kashier removed) |
 | 6 — Analytics & Polish | 2–3 | [~] `app/blog.tsx` scope decision + dark-mode audit deferred; push-token endpoint pending backend |
 | **Total** | **16–21 weeks** | |
 

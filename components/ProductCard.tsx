@@ -18,7 +18,11 @@ interface ProductCardProps {
 // 1:1 image, 12px body padding, 13/700 title (2 lines), 18/900 navy price,
 // yl+yd store-plus tag, --ss shadow, 12px radius, 1.5px g200 border.
 
-export function ProductCard({ product, style, variant = 'grid' }: ProductCardProps) {
+export const ProductCard = React.memo(function ProductCard({
+  product,
+  style,
+  variant = 'grid',
+}: ProductCardProps) {
   const { locale, t, isRtl } = useLocale()
   // Request a ~400px thumbnail from the resize endpoint — grid cells are ~180-
   // 220px wide on mobile so 400px covers @2x/@3x displays without downloading
@@ -116,7 +120,7 @@ export function ProductCard({ product, style, variant = 'grid' }: ProductCardPro
       </View>
     </Pressable>
   )
-}
+})
 
 const styles = StyleSheet.create({
   // Sizing is deferred to the parent (fixed width in a wrap grid,

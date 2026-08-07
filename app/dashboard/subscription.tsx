@@ -429,9 +429,6 @@ export default function SubscriptionScreen() {
                             ar ? 'ar-EG' : 'en-EG',
                           )}
                           {p.method === 'instapay' && ' · InstaPay'}
-                          {p.paymobTransactionId
-                            ? ` · #${p.paymobTransactionId}`
-                            : ''}
                         </Text>
                       </View>
                       <View style={[styles.historyTrail, trailAlign, colDir]}>

@@ -77,7 +77,6 @@ export default function InvoicesScreen() {
   const methodLabel = (method: string | null): string | null => {
     if (!method) return null
     if (method === 'instapay') return 'InstaPay'
-    if (method === 'paymob' || method === 'kashier') return ar ? 'بطاقة بنكية' : 'Card'
     if (method === 'wallet') return ar ? 'محفظة' : 'Wallet'
     return method
   }
@@ -150,7 +149,6 @@ export default function InvoicesScreen() {
                             { year: 'numeric', month: 'long', day: 'numeric' },
                           )}
                           {method ? ` · ${method}` : ''}
-                          {p.paymobTransactionId ? ` · #${p.paymobTransactionId}` : ''}
                         </Text>
                       </View>
                       <View style={[styles.rowTrail, trailAlign, colDir]}>

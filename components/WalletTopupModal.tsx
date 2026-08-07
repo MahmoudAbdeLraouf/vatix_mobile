@@ -10,7 +10,6 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
@@ -22,7 +21,7 @@ import { Input } from '@/components/ui/Input'
 import { FileUpload } from '@/components/ui/FileUpload'
 
 // Mirrors vatix_website/components/wallet-topup-modal.tsx
-// Card path routes to unified /checkout; instapay stays in-modal.
+// InstaPay-only flow: manual transfer + screenshot proof, admin-reviewed.
 
 type Step = 'amount' | 'instapay' | 'instapay-done'
 
@@ -99,23 +98,6 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
   }, [amount])
   const amountValid = parsedAmount >= MIN_AMOUNT
 
-  function handleCard() {
-    if (!amountValid) {
-      setErr(ar ? `الحد الأدنى ${MIN_AMOUNT} ج.م` : `Minimum is ${MIN_AMOUNT} EGP`)
-      return
-    }
-    setErr('')
-    onClose()
-    router.push({
-      pathname: '/checkout',
-      params: {
-        context: 'wallet_topup',
-        amount: String(parsedAmount),
-        gateway: 'kashier',
-      },
-    })
-  }
-
   async function handleInstapay() {
     if (!screenshotUrl) {
       setErr(ar ? 'صورة التحويل مطلوبة' : 'Screenshot required')
@@ -174,7 +156,6 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
                   err={err}
                   busy={busy}
                   onClose={onClose}
-                  onCard={handleCard}
                   onInstapay={() => {
                     if (!amountValid) {
                       setErr(
@@ -242,13 +223,11 @@ function AmountPanel(props: {
   err: string
   busy: boolean
   onClose: () => void
-  onCard: () => void
   onInstapay: () => void
 }) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
   const { amount, onAmountChange, parsedAmount, amountValid, settings } = props
-  const kashierOn = settings?.kashierEnabled ?? false
   const instapayOn = settings?.instapayEnabled ?? false
 
   return (
@@ -326,16 +305,6 @@ function AmountPanel(props: {
         </Text>
       </View>
       <View style={styles.methodList}>
-        {kashierOn ? (
-          <MethodCard
-            icon="card-outline"
-            iconColor={colors.dk}
-            title={t.payWithCard}
-            subtitle={ar ? 'دفع فوري بالبطاقة' : 'Instant card payment'}
-            onPress={props.onCard}
-            disabled={props.busy || !amountValid}
-          />
-        ) : null}
         {instapayOn ? (
           <MethodCard
             icon="phone-portrait-outline"

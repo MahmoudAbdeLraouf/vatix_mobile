@@ -169,7 +169,15 @@ export default function ProductsScreen() {
 
   const heroTitle = search.trim() ? `🔍 ${resultsForLabel} "${search.trim()}"` : null
 
-  const listHeader = (
+  const renderProduct = useCallback(
+    ({ item }: { item: Product }) => <ProductCard product={item} variant="row" />,
+    [],
+  )
+
+  // Memoize the list header so unrelated re-renders (products loading, pagination,
+  // errors) don't rebuild the header JSX — which would otherwise force the FlatList
+  // to reconcile & re-measure it, producing the "items scroll up and down" jitter.
+  const listHeader = useMemo(() => (
     <View style={styles.listHeader}>
       {/* ─── Hero block ────────────────────────────────────────────── */}
       <View style={styles.hero}>
@@ -318,7 +326,25 @@ export default function ProductsScreen() {
         </View>
       </View>
     </View>
-  )
+  ), [
+    heroTitle,
+    t,
+    activeFilterCount,
+    activeBrand,
+    activeLocation,
+    minPrice,
+    maxPrice,
+    filtersLabel,
+    hasActiveFilters,
+    resetLabel,
+    brandOptions,
+    locationOptions,
+    brandId,
+    locationId,
+    brandPlaceholder,
+    locationPlaceholder,
+    locale,
+  ])
 
   return (
     <SafeAreaView
@@ -373,7 +399,12 @@ export default function ProductsScreen() {
 
       {/* ─── Product list ────────────────────────────────────────────── */}
       <View style={styles.content}>
-        {loading ? (
+        {loading && products.length === 0 ? (
+          // Only show the skeleton on the initial load. On subsequent filter
+          // changes we keep the existing list mounted so scroll position, header
+          // measurements, and virtualization state are preserved (swapping
+          // between SkeletonGrid and FlatList caused the "items jumping up and
+          // down" jitter as the list re-mounted and re-measured every row).
           <View style={styles.list}>
             <SkeletonGrid count={6} />
           </View>
@@ -391,15 +422,17 @@ export default function ProductsScreen() {
             contentContainerStyle={styles.list}
             ListHeaderComponent={listHeader}
             ListEmptyComponent={<EmptyState title={t.noResults} subtitle={t.notFoundHint} />}
-            renderItem={({ item }) => (
-              <ProductCard product={item} variant="row" />
-            )}
+            renderItem={renderProduct}
             onEndReached={loadMore}
             onEndReachedThreshold={0.4}
             ListFooterComponent={
               loadingMore ? <ActivityIndicator color={colors.y} style={styles.more} /> : null
             }
             keyboardShouldPersistTaps="handled"
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={7}
+            updateCellsBatchingPeriod={50}
           />
         )}
       </View>
