@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -15,6 +17,7 @@ import { FileUpload } from '@/components/ui/FileUpload'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
+  authDelete,
   authFetch,
   authPost,
   refreshAccessToken,
@@ -23,18 +26,20 @@ import {
 import {
   Bundle,
   BundleTranslation,
-  PaymentRecord,
   PromoInfo,
-  PromotionOrderItem,
+  PromotedProductItem,
+  PromotionHistoryRow,
   SiteSettings,
   UserProfile,
   WalletBalance,
   getPromotionBundles,
   getSiteSettings,
+  imgUrl,
 } from '@/lib/api'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 type Step = 'pick' | 'method' | 'instapay' | 'instapay-done' | 'wallet-done'
+type PromoTab = 'ads' | 'history'
 
 const DEFAULT_SETTINGS: SiteSettings = {
   instapayEnabled: true,
@@ -56,6 +61,8 @@ const DEFAULT_SETTINGS: SiteSettings = {
   androidMinVersion: null,
   androidLatestVersion: null,
   androidStoreUrl: null,
+  maxProductsPerClient: 5,
+  maxActiveProductsPerStore: 20,
 }
 
 // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
@@ -83,21 +90,30 @@ function useDir() {
 }
 
 export default function PromoteScreen() {
-  const { t, locale } = useLocale()
+  const { locale } = useLocale()
   const { user } = useAuth()
   const { ar, rowDir, colDir, dirStyle, trailAlign } = useDir()
-  const params = useLocalSearchParams<{ bundleId?: string }>()
+  const params = useLocalSearchParams<{
+    bundleId?: string
+    resumeProductId?: string
+  }>()
+  const resumeProductId = params.resumeProductId
+    ? String(params.resumeProductId)
+    : null
 
   const [bundles, setBundles] = useState<Bundle[]>([])
   const [bundlesLoaded, setBundlesLoaded] = useState(false)
   const [credits, setCredits] = useState<PromoInfo | null>(null)
   const [wallet, setWallet] = useState<number | null>(null)
-  const [orders, setOrders] = useState<PromotionOrderItem[]>([])
-  const [payHistory, setPayHistory] = useState<PaymentRecord[]>([])
+  const [promoted, setPromoted] = useState<PromotedProductItem[]>([])
+  const [promotionHistory, setPromotionHistory] = useState<
+    PromotionHistoryRow[]
+  >([])
   const [paySettings, setPaySettings] = useState<SiteSettings>(DEFAULT_SETTINGS)
 
   const [selected, setSelected] = useState<number | null>(null)
   const [step, setStep] = useState<Step>('pick')
+  const [tab, setTab] = useState<PromoTab>('ads')
   const [screenshot, setScreenshot] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
@@ -105,18 +121,16 @@ export default function PromoteScreen() {
   const [pageLoading, setPageLoading] = useState(true)
 
   const load = useCallback(async () => {
-    const [c, w, o, ph] = await Promise.all([
+    const [c, w, pp, ph] = await Promise.all([
       authFetch<PromoInfo>('/payments/promo-credits'),
       authFetch<WalletBalance>('/payments/wallet/balance'),
-      authFetch<PromotionOrderItem[]>('/promotions/mine'),
-      authFetch<PaymentRecord[]>('/payments/history'),
+      authFetch<PromotedProductItem[]>('/payments/promoted-products'),
+      authFetch<PromotionHistoryRow[]>('/payments/promotions/history'),
     ])
-    setCredits(c ?? { total: 0, packs: [] })
+    setCredits(c ?? { total: 0 })
     setWallet(w?.balance ?? 0)
-    setOrders(o ?? [])
-    setPayHistory(
-      (ph ?? []).filter(p => p.type && p.type.startsWith('promotion_')),
-    )
+    setPromoted(pp ?? [])
+    setPromotionHistory(ph ?? [])
   }, [])
 
   useEffect(() => {
@@ -166,6 +180,58 @@ export default function PromoteScreen() {
     Number(n ?? 0).toLocaleString(ar ? 'ar-EG' : 'en-EG')
   const currency = ar ? 'ج.م' : 'EGP'
 
+  const METHOD_LABELS: Record<
+    string,
+    { emoji: string; label: string; color: string; bg: string }
+  > = {
+    wallet: {
+      emoji: '👛',
+      label: ar ? 'محفظة' : 'Wallet',
+      color: colors.green,
+      bg: colors.gl,
+    },
+    instapay: {
+      emoji: '📱',
+      label: 'InstaPay',
+      color: '#7B2FBE',
+      bg: '#F5EEFF',
+    },
+    gift: {
+      emoji: '🎁',
+      label: ar ? 'مجاني' : 'Free',
+      color: colors.yd,
+      bg: colors.yl,
+    },
+    legacy: {
+      emoji: '🎯',
+      label: ar ? 'رصيد ترويج' : 'Credit',
+      color: colors.g600,
+      bg: colors.g100,
+    },
+  }
+
+  const PROMO_STATUS_LABELS: Record<
+    string,
+    { label: string; color: string; bg: string }
+  > = {
+    success: {
+      label: ar ? 'مكتمل' : 'Completed',
+      color: colors.green,
+      bg: colors.gl,
+    },
+    pending: {
+      label: ar ? 'معلّق' : 'Pending',
+      color: colors.yd,
+      bg: colors.yl,
+    },
+    pending_verification: {
+      label: ar ? 'قيد المراجعة' : 'Under Review',
+      color: colors.yd,
+      bg: colors.yl,
+    },
+    failed: { label: ar ? 'فشل' : 'Failed', color: colors.red, bg: colors.rl },
+  }
+
   const chooseBundle = (id: number) => {
     setSelected(id)
     setError('')
@@ -182,10 +248,30 @@ export default function PromoteScreen() {
     setPhone('')
   }
 
+  const handleDelete = (productId: number) => {
+    Alert.alert(
+      ar ? 'حذف الإعلان' : 'Delete Listing',
+      ar ? 'هل تريد حذف هذا الإعلان؟' : 'Delete this listing?',
+      [
+        { text: ar ? 'إلغاء' : 'Cancel', style: 'cancel' },
+        {
+          text: ar ? 'حذف' : 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await authDelete(`/products/${productId}`)
+            load()
+          },
+        },
+      ],
+    )
+  }
+
   const payInstapay = async () => {
     if (!bundle) return
     if (!screenshot) {
-      setError(ar ? 'الرجاء رفع لقطة الإيصال' : 'Please upload the receipt screenshot')
+      setError(
+        ar ? 'الرجاء رفع لقطة الإيصال' : 'Please upload the receipt screenshot',
+      )
       return
     }
     if (!phone || phone.trim().length < 6) {
@@ -233,40 +319,14 @@ export default function PromoteScreen() {
       }
       await load()
       setStep('wallet-done')
+      if (resumeProductId) {
+        router.push('/dashboard/my-ads')
+      }
     } catch (e: any) {
       setError(e?.message || (ar ? 'فشل الدفع' : 'Payment failed'))
     } finally {
       setLoading(false)
     }
-  }
-
-  const PAY_STATUS_LABELS: Record<
-    string,
-    { label: string; color: string; bg: string }
-  > = {
-    success: { label: ar ? 'مكتمل' : 'Completed', color: colors.green, bg: colors.gl },
-    pending: { label: ar ? 'معلّق' : 'Pending', color: colors.yd, bg: colors.yl },
-    failed: { label: ar ? 'فشل' : 'Failed', color: colors.red, bg: colors.rl },
-    pending_verification: {
-      label: ar ? 'قيد المراجعة' : 'Under Review',
-      color: colors.yd,
-      bg: colors.yl,
-    },
-  }
-
-  const PAY_TYPE_LABELS: Record<string, string> = {
-    promotion_1ad: ar ? 'ترويج إعلان واحد' : 'Promo — 1 Ad',
-    promotion_3ads: ar ? 'ترويج ٣ إعلانات' : 'Promo — 3 Ads',
-    promotion_5ads: ar ? 'ترويج ٥ إعلانات' : 'Promo — 5 Ads',
-  }
-
-  const ORDER_STATUS: Record<
-    string,
-    { label: string; color: string; bg: string }
-  > = {
-    active: { label: ar ? 'نشط' : 'Active', color: colors.green, bg: colors.gl },
-    expired: { label: ar ? 'منتهي' : 'Expired', color: colors.g600, bg: colors.g100 },
-    cancelled: { label: ar ? 'ملغى' : 'Cancelled', color: colors.red, bg: colors.rl },
   }
 
   return (
@@ -303,7 +363,11 @@ export default function PromoteScreen() {
                 <Ionicons name="wallet" size={16} color={colors.green} />
                 <View style={[{ flex: 1 }, colDir]}>
                   <Text
-                    style={[styles.creditsHeadText, dirStyle, { color: colors.g700 }]}
+                    style={[
+                      styles.creditsHeadText,
+                      dirStyle,
+                      { color: colors.g700 },
+                    ]}
                   >
                     {ar ? 'رصيد المحفظة' : 'Wallet Balance'}
                   </Text>
@@ -428,17 +492,25 @@ export default function PromoteScreen() {
 
               <View style={[styles.bundleSummary, rowDir]}>
                 <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-                  <Text style={[styles.bundleName, dirStyle]} numberOfLines={1}>
+                  <Text
+                    style={[styles.bundleName, dirStyle]}
+                    numberOfLines={1}
+                  >
                     {bundleT?.name ?? bundle.name}
                   </Text>
-                  <Text style={[styles.bundleMeta, dirStyle]} numberOfLines={1}>
+                  <Text
+                    style={[styles.bundleMeta, dirStyle]}
+                    numberOfLines={1}
+                  >
                     {ar
                       ? `${fmt(bundle.productCount)} إعلان · ٧ أيام`
                       : `${bundle.productCount} ads · 7 days`}
                   </Text>
                 </View>
                 <View style={styles.bundlePrice}>
-                  <Text style={styles.bundlePriceValue}>{fmt(bundle.price)}</Text>
+                  <Text style={styles.bundlePriceValue}>
+                    {fmt(bundle.price)}
+                  </Text>
                   <Text style={styles.bundlePriceCurrency}>{currency}</Text>
                 </View>
               </View>
@@ -456,7 +528,9 @@ export default function PromoteScreen() {
                     color={'#7B2FBE'}
                     bg={'#F5EDFA'}
                     title={ar ? 'انستاباي' : 'InstaPay'}
-                    subtitle={ar ? 'تحويل بنكي مع إيصال' : 'Bank transfer with receipt'}
+                    subtitle={
+                      ar ? 'تحويل بنكي مع إيصال' : 'Bank transfer with receipt'
+                    }
                     onPress={() => {
                       setStep('instapay')
                       setError('')
@@ -513,7 +587,11 @@ export default function PromoteScreen() {
 
               <View style={styles.instapayPanel}>
                 <View style={[styles.instapayHead, rowDir]}>
-                  <Ionicons name="phone-portrait" size={18} color={colors.white} />
+                  <Ionicons
+                    name="phone-portrait"
+                    size={18}
+                    color={colors.white}
+                  />
                   <View style={[{ flex: 1 }, colDir]}>
                     <Text style={[styles.instapayHeadText, dirStyle]}>
                       {ar ? 'الدفع عبر انستاباي' : 'Pay via InstaPay'}
@@ -562,9 +640,7 @@ export default function PromoteScreen() {
                   onChange={setScreenshot}
                   aspect="wide"
                   hint={
-                    ar
-                      ? 'JPG أو PNG، حد أقصى ٥ ميجا'
-                      : 'JPG or PNG, max 5 MB'
+                    ar ? 'JPG أو PNG، حد أقصى ٥ ميجا' : 'JPG or PNG, max 5 MB'
                   }
                 />
                 <Button
@@ -583,7 +659,11 @@ export default function PromoteScreen() {
           {step === 'instapay-done' && (
             <View style={[styles.card, styles.doneCard]}>
               <View style={styles.doneIconWrap}>
-                <Ionicons name="checkmark-circle" size={56} color={colors.green} />
+                <Ionicons
+                  name="checkmark-circle"
+                  size={56}
+                  color={colors.green}
+                />
               </View>
               <Text style={styles.doneTitle}>
                 {ar ? 'تم استلام الطلب!' : 'Request Received!'}
@@ -611,7 +691,11 @@ export default function PromoteScreen() {
           {step === 'wallet-done' && (
             <View style={[styles.card, styles.doneCard]}>
               <View style={styles.doneIconWrap}>
-                <Ionicons name="checkmark-circle" size={56} color={colors.green} />
+                <Ionicons
+                  name="checkmark-circle"
+                  size={56}
+                  color={colors.green}
+                />
               </View>
               <Text style={styles.doneTitle}>
                 {ar ? 'تم الدفع بنجاح!' : 'Payment Successful!'}
@@ -639,139 +723,236 @@ export default function PromoteScreen() {
             </View>
           )}
 
-          {/* History sections (only on pick step) */}
-          {step === 'pick' && credits && credits.packs.length > 0 && (
+          {/* Tabs + panels — only visible on pick step */}
+          {step === 'pick' && (
             <View style={styles.card}>
-              <View style={colDir}>
-                <Text style={[styles.cardTitle, dirStyle]}>
-                  {ar ? 'الباقات الحالية' : 'Current Packs'}
-                </Text>
+              <View style={[styles.tabRow, rowDir]}>
+                <TabButton
+                  active={tab === 'ads'}
+                  label={
+                    ar
+                      ? `إعلاناتي المروّجة (${promoted.length})`
+                      : `My Promoted Ads (${promoted.length})`
+                  }
+                  onPress={() => setTab('ads')}
+                />
+                <TabButton
+                  active={tab === 'history'}
+                  label={
+                    ar
+                      ? `سجل المعاملات (${promotionHistory.length})`
+                      : `Transactions (${promotionHistory.length})`
+                  }
+                  onPress={() => setTab('history')}
+                />
               </View>
-              <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-                {credits.packs.map(p => (
-                  <View key={p.id} style={[styles.packRow, rowDir]}>
-                    <View style={styles.packIcon}>
-                      <Ionicons name="rocket" size={18} color={colors.dk} />
-                    </View>
-                    <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-                      <Text style={[styles.packText, dirStyle]}>
-                        {ar
-                          ? `${p.remaining} إعلان متبقي`
-                          : `${p.remaining} ads remaining`}
-                      </Text>
-                      <Text style={[styles.packMeta, dirStyle]}>
-                        {ar
-                          ? `${p.boostDays} يوم لكل إعلان`
-                          : `${p.boostDays} days each`}
-                      </Text>
-                    </View>
-                    <Text style={styles.packCount}>{p.remaining}</Text>
+
+              {tab === 'ads' ? (
+                promoted.length === 0 ? (
+                  <View style={colDir}>
+                    <Text style={[styles.empty, dirStyle]}>
+                      {ar
+                        ? 'لم تروّج أي إعلان بعد'
+                        : "You haven't promoted any listings yet"}
+                    </Text>
                   </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {step === 'pick' && orders.length > 0 && (
-            <View style={styles.card}>
-              <View style={colDir}>
-                <Text style={[styles.cardTitle, dirStyle]}>
-                  {ar ? 'طلبات الترويج' : 'Promotion Orders'}
-                </Text>
-              </View>
-              <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-                {orders.map(o => {
-                  const s = ORDER_STATUS[o.status] ?? {
-                    label: o.status,
-                    color: colors.g600,
-                    bg: colors.g100,
-                  }
-                  return (
-                    <View key={o.id} style={[styles.orderRow, rowDir]}>
-                      <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-                        <Text
-                          style={[styles.orderTitle, dirStyle]}
-                          numberOfLines={1}
-                        >
-                          {o.bundle?.name ??
-                            (ar ? 'باقة ترويج' : 'Promotion bundle')}
-                        </Text>
-                        <Text
-                          style={[styles.orderMeta, dirStyle]}
-                          numberOfLines={1}
-                        >
-                          {new Date(o.startDate).toLocaleDateString(
-                            ar ? 'ar-EG' : 'en-EG',
-                          )}
-                          {' — '}
-                          {new Date(o.endDate).toLocaleDateString(
-                            ar ? 'ar-EG' : 'en-EG',
-                          )}
-                        </Text>
-                      </View>
-                      <View style={[styles.orderTrail, trailAlign, colDir]}>
-                        <Text style={[styles.orderAmount, dirStyle]}>
-                          {fmt(o.amount)} {currency}
-                        </Text>
-                        <View style={[styles.chip, { backgroundColor: s.bg }]}>
-                          <Text style={[styles.chipText, { color: s.color }]}>
-                            {s.label}
+                ) : (
+                  <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+                    {promoted.map(p => {
+                      const endTs = new Date(p.promotedUntil).getTime()
+                      const daysLeft = Math.max(
+                        0,
+                        Math.ceil((endTs - Date.now()) / 86400000),
+                      )
+                      const active = p.status === 'active'
+                      const methodKey = p.method ?? 'legacy'
+                      const m = METHOD_LABELS[methodKey] ?? METHOD_LABELS.legacy
+                      const thumb = p.image ? imgUrl(p.image) : null
+                      return (
+                        <View key={p.productId} style={[styles.adRow, rowDir]}>
+                          <View style={styles.adThumbWrap}>
+                            {thumb ? (
+                              <Image
+                                source={{ uri: thumb }}
+                                style={styles.adThumb}
+                              />
+                            ) : (
+                              <View
+                                style={[
+                                  styles.adThumb,
+                                  styles.adThumbFallback,
+                                ]}
+                              >
+                                <Ionicons
+                                  name="image"
+                                  size={20}
+                                  color={colors.g500}
+                                />
+                              </View>
+                            )}
+                          </View>
+                          <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
+                            <Text
+                              style={[styles.adTitle, dirStyle]}
+                              numberOfLines={1}
+                            >
+                              {p.title}
+                            </Text>
+                            <Text
+                              style={[styles.adMeta, dirStyle]}
+                              numberOfLines={1}
+                            >
+                              {fmt(p.price)} {currency}
+                            </Text>
+                            <View style={[styles.adChipsRow, rowDir]}>
+                              <View
+                                style={[
+                                  styles.chip,
+                                  {
+                                    backgroundColor: active
+                                      ? colors.gl
+                                      : colors.g100,
+                                  },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.chipText,
+                                    {
+                                      color: active
+                                        ? colors.green
+                                        : colors.g600,
+                                    },
+                                  ]}
+                                >
+                                  {active
+                                    ? ar
+                                      ? `نشط · ${daysLeft} يوم`
+                                      : `Active · ${daysLeft}d`
+                                    : ar
+                                      ? 'منتهي'
+                                      : 'Ended'}
+                                </Text>
+                              </View>
+                              <View
+                                style={[
+                                  styles.chip,
+                                  { backgroundColor: m.bg },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.chipText,
+                                    { color: m.color },
+                                  ]}
+                                >
+                                  {m.emoji} {m.label}
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+                          <View style={[styles.adActions, trailAlign, colDir]}>
+                            <Pressable
+                              onPress={() =>
+                                router.push(`/products/${p.productId}`)
+                              }
+                              hitSlop={6}
+                            >
+                              <Text style={styles.adLink}>
+                                {ar ? 'عرض ←' : 'View →'}
+                              </Text>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => handleDelete(p.productId)}
+                              hitSlop={6}
+                            >
+                              <Text style={styles.adDelete}>
+                                {ar ? 'حذف' : 'Delete'}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      )
+                    })}
+                  </View>
+                )
+              ) : promotionHistory.length === 0 ? (
+                <View style={colDir}>
+                  <Text style={[styles.empty, dirStyle]}>
+                    {ar ? 'لا توجد معاملات بعد' : 'No transactions yet'}
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+                  {promotionHistory.map(row => {
+                    const methodKey = row.method ?? 'legacy'
+                    const m =
+                      METHOD_LABELS[methodKey] ?? METHOD_LABELS.legacy
+                    const s = PROMO_STATUS_LABELS[row.status] ?? {
+                      label: row.status,
+                      color: colors.g600,
+                      bg: colors.g100,
+                    }
+                    const showAmount =
+                      row.method === 'wallet' || row.method === 'instapay'
+                    return (
+                      <View key={row.id} style={[styles.orderRow, rowDir]}>
+                        <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
+                          <View style={[styles.adChipsRow, rowDir]}>
+                            <View
+                              style={[styles.chip, { backgroundColor: m.bg }]}
+                            >
+                              <Text
+                                style={[styles.chipText, { color: m.color }]}
+                              >
+                                {m.emoji} {m.label}
+                              </Text>
+                            </View>
+                            <View
+                              style={[styles.chip, { backgroundColor: s.bg }]}
+                            >
+                              <Text
+                                style={[styles.chipText, { color: s.color }]}
+                              >
+                                {s.label}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text
+                            style={[styles.orderMeta, dirStyle]}
+                            numberOfLines={1}
+                          >
+                            {new Date(row.createdAt).toLocaleDateString(
+                              ar ? 'ar-EG' : 'en-EG',
+                            )}
+                            {' · '}
+                            {ar
+                              ? `${row.credits} إعلان`
+                              : `${row.credits} ads`}
                           </Text>
                         </View>
-                      </View>
-                    </View>
-                  )
-                })}
-              </View>
-            </View>
-          )}
-
-          {step === 'pick' && payHistory.length > 0 && (
-            <View style={styles.card}>
-              <View style={colDir}>
-                <Text style={[styles.cardTitle, dirStyle]}>
-                  {ar ? 'سجل مدفوعات الترويج' : 'Promo Payment History'}
-                </Text>
-              </View>
-              <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-                {payHistory.map(p => {
-                  const s = PAY_STATUS_LABELS[p.status] ?? {
-                    label: p.status,
-                    color: colors.g600,
-                    bg: colors.g100,
-                  }
-                  return (
-                    <View key={p.id} style={[styles.orderRow, rowDir]}>
-                      <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-                        <Text
-                          style={[styles.orderTitle, dirStyle]}
-                          numberOfLines={1}
-                        >
-                          {PAY_TYPE_LABELS[p.type] ?? p.type}
-                        </Text>
-                        <Text
-                          style={[styles.orderMeta, dirStyle]}
-                          numberOfLines={1}
-                        >
-                          {new Date(p.createdAt).toLocaleDateString(
-                            ar ? 'ar-EG' : 'en-EG',
+                        <View style={[styles.orderTrail, trailAlign, colDir]}>
+                          {showAmount ? (
+                            <Text style={[styles.orderAmount, dirStyle]}>
+                              {fmt(Number(row.amount ?? 0))} {currency}
+                            </Text>
+                          ) : (
+                            <Text
+                              style={[
+                                styles.orderAmount,
+                                dirStyle,
+                                { color: colors.g500 },
+                              ]}
+                            >
+                              —
+                            </Text>
                           )}
-                        </Text>
-                      </View>
-                      <View style={[styles.orderTrail, trailAlign, colDir]}>
-                        <Text style={[styles.orderAmount, dirStyle]}>
-                          {fmt(Number(p.amount ?? 0))} {currency}
-                        </Text>
-                        <View style={[styles.chip, { backgroundColor: s.bg }]}>
-                          <Text style={[styles.chipText, { color: s.color }]}>
-                            {s.label}
-                          </Text>
                         </View>
                       </View>
-                    </View>
-                  )
-                })}
-              </View>
+                    )
+                  })}
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -781,6 +962,27 @@ export default function PromoteScreen() {
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
+
+function TabButton({
+  active,
+  label,
+  onPress,
+}: {
+  active: boolean
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.tabBtn, active && styles.tabBtnActive]}
+    >
+      <Text style={[styles.tabBtnText, active && styles.tabBtnTextActive]}>
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
 
 function MethodCard({
   icon,
@@ -973,6 +1175,38 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 13,
     color: colors.g600,
+    textAlign: 'center',
+    paddingVertical: spacing.md,
+  },
+
+  // Tabs
+  tabRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    padding: 4,
+    backgroundColor: colors.g100,
+    borderRadius: radius.md,
+    marginBottom: spacing.sm,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabBtnActive: {
+    backgroundColor: colors.white,
+    ...shadow.ss,
+  },
+  tabBtnText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.g600,
+  },
+  tabBtnTextActive: {
+    color: colors.dk,
   },
 
   // Bundle picker
@@ -1171,41 +1405,64 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
 
-  // Packs / orders / history
-  packRow: {
+  // Promoted ads list
+  adRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.sm,
-    backgroundColor: colors.g100,
     borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.g200,
+    backgroundColor: colors.white,
   },
-  packIcon: {
-    width: 36,
-    height: 36,
+  adThumbWrap: {
+    width: 56,
+    height: 56,
     borderRadius: radius.md,
-    backgroundColor: colors.yl,
+    overflow: 'hidden',
+    backgroundColor: colors.g100,
+  },
+  adThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  adThumbFallback: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  packText: {
+  adTitle: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
     color: colors.dk,
   },
-  packMeta: {
+  adMeta: {
     marginTop: 2,
-    fontFamily: fonts.regular,
-    fontSize: 11,
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
     color: colors.g600,
   },
-  packCount: {
-    fontFamily: fonts.extraBold,
-    fontSize: 18,
-    color: colors.dk,
-    minWidth: 28,
-    textAlign: 'center',
+  adChipsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 6,
+    flexWrap: 'wrap',
   },
+  adActions: {
+    gap: 6,
+  },
+  adLink: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.dk,
+  },
+  adDelete: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.red,
+  },
+
+  // History rows
   orderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1217,13 +1474,8 @@ const styles = StyleSheet.create({
   orderTrail: {
     gap: 4,
   },
-  orderTitle: {
-    fontFamily: fonts.semiBold,
-    fontSize: 13,
-    color: colors.dk,
-  },
   orderMeta: {
-    marginTop: 2,
+    marginTop: 6,
     fontFamily: fonts.regular,
     fontSize: 11,
     color: colors.g600,

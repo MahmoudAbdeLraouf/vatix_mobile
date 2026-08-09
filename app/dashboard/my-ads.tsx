@@ -13,20 +13,19 @@ import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
-import { getSiteSettings, imgUrl, type Product, type SiteSettings } from '@/lib/api'
+import {
+  getPromotionBundles,
+  getSiteSettings,
+  imgUrl,
+  type Bundle,
+  type Product,
+  type SiteSettings,
+} from '@/lib/api'
 import { authDelete, authFetch, authPost } from '@/lib/auth'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
-
-type PromoPack = { type: string; labelAr: string; labelEn: string; price: number }
-
-const PACKS: PromoPack[] = [
-  { type: 'promotion_1ad', labelAr: '١ إعلان', labelEn: '1 Ad', price: 100 },
-  { type: 'promotion_3ads', labelAr: '٣ إعلانات', labelEn: '3 Ads', price: 250 },
-  { type: 'promotion_5ads', labelAr: '٥ إعلانات', labelEn: '5 Ads', price: 380 },
-]
 
 export default function MyAdsScreen() {
   const { t, locale } = useLocale()
@@ -45,11 +44,12 @@ export default function MyAdsScreen() {
   const [error, setError] = useState<Error | null>(null)
   const [boostingId, setBoostingId] = useState<number | null>(null)
   const [noCreditsProduct, setNoCreditsProduct] = useState<Product | null>(null)
-  const [buyingPack, setBuyingPack] = useState(false)
+  const [bundles, setBundles] = useState<Bundle[]>([])
   const [settings, setSettings] = useState<SiteSettings | null>(null)
 
   useEffect(() => {
     getSiteSettings().then(setSettings).catch(() => {})
+    getPromotionBundles().then(setBundles).catch(() => {})
   }, [])
 
   const limit = isStore
@@ -122,30 +122,14 @@ export default function MyAdsScreen() {
     }
   }
 
-  async function buyPackAndBoost(productId: number, packType: string) {
-    setBuyingPack(true)
-    try {
-      const res = await authPost<{ iframeUrl: string; paymentId: number }>(
-        '/payments/promotions',
-        { type: packType },
-      )
-      setNoCreditsProduct(null)
-      router.push({
-        pathname: '/checkout',
-        params: {
-          paymentId: String(res.paymentId),
-          iframeUrl: res.iframeUrl,
-          boostProductId: String(productId),
-        },
-      })
-    } catch (e) {
-      Alert.alert(
-        ar ? 'خطأ' : 'Error',
-        e instanceof Error ? e.message : ar ? 'حدث خطأ' : 'An error occurred',
-      )
-    } finally {
-      setBuyingPack(false)
-    }
+  function goPromote(productId: number, bundleId?: number) {
+    setNoCreditsProduct(null)
+    router.push({
+      pathname: '/dashboard/promote',
+      params: bundleId
+        ? { resumeProductId: String(productId), bundleId: String(bundleId) }
+        : { resumeProductId: String(productId) },
+    })
   }
 
   const hasData = products !== null && !error
@@ -302,40 +286,45 @@ export default function MyAdsScreen() {
             </View>
 
             <View style={styles.packList}>
-              {PACKS.map((pack) => (
-                <Pressable
-                  key={pack.type}
-                  disabled={buyingPack}
-                  onPress={() =>
-                    noCreditsProduct && buyPackAndBoost(noCreditsProduct.id, pack.type)
-                  }
-                  style={({ pressed }) => [
-                    styles.packRow,
-                    dirContainer,
-                    pressed && !buyingPack && styles.packRowPressed,
-                    buyingPack && { opacity: 0.6 },
-                  ]}
-                >
-                  <View style={[styles.packLeft, dirContainer]}>
-                    <View style={styles.packIconWrap}>
-                      <Ionicons name="rocket-outline" size={14} color={colors.dk} />
-                    </View>
-                    <Text style={[styles.packLabel, dirStyle]}>
-                      {ar ? pack.labelAr : pack.labelEn}
-                    </Text>
-                  </View>
-                  <Text style={styles.packPrice}>
-                    {pack.price} {ar ? 'ج.م' : 'EGP'}
-                  </Text>
-                </Pressable>
-              ))}
+              {bundles.length === 0 ? (
+                <Text style={[styles.packEmpty, dirStyle]}>
+                  {ar ? 'لا توجد باقات متاحة' : 'No bundles available'}
+                </Text>
+              ) : (
+                bundles.map((b) => {
+                  const tName =
+                    b.translations.find((tr) => tr.locale === locale)?.name ?? b.name
+                  return (
+                    <Pressable
+                      key={b.id}
+                      onPress={() =>
+                        noCreditsProduct && goPromote(noCreditsProduct.id, b.id)
+                      }
+                      style={({ pressed }) => [
+                        styles.packRow,
+                        dirContainer,
+                        pressed && styles.packRowPressed,
+                      ]}
+                    >
+                      <View style={[styles.packLeft, dirContainer]}>
+                        <View style={styles.packIconWrap}>
+                          <Ionicons name="rocket-outline" size={14} color={colors.dk} />
+                        </View>
+                        <Text style={[styles.packLabel, dirStyle]}>
+                          {tName} ({b.productCount})
+                        </Text>
+                      </View>
+                      <Text style={styles.packPrice}>
+                        {b.price} {ar ? 'ج.م' : 'EGP'}
+                      </Text>
+                    </Pressable>
+                  )
+                })
+              )}
             </View>
 
             <Pressable
-              onPress={() => {
-                setNoCreditsProduct(null)
-                router.push('/dashboard/promote')
-              }}
+              onPress={() => noCreditsProduct && goPromote(noCreditsProduct.id)}
               style={({ pressed }) => [styles.popFooter, dirContainer, pressed && { opacity: 0.7 }]}
             >
               <Text style={styles.popFooterText}>
@@ -838,6 +827,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.black,
     fontSize: 13,
     color: colors.yd,
+  },
+  packEmpty: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.g500,
+    textAlign: 'center',
+    paddingVertical: spacing.md,
   },
   popFooter: {
     flexDirection: 'row',

@@ -501,55 +501,31 @@ export interface Bundle {
   updatedAt?: string
 }
 
-export interface PromoPack {
-  id: number
-  userId: number
-  remaining: number
-  boostDays: number
-  createdAt: string
-}
-
 export interface PromoInfo {
   total: number
-  packs: PromoPack[]
-}
-
-export interface PromotionOrderProduct {
-  id: number
-  orderId: number
-  productId: number
-  product: {
-    id: number
-    title: string
-    images?: { url: string }[]
-  }
-}
-
-export interface PromotionOrderItem {
-  id: number
-  storeId: number
-  bundleId: number
-  status: 'active' | 'expired' | 'cancelled'
-  startDate: string
-  endDate: string
-  amount: number
-  notes: string | null
-  bundle: {
-    id: number
-    name: string
-    productCount: number
-    price: number | string
-  } | null
-  products: PromotionOrderProduct[]
-  createdAt: string
 }
 
 export interface PromotedProductItem {
-  id: number
+  productId: number
   title: string
-  imageUrl: string | null
+  price: number
+  image: string | null
   promotedUntil: string
-  daysLeft: number
+  status: 'active' | 'completed'
+  method: 'wallet' | 'instapay' | 'gift' | null
+  promotedAt: string | null
+}
+
+export interface PromotionHistoryRow {
+  id: number
+  credits: number
+  method: 'wallet' | 'instapay' | 'gift' | null
+  status: 'pending' | 'pending_verification' | 'success' | 'failed'
+  amount: number
+  currency: string
+  adminGrant: boolean
+  gift: boolean
+  createdAt: string
 }
 
 export interface ProductRow {
