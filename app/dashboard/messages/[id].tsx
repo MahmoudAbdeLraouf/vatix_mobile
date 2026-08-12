@@ -89,6 +89,7 @@ export default function ConversationScreen() {
   const listRef = useRef<FlatList>(null)
   const lastIdRef = useRef<number>(0)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const inFlightRef = useRef<boolean>(false)
 
   const markAsRead = useCallback(() => {
     if (!id) return
@@ -107,19 +108,30 @@ export default function ConversationScreen() {
 
   const poll = useCallback(async () => {
     if (!id) return
+    if (inFlightRef.current) return
+    inFlightRef.current = true
     try {
       const data = await authFetch<ConversationDetail>(
         `/conversations/${id}/messages?afterId=${lastIdRef.current}`,
       )
       if (!data) return
       const incoming = data.messages ?? []
-      if (incoming.length > 0) {
-        setMessages((prev) => [...prev, ...incoming])
-        lastIdRef.current = incoming[incoming.length - 1].id
-        markAsRead()
-      }
+      if (incoming.length === 0) return
+      let appended = false
+      setMessages((prev) => {
+        const seen = new Set(prev.map((m) => m.id))
+        const fresh = incoming.filter((m) => !seen.has(m.id))
+        if (fresh.length === 0) return prev
+        appended = true
+        const maxId = fresh[fresh.length - 1].id
+        if (maxId > lastIdRef.current) lastIdRef.current = maxId
+        return [...prev, ...fresh]
+      })
+      if (appended) markAsRead()
     } catch {
       // silent
+    } finally {
+      inFlightRef.current = false
     }
   }, [id, markAsRead])
 
@@ -170,8 +182,8 @@ export default function ConversationScreen() {
     setText('')
     try {
       const msg = await authPost<Message>(`/conversations/${id}/messages`, { content })
-      setMessages((prev) => [...prev, msg])
-      lastIdRef.current = msg.id
+      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]))
+      if (msg.id > lastIdRef.current) lastIdRef.current = msg.id
       scrollToBottom()
     } catch {
       setText(content)
