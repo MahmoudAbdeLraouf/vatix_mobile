@@ -20,7 +20,15 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
-import { getProduct, imgUrl, localeName, Product, ProductImage } from '@/lib/api'
+import {
+  ExpiredResource,
+  getProduct,
+  imgUrl,
+  isExpiredResource,
+  localeName,
+  Product,
+  ProductImage,
+} from '@/lib/api'
 import { trackProductView } from '@/lib/analytics'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { MessagesBell } from '@/components/MessagesBell'
@@ -78,7 +86,7 @@ export default function ProductDetailScreen() {
   const { user } = useAuth()
   const { requireLogin } = useLoginGate()
   const insets = useSafeAreaInsets()
-  const [product, setProduct] = useState<Product | null>(null)
+  const [product, setProduct] = useState<Product | ExpiredResource | null>(null)
   const [loading, setLoading] = useState(true)
   const [imgIndex, setImgIndex] = useState(0)
   const galleryRef = useRef<FlatList<ProductImage>>(null)
@@ -124,6 +132,22 @@ export default function ProductDetailScreen() {
     )
   }
 
+  if (isExpiredResource(product)) {
+    return (
+      <View style={styles.center}>
+        <Ionicons name="time-outline" size={48} color={colors.g500} />
+        <Text style={[styles.expiredTitle, dir]}>{t.expiredListing}</Text>
+        <Text style={[styles.expiredHint, dir]}>{t.expiredListingHint}</Text>
+        <Pressable
+          style={styles.expiredCta}
+          onPress={() => router.replace('/(tabs)/products')}
+        >
+          <Text style={styles.expiredCtaText}>{t.backToListings}</Text>
+        </Pressable>
+      </View>
+    )
+  }
+
   if (!product) {
     return (
       <View style={styles.center}>
@@ -161,8 +185,8 @@ export default function ProductDetailScreen() {
       : { label: locale === 'ar' ? 'فرد 👤' : 'Individual 👤', bg: colors.g100, fg: colors.g700 }
 
   // Parity with website: WA link is gated by showPhone and falls back to phone
-  // when the seller hasn't provided a dedicated WhatsApp number.
-  const waSource = product.showPhone ? owner?.whatsapp || owner?.phone : null
+  // when the seller hasn't provided a dedicated contact number.
+  const waSource = product.showPhone ? owner?.contactPhone || owner?.phone : null
   const waLink = buildWaLink(
     waSource,
     product.title,
@@ -741,6 +765,34 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 14,
     color: colors.g500,
+  },
+  expiredTitle: {
+    marginTop: spacing.md,
+    fontFamily: fonts.semiBold,
+    fontSize: 18,
+    color: colors.g900,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  expiredHint: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    color: colors.g500,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  expiredCta: {
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.y,
+    borderRadius: radius.md,
+  },
+  expiredCtaText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 14,
+    color: colors.dk,
   },
 
   // ── Image zone ──

@@ -36,12 +36,12 @@ export default function ProfileScreen() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [storeName, setStoreName] = useState('')
-  const [whatsapp, setWhatsapp] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
 
   async function loadProfile() {
     const data = await authFetch<UserProfile>('/user/profile')
     if (data) {
-      setWhatsapp(data.whatsapp ?? '')
+      setContactPhone(data.contactPhone ?? '')
       if (isStore) {
         setStoreName(data.storeProfile?.name ?? '')
       } else {
@@ -68,7 +68,7 @@ export default function ProfileScreen() {
         await authPost('/user/profile/client', {
           firstName: firstName.trim(),
           lastName: lastName.trim() || undefined,
-          whatsapp: whatsapp.trim() || null,
+          contactPhone: contactPhone.trim() || null,
         })
         const newName = `${firstName.trim()} ${lastName.trim()}`.trim()
         await updateDisplayName(newName)
@@ -204,28 +204,28 @@ export default function ProfileScreen() {
                 <View style={styles.hintRow}>
                   <Text style={[styles.hint, dirStyle]}>
                     {ar
-                      ? 'للتغيير، تواصل مع الدعم.'
-                      : 'Contact support to change your phone number.'}
+                      ? 'يُستخدم هذا الرقم لتسجيل الدخول فقط ولن يظهر للمشترين. لتغييره تواصل مع الدعم.'
+                      : 'Used for login only — never shown to buyers. Contact support to change it.'}
                   </Text>
                 </View>
               </View>
 
-              {/* WhatsApp — client only (backend store DTO strips it) */}
+              {/* Contact phone — client only (backend store DTO strips it) */}
               {!isStore && (
                 <View style={styles.field}>
                   <Input
-                    label={t.whatsapp}
-                    value={whatsapp}
-                    onChangeText={setWhatsapp}
+                    label={t.contactPhone}
+                    value={contactPhone}
+                    onChangeText={setContactPhone}
                     placeholder="01xxxxxxxxx"
                     keyboardType="phone-pad"
-                    leftIcon={<Text style={styles.waEmoji}>💬</Text>}
+                    leftIcon={<Text style={styles.waEmoji}>📞</Text>}
                   />
                   <View style={styles.hintRow}>
                     <Text style={[styles.hint, dirStyle]}>
                       {ar
-                        ? 'سيكون مرئياً للمشترين على صفحة إعلاناتك.'
-                        : 'This will be visible to buyers on your listings page.'}
+                        ? 'الرقم الذي يظهر للمشترين في أزرار الاتصال والواتساب على إعلاناتك.'
+                        : 'The number shown to buyers on the Call and WhatsApp buttons on your listings.'}
                     </Text>
                   </View>
                 </View>

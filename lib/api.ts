@@ -69,7 +69,7 @@ export interface Product {
     id: number
     type: string
     phone: string | null
-    whatsapp?: string | null
+    contactPhone?: string | null
     storeProfile?: { id: number; name: string; slug: string | null; logo: string | null } | null
     clientProfile?: { id: number; firstName: string; lastName?: string } | null
   }
@@ -105,7 +105,7 @@ export interface Store {
   id: number
   type: string
   phone: string | null
-  whatsapp?: string | null
+  contactPhone?: string | null
   isActive: boolean
   createdAt: string
   storeProfile: StoreProfile
@@ -135,7 +135,7 @@ export interface UserProfile {
   id: number
   type: string
   phone: string | null
-  whatsapp: string | null
+  contactPhone: string | null
   isActive: boolean
   storeProfile?: StoreProfile | null
   clientProfile?: {
@@ -209,6 +209,17 @@ export function productHref(product: { id: number; slug: string | null } | null 
   return `/products/${product.slug ?? product.id}`
 }
 
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly body?: unknown,
+  ) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${BASE}${path}`
   let res: Response
@@ -233,9 +244,32 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const msg = Array.isArray(data.message)
       ? data.message.join(', ')
       : (data.message ?? 'خطأ في الخادم')
-    throw new Error(msg)
+    throw new ApiError(res.status, msg, data)
   }
   return res.json() as Promise<T>
+}
+
+/** Marker returned by public fetchers when the backend responded with 410 Gone
+ *  (resource exists but its owner's subscription is expired). */
+export interface ExpiredResource {
+  status: 'expired'
+}
+
+export function isExpiredResource(res: unknown): res is ExpiredResource {
+  return (
+    typeof res === 'object' &&
+    res !== null &&
+    (res as ExpiredResource).status === 'expired'
+  )
+}
+
+async function fetchOrExpired<T>(fn: () => Promise<T>): Promise<T | ExpiredResource> {
+  try {
+    return await fn()
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 410) return { status: 'expired' }
+    throw err
+  }
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -277,8 +311,8 @@ export function getProducts(params?: GetProductsParams): Promise<ProductListResp
   return apiFetch(`/products?${q}`)
 }
 
-export function getProduct(id: number): Promise<Product> {
-  return apiFetch(`/products/${id}`)
+export function getProduct(id: number): Promise<Product | ExpiredResource> {
+  return fetchOrExpired(() => apiFetch<Product>(`/products/${id}`))
 }
 
 export function getProductRatings(productId: number): Promise<ProductRatingItem[]> {
@@ -293,12 +327,8 @@ export function getFeaturedStores(): Promise<Store[]> {
   return apiFetch('/stores/featured')
 }
 
-// Public `GET /stores/:id` doesn't exist — mirror the website and filter locally.
-export async function getStoreProfile(id: number): Promise<Store> {
-  const stores = await getStores()
-  const store = stores.find(s => s.id === id)
-  if (!store) throw new Error('Store not found')
-  return store
+export function getStoreProfile(id: number): Promise<Store | ExpiredResource> {
+  return fetchOrExpired(() => apiFetch<Store>(`/stores/${id}`))
 }
 
 export interface Branch {
@@ -341,7 +371,7 @@ export function registerClient(data: {
   password: string
   firstName: string
   lastName?: string
-  whatsapp?: string
+  contactPhone?: string
 }): Promise<AuthResponse> {
   return apiFetch('/auth/register/client', { method: 'POST', body: JSON.stringify(data) })
 }

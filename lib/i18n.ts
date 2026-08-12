@@ -18,6 +18,11 @@ export interface Translations {
   all: string
   seeAll: string
   noResults: string
+  expiredListing: string
+  expiredListingHint: string
+  expiredStore: string
+  expiredStoreHint: string
+  backToListings: string
   confirm: string
   yes: string
   no: string
@@ -41,7 +46,7 @@ export interface Translations {
   // Client signup
   firstName: string
   lastName: string
-  whatsapp: string
+  contactPhone: string
   createClientAccount: string
   // Store signup
   storeName: string
@@ -441,6 +446,11 @@ export const translations: Record<Locale, Translations> = {
     all: 'الكل',
     seeAll: 'عرض الكل',
     noResults: 'لا توجد نتائج',
+    expiredListing: 'انتهى الإعلان',
+    expiredListingHint: 'انتهى اشتراك صاحب هذا الإعلان — لم يعد متاحًا حاليًا.',
+    expiredStore: 'المتجر غير متاح',
+    expiredStoreHint: 'انتهى اشتراك هذا المتجر — لم يعد متاحًا حاليًا.',
+    backToListings: 'العودة إلى الإعلانات',
     confirm: 'تأكيد',
     yes: 'نعم',
     no: 'لا',
@@ -463,7 +473,7 @@ export const translations: Record<Locale, Translations> = {
     iAmStore: 'أنا متجر',
     firstName: 'الاسم الأول',
     lastName: 'الاسم الأخير',
-    whatsapp: 'رقم الواتساب',
+    contactPhone: 'رقم التواصل',
     createClientAccount: 'إنشاء حساب عميل',
     storeName: 'اسم المتجر',
     createStoreAccount: 'إنشاء حساب متجر',
@@ -867,6 +877,11 @@ export const translations: Record<Locale, Translations> = {
     all: 'All',
     seeAll: 'See all',
     noResults: 'No results found',
+    expiredListing: 'Listing expired',
+    expiredListingHint: "This seller's subscription has expired — the listing is no longer available.",
+    expiredStore: 'Store unavailable',
+    expiredStoreHint: "This store's subscription has expired — it is no longer available.",
+    backToListings: 'Back to listings',
     confirm: 'Confirm',
     yes: 'Yes',
     no: 'No',
@@ -889,7 +904,7 @@ export const translations: Record<Locale, Translations> = {
     iAmStore: "I'm a store",
     firstName: 'First Name',
     lastName: 'Last Name',
-    whatsapp: 'WhatsApp Number',
+    contactPhone: 'Contact Number',
     createClientAccount: 'Create Client Account',
     storeName: 'Store Name',
     createStoreAccount: 'Create Store Account',

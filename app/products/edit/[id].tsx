@@ -25,6 +25,7 @@ import {
   getCategories,
   getLocations,
   getProduct,
+  isExpiredResource,
   localeName,
 } from '@/lib/api'
 import { authPatch } from '@/lib/auth'
@@ -66,6 +67,10 @@ export default function EditProductScreen() {
         setCategories(cats.filter(c => c.isActive))
         setBrands(brs.filter(b => b.isActive))
         setLocations(locs.filter(l => l.isActive))
+        if (isExpiredResource(product)) {
+          setError(ar ? 'انتهى اشتراكك — لا يمكن تعديل المنتج' : 'Subscription expired — product cannot be edited')
+          return
+        }
         setTitle(product.title)
         setDescription(product.description ?? '')
         setPrice(String(product.price))

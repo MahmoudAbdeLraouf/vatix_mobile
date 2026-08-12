@@ -24,11 +24,13 @@ import { useLoginGate } from '@/contexts/loginGate'
 import {
   Branch,
   ConversationListItem,
+  ExpiredResource,
   getLocations,
   getStoreBranches,
   getStoreProducts,
   getStoreProfile,
   imgUrl,
+  isExpiredResource,
   localeName,
   LocationNode,
   Product,
@@ -87,7 +89,7 @@ export default function StoreDetailScreen() {
   const backIcon = isRtl ? 'chevron-forward-outline' : 'chevron-back-outline'
   const forwardIcon = isRtl ? 'chevron-back-outline' : 'chevron-forward-outline'
 
-  const [store, setStore] = useState<Store | null>(null)
+  const [store, setStore] = useState<Store | ExpiredResource | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [branches, setBranches] = useState<Branch[]>([])
   const [locs, setLocs] = useState<LocationNode[]>([])
@@ -131,10 +133,13 @@ export default function StoreDetailScreen() {
 
   const loadData = useCallback(async () => {
     if (!id) return
+    let expired = false
     try {
       const s = await getStoreProfile(storeId)
       setStore(s)
-      if (s.type === 'store_plus') {
+      if (isExpiredResource(s)) {
+        expired = true
+      } else if (s.type === 'store_plus') {
         getStoreBranches(storeId).then(setBranches).catch(() => {})
         getLocations().then(setLocs).catch(() => {})
       }
@@ -143,6 +148,7 @@ export default function StoreDetailScreen() {
     } finally {
       setLoading(false)
     }
+    if (expired) return
     try {
       const p = await getStoreProducts(storeId, { limit: 20 })
       const items = Array.isArray(p) ? p : ((p as any).items ?? [])
@@ -170,6 +176,22 @@ export default function StoreDetailScreen() {
     return (
       <View style={styles.loadingWrap}>
         <ActivityIndicator color={colors.y} size="large" />
+      </View>
+    )
+  }
+
+  if (isExpiredResource(store)) {
+    return (
+      <View style={styles.loadingWrap}>
+        <Ionicons name="time-outline" size={48} color={colors.g400} />
+        <Text style={[styles.expiredTitle, dir]}>{t.expiredStore}</Text>
+        <Text style={[styles.expiredHint, dir]}>{t.expiredStoreHint}</Text>
+        <Pressable
+          style={styles.expiredCta}
+          onPress={() => router.replace('/(tabs)/stores')}
+        >
+          <Text style={styles.expiredCtaText}>{t.backToListings}</Text>
+        </Pressable>
       </View>
     )
   }
@@ -721,6 +743,34 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 14,
     color: colors.g400,
+  },
+  expiredTitle: {
+    marginTop: spacing.md,
+    fontFamily: fonts.semiBold,
+    fontSize: 18,
+    color: colors.white,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  expiredHint: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    color: colors.g400,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  expiredCta: {
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.y,
+    borderRadius: radius.md,
+  },
+  expiredCtaText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 14,
+    color: colors.dk,
   },
 
   // ── Cover ────────────────────────────────────────────────────────────────────
