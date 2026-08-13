@@ -13,7 +13,7 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { FileUpload } from '@/components/ui/FileUpload'
+import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
@@ -283,7 +283,7 @@ export default function PromoteScreen() {
     try {
       await authPost('/payments/promotions/instapay', {
         bundleId: bundle.id,
-        screenshotUrl: screenshot,
+        screenshotKey: screenshot,
         buyerPhone: phone.trim(),
       })
       setStep('instapay-done')
@@ -634,7 +634,7 @@ export default function PromoteScreen() {
                   keyboardType="phone-pad"
                   placeholder={ar ? '01xxxxxxxxx' : '01xxxxxxxxx'}
                 />
-                <FileUpload
+                <PaymentScreenshotUpload
                   label={ar ? 'لقطة الإيصال' : 'Receipt Screenshot'}
                   value={screenshot}
                   onChange={setScreenshot}

@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { deleteAccount } from '@/lib/auth'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { validatePassword } from '@/lib/password-policy'
 
 type Msg = { ok: boolean; text: string } | null
 
@@ -77,13 +78,9 @@ export default function SettingsScreen() {
       })
       return
     }
-    if (newPassword.length < 6) {
-      setPasswordMsg({
-        ok: false,
-        text: ar
-          ? 'يجب أن تكون كلمة المرور 6 أحرف على الأقل.'
-          : 'Password must be at least 6 characters.',
-      })
+    const pwd = validatePassword(newPassword, locale)
+    if (!pwd.valid) {
+      setPasswordMsg({ ok: false, text: pwd.error! })
       return
     }
     if (newPassword !== confirmPassword) {

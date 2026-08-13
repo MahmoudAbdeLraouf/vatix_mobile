@@ -15,7 +15,7 @@ export type SubscriptionType = 'subscription_store' | 'subscription_store_plus'
 // ─── InstaPay initiators ──────────────────────────────────────────────────────
 
 export interface InstapayPayload {
-  screenshotUrl: string
+  screenshotKey: string
   buyerPhone: string
 }
 

@@ -32,7 +32,7 @@ const TABS: TabDef[] = [
     labelKey: 'products',
     active: 'grid',
     inactive: 'grid-outline',
-    matches: p => (p === '/products' || p === '/(tabs)/products') && p !== '/products/add',
+    matches: p => p === '/products' || p === '/(tabs)/products',
   },
   {
     key: 'stores',

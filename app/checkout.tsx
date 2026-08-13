@@ -13,7 +13,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { FileUpload } from '@/components/ui/FileUpload'
+import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { authFetch } from '@/lib/auth'
@@ -58,6 +58,8 @@ const DEFAULT_SETTINGS: SiteSettings = {
   androidMinVersion: null,
   androidLatestVersion: null,
   androidStoreUrl: null,
+  maxProductsPerClient: 5,
+  maxActiveProductsPerStore: 20,
 }
 
 const PLAN_META: Record<SubscriptionType, { fallbackPrice: number; storeType: string }> = {
@@ -183,7 +185,7 @@ export default function CheckoutScreen() {
     setBusy(true)
     setError('')
     try {
-      const payload = { screenshotUrl: screenshot, buyerPhone: phone.trim() }
+      const payload = { screenshotKey: screenshot, buyerPhone: phone.trim() }
       if (context === 'subscription' && subType) {
         await initiateInstapaySubscription({ ...payload, type: subType })
       } else if (context === 'promotion' && bundleId) {
@@ -350,7 +352,7 @@ export default function CheckoutScreen() {
                   keyboardType="phone-pad"
                   placeholder="01xxxxxxxxx"
                 />
-                <FileUpload
+                <PaymentScreenshotUpload
                   label={t.uploadScreenshot}
                   value={screenshot}
                   onChange={setScreenshot}

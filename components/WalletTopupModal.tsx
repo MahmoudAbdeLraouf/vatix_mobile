@@ -18,7 +18,7 @@ import { authPost } from '@/lib/auth'
 import { getSiteSettings, SiteSettings } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { FileUpload } from '@/components/ui/FileUpload'
+import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 
 // Mirrors vatix_website/components/wallet-topup-modal.tsx
 // InstaPay-only flow: manual transfer + screenshot proof, admin-reviewed.
@@ -67,7 +67,7 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
   const [err, setErr] = useState('')
 
   const [settings, setSettings] = useState<SiteSettings | null>(null)
-  const [screenshotUrl, setScreenshotUrl] = useState('')
+  const [screenshotKey, setScreenshotKey] = useState('')
   const [buyerPhone, setBuyerPhone] = useState('')
 
   useEffect(() => {
@@ -76,7 +76,7 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
     setAmount('')
     setErr('')
     setBusy(false)
-    setScreenshotUrl('')
+    setScreenshotKey('')
     setBuyerPhone('')
   }, [visible])
 
@@ -99,7 +99,7 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
   const amountValid = parsedAmount >= MIN_AMOUNT
 
   async function handleInstapay() {
-    if (!screenshotUrl) {
+    if (!screenshotKey) {
       setErr(ar ? 'صورة التحويل مطلوبة' : 'Screenshot required')
       return
     }
@@ -112,7 +112,7 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
     try {
       await authPost('/payments/wallet/topup/instapay', {
         amount: parsedAmount,
-        screenshotUrl,
+        screenshotKey,
         buyerPhone: buyerPhone.trim(),
       })
       setStep('instapay-done')
@@ -173,8 +173,8 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
                 <InstapayPanel
                   settings={settings}
                   amount={parsedAmount}
-                  screenshotUrl={screenshotUrl}
-                  onScreenshotChange={setScreenshotUrl}
+                  screenshotKey={screenshotKey}
+                  onScreenshotChange={setScreenshotKey}
                   buyerPhone={buyerPhone}
                   onBuyerPhoneChange={setBuyerPhone}
                   err={err}
@@ -384,7 +384,7 @@ function MethodCard({
 function InstapayPanel(props: {
   settings: SiteSettings | null
   amount: number
-  screenshotUrl: string
+  screenshotKey: string
   onScreenshotChange: (v: string) => void
   buyerPhone: string
   onBuyerPhoneChange: (v: string) => void
@@ -443,9 +443,9 @@ function InstapayPanel(props: {
       </View>
 
       <View style={{ marginTop: spacing.md }}>
-        <FileUpload
+        <PaymentScreenshotUpload
           label={t.uploadScreenshot}
-          value={props.screenshotUrl}
+          value={props.screenshotKey}
           onChange={props.onScreenshotChange}
           aspect="wide"
           hint={t.screenshotRequired}

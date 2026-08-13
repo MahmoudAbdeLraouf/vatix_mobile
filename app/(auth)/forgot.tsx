@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Logo } from '@/components/ui/Logo'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { validatePassword } from '@/lib/password-policy'
 
 type Step = 'phone' | 'otp' | 'password'
 
@@ -26,7 +27,7 @@ const STEP_ICONS: Record<Step, React.ComponentProps<typeof Ionicons>['name']> = 
 }
 
 export default function ForgotScreen() {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
 
   const [step, setStep] = useState<Step>('phone')
   const [phone, setPhone] = useState('')
@@ -60,7 +61,8 @@ export default function ForgotScreen() {
   async function handleReset() {
     setError('')
     if (!newPassword) { setError(t.requiredField); return }
-    if (newPassword.length < 8) { setError(t.passwordTooShort); return }
+    const pwd = validatePassword(newPassword, locale)
+    if (!pwd.valid) { setError(pwd.error!); return }
     if (newPassword !== confirmPassword) { setError(t.passwordMismatch); return }
     setLoading(true)
     try {

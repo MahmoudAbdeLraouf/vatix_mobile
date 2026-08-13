@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { validatePassword } from '@/lib/password-policy'
 
 type StoreType = 'store' | 'store_plus'
 
@@ -41,7 +42,7 @@ const STEP_ICONS: Record<Step, React.ComponentProps<typeof Ionicons>['name']> = 
 }
 
 export default function SignupStoreScreen() {
-  const { t, isRtl } = useLocale()
+  const { t, isRtl, locale } = useLocale()
   const { login } = useAuth()
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
 
@@ -134,7 +135,8 @@ export default function SignupStoreScreen() {
     setError('')
     if (!phone.trim()) { setError(t.requiredField); return }
     if (phone.trim().length < 11) { setError(t.invalidPhone); return }
-    if (password.length < 8) { setError(t.passwordTooShort); return }
+    const pwd = validatePassword(password, locale)
+    if (!pwd.valid) { setError(pwd.error!); return }
     if (password !== confirmPassword) { setError(t.passwordMismatch); return }
 
     setLoading(true)
@@ -566,6 +568,18 @@ const styles = StyleSheet.create({
     color: colors.g500,
   },
   typePriceActive: {
+    color: colors.dk,
+  },
+  freeMonthBadge: {
+    marginTop: 4,
+    backgroundColor: colors.y,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  freeMonthText: {
+    fontFamily: fonts.bold,
+    fontSize: 10,
     color: colors.dk,
   },
 
