@@ -111,8 +111,8 @@ export default function DashboardScreen() {
           subtitle={t.upgClientToStoreSubtitle}
           features={
             ar
-              ? ['قوائم غير محدودة', 'صفحة متجر خاصة', 'شارة موثّق']
-              : ['Unlimited listings', 'Private store page', 'Verified badge']
+              ? ['قوائم غير محدودة', 'صفحة متجر خاصة']
+              : ['Unlimited listings', 'Private store page']
           }
           ctaLabel={ar ? 'ترقية إلى متجر' : 'Upgrade to Store'}
           onPress={() => router.push('/dashboard/subscription')}

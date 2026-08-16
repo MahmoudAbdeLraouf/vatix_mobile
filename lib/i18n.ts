@@ -644,11 +644,11 @@ export const translations: Record<Locale, Translations> = {
     noAds: 'لا توجد إعلانات بعد',
     // Hero stats
     activeAds: 'إعلان نشط',
-    verifiedStoresLabel: 'متجر موثق',
+    verifiedStoresLabel: 'متجر نشط',
     usersLabel: 'مستخدم',
     // Upgrade banner extended
     upgFeat1: 'صفحة متجر احترافية',
-    upgFeat2: 'شارة موثق',
+    upgFeat2: 'أولوية الظهور',
     upgFeat3: 'إحصائيات',
     upgFeat4: 'إعلانات غير محدودة',
     viewPlans: 'عرض الباقات',
@@ -668,7 +668,7 @@ export const translations: Record<Locale, Translations> = {
     upgClientToStoreTitle: 'افتح متجرك على ڤاتيكس',
     upgClientToStoreSubtitle: 'أضف منتجاتك دون قيود، وتواصل مع آلاف العملاء يومياً.',
     upgStoreToPlusTitle: 'ارتقِ إلى متجر بلَس',
-    upgStoreToPlusSubtitle: 'صفحة متجر خاصة، شارة موثق، وإحصائيات متقدمة.',
+    upgStoreToPlusSubtitle: 'صفحة متجر خاصة وإحصائيات متقدمة.',
     storePlusActive: 'أنت مشترك في متجر بلَس',
     storePlusActiveSub: 'استمتع بجميع مزايا الاشتراك المميز.',
     manageSubscription: 'إدارة الاشتراك',
@@ -856,7 +856,7 @@ export const translations: Record<Locale, Translations> = {
       },
       slide3: {
         title: 'تواصل بأمان',
-        desc: 'تقييمات حقيقية، متاجر موثّقة، ودردشة داخل التطبيق تحفظ محادثاتك في مكان واحد.',
+        desc: 'تقييمات حقيقية، تواصل مباشر، ودردشة داخل التطبيق تحفظ محادثاتك في مكان واحد.',
       },
     },
   },
@@ -1067,7 +1067,7 @@ export const translations: Record<Locale, Translations> = {
     // Home hero
     heroBadge: "⚡ Egypt's #1 Electronics Marketplace",
     heroTitle: "Egypt's #1 Electronics Marketplace",
-    heroSub: 'Thousands of listings from verified stores and sellers. Search, compare, and buy safely.',
+    heroSub: 'Thousands of listings from trusted stores and sellers. Search, compare, and buy safely.',
     heroSearchPlaceholder: 'Search for phones, laptops, screens...',
     heroSearchBtn: '🔍 Search',
     postFreeAd: '+ Post Free Ad',
@@ -1075,11 +1075,11 @@ export const translations: Record<Locale, Translations> = {
     noAds: 'No listings yet',
     // Hero stats
     activeAds: 'Active Ads',
-    verifiedStoresLabel: 'Verified Stores',
+    verifiedStoresLabel: 'Active Stores',
     usersLabel: 'Users',
     // Upgrade banner extended
     upgFeat1: 'Professional Store Page',
-    upgFeat2: 'Verified Badge',
+    upgFeat2: 'Priority Placement',
     upgFeat3: 'Analytics',
     upgFeat4: 'Unlimited Listings',
     viewPlans: 'View Plans',
@@ -1099,7 +1099,7 @@ export const translations: Record<Locale, Translations> = {
     upgClientToStoreTitle: 'Open Your Store on Vatix',
     upgClientToStoreSubtitle: 'List unlimited products and reach thousands of daily buyers.',
     upgStoreToPlusTitle: 'Upgrade to Store Plus',
-    upgStoreToPlusSubtitle: 'Dedicated storefront, verified badge, and advanced analytics.',
+    upgStoreToPlusSubtitle: 'Dedicated storefront and advanced analytics.',
     storePlusActive: 'You are on Store Plus',
     storePlusActiveSub: 'Enjoy all premium subscription benefits.',
     manageSubscription: 'Manage Subscription',
@@ -1287,7 +1287,7 @@ export const translations: Record<Locale, Translations> = {
       },
       slide3: {
         title: 'Connect with confidence',
-        desc: 'Real reviews, verified stores, and in-app chat that keeps every conversation in one place.',
+        desc: 'Real reviews, direct connections, and in-app chat that keeps every conversation in one place.',
       },
     },
   },

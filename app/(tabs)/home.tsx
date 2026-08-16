@@ -115,7 +115,7 @@ const PROMO_BANNERS: PromoBanner[] = [
     iconBg: 'rgba(245,184,0,0.15)',
     icon: 'storefront-outline',
     badgeAr: 'موثوق',
-    badgeEn: 'Verified',
+    badgeEn: 'Trusted',
     titleKey: 'promoStoresTitle',
     subKey: 'promoStoresSubtitle',
     btnKey: 'promoStoresCta',

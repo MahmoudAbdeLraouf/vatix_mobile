@@ -52,13 +52,13 @@ export default function AboutScreen() {
   const stats: Stat[] = ar
     ? [
         { n: `+${nfmt(roundedAds)}`, l: 'إعلان نشط' },
-        { n: `+${nfmt(displayStores)}`, l: 'متجر موثّق' },
+        { n: `+${nfmt(displayStores)}`, l: 'متجر نشط' },
         { n: usersLabel, l: 'مستخدم' },
         { n: founded, l: 'سنة التأسيس' },
       ]
     : [
         { n: `+${nfmt(roundedAds)}`, l: 'Active Ads' },
-        { n: `+${nfmt(displayStores)}`, l: 'Verified Stores' },
+        { n: `+${nfmt(displayStores)}`, l: 'Active Stores' },
         { n: usersLabel, l: 'Users' },
         { n: founded, l: 'Founded' },
       ]
@@ -67,12 +67,12 @@ export default function AboutScreen() {
     ? [
         { emoji: '🎯', title: 'الشفافية', body: 'كل صفقة تتم بوضوح كامل. لا رسوم مخفية، لا مفاجآت.' },
         { emoji: '⚡', title: 'السرعة', body: 'انشر إعلانك أو ابحث عن منتجك في أقل من دقيقة.' },
-        { emoji: '🛡️', title: 'الأمان', body: 'كل التجار موثّقون. تقييمات المستخدمين تحمي المشترين.' },
+        { emoji: '🛡️', title: 'الأمان', body: 'تقييمات المستخدمين وحماية البيانات تصنعان بيئة تداول آمنة.' },
       ]
     : [
         { emoji: '🎯', title: 'Transparency', body: 'Every deal happens in full clarity. No hidden fees, no surprises.' },
         { emoji: '⚡', title: 'Speed', body: 'Post your ad or find your product in less than a minute.' },
-        { emoji: '🛡️', title: 'Safety', body: 'All merchants are verified. User ratings protect buyers.' },
+        { emoji: '🛡️', title: 'Safety', body: 'User ratings and data protection create a safe trading environment.' },
       ]
 
   return (
