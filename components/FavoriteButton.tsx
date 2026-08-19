@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, ViewStyle } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/auth'
@@ -32,6 +32,9 @@ export function FavoriteButton({
   const { requireLogin } = useLoginGate()
   const [faved, setFaved] = useState<boolean>(!!initialFaved)
   const [loading, setLoading] = useState<boolean>(false)
+  // Ref guard is checked synchronously so a second tap in the same event-loop
+  // tick can't race past a stale `loading` closure and fire a duplicate request.
+  const inFlightRef = useRef<boolean>(false)
 
   useEffect(() => {
     if (typeof initialFaved === 'boolean') return
@@ -54,7 +57,8 @@ export function FavoriteButton({
 
   const toggle = async () => {
     if (!requireLogin()) return
-    if (loading) return
+    if (inFlightRef.current) return
+    inFlightRef.current = true
     setLoading(true)
     const next = !faved
     setFaved(next)
@@ -68,6 +72,7 @@ export function FavoriteButton({
     } catch {
       setFaved(!next)
     } finally {
+      inFlightRef.current = false
       setLoading(false)
     }
   }
@@ -75,6 +80,7 @@ export function FavoriteButton({
   return (
     <Pressable
       onPress={toggle}
+      disabled={loading}
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={faved ? t.removeFromFavorites : t.addToFavorites}
