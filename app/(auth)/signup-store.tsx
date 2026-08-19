@@ -24,7 +24,7 @@ import {
   registerStore,
   sendOtp,
 } from '@/lib/api'
-import { authPatch, authUploadFile } from '@/lib/auth'
+import { authErrorMessage, authPatch, authUploadFile } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -92,10 +92,7 @@ export default function SignupStoreScreen() {
   async function pickLogo() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!perm.granted) {
-      Alert.alert(
-        isRtl ? 'الأذونات مطلوبة' : 'Permission required',
-        isRtl ? 'يرجى السماح بالوصول إلى الصور' : 'Please allow access to your photo library',
-      )
+      Alert.alert(t.permissionRequired, t.allowPhotoAccess)
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -112,10 +109,7 @@ export default function SignupStoreScreen() {
   async function pickCover() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!perm.granted) {
-      Alert.alert(
-        isRtl ? 'الأذونات مطلوبة' : 'Permission required',
-        isRtl ? 'يرجى السماح بالوصول إلى الصور' : 'Please allow access to your photo library',
-      )
+      Alert.alert(t.permissionRequired, t.allowPhotoAccess)
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -150,7 +144,7 @@ export default function SignupStoreScreen() {
       await sendOtp(phone.trim())
       setStep('otp')
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t.serverError)
+      setError(authErrorMessage(e, t))
     } finally {
       setLoading(false)
     }
@@ -165,7 +159,7 @@ export default function SignupStoreScreen() {
       if (!verified) { setError(t.invalidPhone); return }
       setStep('info')
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t.serverError)
+      setError(authErrorMessage(e, t))
     } finally {
       setLoading(false)
     }
@@ -193,7 +187,7 @@ export default function SignupStoreScreen() {
         }
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t.serverError)
+      setError(authErrorMessage(e, t))
     } finally {
       setLoading(false)
     }

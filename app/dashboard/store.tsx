@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/Input'
 import { FileUpload } from '@/components/ui/FileUpload'
 import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect'
 import { useLocale } from '@/contexts/locale'
-import { authFetch, authPatch } from '@/lib/auth'
+import { authErrorMessage, authFetch, authPatch } from '@/lib/auth'
 import { getLocations, imgUrl, localeName, type LocationNode, type UserProfile } from '@/lib/api'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -111,11 +111,8 @@ export default function StoreInfoScreen() {
         ok: true,
         text: ar ? 'تم حفظ بيانات المتجر بنجاح ✓' : 'Store info saved successfully ✓',
       })
-    } catch (err) {
-      setMsg({
-        ok: false,
-        text: err instanceof Error ? err.message : ar ? 'حدث خطأ أثناء الحفظ' : 'Save failed',
-      })
+    } catch (err: unknown) {
+      setMsg({ ok: false, text: authErrorMessage(err, t) })
     } finally {
       setSaving(false)
     }

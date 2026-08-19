@@ -37,7 +37,7 @@ interface Props {
 const FAILED = '__FAILED__'
 
 export function MultiImageUpload({ images, onChange, style }: Props) {
-  const { locale } = useLocale()
+  const { locale, t } = useLocale()
   const ar = locale === 'ar'
   const [error, setError] = useState('')
   const dirStyle = {
@@ -50,12 +50,7 @@ export function MultiImageUpload({ images, onChange, style }: Props) {
 
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!perm.granted) {
-      Alert.alert(
-        ar ? 'الأذونات مطلوبة' : 'Permission required',
-        ar
-          ? 'يرجى السماح بالوصول إلى الصور'
-          : 'Please allow access to your photo library',
-      )
+      Alert.alert(t.permissionRequired, t.allowPhotoAccess)
       return
     }
 
@@ -94,11 +89,7 @@ export function MultiImageUpload({ images, onChange, style }: Props) {
     })
 
     if (results.some((r) => !r.url)) {
-      setError(
-        ar
-          ? 'بعض الصور لم تُرفع، تأكد من الحجم (أقل من 5 MB) والصيغة (JPG/PNG/WebP)'
-          : "Some images didn't upload — check size (< 5 MB) and format (JPG/PNG/WebP)",
-      )
+      setError(t.someImagesFailedUpload)
     }
   }
 

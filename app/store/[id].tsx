@@ -13,8 +13,6 @@ import {
   Text,
   TextInput,
   View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
 } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -36,8 +34,8 @@ import {
   Product,
   Store,
 } from '@/lib/api'
-import { authPost } from '@/lib/auth'
-import { trackStoreView } from '@/lib/analytics'
+import { authErrorMessage, authPost } from '@/lib/auth'
+import { trackStorePhoneClick, trackStoreView } from '@/lib/analytics'
 import { FollowButton } from '@/components/FollowButton'
 import { ProductCard } from '@/components/ProductCard'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -45,8 +43,14 @@ import { colors, fonts, radius, spacing } from '@/constants/theme'
 
 const COVER_HEIGHT = 180
 const LOGO_SIZE = 76
-// Threshold past which the sticky action row appears (approx hero height).
-const STICKY_THRESHOLD = 260
+
+// Mask all but the first 4 and last 2 digits of a phone until the user taps to
+// reveal — same shape as the website's RevealStorePhone.
+function maskPhone(phone: string): string {
+  const digits = phone.replace(/\s/g, '')
+  if (digits.length <= 6) return phone
+  return digits.slice(0, 4) + 'x'.repeat(digits.length - 6) + digits.slice(-2)
+}
 
 type SocialKey = 'instagram' | 'facebook' | 'twitter' | 'tiktok' | 'youtube' | 'linkedin'
 
@@ -99,8 +103,8 @@ export default function StoreDetailScreen() {
   const [descExpanded, setDescExpanded] = useState(false)
   const [descTruncatable, setDescTruncatable] = useState(false)
   const [activeTab, setActiveTab] = useState<TabKey>('products')
-  const [showStickyActions, setShowStickyActions] = useState(false)
   const [phoneSheetOpen, setPhoneSheetOpen] = useState(false)
+  const [revealedPhones, setRevealedPhones] = useState<Set<string>>(() => new Set())
 
   const storeId = Number(id)
 
@@ -113,9 +117,8 @@ export default function StoreDetailScreen() {
         recipientId: storeId,
       })
       router.push(`/dashboard/messages/${conv.id}`)
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      Alert.alert(t.startChat, msg)
+    } catch (e: unknown) {
+      Alert.alert(t.startChat, authErrorMessage(e, t))
     } finally {
       setStartingChat(false)
     }
@@ -165,12 +168,6 @@ export default function StoreDetailScreen() {
   useEffect(() => {
     if (Number.isFinite(storeId) && storeId > 0) trackStoreView(storeId)
   }, [storeId])
-
-  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = e.nativeEvent.contentOffset.y
-    const next = y > STICKY_THRESHOLD
-    setShowStickyActions(prev => (prev === next ? prev : next))
-  }, [])
 
   if (loading) {
     return (
@@ -402,8 +399,6 @@ export default function StoreDetailScreen() {
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: TAB_BAR_HEIGHT + spacing.lg }]}
         showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
       >
         <View style={{ height: COVER_HEIGHT - 40 }} />
 
@@ -567,26 +562,52 @@ export default function StoreDetailScreen() {
                 <View style={styles.aboutBlock}>
                   <Text style={[styles.aboutBlockTitle, dir]}>{t.phone}</Text>
                   <View style={styles.phoneList}>
-                    {phoneEntries.map(entry => (
-                      <Pressable
-                        key={entry.key}
-                        style={styles.contactCard}
-                        onPress={() => Linking.openURL(`tel:${entry.phone}`)}
-                      >
-                        <View style={styles.contactIconWrap}>
-                          <Ionicons name="call-outline" size={18} color={colors.y} />
-                        </View>
-                        <View style={styles.contactTextWrap}>
-                          <Text style={[styles.contactLabel, dir]} numberOfLines={1}>
-                            {entry.label}
-                          </Text>
-                          <Text style={[styles.contactText, dir]} numberOfLines={1}>
-                            {entry.phone}
-                          </Text>
-                        </View>
-                        <Ionicons name={forwardIcon} size={16} color={colors.g400} />
-                      </Pressable>
-                    ))}
+                    {phoneEntries.map(entry => {
+                      const isRevealed = revealedPhones.has(entry.key)
+                      const handleTap = () => {
+                        if (!isRevealed) {
+                          trackStorePhoneClick(storeId)
+                          setRevealedPhones(prev => {
+                            const next = new Set(prev)
+                            next.add(entry.key)
+                            return next
+                          })
+                          return
+                        }
+                        Linking.openURL(`tel:${entry.phone}`).catch(() => {})
+                      }
+                      const displayPhone = isRevealed ? entry.phone : maskPhone(entry.phone)
+                      const hintText = locale === 'ar' ? 'اضغط لعرض الرقم' : 'Tap to reveal'
+                      return (
+                        <Pressable
+                          key={entry.key}
+                          style={styles.contactCard}
+                          onPress={handleTap}
+                        >
+                          <View style={styles.contactIconWrap}>
+                            <Ionicons
+                              name={isRevealed ? 'call' : 'eye-outline'}
+                              size={18}
+                              color={colors.y}
+                            />
+                          </View>
+                          <View style={styles.contactTextWrap}>
+                            <Text style={[styles.contactLabel, dir]} numberOfLines={1}>
+                              {entry.label}
+                            </Text>
+                            <Text style={[styles.contactText, dir]} numberOfLines={1}>
+                              {displayPhone}
+                            </Text>
+                            {!isRevealed && (
+                              <Text style={[styles.contactHint, dir]} numberOfLines={1}>
+                                {hintText}
+                              </Text>
+                            )}
+                          </View>
+                          <Ionicons name={forwardIcon} size={16} color={colors.g400} />
+                        </Pressable>
+                      )
+                    })}
                   </View>
                 </View>
               )}
@@ -670,13 +691,6 @@ export default function StoreDetailScreen() {
           )}
         </View>
       </ScrollView>
-
-      {/* Sticky action row (appears once hero scrolls off) */}
-      {showStickyActions && (
-        <View style={[styles.stickyActionsWrap, { bottom: TAB_BAR_HEIGHT }]} pointerEvents="box-none">
-          <View style={styles.stickyActionsInner}>{actionRow}</View>
-        </View>
-      )}
 
       {/* Sticky bottom tab bar */}
       <View style={styles.tabBarAnchor}>
@@ -1132,6 +1146,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.g800,
   },
+  contactHint: {
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    color: colors.g500,
+  },
 
   // ── Social ───────────────────────────────────────────────────────────────────
   socialRow: {
@@ -1250,25 +1269,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.y,
-  },
-
-  // ── Sticky action row ────────────────────────────────────────────────────────
-  stickyActionsWrap: {
-    position: 'absolute',
-    start: 0,
-    end: 0,
-    zIndex: 5,
-  },
-  stickyActionsInner: {
-    backgroundColor: colors.white,
-    paddingVertical: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.g200,
-    shadowColor: '#062B5B',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 6,
   },
 
   // ── Tab bar anchor ───────────────────────────────────────────────────────────

@@ -61,6 +61,7 @@ export default function InvoicesScreen() {
     promotion_1ad: ar ? 'ترويج إعلان واحد' : 'Promo 1 Ad',
     promotion_3ads: ar ? 'ترويج ٣ إعلانات' : 'Promo 3 Ads',
     promotion_5ads: ar ? 'ترويج ٥ إعلانات' : 'Promo 5 Ads',
+    promotion_bundle: ar ? 'باقة ترويج' : 'Promo Bundle',
   }
 
   const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {

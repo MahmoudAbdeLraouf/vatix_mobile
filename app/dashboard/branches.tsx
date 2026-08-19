@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect'
 import { useLocale } from '@/contexts/locale'
-import { authFetch, authPost, authPatch, authDelete } from '@/lib/auth'
+import { authDelete, authErrorMessage, authFetch, authPatch, authPost } from '@/lib/auth'
 import {
   getLocations,
   localeName,
@@ -49,7 +49,7 @@ function locationSubLabel(type: string, ar: boolean): string {
 }
 
 export default function BranchesScreen() {
-  const { locale } = useLocale()
+  const { locale, t } = useLocale()
   const ar = locale === 'ar'
   const dirContainer = ar ? { direction: 'rtl' as const } : null
   const insets = useSafeAreaInsets()
@@ -149,11 +149,8 @@ export default function BranchesScreen() {
         ok: true,
         text: ar ? 'تم الحفظ بنجاح ✓' : 'Saved successfully ✓',
       })
-    } catch (err) {
-      setMsg({
-        ok: false,
-        text: err instanceof Error ? err.message : ar ? 'حدث خطأ أثناء الحفظ' : 'Save failed',
-      })
+    } catch (err: unknown) {
+      setMsg({ ok: false, text: authErrorMessage(err, t) })
     } finally {
       setSaving(false)
     }

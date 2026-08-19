@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
-import { authFetch } from '@/lib/auth'
+import { authErrorMessage, authFetch } from '@/lib/auth'
 import {
   PlanData,
   SiteSettings,
@@ -161,13 +161,13 @@ export default function CheckoutScreen() {
       } else if (context === 'promotion' && bundleId) {
         await payWithWalletForPromotion({ bundleId })
       } else {
-        setError(ar ? 'المحفظة غير متاحة لهذه العملية' : 'Wallet not available for this operation')
+        setError(t.walletNotAvailable)
         return
       }
       await finalizePaymentSuccess()
       router.replace({ pathname: '/payment/success', params: { source: 'wallet', context } })
-    } catch (e: any) {
-      setError(e?.message || (ar ? 'فشل الدفع' : 'Payment failed'))
+    } catch (e: unknown) {
+      setError(authErrorMessage(e, t))
     } finally {
       setBusy(false)
     }
@@ -179,7 +179,7 @@ export default function CheckoutScreen() {
       return
     }
     if (!phone || phone.trim().length < 6) {
-      setError(ar ? 'الرجاء إدخال رقم هاتفك' : 'Please enter your phone number')
+      setError(t.phoneRequired)
       return
     }
     setBusy(true)
@@ -193,12 +193,12 @@ export default function CheckoutScreen() {
       } else if (context === 'wallet_topup') {
         await initiateInstapayWalletTopup({ ...payload, amount })
       } else {
-        setError(ar ? 'العملية غير مدعومة' : 'Unsupported operation')
+        setError(t.unsupportedOperation)
         return
       }
       router.replace({ pathname: '/payment/success', params: { source: 'instapay', context } })
-    } catch (e: any) {
-      setError(e?.message || (ar ? 'فشل الإرسال' : 'Submission failed'))
+    } catch (e: unknown) {
+      setError(authErrorMessage(e, t))
     } finally {
       setBusy(false)
     }

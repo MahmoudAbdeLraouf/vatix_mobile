@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/auth'
 import { StarRating } from '@/components/StarRating'
 import { Button } from '@/components/ui/Button'
 import { getProductRatings, ProductRatingItem } from '@/lib/api'
-import { authFetch, authPost, authDeleteJson, isLoggedIn } from '@/lib/auth'
+import { authDeleteJson, authErrorMessage, authFetch, authPost, isLoggedIn } from '@/lib/auth'
 
 interface Props {
   productId: number
@@ -39,13 +39,13 @@ export function RatingSection({ productId, initialAvg, initialCount, ownerId }: 
     setListError('')
     getProductRatings(productId)
       .then((data) => setRatings(data))
-      .catch((err) => {
+      .catch((err: unknown) => {
         // eslint-disable-next-line no-console
         console.log('[RatingSection] failed to load ratings', err)
-        setListError(err instanceof Error ? err.message : String(err))
+        setListError(authErrorMessage(err, t))
       })
       .finally(() => setLoadingList(false))
-  }, [productId])
+  }, [productId, t])
 
   useEffect(() => {
     let cancelled = false
@@ -85,8 +85,8 @@ export function RatingSection({ productId, initialAvg, initialCount, ownerId }: 
       setCount(res.ratingsCount)
       setSuccess(t.reviewSaved)
       refreshRatings()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t.reviewSaveError)
+    } catch (err: unknown) {
+      setError(authErrorMessage(err, t))
     } finally {
       setSaving(false)
     }

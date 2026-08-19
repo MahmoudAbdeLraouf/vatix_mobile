@@ -28,7 +28,7 @@ import {
   isExpiredResource,
   localeName,
 } from '@/lib/api'
-import { authPatch } from '@/lib/auth'
+import { authErrorMessage, authPatch } from '@/lib/auth'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 
 export default function EditProductScreen() {
@@ -68,7 +68,7 @@ export default function EditProductScreen() {
         setBrands(brs.filter(b => b.isActive))
         setLocations(locs.filter(l => l.isActive))
         if (isExpiredResource(product)) {
-          setError(ar ? 'انتهى اشتراكك — لا يمكن تعديل المنتج' : 'Subscription expired — product cannot be edited')
+          setError(t.subscriptionExpiredCannotEdit)
           return
         }
         setTitle(product.title)
@@ -86,7 +86,7 @@ export default function EditProductScreen() {
         )
       })
       .catch(() => {
-        if (!cancelled) setError(ar ? 'تعذر تحميل المنتج' : 'Failed to load product')
+        if (!cancelled) setError(t.failedToLoadProduct)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -94,7 +94,7 @@ export default function EditProductScreen() {
     return () => {
       cancelled = true
     }
-  }, [productId, ar])
+  }, [productId, t])
 
   const categoryOptions = categories.map(c => ({
     value: String(c.id),
@@ -127,7 +127,7 @@ export default function EditProductScreen() {
       return
     }
     if (uploading) {
-      setError(ar ? 'يرجى الانتظار حتى تكتمل الصور' : 'Please wait for uploads to finish')
+      setError(t.waitForUploadsToFinish)
       return
     }
 
@@ -150,11 +150,11 @@ export default function EditProductScreen() {
       await authPatch(`/products/${productId}`, payload)
       router.back()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t.serverError)
+      setError(authErrorMessage(e, t))
     } finally {
       setSubmitting(false)
     }
-  }, [ar, brandId, categoryId, condition, description, images, locationId, price, productId, showPhone, t, title, uploading])
+  }, [brandId, categoryId, condition, description, images, locationId, price, productId, showPhone, t, title, uploading])
 
   const conditions: { key: string; label: string }[] = [
     { key: 'new', label: t.conditionNew },

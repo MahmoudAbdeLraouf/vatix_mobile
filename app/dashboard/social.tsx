@@ -11,7 +11,7 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useLocale } from '@/contexts/locale'
-import { authFetch, authPatch } from '@/lib/auth'
+import { authErrorMessage, authFetch, authPatch } from '@/lib/auth'
 import type { UserProfile } from '@/lib/api'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -96,11 +96,8 @@ export default function SocialScreen() {
         ok: true,
         text: ar ? 'تم حفظ الروابط بنجاح ✓' : 'Social links saved successfully ✓',
       })
-    } catch (err) {
-      setMsg({
-        ok: false,
-        text: err instanceof Error ? err.message : ar ? 'حدث خطأ أثناء الحفظ' : 'Save failed',
-      })
+    } catch (err: unknown) {
+      setMsg({ ok: false, text: authErrorMessage(err, t) })
     } finally {
       setSaving(false)
     }

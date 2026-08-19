@@ -12,7 +12,7 @@ import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 import { useLocale } from '@/contexts/locale'
-import { getToken } from '@/lib/auth'
+import { authErrorMessage, getToken } from '@/lib/auth'
 import { Button } from './Button'
 
 // Mirrors vatix_website/components/payment-screenshot-field.tsx.
@@ -33,7 +33,7 @@ interface Props {
 }
 
 export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect = 'wide', style }: Props) {
-  const { locale } = useLocale()
+  const { locale, t } = useLocale()
   const ar = locale === 'ar'
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -51,10 +51,7 @@ export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect =
   async function pick() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!perm.granted) {
-      Alert.alert(
-        ar ? 'الأذونات مطلوبة' : 'Permission required',
-        ar ? 'يرجى السماح بالوصول إلى الصور' : 'Please allow access to your photo library',
-      )
+      Alert.alert(t.permissionRequired, t.allowPhotoAccess)
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -71,7 +68,7 @@ export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect =
     try {
       const token = await getToken()
       if (!token) {
-        setError(ar ? 'انتهت الجلسة، يرجى تسجيل الدخول' : 'Session expired, please log in')
+        setError(t.sessionExpiredLogIn)
         return
       }
       const formData = new FormData()
@@ -89,13 +86,13 @@ export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect =
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         const msg = Array.isArray(data.message) ? data.message.join('، ') : data.message
-        throw new Error(msg ?? (ar ? 'فشل رفع الملف' : 'Upload failed'))
+        throw new Error(msg ?? t.uploadFailed)
       }
       const { key } = (await res.json()) as { key: string }
       setPreviewUri(asset.uri)
       onChange(key)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : ar ? 'فشل رفع الملف' : 'Upload failed')
+    } catch (err: unknown) {
+      setError(authErrorMessage(err, t))
     } finally {
       setUploading(false)
     }

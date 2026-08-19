@@ -16,7 +16,7 @@ import { router } from 'expo-router'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
-import { authFetch, authPost, updateStoredUser } from '@/lib/auth'
+import { authErrorMessage, authFetch, authPost, updateStoredUser } from '@/lib/auth'
 import {
   getSiteSettings,
   getSubscriptionPlans,
@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { FileUpload } from '@/components/ui/FileUpload'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
+import { InstapayQrCard } from '@/components/InstapayQrCard'
 
 // Mirrors vatix_website/components/upgrade-modal.tsx
 // Three modes × six-step flow:
@@ -181,8 +182,8 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       onSuccess?.()
       onClose()
       router.replace('/dashboard')
-    } catch (e) {
-      setErr((e as Error).message)
+    } catch (e: unknown) {
+      setErr(authErrorMessage(e, t))
     } finally {
       setBusy(false)
     }
@@ -208,8 +209,8 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       await updateStoredUser((res as { user?: Parameters<typeof updateStoredUser>[0] })?.user ?? null)
       await refetchUser()
       return true
-    } catch (e) {
-      setErr((e as Error).message)
+    } catch (e: unknown) {
+      setErr(authErrorMessage(e, t))
       return false
     } finally {
       setBusy(false)
@@ -235,8 +236,8 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
         metadata: {},
       })
       setStep('instapay-done')
-    } catch (e) {
-      setErr((e as Error).message)
+    } catch (e: unknown) {
+      setErr(authErrorMessage(e, t))
     } finally {
       setBusy(false)
     }
@@ -255,8 +256,8 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       const fresh = await authFetch<WalletBalance>('/payments/wallet/balance')
       setWallet(fresh)
       setStep('wallet-done')
-    } catch (e) {
-      setErr((e as Error).message)
+    } catch (e: unknown) {
+      setErr(authErrorMessage(e, t))
     } finally {
       setBusy(false)
     }
@@ -659,47 +660,11 @@ function InstapayPanel(props: {
 }) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
-  const { settings, price } = props
+  const { price } = props
 
   return (
     <View>
-      <View style={[styles.instapayBanner, rowDir]}>
-        <Ionicons name="phone-portrait" size={24} color="#7B2FBE" />
-        <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-          <Text style={[styles.instapayBannerText, dirStyle]}>{t.payWithInstapay}</Text>
-        </View>
-      </View>
-
-      <View style={[styles.detailRow, rowDir]}>
-        <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-          <Text style={[styles.detailLabel, dirStyle]}>{t.instapayAccountLabel}</Text>
-        </View>
-        <Text style={styles.detailValue} selectable>
-          {settings?.instapayAccount ?? '—'}
-        </Text>
-      </View>
-      <View style={[styles.detailRow, rowDir]}>
-        <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-          <Text style={[styles.detailLabel, dirStyle]}>{t.instapayNameLabel}</Text>
-        </View>
-        <Text style={styles.detailValue} selectable>
-          {settings?.instapayName ?? '—'}
-        </Text>
-      </View>
-      <View style={[styles.detailRow, rowDir]}>
-        <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-          <Text style={[styles.detailLabel, dirStyle]}>{t.planCost}</Text>
-        </View>
-        <Text style={styles.detailValue}>
-          {price} {ar ? 'ج.م' : 'EGP'}
-        </Text>
-      </View>
-
-      <View style={colDir}>
-        <Text style={[styles.helpText, dirStyle, { marginTop: spacing.md }]}>
-          {t.instapayInstructions}
-        </Text>
-      </View>
+      <InstapayQrCard amount={price} />
 
       <View style={{ marginTop: spacing.md }}>
         <PaymentScreenshotUpload

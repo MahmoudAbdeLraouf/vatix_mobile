@@ -9,7 +9,6 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
-import { useLoginGate } from '@/contexts/loginGate'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
@@ -25,12 +24,10 @@ interface RevealPhoneProps {
 
 export function RevealPhone({ productId, phone, waLink, showPhone, style }: RevealPhoneProps) {
   const { locale } = useLocale()
-  const { requireLogin } = useLoginGate()
   const ar = locale === 'ar'
   const [revealed, setRevealed] = useState(false)
 
   const reveal = () => {
-    if (!requireLogin()) return
     setRevealed(true)
     fetch(`${BASE}/products/${productId}/phone-click`, { method: 'POST' }).catch(() => {})
   }

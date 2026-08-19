@@ -14,10 +14,12 @@ import { Link, router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
-import { loginUser } from '@/lib/api'
+import { isExpiredLogin, loginUser, type ExpiredLoginResponse } from '@/lib/api'
+import { authErrorMessage } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { ExpiredStoreDialog } from '@/components/ExpiredStoreDialog'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 
 export default function LoginScreen() {
@@ -31,6 +33,11 @@ export default function LoginScreen() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [expired, setExpired] = useState<{
+    res: ExpiredLoginResponse
+    phone: string
+    password: string
+  } | null>(null)
 
   async function handleLogin() {
     setError('')
@@ -40,9 +47,13 @@ export default function LoginScreen() {
     setLoading(true)
     try {
       const response = await loginUser(phone.trim(), password)
+      if (isExpiredLogin(response)) {
+        setExpired({ res: response, phone: phone.trim(), password })
+        return
+      }
       await login(response, redirect)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t.serverError)
+      setError(authErrorMessage(e, t))
     } finally {
       setLoading(false)
     }
@@ -177,6 +188,16 @@ export default function LoginScreen() {
         </View>
 
         <BottomTabBar />
+
+        {expired && (
+          <ExpiredStoreDialog
+            visible
+            phone={expired.phone}
+            password={expired.password}
+            storeType={expired.res.storeType}
+            onClose={() => setExpired(null)}
+          />
+        )}
       </SafeAreaView>
     </KeyboardAvoidingView>
   )

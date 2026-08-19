@@ -82,6 +82,7 @@ export default function WalletScreen() {
     promotion_1ad: ar ? 'ترويج إعلان واحد' : 'Promo — 1 Ad',
     promotion_3ads: ar ? 'ترويج ٣ إعلانات' : 'Promo — 3 Ads',
     promotion_5ads: ar ? 'ترويج ٥ إعلانات' : 'Promo — 5 Ads',
+    promotion_bundle: ar ? 'باقة ترويج' : 'Promo Bundle',
     wallet_topup: ar ? 'شحن محفظة' : 'Wallet Top-up',
   }
 

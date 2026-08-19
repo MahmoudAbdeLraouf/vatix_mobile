@@ -14,7 +14,7 @@ import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { deleteAccount } from '@/lib/auth'
+import { authErrorMessage, deleteAccount } from '@/lib/auth'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { validatePassword } from '@/lib/password-policy'
 
@@ -74,7 +74,7 @@ export default function SettingsScreen() {
     if (!currentPassword || !newPassword || !confirmPassword) {
       setPasswordMsg({
         ok: false,
-        text: ar ? 'يرجى ملء جميع الحقول.' : 'Please fill in all fields.',
+        text: t.fillRequiredFields,
       })
       return
     }
@@ -86,7 +86,7 @@ export default function SettingsScreen() {
     if (newPassword !== confirmPassword) {
       setPasswordMsg({
         ok: false,
-        text: ar ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.',
+        text: t.passwordMismatch,
       })
       return
     }
@@ -98,7 +98,7 @@ export default function SettingsScreen() {
       setConfirmPassword('')
       setPasswordMsg({
         ok: true,
-        text: ar ? 'تم تحديث كلمة المرور.' : 'Password updated.',
+        text: t.passwordUpdated,
       })
     }, 400)
   }
@@ -109,7 +109,7 @@ export default function SettingsScreen() {
       setSavingNotifs(false)
       setNotifsMsg({
         ok: true,
-        text: ar ? 'تم حفظ الإعدادات.' : 'Settings saved.',
+        text: t.settingsSaved,
       })
     }, 400)
   }
@@ -147,9 +147,7 @@ export default function SettingsScreen() {
     if (!deletePassword) {
       setDeleteMsg({
         ok: false,
-        text: ar
-          ? 'يرجى إدخال كلمة المرور للتأكيد.'
-          : 'Please enter your password to confirm.',
+        text: t.enterPasswordToConfirm,
       })
       return
     }
@@ -178,15 +176,7 @@ export default function SettingsScreen() {
       setDeletePassword('')
       await logout()
     } catch (err) {
-      setDeleteMsg({
-        ok: false,
-        text:
-          err instanceof Error
-            ? err.message
-            : ar
-              ? 'تعذّر حذف الحساب.'
-              : 'Could not delete account.',
-      })
+      setDeleteMsg({ ok: false, text: authErrorMessage(err, t) })
     } finally {
       setDeleting(false)
     }

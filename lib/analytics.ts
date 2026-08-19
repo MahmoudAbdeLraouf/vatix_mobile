@@ -32,6 +32,11 @@ export function trackStoreView(storeId: number) {
   fireAndForget(`${API}/stores/${storeId}/view`, { method: 'POST' })
 }
 
+export function trackStorePhoneClick(storeId: number) {
+  if (!Number.isFinite(storeId) || storeId <= 0) return
+  fireAndForget(`${API}/stores/${storeId}/phone-click`, { method: 'POST' })
+}
+
 export function trackSearch(keyword: string, zeroResults = false) {
   const trimmed = keyword.trim()
   if (!trimmed) return

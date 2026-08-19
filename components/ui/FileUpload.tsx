@@ -29,7 +29,7 @@ interface Props {
 }
 
 export function FileUpload({ label, value, onChange, hint, aspect = 'square', style }: Props) {
-  const { locale } = useLocale()
+  const { locale, t } = useLocale()
   const ar = locale === 'ar'
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -51,10 +51,7 @@ export function FileUpload({ label, value, onChange, hint, aspect = 'square', st
   async function pick() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!perm.granted) {
-      Alert.alert(
-        ar ? 'الأذونات مطلوبة' : 'Permission required',
-        ar ? 'يرجى السماح بالوصول إلى الصور' : 'Please allow access to your photo library',
-      )
+      Alert.alert(t.permissionRequired, t.allowPhotoAccess)
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -70,12 +67,12 @@ export function FileUpload({ label, value, onChange, hint, aspect = 'square', st
     try {
       const url = await authUploadFile(asset.uri, asset.mimeType ?? 'image/jpeg')
       if (!url) {
-        setError(ar ? 'فشل رفع الملف' : 'Upload failed')
+        setError(t.uploadFailed)
         return
       }
       onChange(url)
     } catch {
-      setError(ar ? 'فشل رفع الملف' : 'Upload failed')
+      setError(t.uploadFailed)
     } finally {
       setUploading(false)
     }

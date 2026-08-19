@@ -94,6 +94,14 @@ export interface Translations {
   chatSubtitle: string
   shareProduct: string
   similarProducts: string
+  // Safety tips (shown on product detail)
+  safetyTipsTitle: string
+  safetyTipsIntro: string
+  safetyInspectDevice: string
+  safetyMeetPublic: string
+  safetyVerifyBeforePay: string
+  safetyNeverShareOtp: string
+  safetyReportSuspicious: string
   // Store
   followStore: string
   unfollowStore: string
@@ -204,6 +212,28 @@ export interface Translations {
   forbiddenTitle: string
   forbiddenSubtitle: string
   notFoundHint: string
+  unauthorizedError: string
+  sessionExpiredError: string
+  accountDeletionError: string
+  walletNotAvailable: string
+  phoneRequired: string
+  unsupportedOperation: string
+  submissionFailed: string
+  fillRequiredFields: string
+  messageTooShort: string
+  somethingWentWrong: string
+  subscriptionExpiredCannotEdit: string
+  failedToLoadProduct: string
+  waitForUploadsToFinish: string
+  maxAdsReached: (n: number) => string
+  uploadFailed: string
+  someImagesFailedUpload: string
+  sessionExpiredLogIn: string
+  permissionRequired: string
+  allowPhotoAccess: string
+  passwordUpdated: string
+  settingsSaved: string
+  enterPasswordToConfirm: string
   // Success
   registrationSuccess: string
   productAdded: string
@@ -343,6 +373,11 @@ export interface Translations {
   activeProducts: string
   totalViews: string
   totalPhoneClicks: string
+  totalWhatsappClicks: string
+  totalChatContacts: string
+  totalContact: string
+  storeContacts: string
+  storeContactsHint: string
   totalFavorites: string
   viewsRange: string
   last7Days: string
@@ -425,6 +460,46 @@ export interface Translations {
     slide1: { title: string; desc: string }
     slide2: { title: string; desc: string }
     slide3: { title: string; desc: string }
+  }
+  // User-action dialogs
+  storeLogoDialog: {
+    title: string
+    body: string
+    dismiss: string
+    cta: string
+  }
+  addProductDialog: {
+    title: string
+    body: string
+    dismiss: string
+    cta: string
+  }
+  expiredRecovery: {
+    title: string
+    subtitle: string
+    optionInstapayTitle: string
+    optionInstapayDesc: string
+    optionConvertTitle: string
+    optionConvertDesc: string
+    convertConfirmTitle: string
+    convertConfirmBody: string
+    convertBtn: string
+    converting: string
+    back: string
+    close: string
+    instapayTitle: string
+    instapayAccount: string
+    instapayAmount: string
+    instapayInstructions: string
+    buyerPhone: string
+    buyerPhonePlaceholder: string
+    screenshot: string
+    submitInstapay: string
+    submitting: string
+    missingScreenshot: string
+    missingBuyerPhone: string
+    instapayDoneTitle: string
+    instapayDoneBody: string
   }
 }
 
@@ -519,6 +594,14 @@ export const translations: Record<Locale, Translations> = {
     chatSubtitle: 'رد سريع خلال دقائق',
     shareProduct: 'مشاركة',
     similarProducts: 'منتجات مشابهة',
+    // Safety tips
+    safetyTipsTitle: 'نصائح للأمان',
+    safetyTipsIntro: 'قبل أي دفع، افحص الجهاز جيداً وتحقّق منه. سلامتك أهم من أي صفقة.',
+    safetyInspectDevice: 'افحص الجهاز وجرّبه بالكامل قبل تسليم أي مبلغ للبائع.',
+    safetyMeetPublic: 'قابل البائع في مكان عام وآمن ويفضّل في وضح النهار.',
+    safetyVerifyBeforePay: 'تأكد أن الجهاز يعمل ومطابق للوصف قبل إتمام الدفع.',
+    safetyNeverShareOtp: 'لا تشارك أبداً كود التحقق (OTP) أو كلمة المرور أو بيانات بطاقتك مع أي بائع.',
+    safetyReportSuspicious: 'إذا شككت في البائع، أوقف الصفقة فوراً وبلّغ فريق دعم Vatix.',
     // Store
     followStore: 'متابعة',
     unfollowStore: 'إلغاء المتابعة',
@@ -629,6 +712,28 @@ export const translations: Record<Locale, Translations> = {
     forbiddenTitle: 'لا تملك صلاحية الوصول',
     forbiddenSubtitle: 'ليست لديك صلاحية لعرض هذا المحتوى.',
     notFoundHint: 'جرّب تعديل عوامل التصفية.',
+    unauthorizedError: 'غير مصرّح',
+    sessionExpiredError: 'انتهت الجلسة',
+    accountDeletionError: 'تعذّر حذف الحساب',
+    walletNotAvailable: 'المحفظة غير متاحة لهذه العملية',
+    phoneRequired: 'الرجاء إدخال رقم هاتفك',
+    unsupportedOperation: 'العملية غير مدعومة',
+    submissionFailed: 'فشل الإرسال',
+    fillRequiredFields: 'يرجى ملء الحقول المطلوبة',
+    messageTooShort: 'الرسالة قصيرة جداً',
+    somethingWentWrong: 'حدث خطأ',
+    subscriptionExpiredCannotEdit: 'انتهى اشتراكك — لا يمكن تعديل المنتج',
+    failedToLoadProduct: 'تعذر تحميل المنتج',
+    waitForUploadsToFinish: 'يرجى الانتظار حتى تكتمل الصور',
+    maxAdsReached: (n: number) => `وصلت الحد الأقصى للإعلانات (${n})`,
+    uploadFailed: 'فشل رفع الملف',
+    someImagesFailedUpload: 'بعض الصور لم تُرفع، تأكد من الحجم (أقل من 5 MB) والصيغة (JPG/PNG/WebP)',
+    sessionExpiredLogIn: 'انتهت الجلسة، يرجى تسجيل الدخول',
+    permissionRequired: 'الأذونات مطلوبة',
+    allowPhotoAccess: 'يرجى السماح بالوصول إلى الصور',
+    passwordUpdated: 'تم تحديث كلمة المرور.',
+    settingsSaved: 'تم حفظ الإعدادات.',
+    enterPasswordToConfirm: 'يرجى إدخال كلمة المرور للتأكيد.',
     // Success
     registrationSuccess: 'تم إنشاء الحساب بنجاح',
     productAdded: 'تم إضافة المنتج بنجاح',
@@ -768,6 +873,11 @@ export const translations: Record<Locale, Translations> = {
     activeProducts: 'المنتجات النشطة',
     totalViews: 'إجمالي المشاهدات',
     totalPhoneClicks: 'مكالمات الهاتف',
+    totalWhatsappClicks: 'واتساب',
+    totalChatContacts: 'محادثات',
+    totalContact: 'إجمالي التواصل',
+    storeContacts: 'تواصل عبر المتجر',
+    storeContactsHint: 'تواصل تم مع صفحة متجرك مباشرة',
     totalFavorites: 'الإضافات للمفضلة',
     viewsRange: 'نطاق المشاهدات',
     last7Days: 'آخر ٧ أيام',
@@ -858,6 +968,45 @@ export const translations: Record<Locale, Translations> = {
         title: 'تواصل بأمان',
         desc: 'تقييمات حقيقية، تواصل مباشر، ودردشة داخل التطبيق تحفظ محادثاتك في مكان واحد.',
       },
+    },
+    storeLogoDialog: {
+      title: '🎨 اكتمل شكل متجرك',
+      body: 'المتاجر التي لديها شعار تحصل على ثقة أكبر من العملاء وتظهر بشكل احترافي في جميع الصفحات. أضف شعار متجرك في دقيقة واحدة.',
+      dismiss: 'لاحقاً',
+      cta: 'رفع الشعار',
+    },
+    addProductDialog: {
+      title: '✨ ابدأ البيع اليوم',
+      body: 'كل إعلان جديد يفتح لك باباً لعميل جديد. أضف منتجك الآن — الأمر لا يستغرق سوى دقائق، وسيظهر على فاتيكس مباشرة.',
+      dismiss: 'لاحقاً',
+      cta: 'إضافة إعلان',
+    },
+    expiredRecovery: {
+      title: 'انتهى اشتراكك',
+      subtitle: 'اختر كيف تريد المتابعة',
+      optionInstapayTitle: 'تجديد الاشتراك عبر إنستاباي',
+      optionInstapayDesc: 'حوّل من تطبيق البنك وارفع لقطة الشاشة للمراجعة',
+      optionConvertTitle: 'التحويل إلى حساب عميل',
+      optionConvertDesc: 'أوقف الاشتراك واستخدم حسابك كعميل عادي',
+      convertConfirmTitle: 'تأكيد التحويل',
+      convertConfirmBody: 'سيتم إخفاء منتجاتك وتحويل حسابك إلى عميل. يمكنك الترقية لاحقاً في أي وقت.',
+      convertBtn: 'تأكيد التحويل',
+      converting: 'جاري التحويل...',
+      back: 'رجوع',
+      close: 'إغلاق',
+      instapayTitle: 'الدفع عبر إنستاباي',
+      instapayAccount: 'حساب المستلم',
+      instapayAmount: 'المبلغ',
+      instapayInstructions: 'حوّل المبلغ من تطبيق البنك، ثم ارفع لقطة شاشة للتحويل ورقم الهاتف المُرسِل.',
+      buyerPhone: 'رقم الهاتف المُرسِل',
+      buyerPhonePlaceholder: '01xxxxxxxxx',
+      screenshot: 'لقطة شاشة التحويل',
+      submitInstapay: 'إرسال للمراجعة',
+      submitting: 'جاري الإرسال...',
+      missingScreenshot: 'يرجى رفع لقطة الشاشة',
+      missingBuyerPhone: 'يرجى إدخال رقم الهاتف',
+      instapayDoneTitle: 'تم الاستلام',
+      instapayDoneBody: 'سنراجع تحويلك ونفعّل اشتراكك قريباً. يمكنك تسجيل الدخول بعد التأكيد.',
     },
   },
   en: {
@@ -950,6 +1099,14 @@ export const translations: Record<Locale, Translations> = {
     chatSubtitle: 'Fast reply in minutes',
     shareProduct: 'Share',
     similarProducts: 'Similar Products',
+    // Safety tips
+    safetyTipsTitle: 'Safety Tips',
+    safetyTipsIntro: 'Before any payment, inspect the device carefully. Your safety matters more than any deal.',
+    safetyInspectDevice: 'Inspect and fully test the device before handing any money to the seller.',
+    safetyMeetPublic: 'Meet the seller in a safe public place, ideally during daylight hours.',
+    safetyVerifyBeforePay: 'Make sure the device works and matches the listing before completing payment.',
+    safetyNeverShareOtp: 'Never share your OTP verification code, password, or card details with any seller.',
+    safetyReportSuspicious: 'If anything feels suspicious, stop the deal immediately and report it to Vatix support.',
     // Store
     followStore: 'Follow',
     unfollowStore: 'Unfollow',
@@ -1060,6 +1217,28 @@ export const translations: Record<Locale, Translations> = {
     forbiddenTitle: 'Access denied',
     forbiddenSubtitle: "You don't have permission to view this.",
     notFoundHint: 'Try adjusting your filters.',
+    unauthorizedError: 'Unauthorized',
+    sessionExpiredError: 'Session expired',
+    accountDeletionError: 'Could not delete account',
+    walletNotAvailable: 'Wallet not available for this operation',
+    phoneRequired: 'Please enter your phone number',
+    unsupportedOperation: 'Unsupported operation',
+    submissionFailed: 'Submission failed',
+    fillRequiredFields: 'Please fill required fields',
+    messageTooShort: 'Message is too short',
+    somethingWentWrong: 'Something went wrong',
+    subscriptionExpiredCannotEdit: 'Subscription expired — product cannot be edited',
+    failedToLoadProduct: 'Failed to load product',
+    waitForUploadsToFinish: 'Please wait for uploads to finish',
+    maxAdsReached: (n: number) => `You've reached the max ads (${n})`,
+    uploadFailed: 'Upload failed',
+    someImagesFailedUpload: "Some images didn't upload — check size (< 5 MB) and format (JPG/PNG/WebP)",
+    sessionExpiredLogIn: 'Session expired, please log in',
+    permissionRequired: 'Permission required',
+    allowPhotoAccess: 'Please allow access to your photo library',
+    passwordUpdated: 'Password updated.',
+    settingsSaved: 'Settings saved.',
+    enterPasswordToConfirm: 'Please enter your password to confirm.',
     // Success
     registrationSuccess: 'Account created successfully',
     productAdded: 'Product added successfully',
@@ -1199,6 +1378,11 @@ export const translations: Record<Locale, Translations> = {
     activeProducts: 'Active Products',
     totalViews: 'Total Views',
     totalPhoneClicks: 'Phone Clicks',
+    totalWhatsappClicks: 'WhatsApp',
+    totalChatContacts: 'Chats',
+    totalContact: 'Total Contact',
+    storeContacts: 'Store-page Contacts',
+    storeContactsHint: 'Contacts made directly on your store page',
     totalFavorites: 'Favorites',
     viewsRange: 'Views range',
     last7Days: 'Last 7 days',
@@ -1289,6 +1473,45 @@ export const translations: Record<Locale, Translations> = {
         title: 'Connect with confidence',
         desc: 'Real reviews, direct connections, and in-app chat that keeps every conversation in one place.',
       },
+    },
+    storeLogoDialog: {
+      title: '🎨 Make your store look complete',
+      body: 'Stores with a logo earn more customer trust and look more professional everywhere they appear. Add your store logo in under a minute.',
+      dismiss: 'Later',
+      cta: 'Upload logo',
+    },
+    addProductDialog: {
+      title: '✨ Start selling today',
+      body: 'Every new listing opens the door to a new customer. Add your product now — it only takes a few minutes and goes live on Vatix instantly.',
+      dismiss: 'Later',
+      cta: 'Add product',
+    },
+    expiredRecovery: {
+      title: 'Your subscription has expired',
+      subtitle: 'Choose how you want to continue',
+      optionInstapayTitle: 'Renew via InstaPay',
+      optionInstapayDesc: 'Transfer from your bank app and upload the screenshot for review',
+      optionConvertTitle: 'Convert to a client account',
+      optionConvertDesc: 'Cancel the subscription and use your account as a regular client',
+      convertConfirmTitle: 'Confirm conversion',
+      convertConfirmBody: 'Your products will be hidden and your account will become a client account. You can upgrade again anytime.',
+      convertBtn: 'Confirm conversion',
+      converting: 'Converting…',
+      back: 'Back',
+      close: 'Close',
+      instapayTitle: 'Pay via InstaPay',
+      instapayAccount: 'Receiver account',
+      instapayAmount: 'Amount',
+      instapayInstructions: 'Transfer the amount from your bank app, then upload a screenshot of the transfer and your sending phone number.',
+      buyerPhone: 'Sending phone number',
+      buyerPhonePlaceholder: '01xxxxxxxxx',
+      screenshot: 'Transfer screenshot',
+      submitInstapay: 'Submit for review',
+      submitting: 'Submitting…',
+      missingScreenshot: 'Please upload the screenshot',
+      missingBuyerPhone: 'Please enter the phone number',
+      instapayDoneTitle: 'Received',
+      instapayDoneBody: 'We will review your transfer and activate your subscription soon. You can log in once it is confirmed.',
     },
   },
 }

@@ -466,6 +466,24 @@ export default function ProductDetailScreen() {
             )
           )}
 
+          {/* Safety tips — surfaced before contact CTAs so buyers see the
+              inspect-before-pay guidance before reaching out to any seller. */}
+          <View style={styles.safetyCard}>
+            <View style={styles.safetyHeader}>
+              <View style={styles.safetyIconBadge}>
+                <Ionicons name="shield-checkmark" size={18} color={colors.dk} />
+              </View>
+              <Text style={[styles.safetyTitle, dir]}>{t.safetyTipsTitle}</Text>
+            </View>
+            <Text style={[styles.safetyIntro, dir]}>{t.safetyTipsIntro}</Text>
+            <View style={styles.safetyList}>
+              <SafetyTip icon="phone-portrait-outline" text={t.safetyInspectDevice} dir={dir} />
+              <SafetyTip icon="people-outline" text={t.safetyMeetPublic} dir={dir} />
+              <SafetyTip icon="checkmark-done-outline" text={t.safetyVerifyBeforePay} dir={dir} />
+              <SafetyTip icon="alert-circle-outline" text={t.safetyReportSuspicious} dir={dir} />
+            </View>
+          </View>
+
           {/* Brand + Category chips */}
           <View style={styles.infoRow}>
             <InfoChip icon="ribbon-outline" label={brandName} sublabel={t.brand} dir={dir} />
@@ -568,7 +586,6 @@ export default function ProductDetailScreen() {
           {waLink ? (
             <Pressable
               onPress={() => {
-                if (!requireLogin()) return
                 Linking.openURL(waLink).catch(() => {})
               }}
               style={({ pressed }) => [
@@ -642,6 +659,29 @@ function InfoChip({
   )
 }
 
+function SafetyTip({
+  icon,
+  text,
+  dir,
+}: {
+  icon: string
+  text: string
+  dir: DirStyle
+}) {
+  return (
+    <View style={safetyStyles.row}>
+      <View style={safetyStyles.bullet}>
+        <Ionicons
+          name={icon as React.ComponentProps<typeof Ionicons>['name']}
+          size={14}
+          color={colors.dk}
+        />
+      </View>
+      <Text style={[safetyStyles.text, dir]}>{text}</Text>
+    </View>
+  )
+}
+
 function SpecRow({
   icon,
   label,
@@ -709,6 +749,33 @@ const chipStyles = StyleSheet.create({
     fontSize: 13,
     color: colors.g900,
     marginTop: 2,
+  },
+})
+
+const safetyStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  bullet: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.y,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  text: {
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.g800,
+    lineHeight: 20,
   },
 })
 
@@ -1142,6 +1209,49 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semiBold,
     fontSize: 12,
     color: colors.dk,
+  },
+
+  // Safety tips card
+  safetyCard: {
+    backgroundColor: colors.yl,
+    borderWidth: 1,
+    borderColor: colors.y,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    ...shadow.ss,
+  },
+  safetyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  safetyIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.y,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  safetyTitle: {
+    flex: 1,
+    fontFamily: fonts.extraBold,
+    fontSize: 15,
+    color: colors.dk,
+    letterSpacing: 0.1,
+  },
+  safetyIntro: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.g700,
+    lineHeight: 20,
+  },
+  safetyList: {
+    marginTop: spacing.xs,
   },
 
   // Info chips row

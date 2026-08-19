@@ -1,3 +1,5 @@
+import { AUTH_ERR } from '@/lib/auth'
+
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 const MINIO_PUBLIC = process.env.EXPO_PUBLIC_MINIO_URL ?? 'http://localhost:9000'
 
@@ -131,6 +133,31 @@ export interface AuthResponse {
   refreshToken: string
 }
 
+/**
+ * `POST /auth/login` returns this shape (instead of tokens) when the store's
+ * subscription has expired. The client must offer one of `options` — currently
+ * `pay_instapay` or `convert_to_client` — before login can complete.
+ */
+export interface ExpiredLoginResponse {
+  status: 'expired'
+  storeType: 'store' | 'store_plus'
+  currentPlanId: number | null
+  options: string[]
+}
+
+export type LoginResult = AuthResponse | ExpiredLoginResponse
+
+export function isExpiredLogin(res: LoginResult): res is ExpiredLoginResponse {
+  return (res as ExpiredLoginResponse).status === 'expired'
+}
+
+export interface UserActionFlags {
+  showStoreShareDialog: boolean
+  showStoreLogoDialog: boolean
+  showAddProductDialog: boolean
+  showSubscriptionExpiredIcon: boolean
+}
+
 export interface UserProfile {
   id: number
   type: string
@@ -146,6 +173,8 @@ export interface UserProfile {
   } | null
   createdAt: string
   storeShareDialogSeenAt?: string | null
+  storeShareCount?: number
+  flags?: UserActionFlags
 }
 
 export interface FavoriteProduct {
@@ -241,9 +270,16 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     // eslint-disable-next-line no-console
     console.log('[api] HTTP', res.status, url)
     const data = await res.json().catch(() => ({}))
-    const msg = Array.isArray(data.message)
+    const backendMsg = Array.isArray(data.message)
       ? data.message.join(', ')
-      : (data.message ?? 'خطأ في الخادم')
+      : data.message
+    // Map generic HTTP failures to sentinel codes so authErrorMessage() can
+    // localize them. Preserve backend text on other 4xx (validation, conflict,
+    // etc.) since those messages are often the actionable part.
+    let msg: string
+    if (res.status === 401) msg = AUTH_ERR.UNAUTHORIZED
+    else if (res.status >= 500) msg = AUTH_ERR.SERVER_ERROR
+    else msg = backendMsg ?? AUTH_ERR.SERVER_ERROR
     throw new ApiError(res.status, msg, data)
   }
   return res.json() as Promise<T>
@@ -359,11 +395,70 @@ export function getStoreProducts(
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-export function loginUser(phone: string, password: string): Promise<AuthResponse> {
+export function loginUser(phone: string, password: string): Promise<LoginResult> {
   return apiFetch('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ phone, password }),
   })
+}
+
+/** Expired store recovery: downgrade to client. Returns a full auth response. */
+export function expiredConvertToClient(
+  phone: string,
+  password: string,
+): Promise<AuthResponse> {
+  return apiFetch('/auth/expired/convert-to-client', {
+    method: 'POST',
+    body: JSON.stringify({ phone, password }),
+  })
+}
+
+/**
+ * Expired store recovery: submit an InstaPay renewal. Returns a payment id
+ * pending admin review — no tokens are issued until the admin approves.
+ * NB: backend DTO names the URL field `screenshotKey` even though it's a URL.
+ */
+export function expiredPayInstapay(
+  phone: string,
+  password: string,
+  screenshotKey: string,
+  buyerPhone: string,
+): Promise<{ paymentId: number; status: 'pending_verification' }> {
+  return apiFetch('/auth/expired/pay-instapay', {
+    method: 'POST',
+    body: JSON.stringify({ phone, password, screenshotKey, buyerPhone }),
+  })
+}
+
+/**
+ * Anonymous public upload — used by pre-auth flows (e.g. expired-store InstaPay
+ * screenshots) where no JWT is available. Throttled 5/60s by the backend.
+ * Returns the public MinIO URL.
+ */
+export async function uploadPublic(
+  localUri: string,
+  mimeType: string = 'image/jpeg',
+): Promise<string> {
+  const form = new FormData()
+  const filename = localUri.split('/').pop() ?? `upload-${Date.now()}.jpg`
+  // React Native FormData accepts { uri, name, type } file objects.
+  form.append('file', {
+    uri: localUri,
+    name: filename,
+    type: mimeType,
+  } as unknown as Blob)
+  const res = await fetch(`${BASE}/uploads/public`, {
+    method: 'POST',
+    body: form,
+    headers: { 'X-Client-Platform': 'mobile' },
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    const msg = Array.isArray(data.message) ? data.message.join(', ') : (data.message ?? 'Upload failed')
+    throw new ApiError(res.status, msg, data)
+  }
+  const json = (await res.json()) as { url: string }
+  return json.url
 }
 
 export function registerClient(data: {

@@ -1,6 +1,32 @@
 import * as SecureStore from 'expo-secure-store'
+import type { Translations } from '@/lib/i18n'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
+
+// Error codes thrown from this module. UI layer should translate via
+// authErrorMessage(err, t) since this module has no locale context.
+export const AUTH_ERR = {
+  UNAUTHORIZED: 'AUTH_UNAUTHORIZED',
+  SESSION_EXPIRED: 'AUTH_SESSION_EXPIRED',
+  SERVER_ERROR: 'AUTH_SERVER_ERROR',
+  ACCOUNT_DELETE_FAILED: 'AUTH_ACCOUNT_DELETE_FAILED',
+} as const
+
+export function authErrorMessage(err: unknown, t: Translations): string {
+  if (!(err instanceof Error)) return t.serverError
+  switch (err.message) {
+    case AUTH_ERR.UNAUTHORIZED:
+      return t.unauthorizedError
+    case AUTH_ERR.SESSION_EXPIRED:
+      return t.sessionExpiredError
+    case AUTH_ERR.SERVER_ERROR:
+      return t.serverError
+    case AUTH_ERR.ACCOUNT_DELETE_FAILED:
+      return t.accountDeletionError
+    default:
+      return err.message || t.serverError
+  }
+}
 
 const KEY_TOKEN = 'vatix_token'
 const KEY_REFRESH = 'vatix_refresh'
@@ -249,7 +275,7 @@ export async function authPost<T>(path: string, body: unknown): Promise<T> {
   const token = await getValidToken()
   if (!token) {
     await clearSession()
-    throw new Error('غير مصرّح')
+    throw new Error(AUTH_ERR.UNAUTHORIZED)
   }
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
@@ -264,7 +290,7 @@ export async function authPost<T>(path: string, body: unknown): Promise<T> {
     const refreshed = await refreshAccessToken()
     if (!refreshed) {
       await clearSession()
-      throw new Error('انتهت الجلسة')
+      throw new Error(AUTH_ERR.SESSION_EXPIRED)
     }
     return authPost<T>(path, body)
   }
@@ -272,7 +298,7 @@ export async function authPost<T>(path: string, body: unknown): Promise<T> {
     const data = await res.json().catch(() => ({}))
     const msg = Array.isArray(data.message)
       ? data.message.join('، ')
-      : (data.message ?? 'خطأ في الخادم')
+      : (data.message ?? AUTH_ERR.SERVER_ERROR)
     throw new Error(msg)
   }
   return res.json() as Promise<T>
@@ -282,7 +308,7 @@ export async function authPatch<T>(path: string, body: unknown): Promise<T> {
   const token = await getValidToken()
   if (!token) {
     await clearSession()
-    throw new Error('غير مصرّح')
+    throw new Error(AUTH_ERR.UNAUTHORIZED)
   }
   const res = await fetch(`${BASE}${path}`, {
     method: 'PATCH',
@@ -297,7 +323,7 @@ export async function authPatch<T>(path: string, body: unknown): Promise<T> {
     const refreshed = await refreshAccessToken()
     if (!refreshed) {
       await clearSession()
-      throw new Error('انتهت الجلسة')
+      throw new Error(AUTH_ERR.SESSION_EXPIRED)
     }
     return authPatch<T>(path, body)
   }
@@ -305,7 +331,7 @@ export async function authPatch<T>(path: string, body: unknown): Promise<T> {
     const data = await res.json().catch(() => ({}))
     const msg = Array.isArray(data.message)
       ? data.message.join('، ')
-      : (data.message ?? 'خطأ في الخادم')
+      : (data.message ?? AUTH_ERR.SERVER_ERROR)
     throw new Error(msg)
   }
   return res.json() as Promise<T>
@@ -379,7 +405,7 @@ export async function deleteAccount(password: string): Promise<void> {
   const token = await getValidToken()
   if (!token) {
     await clearSession()
-    throw new Error('انتهت الجلسة')
+    throw new Error(AUTH_ERR.SESSION_EXPIRED)
   }
   const res = await fetch(`${BASE}/user/account`, {
     method: 'DELETE',
@@ -397,7 +423,7 @@ export async function deleteAccount(password: string): Promise<void> {
   const data = await res.json().catch(() => ({}))
   const msg = Array.isArray(data.message)
     ? data.message.join('، ')
-    : (data.message ?? 'تعذّر حذف الحساب')
+    : (data.message ?? AUTH_ERR.ACCOUNT_DELETE_FAILED)
   throw new Error(msg)
 }
 
@@ -434,6 +460,22 @@ export type ShareChannel = 'native' | 'clipboard' | 'qr' | 'social' | 'unknown'
 
 export function logShare(targetType: 'store' | 'product', targetId: number, channel: ShareChannel): void {
   authPost(`/shares/${targetType}/${targetId}`, { channel }).catch(() => {})
+}
+
+// ─── User actions (one-off dialogs) ──────────────────────────────────────────
+
+/** Bespoke endpoint for the store-share dialog — kept for parity with website. */
+export function markStoreShareDialogSeen(): void {
+  authPost('/user/profile/store-share-dialog/seen', {}).catch(() => {})
+}
+
+/** Generic tracker — first call inserts; subsequent calls bump seenCount. */
+export function markActionSeen(actionKey: string): void {
+  authPost(`/user/actions/${actionKey}/seen`, {}).catch(() => {})
+}
+
+export function markActionDismissed(actionKey: string): void {
+  authPost(`/user/actions/${actionKey}/dismiss`, {}).catch(() => {})
 }
 
 // ─── Background proactive refresh ────────────────────────────────────────────

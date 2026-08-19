@@ -3,10 +3,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Redirect, router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import { AddProductDialog } from '@/components/AddProductDialog'
+import { StoreLogoDialog } from '@/components/StoreLogoDialog'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
-import type { FavoriteProduct, Product } from '@/lib/api'
+import type { FavoriteProduct, Product, UserProfile } from '@/lib/api'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 function normalizeType(t: string | null | undefined): 'client' | 'store' | 'store_plus' | 'unknown' {
@@ -26,15 +28,18 @@ export default function DashboardScreen() {
   const [adsCount, setAdsCount] = useState<number | null>(null)
   const [favsCount, setFavsCount] = useState<number | null>(null)
   const [pendingInstapay, setPendingInstapay] = useState(false)
+  const [showLogoDialog, setShowLogoDialog] = useState(false)
+  const [showAddProductDialog, setShowAddProductDialog] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) return
     let cancelled = false
     const load = async () => {
-      const [ads, favs, payments] = await Promise.all([
+      const [ads, favs, payments, profile] = await Promise.all([
         authFetch<Product[]>('/products/mine'),
         authFetch<FavoriteProduct[]>('/products/favorites'),
         authFetch<{ status: string; method: string }[]>('/payments/history'),
+        authFetch<UserProfile>('/user/profile'),
       ])
       if (cancelled) return
       setAdsCount(ads?.length ?? 0)
@@ -42,6 +47,8 @@ export default function DashboardScreen() {
       setPendingInstapay(
         !!payments?.some((p) => p.method === 'instapay' && p.status === 'pending_verification'),
       )
+      setShowLogoDialog(!!profile?.flags?.showStoreLogoDialog)
+      setShowAddProductDialog(!!profile?.flags?.showAddProductDialog)
     }
     load()
     return () => {
@@ -159,6 +166,12 @@ export default function DashboardScreen() {
           </Pressable>
         </View>
       )}
+
+      <StoreLogoDialog visible={showLogoDialog} onClose={() => setShowLogoDialog(false)} />
+      <AddProductDialog
+        visible={showAddProductDialog}
+        onClose={() => setShowAddProductDialog(false)}
+      />
     </DashboardLayout>
   )
 }

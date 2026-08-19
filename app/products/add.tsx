@@ -33,7 +33,7 @@ import {
   getLocations,
   localeName,
 } from '@/lib/api'
-import { authFetch, authPost } from '@/lib/auth'
+import { authErrorMessage, authFetch, authPost } from '@/lib/auth'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 const DRAFT_KEY = 'vatix_product_draft'
@@ -253,7 +253,7 @@ export default function AddProductScreen() {
       return
     }
     if (uploading) {
-      setError(ar ? 'يرجى الانتظار حتى تكتمل الصور' : 'Please wait for uploads to finish')
+      setError(t.waitForUploadsToFinish)
       return
     }
 
@@ -261,11 +261,7 @@ export default function AddProductScreen() {
     try {
       const mine = await authFetch<Product[]>('/products/mine')
       if ((mine?.length ?? 0) >= limit) {
-        setError(
-          ar
-            ? `وصلت الحد الأقصى للإعلانات (${limit})`
-            : `You've reached the max ads (${limit})`,
-        )
+        setError(t.maxAdsReached(limit))
         setSubmitting(false)
         return
       }
@@ -288,11 +284,11 @@ export default function AddProductScreen() {
       await SecureStore.deleteItemAsync(DRAFT_KEY).catch(() => {})
       router.back()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t.serverError)
+      setError(authErrorMessage(e, t))
     } finally {
       setSubmitting(false)
     }
-  }, [ar, brandId, categoryId, condition, description, images, limit, locationId, price, showPhone, t, title, uploading])
+  }, [brandId, categoryId, condition, description, images, limit, locationId, price, showPhone, t, title, uploading])
 
   return (
     <DashboardLayout title={t.addProduct} scroll={false} contentPadding={false} bottomBar={<BottomTabBar />}>

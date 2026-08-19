@@ -14,10 +14,12 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
+import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
   authDelete,
+  authErrorMessage,
   authFetch,
   authPost,
   refreshAccessToken,
@@ -90,7 +92,7 @@ function useDir() {
 }
 
 export default function PromoteScreen() {
-  const { locale } = useLocale()
+  const { locale, t } = useLocale()
   const { user } = useAuth()
   const { ar, rowDir, colDir, dirStyle, trailAlign } = useDir()
   const params = useLocalSearchParams<{
@@ -226,8 +228,8 @@ export default function PromoteScreen() {
     },
     pending_verification: {
       label: ar ? 'قيد المراجعة' : 'Under Review',
-      color: colors.yd,
-      bg: colors.yl,
+      color: '#7B2FBE',
+      bg: '#F5EEFF',
     },
     failed: { label: ar ? 'فشل' : 'Failed', color: colors.red, bg: colors.rl },
   }
@@ -269,13 +271,11 @@ export default function PromoteScreen() {
   const payInstapay = async () => {
     if (!bundle) return
     if (!screenshot) {
-      setError(
-        ar ? 'الرجاء رفع لقطة الإيصال' : 'Please upload the receipt screenshot',
-      )
+      setError(t.screenshotRequired)
       return
     }
     if (!phone || phone.trim().length < 6) {
-      setError(ar ? 'الرجاء إدخال رقم هاتفك' : 'Please enter your phone number')
+      setError(t.phoneRequired)
       return
     }
     setLoading(true)
@@ -287,8 +287,8 @@ export default function PromoteScreen() {
         buyerPhone: phone.trim(),
       })
       setStep('instapay-done')
-    } catch (e: any) {
-      setError(e?.message || (ar ? 'فشل الإرسال' : 'Submission failed'))
+    } catch (e: unknown) {
+      setError(authErrorMessage(e, t))
     } finally {
       setLoading(false)
     }
@@ -304,7 +304,7 @@ export default function PromoteScreen() {
         { bundleId: bundle.id },
       )
       if (res?.status && res.status !== 'success') {
-        setError(ar ? 'فشل الدفع' : 'Payment failed')
+        setError(t.paymentFailed)
         return
       }
       if (typeof res?.newBalance === 'number') setWallet(res.newBalance)
@@ -322,8 +322,8 @@ export default function PromoteScreen() {
       if (resumeProductId) {
         router.push('/dashboard/my-ads')
       }
-    } catch (e: any) {
-      setError(e?.message || (ar ? 'فشل الدفع' : 'Payment failed'))
+    } catch (e: unknown) {
+      setError(authErrorMessage(e, t))
     } finally {
       setLoading(false)
     }
@@ -585,46 +585,7 @@ export default function PromoteScreen() {
                 </Text>
               </Pressable>
 
-              <View style={styles.instapayPanel}>
-                <View style={[styles.instapayHead, rowDir]}>
-                  <Ionicons
-                    name="phone-portrait"
-                    size={18}
-                    color={colors.white}
-                  />
-                  <View style={[{ flex: 1 }, colDir]}>
-                    <Text style={[styles.instapayHeadText, dirStyle]}>
-                      {ar ? 'الدفع عبر انستاباي' : 'Pay via InstaPay'}
-                    </Text>
-                  </View>
-                </View>
-                <InstaRow
-                  label={ar ? 'الحساب' : 'Account'}
-                  value={paySettings.instapayAccount || '—'}
-                />
-                <InstaRow
-                  label={ar ? 'الاسم' : 'Name'}
-                  value={paySettings.instapayName || 'Vatix'}
-                />
-                <InstaRow
-                  label={ar ? 'المبلغ' : 'Amount'}
-                  value={`${fmt(bundle.price)} ${currency}`}
-                  highlight
-                />
-              </View>
-
-              <View style={styles.instructionsBox}>
-                <View style={colDir}>
-                  <Text style={[styles.instructionsTitle, dirStyle]}>
-                    {ar ? '📋 خطوات الدفع' : '📋 Payment Steps'}
-                  </Text>
-                  <Text style={[styles.instructionsBody, dirStyle]}>
-                    {ar
-                      ? '١. حوّل المبلغ عبر انستاباي\n٢. التقط لقطة شاشة للإيصال\n٣. ارفعها هنا وأرسل الطلب\n٤. سيتم التحقق خلال ٢٤ ساعة'
-                      : '1. Transfer the amount via InstaPay\n2. Take a screenshot of the receipt\n3. Upload it here and submit\n4. We verify within 24 hours'}
-                  </Text>
-                </View>
-              </View>
+              <InstapayQrCard amount={bundle.price} />
 
               <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
                 <Input
@@ -893,61 +854,69 @@ export default function PromoteScreen() {
                       color: colors.g600,
                       bg: colors.g100,
                     }
-                    const showAmount =
-                      row.method === 'wallet' || row.method === 'instapay'
+                    const isFree =
+                      row.gift ||
+                      row.method === 'gift' ||
+                      Number(row.amount ?? 0) === 0
+                    const dateFmt = new Date(row.createdAt).toLocaleDateString(
+                      ar ? 'ar-EG' : 'en-EG',
+                      { year: 'numeric', month: 'short', day: 'numeric' },
+                    )
                     return (
-                      <View key={row.id} style={[styles.orderRow, rowDir]}>
-                        <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-                          <View style={[styles.adChipsRow, rowDir]}>
-                            <View
-                              style={[styles.chip, { backgroundColor: m.bg }]}
-                            >
-                              <Text
-                                style={[styles.chipText, { color: m.color }]}
-                              >
-                                {m.emoji} {m.label}
+                      <View key={row.id} style={[styles.orderRow, colDir]}>
+                        <View style={[styles.orderHeader, rowDir]}>
+                          <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
+                            <Text style={[styles.creditsValue, dirStyle]}>
+                              +{row.credits}{' '}
+                              <Text style={styles.creditsUnit}>
+                                {ar ? 'إعلان' : 'ads'}
                               </Text>
-                            </View>
-                            <View
-                              style={[styles.chip, { backgroundColor: s.bg }]}
-                            >
-                              <Text
-                                style={[styles.chipText, { color: s.color }]}
-                              >
-                                {s.label}
-                              </Text>
-                            </View>
+                            </Text>
                           </View>
-                          <Text
-                            style={[styles.orderMeta, dirStyle]}
-                            numberOfLines={1}
-                          >
-                            {new Date(row.createdAt).toLocaleDateString(
-                              ar ? 'ar-EG' : 'en-EG',
+                          <View style={[styles.orderTrail, trailAlign, colDir]}>
+                            {isFree ? (
+                              <Text
+                                style={[
+                                  styles.orderAmount,
+                                  dirStyle,
+                                  { color: colors.green },
+                                ]}
+                              >
+                                {ar ? 'مجاناً' : 'Free'}
+                              </Text>
+                            ) : (
+                              <Text style={[styles.orderAmount, dirStyle]}>
+                                {fmt(Number(row.amount ?? 0))} {currency}
+                              </Text>
                             )}
-                            {' · '}
-                            {ar
-                              ? `${row.credits} إعلان`
-                              : `${row.credits} ads`}
-                          </Text>
+                          </View>
                         </View>
-                        <View style={[styles.orderTrail, trailAlign, colDir]}>
-                          {showAmount ? (
-                            <Text style={[styles.orderAmount, dirStyle]}>
-                              {fmt(Number(row.amount ?? 0))} {currency}
-                            </Text>
-                          ) : (
+                        <View style={[styles.adChipsRow, rowDir]}>
+                          <View
+                            style={[styles.chip, { backgroundColor: m.bg }]}
+                          >
                             <Text
-                              style={[
-                                styles.orderAmount,
-                                dirStyle,
-                                { color: colors.g500 },
-                              ]}
+                              style={[styles.chipText, { color: m.color }]}
                             >
-                              —
+                              {m.emoji} {m.label}
                             </Text>
-                          )}
+                          </View>
+                          <View
+                            style={[styles.chip, { backgroundColor: s.bg }]}
+                          >
+                            <Text
+                              style={[styles.chipText, { color: s.color }]}
+                            >
+                              {s.label}
+                            </Text>
+                          </View>
                         </View>
+                        <Text
+                          style={[styles.orderMeta, dirStyle]}
+                          numberOfLines={1}
+                        >
+                          {dateFmt}
+                        </Text>
                       </View>
                     )
                   })}
@@ -1464,25 +1433,37 @@ const styles = StyleSheet.create({
 
   // History rows
   orderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+    gap: 8,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.g100,
   },
+  orderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   orderTrail: {
     gap: 4,
   },
+  creditsValue: {
+    fontFamily: fonts.black,
+    fontSize: 16,
+    color: colors.dk,
+  },
+  creditsUnit: {
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    color: colors.g500,
+  },
   orderMeta: {
-    marginTop: 6,
     fontFamily: fonts.regular,
     fontSize: 11,
     color: colors.g600,
   },
   orderAmount: {
     fontFamily: fonts.bold,
-    fontSize: 13,
+    fontSize: 14,
     color: colors.dk,
   },
   chip: {

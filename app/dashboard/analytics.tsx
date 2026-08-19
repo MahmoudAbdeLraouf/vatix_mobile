@@ -13,6 +13,9 @@ interface ProductRow {
   isActive: boolean
   views: number
   phoneClicks: number
+  whatsappClicks: number
+  chats: number
+  contacts: number
   favorites: number
   createdAt: string
 }
@@ -25,6 +28,13 @@ interface DayRow {
 interface Analytics {
   totalViews: number
   totalPhoneClicks: number
+  totalWhatsappClicks?: number
+  totalChats?: number
+  totalContacts: number
+  storePhoneClicks?: number
+  storeWhatsappClicks?: number
+  storeChats?: number
+  storeContacts?: number
   totalFavorites: number
   totalProducts: number
   activeProducts: number
@@ -113,9 +123,9 @@ export default function AnalyticsScreen() {
           bg: colors.bl,
         },
         {
-          label: t.totalPhoneClicks,
-          value: data.totalPhoneClicks,
-          icon: 'call-outline',
+          label: t.totalContact,
+          value: data.totalContacts,
+          icon: 'chatbubbles-outline',
           color: colors.green,
           bg: colors.gl,
         },
@@ -182,6 +192,68 @@ export default function AnalyticsScreen() {
               </View>
             ))}
           </View>
+
+          {/* Contact breakdown */}
+          {data && (
+            <View style={styles.card}>
+              <Text
+                style={[styles.cardTitle, dirStyle, { marginBottom: spacing.sm }]}
+              >
+                {t.totalContact}
+              </Text>
+              <View style={styles.breakdownRow}>
+                <View style={styles.breakdownItem}>
+                  <Ionicons name="call-outline" size={16} color={colors.green} />
+                  <Text style={[styles.breakdownValue, { color: colors.green }]}>
+                    {fmt(data.totalPhoneClicks)}
+                  </Text>
+                  <Text style={styles.breakdownLabel}>{t.totalPhoneClicks}</Text>
+                </View>
+                <View style={styles.breakdownItem}>
+                  <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
+                  <Text style={[styles.breakdownValue, { color: '#25D366' }]}>
+                    {fmt(data.totalWhatsappClicks ?? 0)}
+                  </Text>
+                  <Text style={styles.breakdownLabel}>
+                    {t.totalWhatsappClicks}
+                  </Text>
+                </View>
+                <View style={styles.breakdownItem}>
+                  <Ionicons
+                    name="chatbubbles-outline"
+                    size={16}
+                    color={colors.blue}
+                  />
+                  <Text style={[styles.breakdownValue, { color: colors.blue }]}>
+                    {fmt(data.totalChats ?? 0)}
+                  </Text>
+                  <Text style={styles.breakdownLabel}>
+                    {t.totalChatContacts}
+                  </Text>
+                </View>
+              </View>
+
+              {data.storeContacts !== undefined &&
+                data.storeContacts !== null &&
+                data.storeContacts > 0 && (
+                  <View style={styles.storeCallout}>
+                    <Ionicons
+                      name="storefront-outline"
+                      size={16}
+                      color={colors.dk}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.storeCalloutTitle, dirStyle]}>
+                        {t.storeContacts} · {fmt(data.storeContacts)}
+                      </Text>
+                      <Text style={[styles.storeCalloutHint, dirStyle]}>
+                        {t.storeContactsHint}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+            </View>
+          )}
 
           {/* Daily views chart */}
           <View style={styles.card}>
@@ -355,6 +427,30 @@ export default function AnalyticsScreen() {
                             ]}
                           >
                             {fmt(p.phoneClicks)}
+                          </Text>
+                        </View>
+                        <View style={styles.pStat}>
+                          <Ionicons
+                            name="logo-whatsapp"
+                            size={14}
+                            color="#25D366"
+                          />
+                          <Text
+                            style={[styles.pStatValue, { color: '#25D366' }]}
+                          >
+                            {fmt(p.whatsappClicks ?? 0)}
+                          </Text>
+                        </View>
+                        <View style={styles.pStat}>
+                          <Ionicons
+                            name="chatbubbles-outline"
+                            size={14}
+                            color={colors.dk}
+                          />
+                          <Text
+                            style={[styles.pStatValue, { color: colors.dk }]}
+                          >
+                            {fmt(p.chats ?? 0)}
                           </Text>
                         </View>
                         <View style={styles.pStat}>
@@ -559,10 +655,54 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blue,
     borderRadius: 2,
   },
+  breakdownRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  breakdownItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.g100,
+  },
+  breakdownValue: {
+    fontFamily: fonts.extraBold,
+    fontSize: 16,
+  },
+  breakdownLabel: {
+    fontFamily: fonts.regular,
+    fontSize: 10,
+    color: colors.g600,
+  },
+  storeCallout: {
+    marginTop: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.yl,
+    borderWidth: 1,
+    borderColor: colors.y,
+  },
+  storeCalloutTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: colors.dk,
+  },
+  storeCalloutHint: {
+    fontFamily: fonts.regular,
+    fontSize: 10,
+    color: colors.g700,
+    marginTop: 2,
+  },
   pStatsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    flexWrap: 'wrap',
   },
   pStat: {
     flexDirection: 'row',

@@ -14,11 +14,12 @@ import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { useLocale } from '@/contexts/locale'
-import { authPost } from '@/lib/auth'
+import { authErrorMessage, authPost } from '@/lib/auth'
 import { getSiteSettings, SiteSettings } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
+import { InstapayQrCard } from '@/components/InstapayQrCard'
 
 // Mirrors vatix_website/components/wallet-topup-modal.tsx
 // InstaPay-only flow: manual transfer + screenshot proof, admin-reviewed.
@@ -116,8 +117,8 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
         buyerPhone: buyerPhone.trim(),
       })
       setStep('instapay-done')
-    } catch (e) {
-      setErr((e as Error).message)
+    } catch (e: unknown) {
+      setErr(authErrorMessage(e, t))
     } finally {
       setBusy(false)
     }
@@ -395,52 +396,11 @@ function InstapayPanel(props: {
 }) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
-  const { settings, amount } = props
+  const { amount } = props
 
   return (
     <View>
-      <View style={[styles.instapayBanner, rowDir]}>
-        <Ionicons name="phone-portrait" size={24} color="#7B2FBE" />
-        <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-          <Text style={[styles.instapayBannerText, dirStyle]}>{t.payWithInstapay}</Text>
-        </View>
-      </View>
-
-      <View style={[styles.detailRow, rowDir]}>
-        <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-          <Text style={[styles.detailLabel, dirStyle]}>{t.instapayAccountLabel}</Text>
-        </View>
-        <Text style={[styles.detailValue, styles.ltrValue]} selectable>
-          {settings?.instapayAccount ?? '—'}
-        </Text>
-      </View>
-      <View style={[styles.detailRow, rowDir]}>
-        <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-          <Text style={[styles.detailLabel, dirStyle]}>{t.instapayNameLabel}</Text>
-        </View>
-        <Text style={styles.detailValue} selectable>
-          {settings?.instapayName ?? '—'}
-        </Text>
-      </View>
-      <View style={[styles.detailRow, rowDir]}>
-        <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-          <Text style={[styles.detailLabel, dirStyle]}>{t.topUpAmount}</Text>
-        </View>
-        <Text style={styles.detailValue}>
-          {amount} {ar ? 'ج.م' : 'EGP'}
-        </Text>
-      </View>
-
-      <View style={colDir}>
-        <Text style={[styles.helpText, dirStyle, { marginTop: spacing.md }]}>
-          {ar ? 'خطوات التحويل:' : 'Transfer steps:'}
-        </Text>
-      </View>
-      <View style={colDir}>
-        <Text style={[styles.helpText, dirStyle]}>
-          {t.instapayInstructions}
-        </Text>
-      </View>
+      <InstapayQrCard amount={amount} />
 
       <View style={{ marginTop: spacing.md }}>
         <PaymentScreenshotUpload

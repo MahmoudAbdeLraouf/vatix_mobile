@@ -13,6 +13,7 @@ import { Stack } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
 import { getSiteSettings, type SiteSettings } from '@/lib/api'
+import { authErrorMessage } from '@/lib/auth'
 import { colors, fonts, spacing, radius, shadow } from '@/constants/theme'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -34,7 +35,7 @@ interface Method {
 }
 
 export default function ContactScreen() {
-  const { locale } = useLocale()
+  const { locale, t } = useLocale()
   const ar = locale === 'ar'
 
   const [settings, setSettings] = useState<SiteSettings | null>(null)
@@ -127,11 +128,11 @@ export default function ContactScreen() {
   const onSubmit = async () => {
     setError(null)
     if (!name.trim() || !emailField.trim() || !message.trim()) {
-      setError(ar ? 'يرجى ملء الحقول المطلوبة' : 'Please fill required fields')
+      setError(t.fillRequiredFields)
       return
     }
     if (message.trim().length < 5) {
-      setError(ar ? 'الرسالة قصيرة جداً' : 'Message is too short')
+      setError(t.messageTooShort)
       return
     }
     setSending(true)
@@ -151,7 +152,7 @@ export default function ContactScreen() {
       if (!res.ok) {
         const msg = Array.isArray(data?.message)
           ? data.message.join(', ')
-          : data?.message ?? (ar ? 'حدث خطأ' : 'Something went wrong')
+          : data?.message ?? t.somethingWentWrong
         throw new Error(msg)
       }
       setSuccess(true)
@@ -160,8 +161,8 @@ export default function ContactScreen() {
       setPhoneField('')
       setMessage('')
       setSubject(SUBJECTS[0])
-    } catch (e: any) {
-      setError(e?.message ?? (ar ? 'حدث خطأ' : 'Something went wrong'))
+    } catch (e: unknown) {
+      setError(authErrorMessage(e, t))
     } finally {
       setSending(false)
     }

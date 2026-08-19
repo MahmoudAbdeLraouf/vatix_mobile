@@ -12,6 +12,7 @@ import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { sendOtp, resetPassword } from '@/lib/api'
+import { authErrorMessage } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Logo } from '@/components/ui/Logo'
@@ -46,7 +47,7 @@ export default function ForgotScreen() {
       await sendOtp(phone.trim())
       setStep('otp')
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t.serverError)
+      setError(authErrorMessage(e, t))
     } finally {
       setLoading(false)
     }
@@ -69,7 +70,7 @@ export default function ForgotScreen() {
       await resetPassword(phone.trim(), code, newPassword)
       router.replace('/(auth)/login')
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t.serverError)
+      setError(authErrorMessage(e, t))
     } finally {
       setLoading(false)
     }

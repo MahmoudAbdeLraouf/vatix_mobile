@@ -11,7 +11,7 @@ import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
-import { authPost } from '@/lib/auth'
+import { authErrorMessage, authPost } from '@/lib/auth'
 import { ConversationListItem } from '@/lib/api'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -44,9 +44,8 @@ export function StartChatButton({
         productId,
       })
       router.push(`/dashboard/messages/${conv.id}`)
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      Alert.alert(t.startChat, msg)
+    } catch (e: unknown) {
+      Alert.alert(t.startChat, authErrorMessage(e, t))
     } finally {
       setLoading(false)
     }

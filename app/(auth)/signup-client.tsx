@@ -20,6 +20,7 @@ import {
   registerClient,
   sendOtp,
 } from '@/lib/api'
+import { authErrorMessage } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -92,7 +93,7 @@ export default function SignupClientScreen() {
       await sendOtp(phone.trim())
       setStep('otp')
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t.serverError)
+      setError(authErrorMessage(e, t))
     } finally {
       setLoading(false)
     }
@@ -107,7 +108,7 @@ export default function SignupClientScreen() {
       if (!verified) { setError(t.invalidPhone); return }
       await registerAndLogin()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t.serverError)
+      setError(authErrorMessage(e, t))
     } finally {
       setLoading(false)
     }
