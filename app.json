@@ -53,6 +53,14 @@
         {
           "color": "#F5B800"
         }
+      ],
+      [
+        "@sentry/react-native",
+        {
+          "url": "https://sentry.io/",
+          "organization": "vatix",
+          "project": "vatix-mobile"
+        }
       ]
     ],
     "extra": {

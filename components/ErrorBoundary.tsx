@@ -1,5 +1,6 @@
 import React from 'react'
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Share } from 'react-native'
+import * as Sentry from '@sentry/react-native'
 
 type Props = { children: React.ReactNode }
 type State = { error: Error | null; info: string | null }
@@ -12,6 +13,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: { componentStack?: string | null }) {
+    Sentry.captureException(error, {
+      contexts: { react: { componentStack: info.componentStack ?? undefined } },
+    })
     console.error('[ErrorBoundary]', error, info.componentStack)
     this.setState({ error, info: info.componentStack ?? null })
   }

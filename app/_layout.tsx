@@ -17,6 +17,7 @@ import {
   Tajawal_700Bold,
 } from '@expo-google-fonts/tajawal'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import * as Sentry from '@sentry/react-native'
 import { AuthProvider } from '@/contexts/auth'
 import { LocaleProvider, useLocale } from '@/contexts/locale'
 import { LoginGateProvider } from '@/contexts/loginGate'
@@ -27,8 +28,21 @@ import { UpdatePrompt } from '@/components/UpdatePrompt'
 import { StoreShareDialogTrigger } from '@/components/StoreShareDialogTrigger'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { installGlobalErrorHandler } from '@/lib/globalErrorHandler'
+import { beforeSend } from '@/lib/sentryScrub'
 
-if (__DEV__) installGlobalErrorHandler()
+const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: process.env.EXPO_PUBLIC_SENTRY_ENV ?? (__DEV__ ? 'development' : 'production'),
+    debug: false,
+    sendDefaultPii: false,
+    tracesSampleRate: Number(process.env.EXPO_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?? '0.1'),
+    beforeSend,
+  })
+}
+
+installGlobalErrorHandler()
 
 SplashScreen.preventAutoHideAsync()
 
@@ -38,7 +52,7 @@ SplashScreen.preventAutoHideAsync()
 // by RootStack's contentStyle below.
 I18nManager.allowRTL(true)
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Cairo_400Regular,
     Cairo_600SemiBold,
@@ -110,6 +124,8 @@ export default function RootLayout() {
 
   return __DEV__ ? <ErrorBoundary>{tree}</ErrorBoundary> : tree
 }
+
+export default Sentry.wrap(RootLayout)
 
 // Nested so useLocale() can see LocaleProvider. `contentStyle.direction` sets
 // direction on each screen's native content root — this is the surface Yoga

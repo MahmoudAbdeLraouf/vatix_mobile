@@ -1,4 +1,5 @@
 import { Alert } from 'react-native'
+import * as Sentry from '@sentry/react-native'
 
 type ErrorUtilsShape = {
   getGlobalHandler?: () => (error: any, isFatal?: boolean) => void
@@ -17,12 +18,15 @@ export function installGlobalErrorHandler() {
   EU?.setGlobalHandler?.((error, isFatal) => {
     const err = error instanceof Error ? error : new Error(String(error))
     console.error('[GlobalError]', isFatal ? 'FATAL' : 'non-fatal', err.message, err.stack)
-    Alert.alert(
-      isFatal ? 'Fatal error' : 'Error',
-      `${err.message}\n\n${(err.stack ?? '').slice(0, 1200)}`,
-      [{ text: 'OK' }],
-      { cancelable: true },
-    )
+    Sentry.captureException(err, { level: isFatal ? 'fatal' : 'error' })
+    if (__DEV__) {
+      Alert.alert(
+        isFatal ? 'Fatal error' : 'Error',
+        `${err.message}\n\n${(err.stack ?? '').slice(0, 1200)}`,
+        [{ text: 'OK' }],
+        { cancelable: true },
+      )
+    }
     prev?.(error, isFatal)
   })
 
@@ -35,6 +39,7 @@ export function installGlobalErrorHandler() {
       onUnhandled: (id: number, error: any) => {
         const err = error instanceof Error ? error : new Error(String(error))
         console.error('[UnhandledPromise]', id, err.message, err.stack)
+        Sentry.captureException(err)
       },
       onHandled: () => {},
     })
