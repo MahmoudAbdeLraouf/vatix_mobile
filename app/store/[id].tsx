@@ -44,14 +44,6 @@ import { colors, fonts, radius, spacing } from '@/constants/theme'
 const COVER_HEIGHT = 180
 const LOGO_SIZE = 76
 
-// Mask all but the first 4 and last 2 digits of a phone until the user taps to
-// reveal — same shape as the website's RevealStorePhone.
-function maskPhone(phone: string): string {
-  const digits = phone.replace(/\s/g, '')
-  if (digits.length <= 6) return phone
-  return digits.slice(0, 4) + 'x'.repeat(digits.length - 6) + digits.slice(-2)
-}
-
 type SocialKey = 'instagram' | 'facebook' | 'twitter' | 'tiktok' | 'youtube' | 'linkedin'
 
 const SOCIAL_ICONS: Record<SocialKey, React.ComponentProps<typeof Ionicons>['name']> = {
@@ -104,7 +96,6 @@ export default function StoreDetailScreen() {
   const [descTruncatable, setDescTruncatable] = useState(false)
   const [activeTab, setActiveTab] = useState<TabKey>('products')
   const [phoneSheetOpen, setPhoneSheetOpen] = useState(false)
-  const [revealedPhones, setRevealedPhones] = useState<Set<string>>(() => new Set())
 
   const storeId = Number(id)
 
@@ -563,21 +554,10 @@ export default function StoreDetailScreen() {
                   <Text style={[styles.aboutBlockTitle, dir]}>{t.phone}</Text>
                   <View style={styles.phoneList}>
                     {phoneEntries.map(entry => {
-                      const isRevealed = revealedPhones.has(entry.key)
                       const handleTap = () => {
-                        if (!isRevealed) {
-                          trackStorePhoneClick(storeId)
-                          setRevealedPhones(prev => {
-                            const next = new Set(prev)
-                            next.add(entry.key)
-                            return next
-                          })
-                          return
-                        }
+                        trackStorePhoneClick(storeId)
                         Linking.openURL(`tel:${entry.phone}`).catch(() => {})
                       }
-                      const displayPhone = isRevealed ? entry.phone : maskPhone(entry.phone)
-                      const hintText = locale === 'ar' ? 'اضغط لعرض الرقم' : 'Tap to reveal'
                       return (
                         <Pressable
                           key={entry.key}
@@ -585,24 +565,15 @@ export default function StoreDetailScreen() {
                           onPress={handleTap}
                         >
                           <View style={styles.contactIconWrap}>
-                            <Ionicons
-                              name={isRevealed ? 'call' : 'eye-outline'}
-                              size={18}
-                              color={colors.y}
-                            />
+                            <Ionicons name="call" size={18} color={colors.y} />
                           </View>
                           <View style={styles.contactTextWrap}>
                             <Text style={[styles.contactLabel, dir]} numberOfLines={1}>
                               {entry.label}
                             </Text>
                             <Text style={[styles.contactText, dir]} numberOfLines={1}>
-                              {displayPhone}
+                              {entry.phone}
                             </Text>
-                            {!isRevealed && (
-                              <Text style={[styles.contactHint, dir]} numberOfLines={1}>
-                                {hintText}
-                              </Text>
-                            )}
                           </View>
                           <Ionicons name={forwardIcon} size={16} color={colors.g400} />
                         </Pressable>
@@ -1145,11 +1116,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semiBold,
     fontSize: 14,
     color: colors.g800,
-  },
-  contactHint: {
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    color: colors.g500,
   },
 
   // ── Social ───────────────────────────────────────────────────────────────────
