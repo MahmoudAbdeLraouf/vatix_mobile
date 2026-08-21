@@ -355,20 +355,12 @@ export function getProductRatings(productId: number): Promise<ProductRatingItem[
   return apiFetch(`/products/${productId}/ratings`)
 }
 
-export function getStores(opts?: { limit?: number; excludeIds?: number[] }): Promise<Store[]> {
-  return apiFetch(`/stores${buildStoresQuery(opts)}`)
+export function getStores(): Promise<Store[]> {
+  return apiFetch('/stores')
 }
 
-export function getFeaturedStores(opts?: { limit?: number; excludeIds?: number[] }): Promise<Store[]> {
-  return apiFetch(`/stores/featured${buildStoresQuery(opts)}`)
-}
-
-function buildStoresQuery(opts?: { limit?: number; excludeIds?: number[] }): string {
-  if (!opts) return ''
-  const parts: string[] = []
-  if (opts.limit && opts.limit > 0) parts.push(`limit=${opts.limit}`)
-  if (opts.excludeIds?.length) parts.push(`excludeIds=${opts.excludeIds.join(',')}`)
-  return parts.length ? `?${parts.join('&')}` : ''
+export function getFeaturedStores(): Promise<Store[]> {
+  return apiFetch('/stores/featured')
 }
 
 export function getStoreProfile(id: number): Promise<Store | ExpiredResource> {

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import {
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   TextInput,
@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
-import { getFeaturedStores, getStores, Store } from '@/lib/api'
+import { getStores, Store } from '@/lib/api'
 import { StoreCard } from '@/components/StoreCard'
 import { MessagesBell } from '@/components/MessagesBell'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
@@ -19,45 +19,51 @@ import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 
-const FEATURED_LIMIT = 2
-const RANKED_LIMIT = 8
+const PLUS_RATIO = 0.2
+
+function isPlus(s: { type?: string | null }): boolean {
+  const t = (s.type ?? '').toLowerCase()
+  return t === 'store_plus'
+}
+
+function interleavePlus<T extends { type?: string | null }>(stores: T[]): T[] {
+  const plus = stores.filter(isPlus)
+  const rest = stores.filter(s => !isPlus(s))
+  const out: T[] = []
+  let pi = 0, ri = 0
+  while (pi < plus.length || ri < rest.length) {
+    const placed = out.length
+    const takePlus =
+      ri >= rest.length ||
+      (pi < plus.length && pi / (placed + 1) < PLUS_RATIO)
+    if (takePlus) { out.push(plus[pi++]) } else { out.push(rest[ri++]) }
+  }
+  return out
+}
 
 export default function StoresScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
-  const [featured, setFeatured] = useState<Store[]>([])
-  const [ranked, setRanked] = useState<Store[]>([])
+  const [stores, setStores] = useState<Store[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
     setLoading(true)
     setError(null)
-    try {
-      const featuredList = await getFeaturedStores({ limit: FEATURED_LIMIT }).catch(() => [] as Store[])
-      const rankedList = await getStores({
-        limit: RANKED_LIMIT,
-        excludeIds: featuredList.map(s => s.id),
-      })
-      setFeatured(featuredList)
-      setRanked(rankedList)
-    } catch (e) {
-      setError(e as Error)
-    } finally {
-      setLoading(false)
-    }
+    getStores()
+      .then(list => setStores(interleavePlus(list)))
+      .catch(e => setError(e as Error))
+      .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
     load()
   }, [load])
 
-  const matches = (s: Store) =>
-    s.storeProfile?.name?.toLowerCase().includes(search.toLowerCase())
-  const q = search.trim()
-  const filteredFeatured = q ? featured.filter(matches) : featured
-  const filteredRanked = q ? ranked.filter(matches) : ranked
-  const hasAny = filteredFeatured.length > 0 || filteredRanked.length > 0
+  const filtered = search.trim()
+    ? stores.filter(s => s.storeProfile?.name?.toLowerCase().includes(search.toLowerCase()))
+    : stores
 
   return (
     <SafeAreaView
@@ -102,52 +108,19 @@ export default function StoresScreen() {
           </View>
         ) : error ? (
           <ErrorState kind="network" onRetry={load} />
-        ) : !hasAny ? (
-          <EmptyState title={t.noResults} subtitle={t.notFoundHint} />
         ) : (
-          <ScrollView contentContainerStyle={styles.list}>
-            {filteredFeatured.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>{t.featuredStores}</Text>
-                  <View style={styles.plusPill}>
-                    <Text style={styles.plusPillText}>{locale === 'ar' ? 'بلس' : 'PLUS'}</Text>
-                  </View>
-                </View>
-                <StoreGrid items={filteredFeatured} />
-              </View>
-            )}
-            {filteredRanked.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>{t.allStores}</Text>
-                </View>
-                <StoreGrid items={filteredRanked} />
-              </View>
-            )}
-          </ScrollView>
+          <FlatList
+            data={filtered}
+            keyExtractor={s => String(s.id)}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={<EmptyState title={t.noResults} subtitle={t.notFoundHint} />}
+            renderItem={({ item }) => <StoreCard store={item} style={{ flex: 1 }} />}
+          />
         )}
       </View>
     </SafeAreaView>
-  )
-}
-
-function StoreGrid({ items }: { items: Store[] }) {
-  const rows: Store[][] = []
-  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2))
-  return (
-    <View style={{ gap: spacing.lg }}>
-      {rows.map((row, i) => (
-        <View key={i} style={styles.row}>
-          {row.map(s => (
-            <View key={s.id} style={{ flex: 1 }}>
-              <StoreCard store={s} style={{ flex: 1 }} />
-            </View>
-          ))}
-          {row.length === 1 && <View style={{ flex: 1 }} />}
-        </View>
-      ))}
-    </View>
   )
 }
 
@@ -206,35 +179,10 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: spacing.lg,
-    gap: spacing.xl,
-  },
-  section: {
-    gap: spacing.md,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  sectionTitle: {
-    fontFamily: fonts.bold,
-    fontSize: 16,
-    color: colors.dk,
-  },
-  plusPill: {
-    backgroundColor: colors.y,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-  plusPillText: {
-    fontFamily: fonts.bold,
-    fontSize: 10,
-    color: colors.dk,
-    letterSpacing: 0.5,
+    gap: spacing.lg,
   },
   row: {
-    flexDirection: 'row',
     gap: spacing.lg,
+    justifyContent: 'flex-start',
   },
 })
