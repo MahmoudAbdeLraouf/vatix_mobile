@@ -47,6 +47,9 @@ const CARD_W = Math.floor((SCREEN_W - spacing.lg * 2 - spacing.md) / 2)
 const BRAND_W = Math.floor((SCREEN_W - spacing.lg * 2 - spacing.md * 2) / 3)
 const PROMO_W = SCREEN_W - spacing.lg * 2
 
+const FEATURED_STORES_RAIL_LIMIT = 8
+const ALL_STORES_RAIL_LIMIT = 12
+
 type IoniconName = SharedIoniconName
 
 // ─── Promo Carousel Data ──────────────────────────────────────────────────────
@@ -401,7 +404,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     Promise.all([
-      getFeaturedStores().catch(() => [] as Store[]),
+      getFeaturedStores({ limit: FEATURED_STORES_RAIL_LIMIT }).catch(() => [] as Store[]),
       getCategories().catch(() => [] as Category[]),
       getBrands().catch(() => [] as Brand[]),
       getProducts({ limit: 8, promoted: true }).catch(() => ({
@@ -412,11 +415,12 @@ export default function HomeScreen() {
         items: [] as Product[],
         meta: { total: 0, page: 1, limit: 12, pages: 0 },
       })),
-      getStores().catch(() => [] as Store[]),
+      getStores({ limit: ALL_STORES_RAIL_LIMIT }).catch(() => [] as Store[]),
       getSiteStats().catch(() => ({ users: 0, stores: 0, products: 0 } as SiteStats)),
     ]).then(([s, c, b, fp, lp, allS, st]) => {
+      const featuredIds = new Set(s.map(store => store.id))
       setStores(s)
-      setAllStores(allS)
+      setAllStores(allS.filter(store => !featuredIds.has(store.id)))
       setCategories([
         { id: null, name: t.all, icon: 'grid-outline' },
         ...c.map(cat => ({
