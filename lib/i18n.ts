@@ -482,6 +482,13 @@ export interface Translations {
     dismiss: string
     cta: string
   }
+  subscriptionExpiring: {
+    title: string
+    body: string
+    walletBalance: string
+    topUpCta: string
+    laterCta: string
+  }
   expiredRecovery: {
     title: string
     subtitle: string
@@ -1006,6 +1013,13 @@ export const translations: Record<Locale, Translations> = {
       dismiss: 'لاحقاً',
       cta: 'إضافة إعلان',
     },
+    subscriptionExpiring: {
+      title: 'اشتراكك على وشك الانتهاء',
+      body: 'ينتهي اشتراك متجرك في {date}. للتجديد التلقائي، تأكد من وجود رصيد كافٍ في محفظتك قبل هذا التاريخ.',
+      walletBalance: 'رصيد المحفظة الحالي',
+      topUpCta: 'شحن المحفظة الآن',
+      laterCta: 'لاحقاً',
+    },
     expiredRecovery: {
       title: 'انتهى اشتراكك',
       subtitle: 'اختر كيف تريد المتابعة',
@@ -1527,6 +1541,13 @@ export const translations: Record<Locale, Translations> = {
       body: 'Every new listing opens the door to a new customer. Add your product now — it only takes a few minutes and goes live on Vatix instantly.',
       dismiss: 'Later',
       cta: 'Add product',
+    },
+    subscriptionExpiring: {
+      title: 'Your subscription is expiring soon',
+      body: 'Your store subscription expires on {date}. For automatic renewal, make sure your wallet has enough balance before then.',
+      walletBalance: 'Current wallet balance',
+      topUpCta: 'Top up wallet now',
+      laterCta: 'Later',
     },
     expiredRecovery: {
       title: 'Your subscription has expired',

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { AddProductDialog } from '@/components/AddProductDialog'
 import { StoreLogoDialog } from '@/components/StoreLogoDialog'
+import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDialog'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
@@ -30,6 +31,8 @@ export default function DashboardScreen() {
   const [pendingInstapay, setPendingInstapay] = useState(false)
   const [showLogoDialog, setShowLogoDialog] = useState(false)
   const [showAddProductDialog, setShowAddProductDialog] = useState(false)
+  const [showExpiringDialog, setShowExpiringDialog] = useState(false)
+  const [expiringEndsAt, setExpiringEndsAt] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -49,6 +52,10 @@ export default function DashboardScreen() {
       )
       setShowLogoDialog(!!profile?.flags?.showStoreLogoDialog)
       setShowAddProductDialog(!!profile?.flags?.showAddProductDialog)
+      if (profile?.flags?.showSubscriptionExpiringDialog && profile?.flags?.subscriptionEndsAt) {
+        setExpiringEndsAt(profile.flags.subscriptionEndsAt)
+        setShowExpiringDialog(true)
+      }
     }
     load()
     return () => {
@@ -172,6 +179,13 @@ export default function DashboardScreen() {
         visible={showAddProductDialog}
         onClose={() => setShowAddProductDialog(false)}
       />
+      {expiringEndsAt && (
+        <SubscriptionExpiringDialog
+          visible={showExpiringDialog}
+          onClose={() => setShowExpiringDialog(false)}
+          subscriptionEndsAt={expiringEndsAt}
+        />
+      )}
     </DashboardLayout>
   )
 }
