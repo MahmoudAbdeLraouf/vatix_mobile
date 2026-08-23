@@ -14,6 +14,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
+import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { authErrorMessage, authFetch } from '@/lib/auth'
@@ -31,17 +32,23 @@ import {
   initiateInstapayPromotion,
   initiateInstapaySubscription,
   initiateInstapayWalletTopup,
+  initiateMobileWalletPromotion,
+  initiateMobileWalletSubscription,
+  initiateMobileWalletTopup,
   payWithWalletForPromotion,
   payWithWalletForSubscription,
 } from '@/lib/payment'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
-type Panel = 'pick' | 'instapay'
+type Panel = 'pick' | 'instapay' | 'mobile-wallet'
 
 const DEFAULT_SETTINGS: SiteSettings = {
   instapayEnabled: true,
   instapayAccount: '',
   instapayName: 'Vatix',
+  mobileWalletEnabled: false,
+  mobileWalletAccount: '',
+  mobileWalletName: 'Vatix',
   otpVerificationEnabled: true,
   email: null,
   phone: null,
@@ -204,13 +211,48 @@ export default function CheckoutScreen() {
     }
   }
 
+  const submitMobileWallet = async () => {
+    if (!screenshot) {
+      setError(t.screenshotRequired)
+      return
+    }
+    if (!phone || phone.trim().length < 6) {
+      setError(t.phoneRequired)
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      const payload = { screenshotKey: screenshot, buyerPhone: phone.trim() }
+      if (context === 'subscription' && subType) {
+        await initiateMobileWalletSubscription({ ...payload, type: subType })
+      } else if (context === 'promotion' && bundleId) {
+        await initiateMobileWalletPromotion({ ...payload, bundleId })
+      } else if (context === 'wallet_topup') {
+        await initiateMobileWalletTopup({ ...payload, amount })
+      } else {
+        setError(t.unsupportedOperation)
+        return
+      }
+      router.replace({ pathname: '/payment/success', params: { source: 'mobile-wallet', context } })
+    } catch (e: unknown) {
+      setError(authErrorMessage(e, t))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
       <View style={[styles.header, { paddingTop: insets.top === 0 ? spacing.sm : 0 }]}>
         <Pressable
-          onPress={() => (panel === 'instapay' ? setPanel('pick') : router.back())}
+          onPress={() =>
+            panel === 'instapay' || panel === 'mobile-wallet'
+              ? setPanel('pick')
+              : router.back()
+          }
           hitSlop={8}
           style={styles.headerBtn}
         >
@@ -277,6 +319,20 @@ export default function CheckoutScreen() {
                     subtitle={ar ? 'تحويل بنكي مع إيصال' : 'Bank transfer with receipt'}
                     onPress={() => {
                       setPanel('instapay')
+                      setError('')
+                    }}
+                    disabled={busy}
+                  />
+                )}
+                {settings.mobileWalletEnabled && (
+                  <MethodCard
+                    icon="wallet-outline"
+                    color={'#10b981'}
+                    bg={'#ECFDF5'}
+                    title={t.payWithMobileWallet}
+                    subtitle={ar ? 'تحويل من محفظة الموبايل مع إيصال' : 'Mobile wallet transfer with receipt'}
+                    onPress={() => {
+                      setPanel('mobile-wallet')
                       setError('')
                     }}
                     disabled={busy}
@@ -364,6 +420,42 @@ export default function CheckoutScreen() {
                   variant="cta"
                   loading={busy}
                   onPress={submitInstapay}
+                  disabled={busy}
+                />
+                {error ? <ErrorBox text={error} /> : null}
+              </View>
+            </View>
+          )}
+
+          {/* Mobile Wallet panel */}
+          {panel === 'mobile-wallet' && (
+            <View style={styles.card}>
+              <MobileWalletCard
+                amount={fmt(amount)}
+                walletNumber={settings.mobileWalletAccount ?? ''}
+                walletName={settings.mobileWalletName ?? null}
+              />
+
+              <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+                <Input
+                  label={t.buyerPhone}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  placeholder="01xxxxxxxxx"
+                />
+                <PaymentScreenshotUpload
+                  label={t.uploadScreenshot}
+                  value={screenshot}
+                  onChange={setScreenshot}
+                  aspect="wide"
+                  hint={ar ? 'JPG أو PNG، حد أقصى ٥ ميجا' : 'JPG or PNG, max 5 MB'}
+                />
+                <Button
+                  label={t.submitPayment}
+                  variant="cta"
+                  loading={busy}
+                  onPress={submitMobileWallet}
                   disabled={busy}
                 />
                 {error ? <ErrorBox text={error} /> : null}

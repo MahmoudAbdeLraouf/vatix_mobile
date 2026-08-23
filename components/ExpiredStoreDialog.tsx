@@ -20,12 +20,15 @@ import { useLocale } from '@/contexts/locale'
 import {
   expiredConvertToClient,
   expiredPayInstapay,
+  expiredPayMobileWallet,
+  getSiteSettings,
   uploadPublic,
 } from '@/lib/api'
 import { authErrorMessage } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
+import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 const AMOUNT_BY_TYPE: Record<'store' | 'store_plus', number> = {
@@ -33,7 +36,27 @@ const AMOUNT_BY_TYPE: Record<'store' | 'store_plus', number> = {
   store_plus: 500,
 }
 
-type Step = 'choice' | 'convert-confirm' | 'instapay' | 'instapay-done'
+type Step =
+  | 'choice'
+  | 'convert-confirm'
+  | 'instapay'
+  | 'instapay-done'
+  | 'mobile-wallet'
+  | 'mobile-wallet-done'
+
+interface PaySettings {
+  instapayEnabled: boolean
+  mobileWalletEnabled: boolean
+  mobileWalletAccount: string | null
+  mobileWalletName: string | null
+}
+
+const DEFAULT_PAY_SETTINGS: PaySettings = {
+  instapayEnabled: true,
+  mobileWalletEnabled: false,
+  mobileWalletAccount: null,
+  mobileWalletName: null,
+}
 
 interface Props {
   visible: boolean
@@ -71,6 +94,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
   const [screenshotLocal, setScreenshotLocal] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [buyerPhone, setBuyerPhone] = useState('')
+  const [paySettings, setPaySettings] = useState<PaySettings>(DEFAULT_PAY_SETTINGS)
 
   const amount = AMOUNT_BY_TYPE[storeType]
 
@@ -82,6 +106,27 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
     setScreenshotUrl(null)
     setScreenshotLocal(null)
     setBuyerPhone('')
+  }, [visible])
+
+  useEffect(() => {
+    if (!visible) return
+    let cancelled = false
+    getSiteSettings()
+      .then((s) => {
+        if (cancelled) return
+        setPaySettings({
+          instapayEnabled: s.instapayEnabled,
+          mobileWalletEnabled: s.mobileWalletEnabled,
+          mobileWalletAccount: s.mobileWalletAccount,
+          mobileWalletName: s.mobileWalletName,
+        })
+      })
+      .catch(() => {
+        /* keep defaults on failure — instapay remains enabled */
+      })
+    return () => {
+      cancelled = true
+    }
   }, [visible])
 
   function handleClose() {
@@ -152,6 +197,28 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
     }
   }
 
+  async function handleSubmitMobileWallet() {
+    if (busy) return
+    if (!screenshotUrl) {
+      setError(t.expiredRecovery.missingScreenshot)
+      return
+    }
+    if (!buyerPhone.trim()) {
+      setError(t.expiredRecovery.missingBuyerPhone)
+      return
+    }
+    setError('')
+    setBusy(true)
+    try {
+      await expiredPayMobileWallet(phone, password, screenshotUrl, buyerPhone.trim())
+      setStep('mobile-wallet-done')
+    } catch (e: unknown) {
+      setError(authErrorMessage(e, t))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function confirmConvert() {
     Alert.alert(
       t.expiredRecovery.convertConfirmTitle,
@@ -178,7 +245,11 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                   ? t.expiredRecovery.convertConfirmTitle
                   : step === 'instapay-done'
                     ? t.expiredRecovery.instapayDoneTitle
-                    : t.expiredRecovery.title}
+                    : step === 'mobile-wallet'
+                      ? t.expiredRecovery.mobileWalletTitle
+                      : step === 'mobile-wallet-done'
+                        ? t.expiredRecovery.mobileWalletDoneTitle
+                        : t.expiredRecovery.title}
             </Text>
             <Pressable onPress={handleClose} hitSlop={8}>
               <Ionicons name="close" size={22} color={colors.white} />
@@ -207,16 +278,31 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                     {t.expiredRecovery.subtitle}
                   </Text>
 
-                  <MethodCard
-                    icon="phone-portrait-outline"
-                    iconColor="#7B2FBE"
-                    title={t.expiredRecovery.optionInstapayTitle}
-                    subtitle={t.expiredRecovery.optionInstapayDesc}
-                    onPress={() => setStep('instapay')}
-                    gradientBg
-                    rowDir={rowDir}
-                    dirStyle={dirStyle}
-                  />
+                  {paySettings.instapayEnabled && (
+                    <MethodCard
+                      icon="phone-portrait-outline"
+                      iconColor="#7B2FBE"
+                      title={t.expiredRecovery.optionInstapayTitle}
+                      subtitle={t.expiredRecovery.optionInstapayDesc}
+                      onPress={() => setStep('instapay')}
+                      variant="purple"
+                      rowDir={rowDir}
+                      dirStyle={dirStyle}
+                    />
+                  )}
+
+                  {paySettings.mobileWalletEnabled && (
+                    <MethodCard
+                      icon="wallet-outline"
+                      iconColor="#10b981"
+                      title={t.expiredRecovery.optionMobileWalletTitle}
+                      subtitle={t.expiredRecovery.optionMobileWalletDesc}
+                      onPress={() => setStep('mobile-wallet')}
+                      variant="green"
+                      rowDir={rowDir}
+                      dirStyle={dirStyle}
+                    />
+                  )}
 
                   <MethodCard
                     icon="person-outline"
@@ -357,6 +443,100 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                   </View>
                 </View>
               )}
+
+              {step === 'mobile-wallet' && (
+                <>
+                  <MobileWalletCard
+                    amount={amount}
+                    walletNumber={paySettings.mobileWalletAccount || '—'}
+                    walletName={paySettings.mobileWalletName}
+                  />
+
+                  <View style={{ marginTop: spacing.sm }}>
+                    <Text style={[styles.fieldLabel, dirStyle]}>
+                      {t.expiredRecovery.screenshot}
+                    </Text>
+                    <Pressable
+                      onPress={handlePickScreenshot}
+                      disabled={uploading}
+                      style={({ pressed }) => [
+                        styles.uploadBox,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                    >
+                      {screenshotLocal ? (
+                        <Image
+                          source={{ uri: screenshotLocal }}
+                          style={styles.uploadPreview}
+                        />
+                      ) : (
+                        <View style={styles.uploadPlaceholder}>
+                          <Ionicons name="cloud-upload-outline" size={28} color={colors.g500} />
+                          <Text style={styles.uploadHint}>{t.expiredRecovery.screenshot}</Text>
+                        </View>
+                      )}
+                      {uploading && (
+                        <View style={styles.uploadOverlay}>
+                          <ActivityIndicator color={colors.white} />
+                        </View>
+                      )}
+                    </Pressable>
+                  </View>
+
+                  <Input
+                    label={t.expiredRecovery.buyerPhone}
+                    value={buyerPhone}
+                    onChangeText={setBuyerPhone}
+                    keyboardType="phone-pad"
+                    placeholder={t.expiredRecovery.buyerPhonePlaceholder}
+                    style={{ textAlign: 'left', writingDirection: 'ltr' }}
+                  />
+
+                  <View style={[styles.actionsRow, rowDir]}>
+                    <View style={styles.actionCell}>
+                      <Button
+                        label={t.expiredRecovery.back}
+                        variant="outline"
+                        size="lg"
+                        onPress={() => setStep('choice')}
+                        disabled={busy || uploading}
+                      />
+                    </View>
+                    <View style={styles.actionCell}>
+                      <Button
+                        label={busy ? t.expiredRecovery.submitting : t.expiredRecovery.submitMobileWallet}
+                        variant="y"
+                        size="lg"
+                        onPress={handleSubmitMobileWallet}
+                        loading={busy}
+                        disabled={busy || uploading || !screenshotUrl}
+                      />
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {step === 'mobile-wallet-done' && (
+                <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
+                  <View style={styles.successCircle}>
+                    <Ionicons name="checkmark" size={40} color={colors.white} />
+                  </View>
+                  <Text style={[styles.doneTitle, { marginTop: spacing.md }, dirStyle]}>
+                    {t.expiredRecovery.mobileWalletDoneTitle}
+                  </Text>
+                  <Text style={[styles.doneBody, { marginTop: spacing.sm }, dirStyle]}>
+                    {t.expiredRecovery.mobileWalletDoneBody}
+                  </Text>
+                  <View style={{ marginTop: spacing.lg, alignSelf: 'stretch' }}>
+                    <Button
+                      label={t.expiredRecovery.close}
+                      variant="y"
+                      size="lg"
+                      onPress={onClose}
+                    />
+                  </View>
+                </View>
+              )}
             </ScrollView>
           </KeyboardAvoidingView>
         </Pressable>
@@ -371,7 +551,7 @@ function MethodCard({
   title,
   subtitle,
   onPress,
-  gradientBg,
+  variant,
   rowDir,
   dirStyle,
 }: {
@@ -380,26 +560,33 @@ function MethodCard({
   title: string
   subtitle: string
   onPress: () => void
-  gradientBg?: boolean
+  variant?: 'purple' | 'green'
   rowDir: { direction: 'ltr'; flexDirection: 'row-reverse' } | null
   dirStyle: { writingDirection: 'rtl' | 'ltr'; textAlign: 'auto' }
 }) {
+  const cardTint =
+    variant === 'purple'
+      ? { backgroundColor: '#F6EFFB', borderColor: '#D6BCEF' }
+      : variant === 'green'
+        ? { backgroundColor: '#ECFDF5', borderColor: '#10b981' }
+        : null
+  const iconTint =
+    variant === 'purple'
+      ? { backgroundColor: 'rgba(123,47,190,0.12)' }
+      : variant === 'green'
+        ? { backgroundColor: 'rgba(16,185,129,0.12)' }
+        : null
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.methodCard,
         rowDir,
-        gradientBg && { backgroundColor: '#F6EFFB', borderColor: '#D6BCEF' },
+        cardTint,
         pressed && { opacity: 0.9 },
       ]}
     >
-      <View
-        style={[
-          styles.methodIconWrap,
-          gradientBg && { backgroundColor: 'rgba(123,47,190,0.12)' },
-        ]}
-      >
+      <View style={[styles.methodIconWrap, iconTint]}>
         <Ionicons name={icon} size={22} color={iconColor} />
       </View>
       <View style={{ flex: 1 }}>

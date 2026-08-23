@@ -78,6 +78,7 @@ export default function InvoicesScreen() {
   const methodLabel = (method: string | null): string | null => {
     if (!method) return null
     if (method === 'instapay') return 'InstaPay'
+    if (method === 'mobile_wallet') return ar ? 'محفظة موبايل' : 'Mobile Wallet'
     if (method === 'wallet') return ar ? 'محفظة' : 'Wallet'
     return method
   }

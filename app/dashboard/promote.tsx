@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
+import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
@@ -40,13 +41,23 @@ import {
 } from '@/lib/api'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
-type Step = 'pick' | 'method' | 'instapay' | 'instapay-done' | 'wallet-done'
+type Step =
+  | 'pick'
+  | 'method'
+  | 'instapay'
+  | 'instapay-done'
+  | 'mobile-wallet'
+  | 'mobile-wallet-done'
+  | 'wallet-done'
 type PromoTab = 'ads' | 'history'
 
 const DEFAULT_SETTINGS: SiteSettings = {
   instapayEnabled: true,
   instapayAccount: '',
   instapayName: 'Vatix',
+  mobileWalletEnabled: false,
+  mobileWalletAccount: '',
+  mobileWalletName: 'Vatix',
   otpVerificationEnabled: true,
   email: null,
   phone: null,
@@ -198,6 +209,12 @@ export default function PromoteScreen() {
       color: '#7B2FBE',
       bg: '#F5EEFF',
     },
+    mobile_wallet: {
+      emoji: '📲',
+      label: ar ? 'محفظة موبايل' : 'Mobile Wallet',
+      color: '#10b981',
+      bg: '#ECFDF5',
+    },
     gift: {
       emoji: '🎁',
       label: ar ? 'مجاني' : 'Free',
@@ -243,7 +260,7 @@ export default function PromoteScreen() {
   }
 
   const back = () => {
-    if (step === 'instapay') setStep('method')
+    if (step === 'instapay' || step === 'mobile-wallet') setStep('method')
     else setStep('pick')
     setError('')
     setScreenshot('')
@@ -287,6 +304,32 @@ export default function PromoteScreen() {
         buyerPhone: phone.trim(),
       })
       setStep('instapay-done')
+    } catch (e: unknown) {
+      setError(authErrorMessage(e, t))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const payMobileWallet = async () => {
+    if (!bundle) return
+    if (!screenshot) {
+      setError(t.screenshotRequired)
+      return
+    }
+    if (!phone || phone.trim().length < 6) {
+      setError(t.phoneRequired)
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      await authPost('/payments/promotions/mobile-wallet', {
+        bundleId: bundle.id,
+        screenshotKey: screenshot,
+        buyerPhone: phone.trim(),
+      })
+      setStep('mobile-wallet-done')
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
     } finally {
@@ -538,6 +581,24 @@ export default function PromoteScreen() {
                     disabled={loading}
                   />
                 )}
+                {paySettings.mobileWalletEnabled && (
+                  <MethodCard
+                    icon="phone-portrait-outline"
+                    color={'#10b981'}
+                    bg={'#ECFDF5'}
+                    title={ar ? 'محفظة موبايل' : 'Mobile Wallet'}
+                    subtitle={
+                      ar
+                        ? 'تحويل من محفظة الموبايل مع إيصال'
+                        : 'Mobile wallet transfer with receipt'
+                    }
+                    onPress={() => {
+                      setStep('mobile-wallet')
+                      setError('')
+                    }}
+                    disabled={loading}
+                  />
+                )}
                 <MethodCard
                   icon="wallet"
                   color={colors.green}
@@ -616,8 +677,94 @@ export default function PromoteScreen() {
             </View>
           )}
 
+          {/* Step: mobile-wallet form */}
+          {step === 'mobile-wallet' && bundle && (
+            <View style={styles.card}>
+              <Pressable
+                onPress={back}
+                style={[styles.backRow, rowDir]}
+                hitSlop={6}
+                accessibilityRole="button"
+              >
+                <Ionicons
+                  name={ar ? 'chevron-forward' : 'chevron-back'}
+                  size={18}
+                  color={colors.dk}
+                />
+                <Text style={[styles.backText, dirStyle]}>
+                  {ar ? 'رجوع' : 'Back'}
+                </Text>
+              </Pressable>
+
+              <MobileWalletCard
+                amount={fmt(bundle.price)}
+                walletNumber={paySettings.mobileWalletAccount ?? ''}
+                walletName={paySettings.mobileWalletName ?? null}
+              />
+
+              <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+                <Input
+                  label={ar ? 'رقم هاتفك (للتواصل)' : 'Your phone (for follow-up)'}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  placeholder={ar ? '01xxxxxxxxx' : '01xxxxxxxxx'}
+                />
+                <PaymentScreenshotUpload
+                  label={ar ? 'لقطة الإيصال' : 'Receipt Screenshot'}
+                  value={screenshot}
+                  onChange={setScreenshot}
+                  aspect="wide"
+                  hint={
+                    ar ? 'JPG أو PNG، حد أقصى ٥ ميجا' : 'JPG or PNG, max 5 MB'
+                  }
+                />
+                <Button
+                  label={ar ? 'إرسال الإيصال' : 'Send Receipt'}
+                  variant="cta"
+                  loading={loading}
+                  onPress={payMobileWallet}
+                  disabled={loading}
+                />
+                {error ? <ErrorBox text={error} /> : null}
+              </View>
+            </View>
+          )}
+
           {/* Step: instapay-done */}
           {step === 'instapay-done' && (
+            <View style={[styles.card, styles.doneCard]}>
+              <View style={styles.doneIconWrap}>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={56}
+                  color={colors.green}
+                />
+              </View>
+              <Text style={styles.doneTitle}>
+                {ar ? 'تم استلام الطلب!' : 'Request Received!'}
+              </Text>
+              <Text style={styles.doneBody}>
+                {ar
+                  ? 'سنراجع الإيصال خلال ٢٤ ساعة ونفعّل الباقة تلقائياً بعد التحقق.'
+                  : 'We will review the receipt within 24 hours and activate the bundle automatically after verification.'}
+              </Text>
+              <Button
+                label={ar ? 'العودة للباقات' : 'Back to Bundles'}
+                variant="outline"
+                onPress={() => {
+                  setSelected(null)
+                  setStep('pick')
+                  setScreenshot('')
+                  setPhone('')
+                }}
+                style={{ marginTop: spacing.md, alignSelf: 'stretch' }}
+              />
+            </View>
+          )}
+
+          {/* Step: mobile-wallet-done */}
+          {step === 'mobile-wallet-done' && (
             <View style={[styles.card, styles.doneCard]}>
               <View style={styles.doneIconWrap}>
                 <Ionicons

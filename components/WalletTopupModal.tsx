@@ -20,11 +20,17 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
+import { MobileWalletCard } from '@/components/MobileWalletCard'
 
 // Mirrors vatix_website/components/wallet-topup-modal.tsx
-// InstaPay-only flow: manual transfer + screenshot proof, admin-reviewed.
+// InstaPay + Mobile Wallet flows: manual transfer + screenshot proof, admin-reviewed.
 
-type Step = 'amount' | 'instapay' | 'instapay-done'
+type Step =
+  | 'amount'
+  | 'instapay'
+  | 'instapay-done'
+  | 'mobile-wallet'
+  | 'mobile-wallet-done'
 
 const PRESETS = [50, 100, 200, 500] as const
 const MIN_AMOUNT = 10
@@ -124,6 +130,31 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
     }
   }
 
+  async function handleMobileWallet() {
+    if (!screenshotKey) {
+      setErr(ar ? 'صورة التحويل مطلوبة' : 'Screenshot required')
+      return
+    }
+    if (!buyerPhone.trim()) {
+      setErr(ar ? 'رقم الهاتف مطلوب' : 'Phone number required')
+      return
+    }
+    setBusy(true)
+    setErr('')
+    try {
+      await authPost('/payments/wallet/topup/mobile-wallet', {
+        amount: parsedAmount,
+        screenshotKey,
+        buyerPhone: buyerPhone.trim(),
+      })
+      setStep('mobile-wallet-done')
+    } catch (e: unknown) {
+      setErr(authErrorMessage(e, t))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
@@ -169,6 +200,18 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
                     setErr('')
                     setStep('instapay')
                   }}
+                  onMobileWallet={() => {
+                    if (!amountValid) {
+                      setErr(
+                        ar
+                          ? `الحد الأدنى ${MIN_AMOUNT} ج.م`
+                          : `Minimum is ${MIN_AMOUNT} EGP`,
+                      )
+                      return
+                    }
+                    setErr('')
+                    setStep('mobile-wallet')
+                  }}
                 />
               ) : step === 'instapay' ? (
                 <InstapayPanel
@@ -186,6 +229,28 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
               ) : step === 'instapay-done' ? (
                 <DonePanel
                   amount={parsedAmount}
+                  onClose={() => {
+                    onSuccess?.()
+                    onClose()
+                  }}
+                />
+              ) : step === 'mobile-wallet' ? (
+                <MobileWalletPanel
+                  settings={settings}
+                  amount={parsedAmount}
+                  screenshotKey={screenshotKey}
+                  onScreenshotChange={setScreenshotKey}
+                  buyerPhone={buyerPhone}
+                  onBuyerPhoneChange={setBuyerPhone}
+                  err={err}
+                  busy={busy}
+                  onBack={() => setStep('amount')}
+                  onSubmit={handleMobileWallet}
+                />
+              ) : step === 'mobile-wallet-done' ? (
+                <DonePanel
+                  amount={parsedAmount}
+                  variant="mobile-wallet"
                   onClose={() => {
                     onSuccess?.()
                     onClose()
@@ -225,11 +290,13 @@ function AmountPanel(props: {
   busy: boolean
   onClose: () => void
   onInstapay: () => void
+  onMobileWallet: () => void
 }) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
   const { amount, onAmountChange, parsedAmount, amountValid, settings } = props
   const instapayOn = settings?.instapayEnabled ?? false
+  const mobileWalletOn = settings?.mobileWalletEnabled ?? false
 
   return (
     <View>
@@ -314,7 +381,18 @@ function AmountPanel(props: {
             subtitle={ar ? 'تحويل يدوي + إثبات' : 'Manual transfer + proof'}
             onPress={props.onInstapay}
             disabled={props.busy || !amountValid}
-            gradientBg
+            gradientBg="instapay"
+          />
+        ) : null}
+        {mobileWalletOn ? (
+          <MethodCard
+            icon="wallet-outline"
+            iconColor={'#10b981'}
+            title={t.payWithMobileWallet}
+            subtitle={ar ? 'تحويل من محفظة الموبايل + إثبات' : 'Mobile wallet transfer + proof'}
+            onPress={props.onMobileWallet}
+            disabled={props.busy || !amountValid}
+            gradientBg="mobile-wallet"
           />
         ) : null}
       </View>
@@ -351,9 +429,15 @@ function MethodCard({
   subtitle: string
   onPress: () => void
   disabled?: boolean
-  gradientBg?: boolean
+  gradientBg?: 'instapay' | 'mobile-wallet'
 }) {
   const { ar, rowDir, colDir, dirStyle } = useDir()
+  const gradientStyle =
+    gradientBg === 'instapay'
+      ? { backgroundColor: '#F6EFFB', borderColor: '#D6BCEF' }
+      : gradientBg === 'mobile-wallet'
+      ? { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }
+      : null
   return (
     <Pressable
       onPress={onPress}
@@ -361,7 +445,7 @@ function MethodCard({
       style={({ pressed }) => [
         styles.methodCard,
         rowDir,
-        gradientBg && { backgroundColor: '#F6EFFB', borderColor: '#D6BCEF' },
+        gradientStyle,
         pressed && !disabled && { opacity: 0.9 },
         disabled && { opacity: 0.5 },
       ]}
@@ -455,22 +539,101 @@ function InstapayPanel(props: {
   )
 }
 
+function MobileWalletPanel(props: {
+  settings: SiteSettings | null
+  amount: number
+  screenshotKey: string
+  onScreenshotChange: (v: string) => void
+  buyerPhone: string
+  onBuyerPhoneChange: (v: string) => void
+  err: string
+  busy: boolean
+  onBack: () => void
+  onSubmit: () => void
+}) {
+  const { t } = useLocale()
+  const { ar, rowDir, colDir, dirStyle } = useDir()
+  const { amount, settings } = props
+
+  return (
+    <View>
+      <MobileWalletCard
+        amount={amount}
+        walletNumber={settings?.mobileWalletAccount ?? ''}
+        walletName={settings?.mobileWalletName ?? null}
+      />
+
+      <View style={{ marginTop: spacing.md }}>
+        <PaymentScreenshotUpload
+          label={t.uploadScreenshot}
+          value={props.screenshotKey}
+          onChange={props.onScreenshotChange}
+          aspect="wide"
+          hint={t.screenshotRequired}
+        />
+      </View>
+
+      <Input
+        label={t.buyerPhone}
+        value={props.buyerPhone}
+        onChangeText={props.onBuyerPhoneChange}
+        placeholder="01012345678"
+        keyboardType="phone-pad"
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={{ textAlign: 'left', writingDirection: 'ltr' }}
+      />
+      <View style={colDir}>
+        <Text style={[styles.helpText, dirStyle, { marginTop: -spacing.sm }]}>
+          {t.buyerPhoneHint}
+        </Text>
+      </View>
+
+      <ErrorBox err={props.err} />
+
+      <View style={[styles.actions, rowDir]}>
+        <View style={{ flex: 1 }}>
+          <Button
+            label={ar ? 'رجوع' : 'Back'}
+            variant="outline"
+            size="md"
+            onPress={props.onBack}
+            disabled={props.busy}
+          />
+        </View>
+        <View style={{ flex: 2 }}>
+          <Button
+            label={t.submitPayment}
+            variant="y"
+            size="md"
+            onPress={props.onSubmit}
+            loading={props.busy}
+          />
+        </View>
+      </View>
+    </View>
+  )
+}
+
 function DonePanel({
   amount,
   onClose,
+  variant = 'instapay',
 }: {
   amount: number
   onClose: () => void
+  variant?: 'instapay' | 'mobile-wallet'
 }) {
   const { t } = useLocale()
   const { ar } = useDir()
+  const heading = variant === 'mobile-wallet' ? t.mobileWalletSubmitted : t.instapaySubmitted
   return (
     <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
       <View style={styles.successCircle}>
         <Ionicons name="checkmark" size={40} color={colors.white} />
       </View>
       <Text style={[styles.stepHeading, { marginTop: spacing.md, textAlign: 'center' }]}>
-        {t.instapaySubmitted}
+        {heading}
       </Text>
       <Text style={[styles.helpText, { textAlign: 'center', marginTop: spacing.sm }]}>
         {ar

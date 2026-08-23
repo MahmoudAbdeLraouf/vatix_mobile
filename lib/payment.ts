@@ -9,7 +9,7 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type PaymentContext = 'subscription' | 'promotion' | 'wallet_topup'
-export type PaymentMethodChoice = 'instapay' | 'wallet'
+export type PaymentMethodChoice = 'instapay' | 'wallet' | 'mobile_wallet'
 export type SubscriptionType = 'subscription_store' | 'subscription_store_plus'
 
 // ─── InstaPay initiators ──────────────────────────────────────────────────────
@@ -36,6 +36,32 @@ export function initiateInstapayWalletTopup(input: InstapayPayload & {
   amount: number
 }): Promise<{ paymentId: number; status: string }> {
   return authPost('/payments/wallet/topup/instapay', input)
+}
+
+// ─── Mobile Wallet initiators ─────────────────────────────────────────────────
+
+export interface MobileWalletPayload {
+  screenshotKey: string
+  buyerPhone: string
+}
+
+export function initiateMobileWalletSubscription(input: MobileWalletPayload & {
+  type: SubscriptionType
+  metadata?: Record<string, unknown>
+}): Promise<{ paymentId: number; status: string }> {
+  return authPost('/payments/mobile-wallet/subscriptions', input)
+}
+
+export function initiateMobileWalletPromotion(input: MobileWalletPayload & {
+  bundleId: number
+}): Promise<{ paymentId: number; status: string }> {
+  return authPost('/payments/promotions/mobile-wallet', input)
+}
+
+export function initiateMobileWalletTopup(input: MobileWalletPayload & {
+  amount: number
+}): Promise<{ paymentId: number; status: string }> {
+  return authPost('/payments/wallet/topup/mobile-wallet', input)
 }
 
 // ─── Wallet payments ──────────────────────────────────────────────────────────

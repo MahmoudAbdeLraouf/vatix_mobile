@@ -406,6 +406,14 @@ export interface Translations {
   instapayInstructions: string
   instapaySubmitted: string
   screenshotRequired: string
+  // Phase 4 — Mobile Wallet
+  payWithMobileWallet: string
+  mobileWalletAccountLabel: string
+  mobileWalletNameLabel: string
+  mobileWalletInstructions: string
+  mobileWalletSubmitted: string
+  mobileWalletPendingTitle: string
+  mobileWalletPendingSubtitle: string
   // Phase 4 — Upgrade modal
   newStoreInfo: string
   storeType: string
@@ -500,6 +508,15 @@ export interface Translations {
     missingBuyerPhone: string
     instapayDoneTitle: string
     instapayDoneBody: string
+    optionMobileWalletTitle: string
+    optionMobileWalletDesc: string
+    mobileWalletTitle: string
+    mobileWalletAccount: string
+    mobileWalletAmount: string
+    mobileWalletInstructions: string
+    submitMobileWallet: string
+    mobileWalletDoneTitle: string
+    mobileWalletDoneBody: string
   }
 }
 
@@ -906,6 +923,14 @@ export const translations: Record<Locale, Translations> = {
     instapayInstructions: 'حوّل المبلغ عبر انستا باي، ثم ارفع لقطة شاشة للتأكيد.',
     instapaySubmitted: 'تم استلام طلبك، سنقوم بالتحقق وتفعيل الخدمة قريباً.',
     screenshotRequired: 'يجب رفع صورة إثبات التحويل',
+    // Phase 4 — Mobile Wallet
+    payWithMobileWallet: 'الدفع عبر محفظة موبايل',
+    mobileWalletAccountLabel: 'رقم المحفظة',
+    mobileWalletNameLabel: 'اسم المستلم',
+    mobileWalletInstructions: 'حوّل المبلغ إلى رقم محفظة الموبايل، ثم ارفع لقطة شاشة للتأكيد.',
+    mobileWalletSubmitted: 'تم استلام طلبك، سنقوم بالتحقق وتفعيل الخدمة قريباً.',
+    mobileWalletPendingTitle: 'دفعة محفظة موبايل قيد المراجعة',
+    mobileWalletPendingSubtitle: 'ستُفعّل خدمتك بمجرد التحقق من التحويل.',
     // Phase 4 — Upgrade modal
     newStoreInfo: 'بيانات المتجر الجديد',
     storeType: 'نوع المتجر',
@@ -1007,6 +1032,15 @@ export const translations: Record<Locale, Translations> = {
       missingBuyerPhone: 'يرجى إدخال رقم الهاتف',
       instapayDoneTitle: 'تم الاستلام',
       instapayDoneBody: 'سنراجع تحويلك ونفعّل اشتراكك قريباً. يمكنك تسجيل الدخول بعد التأكيد.',
+      optionMobileWalletTitle: 'جدّد الاشتراك عبر محفظة موبايل',
+      optionMobileWalletDesc: 'حوّل من تطبيق محفظتك وارفع لقطة الشاشة للمراجعة',
+      mobileWalletTitle: 'الدفع عبر محفظة موبايل',
+      mobileWalletAccount: 'رقم محفظة الموبايل',
+      mobileWalletAmount: 'المبلغ',
+      mobileWalletInstructions: 'حوّل المبلغ إلى رقم المحفظة أعلاه من تطبيق محفظتك، ثم ارفع صورة إيصال التحويل ورقم الهاتف الذي حوّلت منه.',
+      submitMobileWallet: 'إرسال للمراجعة',
+      mobileWalletDoneTitle: 'تم الاستلام',
+      mobileWalletDoneBody: 'سنراجع تحويلك ونفعّل اشتراكك قريباً. يمكنك تسجيل الدخول بعد التأكيد.',
     },
   },
   en: {
@@ -1411,6 +1445,14 @@ export const translations: Record<Locale, Translations> = {
     instapayInstructions: 'Transfer the amount via InstaPay, then upload a screenshot to confirm.',
     instapaySubmitted: 'Your request has been received. We will verify and activate the service shortly.',
     screenshotRequired: 'Transfer screenshot is required',
+    // Phase 4 — Mobile Wallet
+    payWithMobileWallet: 'Pay via Mobile Wallet',
+    mobileWalletAccountLabel: 'Wallet number',
+    mobileWalletNameLabel: 'Receiver name',
+    mobileWalletInstructions: 'Transfer the amount to the mobile wallet number, then upload a screenshot to confirm.',
+    mobileWalletSubmitted: 'Your request has been received. We will verify and activate the service shortly.',
+    mobileWalletPendingTitle: 'Mobile wallet payment under review',
+    mobileWalletPendingSubtitle: 'Your service will activate as soon as the transfer is verified.',
     // Phase 4 — Upgrade modal
     newStoreInfo: 'New Store Info',
     storeType: 'Store Type',
@@ -1512,6 +1554,15 @@ export const translations: Record<Locale, Translations> = {
       missingBuyerPhone: 'Please enter the phone number',
       instapayDoneTitle: 'Received',
       instapayDoneBody: 'We will review your transfer and activate your subscription soon. You can log in once it is confirmed.',
+      optionMobileWalletTitle: 'Renew via Mobile Wallet',
+      optionMobileWalletDesc: 'Transfer from your wallet app and upload the screenshot for review',
+      mobileWalletTitle: 'Pay via Mobile Wallet',
+      mobileWalletAccount: 'Mobile wallet number',
+      mobileWalletAmount: 'Amount',
+      mobileWalletInstructions: 'Transfer the amount to the wallet number above from your wallet app, then upload the transfer receipt and the phone number you sent from.',
+      submitMobileWallet: 'Submit for review',
+      mobileWalletDoneTitle: 'Received',
+      mobileWalletDoneBody: 'We will review your transfer and activate your subscription soon. You can log in once it is confirmed.',
     },
   },
 }

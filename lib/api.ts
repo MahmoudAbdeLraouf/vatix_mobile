@@ -136,13 +136,15 @@ export interface AuthResponse {
 /**
  * `POST /auth/login` returns this shape (instead of tokens) when the store's
  * subscription has expired. The client must offer one of `options` — currently
- * `pay_instapay` or `convert_to_client` — before login can complete.
+ * `pay_instapay`, `pay_mobile_wallet`, or `convert_to_client` — before login can complete.
  */
+export type ExpiredLoginOption = 'convert_to_client' | 'pay_instapay' | 'pay_mobile_wallet'
+
 export interface ExpiredLoginResponse {
   status: 'expired'
   storeType: 'store' | 'store_plus'
   currentPlanId: number | null
-  options: string[]
+  options: ExpiredLoginOption[]
 }
 
 export type LoginResult = AuthResponse | ExpiredLoginResponse
@@ -431,6 +433,22 @@ export function expiredPayInstapay(
 }
 
 /**
+ * Expired store recovery: submit a Mobile Wallet renewal. Same lifecycle as
+ * InstaPay — the admin must approve before tokens are issued.
+ */
+export function expiredPayMobileWallet(
+  phone: string,
+  password: string,
+  screenshotKey: string,
+  buyerPhone: string,
+): Promise<{ paymentId: number; status: 'pending_verification' }> {
+  return apiFetch('/auth/expired/pay-mobile-wallet', {
+    method: 'POST',
+    body: JSON.stringify({ phone, password, screenshotKey, buyerPhone }),
+  })
+}
+
+/**
  * Anonymous public upload — used by pre-auth flows (e.g. expired-store InstaPay
  * screenshots) where no JWT is available. Throttled 5/60s by the backend.
  * Returns the public MinIO URL.
@@ -573,7 +591,7 @@ export function resetPassword(
 
 export type SubscriptionStatus = 'trial' | 'active' | 'expired'
 export type PaymentStatus = 'success' | 'pending' | 'failed' | 'pending_verification'
-export type PaymentMethod = 'instapay' | 'wallet'
+export type PaymentMethod = 'instapay' | 'wallet' | 'mobile_wallet'
 
 export interface SubStatus {
   type: string
@@ -682,6 +700,9 @@ export interface SiteSettings {
   instapayEnabled: boolean
   instapayAccount: string | null
   instapayName: string | null
+  mobileWalletEnabled: boolean
+  mobileWalletAccount: string | null
+  mobileWalletName: string | null
   otpVerificationEnabled: boolean
   email: string | null
   phone: string | null
