@@ -489,6 +489,12 @@ export interface Translations {
     topUpCta: string
     laterCta: string
   }
+  rateApp: {
+    title: string
+    body: string
+    positiveCta: string
+    negativeCta: string
+  }
   expiredRecovery: {
     title: string
     subtitle: string
@@ -1020,6 +1026,12 @@ export const translations: Record<Locale, Translations> = {
       topUpCta: 'شحن المحفظة الآن',
       laterCta: 'لاحقاً',
     },
+    rateApp: {
+      title: 'تستمتع بفاتيكس؟',
+      body: 'رأيك يهمنا. لو التجربة عجبتك، قيّمنا في المتجر — لو عندك ملاحظة، احكيلنا مباشرة.',
+      positiveCta: 'نعم، أُقيّم',
+      negativeCta: 'أرسل ملاحظة',
+    },
     expiredRecovery: {
       title: 'انتهى اشتراكك',
       subtitle: 'اختر كيف تريد المتابعة',
@@ -1548,6 +1560,12 @@ export const translations: Record<Locale, Translations> = {
       walletBalance: 'Current wallet balance',
       topUpCta: 'Top up wallet now',
       laterCta: 'Later',
+    },
+    rateApp: {
+      title: 'Enjoying Vatix?',
+      body: 'Your feedback matters. If you love the experience, rate us on the store — if not, tell us what could be better.',
+      positiveCta: 'Yes, rate it',
+      negativeCta: 'Send feedback',
     },
     expiredRecovery: {
       title: 'Your subscription has expired',

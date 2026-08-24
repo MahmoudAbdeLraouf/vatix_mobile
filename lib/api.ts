@@ -159,6 +159,7 @@ export interface UserActionFlags {
   showAddProductDialog: boolean
   showSubscriptionExpiredIcon: boolean
   showSubscriptionExpiringDialog?: boolean
+  showRateAppDialog?: boolean
   subscriptionEndsAt?: string | null
 }
 
