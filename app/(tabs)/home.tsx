@@ -426,8 +426,13 @@ export default function HomeScreen() {
         })),
       ])
       setBrands(b.filter(br => br.isActive))
-      setFeaturedProducts(fp.items.length > 0 ? fp.items : lp.items.slice(0, 8))
-      setLatestProducts(lp.items)
+      const dedupeById = (arr: Product[]) => {
+        const seen = new Set<number | string>()
+        return arr.filter(p => (seen.has(p.id) ? false : (seen.add(p.id), true)))
+      }
+      const featuredSource = fp.items.length > 0 ? fp.items : lp.items.slice(0, 8)
+      setFeaturedProducts(dedupeById(featuredSource))
+      setLatestProducts(dedupeById(lp.items))
       setStats(st)
       setLoading(false)
     })

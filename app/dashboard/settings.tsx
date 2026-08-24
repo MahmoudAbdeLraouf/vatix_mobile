@@ -383,9 +383,9 @@ export default function SettingsScreen() {
             label={ar ? 'قيّم التطبيق' : 'Rate the App'}
             onPress={handleRateApp}
             loading={rating}
-            variant="y"
+            variant="dk"
             leftIcon={
-              <Ionicons name="star-outline" size={18} color={colors.dk} />
+              <Ionicons name="star" size={18} color={colors.y} />
             }
           />
         </View>
