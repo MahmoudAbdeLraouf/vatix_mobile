@@ -69,6 +69,12 @@
         "projectId": "1821eea1-16a1-482e-8cbf-2156a10616a4"
       }
     },
-    "owner": "ekraouf"
+    "owner": "ekraouf",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/1821eea1-16a1-482e-8cbf-2156a10616a4"
+    }
   }
 }
