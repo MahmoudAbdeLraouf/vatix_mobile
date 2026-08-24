@@ -302,6 +302,7 @@ export default function PromoteScreen() {
         bundleId: bundle.id,
         screenshotKey: screenshot,
         buyerPhone: phone.trim(),
+        ...(resumeProductId && { productId: Number(resumeProductId) }),
       })
       setStep('instapay-done')
     } catch (e: unknown) {
@@ -328,6 +329,7 @@ export default function PromoteScreen() {
         bundleId: bundle.id,
         screenshotKey: screenshot,
         buyerPhone: phone.trim(),
+        ...(resumeProductId && { productId: Number(resumeProductId) }),
       })
       setStep('mobile-wallet-done')
     } catch (e: unknown) {
@@ -344,7 +346,10 @@ export default function PromoteScreen() {
     try {
       const res = await authPost<{ status?: string; newBalance?: number }>(
         '/payments/promotions/wallet',
-        { bundleId: bundle.id },
+        {
+          bundleId: bundle.id,
+          ...(resumeProductId && { productId: Number(resumeProductId) }),
+        },
       )
       if (res?.status && res.status !== 'success') {
         setError(t.paymentFailed)

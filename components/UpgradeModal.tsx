@@ -29,13 +29,18 @@ import { Input } from '@/components/ui/Input'
 import { FileUpload } from '@/components/ui/FileUpload'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
+import { MobileWalletCard } from '@/components/MobileWalletCard'
 
 // Mirrors vatix_website/components/upgrade-modal.tsx
-// Three modes × six-step flow:
+// Three modes × multi-step flow:
 //   Mode: upgrade-to-store | upgrade-to-plus | cancel-store
 //   Step: store-info → pay-method → instapay → instapay-done
+//         pay-method → mobile-wallet → mobile-wallet-done
 //         pay-method → wallet → wallet-done
 // upgrade-to-plus skips store-info (user already has store profile).
+// Store materialization is deferred: store metadata is sent inside payment
+// `metadata` so the backend creates the profile only after admin approval
+// (InstaPay / mobile-wallet) or immediately (wallet).
 
 export type UpgradeMode = 'upgrade-to-store' | 'upgrade-to-plus' | 'cancel-store'
 type Step =
@@ -43,6 +48,8 @@ type Step =
   | 'pay-method'
   | 'instapay'
   | 'instapay-done'
+  | 'mobile-wallet'
+  | 'mobile-wallet-done'
   | 'wallet'
   | 'wallet-done'
 
@@ -189,35 +196,27 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
     }
   }
 
-  async function handleCreateStore(): Promise<boolean> {
-    if (!storeName.trim()) {
-      setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
-      return false
-    }
-    setBusy(true)
-    setErr('')
-    try {
-      const payload: Record<string, unknown> = {
-        storeName: storeName.trim(),
-        storeType,
-      }
-      if (description.trim()) payload.description = description.trim()
-      if (logo) payload.logo = logo
-      if (cover) payload.cover = cover
-
-      const res = await authPost<{ user?: unknown }>('/user/upgrade-to-store', payload)
-      await updateStoredUser((res as { user?: Parameters<typeof updateStoredUser>[0] })?.user ?? null)
-      await refetchUser()
-      return true
-    } catch (e: unknown) {
-      setErr(authErrorMessage(e, t))
-      return false
-    } finally {
-      setBusy(false)
+  // Build metadata for a subscription payment. When `needsStoreCreation` is
+  // true, the backend materializes the store profile from these fields after
+  // the payment is approved (or immediately, for wallet). Do NOT create the
+  // store before payment — that leaves orphaned store profiles when the
+  // payment is later declined or abandoned.
+  function buildStoreMetadata(): Record<string, unknown> {
+    if (!needsStoreCreation) return {}
+    return {
+      storeName: storeName.trim(),
+      storeType,
+      description: description.trim() || undefined,
+      logo: logo || undefined,
+      cover: cover || undefined,
     }
   }
 
   async function handleInstapaySubmit() {
+    if (needsStoreCreation && !storeName.trim()) {
+      setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
+      return
+    }
     if (!screenshotKey) {
       setErr(ar ? 'صورة التحويل مطلوبة' : 'Screenshot required')
       return
@@ -233,7 +232,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
         type: selectedPlan.code,
         screenshotKey,
         buyerPhone: buyerPhone.trim(),
-        metadata: {},
+        metadata: buildStoreMetadata(),
       })
       setStep('instapay-done')
     } catch (e: unknown) {
@@ -243,13 +242,47 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
     }
   }
 
+  async function handleMobileWalletSubmit() {
+    if (needsStoreCreation && !storeName.trim()) {
+      setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
+      return
+    }
+    if (!screenshotKey) {
+      setErr(ar ? 'صورة التحويل مطلوبة' : 'Screenshot required')
+      return
+    }
+    if (!buyerPhone.trim()) {
+      setErr(ar ? 'رقم الهاتف مطلوب' : 'Phone number required')
+      return
+    }
+    setBusy(true)
+    setErr('')
+    try {
+      await authPost('/payments/mobile-wallet/subscriptions', {
+        type: selectedPlan.code,
+        screenshotKey,
+        buyerPhone: buyerPhone.trim(),
+        metadata: buildStoreMetadata(),
+      })
+      setStep('mobile-wallet-done')
+    } catch (e: unknown) {
+      setErr(authErrorMessage(e, t))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleWalletPayment() {
+    if (needsStoreCreation && !storeName.trim()) {
+      setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
+      return
+    }
     setBusy(true)
     setErr('')
     try {
       const res = await authPost<{ user?: unknown }>('/payments/wallet/pay', {
         type: selectedPlan.code,
-        metadata: {},
+        metadata: buildStoreMetadata(),
       })
       await updateStoredUser((res as { user?: Parameters<typeof updateStoredUser>[0] })?.user ?? null)
       await refetchUser()
@@ -350,18 +383,16 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
                   onBack={() =>
                     needsStoreCreation ? setStep('store-info') : onClose()
                   }
-                  onPickInstapay={async () => {
-                    if (needsStoreCreation) {
-                      const ok = await handleCreateStore()
-                      if (!ok) return
-                    }
+                  onPickInstapay={() => {
+                    setErr('')
                     setStep('instapay')
                   }}
-                  onPickWallet={async () => {
-                    if (needsStoreCreation) {
-                      const ok = await handleCreateStore()
-                      if (!ok) return
-                    }
+                  onPickMobileWallet={() => {
+                    setErr('')
+                    setStep('mobile-wallet')
+                  }}
+                  onPickWallet={() => {
+                    setErr('')
                     setStep('wallet')
                   }}
                 />
@@ -381,6 +412,29 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
               ) : step === 'instapay-done' ? (
                 <DonePanel
                   title={t.instapaySubmitted}
+                  body={t.paymentPendingBody}
+                  onClose={() => {
+                    onSuccess?.()
+                    onClose()
+                  }}
+                  ctaLabel={t.continueToStore}
+                />
+              ) : step === 'mobile-wallet' ? (
+                <MobileWalletPanel
+                  settings={settings}
+                  price={selectedPlan.amount}
+                  screenshotKey={screenshotKey}
+                  onScreenshotChange={setScreenshotKey}
+                  buyerPhone={buyerPhone}
+                  onBuyerPhoneChange={setBuyerPhone}
+                  err={err}
+                  busy={busy}
+                  onBack={() => setStep('pay-method')}
+                  onSubmit={handleMobileWalletSubmit}
+                />
+              ) : step === 'mobile-wallet-done' ? (
+                <DonePanel
+                  title={t.mobileWalletSubmitted}
                   body={t.paymentPendingBody}
                   onClose={() => {
                     onSuccess?.()
@@ -526,12 +580,14 @@ function PayMethodPanel(props: {
   isCreatingStore: boolean
   onBack: () => void
   onPickInstapay: () => void
+  onPickMobileWallet: () => void
   onPickWallet: () => void
 }) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
   const { settings, walletBalance, price } = props
   const instapayOn = settings?.instapayEnabled ?? false
+  const mobileWalletOn = settings?.mobileWalletEnabled ?? false
   const walletShort = walletBalance != null && walletBalance < price
 
   return (
@@ -559,6 +615,17 @@ function PayMethodPanel(props: {
             onPress={props.onPickInstapay}
             disabled={props.busy}
             gradientBg
+          />
+        ) : null}
+        {mobileWalletOn ? (
+          <MethodCard
+            icon="phone-portrait-outline"
+            iconColor={'#059669'}
+            title={t.payWithMobileWallet}
+            subtitle={ar ? 'تحويل يدوي + إثبات' : 'Manual transfer + proof'}
+            onPress={props.onPickMobileWallet}
+            disabled={props.busy}
+            mobileWalletBg
           />
         ) : null}
         <MethodCard
@@ -604,6 +671,7 @@ function MethodCard({
   disabled,
   warn,
   gradientBg,
+  mobileWalletBg,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   iconColor: string
@@ -613,6 +681,7 @@ function MethodCard({
   disabled?: boolean
   warn?: string
   gradientBg?: boolean
+  mobileWalletBg?: boolean
 }) {
   const { ar, rowDir, colDir, dirStyle } = useDir()
   return (
@@ -623,6 +692,7 @@ function MethodCard({
         styles.methodCard,
         rowDir,
         gradientBg && { backgroundColor: '#F6EFFB', borderColor: '#D6BCEF' },
+        mobileWalletBg && { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
         pressed && !disabled && { opacity: 0.95, transform: [{ scale: 0.99 }] },
         disabled && { opacity: 0.5, shadowOpacity: 0, elevation: 0 },
       ]}
@@ -685,6 +755,82 @@ function InstapayPanel(props: {
         autoCapitalize="none"
         autoCorrect={false}
         // Phone numbers render LTR regardless of UI locale.
+        style={{ textAlign: 'left', writingDirection: 'ltr' }}
+      />
+      <View style={colDir}>
+        <Text style={[styles.helpText, dirStyle, { marginTop: -spacing.sm }]}>
+          {t.buyerPhoneHint}
+        </Text>
+      </View>
+
+      <ErrorBox err={props.err} />
+
+      <View style={[styles.actions, rowDir]}>
+        <View style={{ flex: 1 }}>
+          <Button
+            label={ar ? 'رجوع' : 'Back'}
+            variant="outline"
+            size="md"
+            onPress={props.onBack}
+            disabled={props.busy}
+          />
+        </View>
+        <View style={{ flex: 2 }}>
+          <Button
+            label={t.submitPayment}
+            variant="y"
+            size="md"
+            onPress={props.onSubmit}
+            loading={props.busy}
+          />
+        </View>
+      </View>
+    </View>
+  )
+}
+
+function MobileWalletPanel(props: {
+  settings: SiteSettings | null
+  price: number
+  screenshotKey: string
+  onScreenshotChange: (v: string) => void
+  buyerPhone: string
+  onBuyerPhoneChange: (v: string) => void
+  err: string
+  busy: boolean
+  onBack: () => void
+  onSubmit: () => void
+}) {
+  const { t } = useLocale()
+  const { ar, rowDir, colDir, dirStyle } = useDir()
+  const { price, settings } = props
+
+  return (
+    <View>
+      <MobileWalletCard
+        amount={price}
+        walletNumber={settings?.mobileWalletAccount ?? ''}
+        walletName={settings?.mobileWalletName ?? null}
+      />
+
+      <View style={{ marginTop: spacing.md }}>
+        <PaymentScreenshotUpload
+          label={t.uploadScreenshot}
+          value={props.screenshotKey}
+          onChange={props.onScreenshotChange}
+          aspect="wide"
+          hint={t.screenshotRequired}
+        />
+      </View>
+
+      <Input
+        label={t.buyerPhone}
+        value={props.buyerPhone}
+        onChangeText={props.onBuyerPhoneChange}
+        placeholder="01012345678"
+        keyboardType="phone-pad"
+        autoCapitalize="none"
+        autoCorrect={false}
         style={{ textAlign: 'left', writingDirection: 'ltr' }}
       />
       <View style={colDir}>

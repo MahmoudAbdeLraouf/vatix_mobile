@@ -4,6 +4,7 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -21,11 +22,16 @@ import {
   type Product,
   type SiteSettings,
 } from '@/lib/api'
-import { authDelete, authFetch, authPost } from '@/lib/auth'
+import { authDelete, authErrorMessage, authFetch, authPost } from '@/lib/auth'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
+import { InstapayQrCard } from '@/components/InstapayQrCard'
+import { MobileWalletCard } from '@/components/MobileWalletCard'
 
 export default function MyAdsScreen() {
   const { t, locale } = useLocale()
@@ -47,6 +53,15 @@ export default function MyAdsScreen() {
   const [bundles, setBundles] = useState<Bundle[]>([])
   const [settings, setSettings] = useState<SiteSettings | null>(null)
 
+  // Inline bundle-buy payment modal state (mirrors website's instapayFor popover)
+  const [payFor, setPayFor] = useState<{ product: Product; bundle: Bundle } | null>(null)
+  const [payMethod, setPayMethod] = useState<'instapay' | 'mobile_wallet'>('instapay')
+  const [screenshot, setScreenshot] = useState('')
+  const [phone, setPhone] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [paySuccess, setPaySuccess] = useState(false)
+
   useEffect(() => {
     getSiteSettings().then(setSettings).catch(() => {})
     getPromotionBundles().then(setBundles).catch(() => {})
@@ -55,7 +70,8 @@ export default function MyAdsScreen() {
   const limit = isStore
     ? settings?.maxActiveProductsPerStore ?? 20
     : settings?.maxProductsPerClient ?? 5
-  const fmt = (n: number) => n.toLocaleString(ar ? 'ar-EG' : 'en-EG')
+  const fmt = (n: number | string) =>
+    Number(n ?? 0).toLocaleString(ar ? 'ar-EG' : 'en-EG')
 
   const load = useCallback(async () => {
     setError(null)
@@ -130,6 +146,61 @@ export default function MyAdsScreen() {
         ? { resumeProductId: String(productId), bundleId: String(bundleId) }
         : { resumeProductId: String(productId) },
     })
+  }
+
+  function openPaymentModal(product: Product, bundle: Bundle) {
+    setNoCreditsProduct(null)
+    const defaultMethod: 'instapay' | 'mobile_wallet' = settings?.instapayEnabled
+      ? 'instapay'
+      : settings?.mobileWalletEnabled
+        ? 'mobile_wallet'
+        : 'instapay'
+    setPayMethod(defaultMethod)
+    setPayFor({ product, bundle })
+    setScreenshot('')
+    setPhone('')
+    setSubmitError(null)
+    setPaySuccess(false)
+  }
+
+  function closePaymentModal() {
+    setPayFor(null)
+    setScreenshot('')
+    setPhone('')
+    setSubmitError(null)
+    setPaySuccess(false)
+  }
+
+  async function submitBundlePayment() {
+    if (!payFor) return
+    if (!screenshot) {
+      setSubmitError(ar ? 'الرجاء رفع لقطة الإيصال' : 'Please upload the receipt screenshot')
+      return
+    }
+    if (!phone || phone.trim().length < 6) {
+      setSubmitError(ar ? 'الرجاء إدخال رقم الهاتف' : 'Please enter your phone')
+      return
+    }
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const endpoint =
+        payMethod === 'mobile_wallet'
+          ? '/payments/promotions/mobile-wallet'
+          : '/payments/promotions/instapay'
+      await authPost(endpoint, {
+        bundleId: payFor.bundle.id,
+        screenshotKey: screenshot,
+        buyerPhone: phone.trim(),
+        productId: payFor.product.id,
+      })
+      setPaySuccess(true)
+      load()
+    } catch (e) {
+      setSubmitError(authErrorMessage(e, t))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const hasData = products !== null && !error
@@ -297,9 +368,10 @@ export default function MyAdsScreen() {
                   return (
                     <Pressable
                       key={b.id}
-                      onPress={() =>
-                        noCreditsProduct && goPromote(noCreditsProduct.id, b.id)
-                      }
+                      onPress={() => {
+                        if (!noCreditsProduct) return
+                        openPaymentModal(noCreditsProduct, b)
+                      }}
                       style={({ pressed }) => [
                         styles.packRow,
                         dirContainer,
@@ -336,6 +408,174 @@ export default function MyAdsScreen() {
                 color={colors.yd}
               />
             </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Inline bundle-buy payment modal (mirrors website's myads instapayFor popover) */}
+      <Modal
+        visible={!!payFor}
+        transparent
+        animationType="fade"
+        onRequestClose={closePaymentModal}
+      >
+        <Pressable style={styles.backdrop} onPress={closePaymentModal}>
+          <Pressable
+            style={[styles.paySheet, dirContainer]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <ScrollView
+              contentContainerStyle={styles.paySheetContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {paySuccess ? (
+                <View style={styles.successWrap}>
+                  <View style={styles.successIcon}>
+                    <Ionicons name="checkmark" size={36} color={colors.white} />
+                  </View>
+                  <Text style={[styles.successTitle, dirStyle]}>
+                    {ar ? 'تم إرسال الدفعة' : 'Payment submitted'}
+                  </Text>
+                  <Text style={[styles.successMsg, dirStyle]}>
+                    {ar
+                      ? 'سنراجع الإيصال ونفعّل الترويج لإعلانك قريباً.'
+                      : 'We will review the receipt and activate promotion on your listing shortly.'}
+                  </Text>
+                  <Button
+                    label={ar ? 'حسناً' : 'OK'}
+                    variant="cta"
+                    onPress={closePaymentModal}
+                    style={styles.successBtn}
+                  />
+                </View>
+              ) : (
+                <>
+                  <View style={[styles.payHeader, dirContainer]}>
+                    <View style={styles.popIconWrap}>
+                      <Ionicons name="rocket" size={20} color={colors.dk} />
+                    </View>
+                    <View style={styles.popHeaderText}>
+                      <Text style={[styles.popTitle, dirStyle]} numberOfLines={1}>
+                        {payFor
+                          ? payFor.bundle.translations.find((tr) => tr.locale === locale)?.name ??
+                            payFor.bundle.name
+                          : ''}
+                      </Text>
+                      <Text style={[styles.popSub, dirStyle]} numberOfLines={2}>
+                        {payFor
+                          ? ar
+                            ? `${payFor.bundle.productCount} إعلان · ${fmt(payFor.bundle.price)} ج.م`
+                            : `${payFor.bundle.productCount} ads · ${fmt(payFor.bundle.price)} EGP`
+                          : ''}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={closePaymentModal}
+                      hitSlop={12}
+                      style={styles.popClose}
+                    >
+                      <Ionicons name="close" size={18} color={colors.g500} />
+                    </Pressable>
+                  </View>
+
+                  {settings?.instapayEnabled && settings?.mobileWalletEnabled && (
+                    <View style={styles.methodToggle}>
+                      <Pressable
+                        onPress={() => setPayMethod('instapay')}
+                        style={[
+                          styles.methodChip,
+                          payMethod === 'instapay' && styles.methodChipInstapay,
+                        ]}
+                      >
+                        <Ionicons
+                          name="qr-code-outline"
+                          size={14}
+                          color={payMethod === 'instapay' ? colors.white : colors.g600}
+                        />
+                        <Text
+                          style={[
+                            styles.methodChipText,
+                            payMethod === 'instapay' && styles.methodChipTextActive,
+                          ]}
+                        >
+                          {ar ? 'إنستاباي' : 'InstaPay'}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => setPayMethod('mobile_wallet')}
+                        style={[
+                          styles.methodChip,
+                          payMethod === 'mobile_wallet' && styles.methodChipWallet,
+                        ]}
+                      >
+                        <Ionicons
+                          name="phone-portrait-outline"
+                          size={14}
+                          color={payMethod === 'mobile_wallet' ? colors.white : colors.g600}
+                        />
+                        <Text
+                          style={[
+                            styles.methodChipText,
+                            payMethod === 'mobile_wallet' && styles.methodChipTextActive,
+                          ]}
+                        >
+                          {ar ? 'محفظة موبايل' : 'Mobile Wallet'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
+
+                  {payMethod === 'instapay' ? (
+                    <InstapayQrCard amount={payFor ? payFor.bundle.price : 0} />
+                  ) : (
+                    <MobileWalletCard
+                      amount={payFor ? fmt(payFor.bundle.price) : ''}
+                      walletNumber={settings?.mobileWalletAccount ?? ''}
+                      walletName={settings?.mobileWalletName ?? null}
+                    />
+                  )}
+
+                  <Input
+                    label={ar ? 'رقم هاتفك' : 'Your phone'}
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                    placeholder={ar ? '01xxxxxxxxx' : '01xxxxxxxxx'}
+                  />
+
+                  <PaymentScreenshotUpload
+                    label={ar ? 'لقطة إيصال الدفع' : 'Payment receipt screenshot'}
+                    value={screenshot}
+                    onChange={setScreenshot}
+                    hint={
+                      ar
+                        ? 'ارفع صورة واضحة من تأكيد التحويل'
+                        : 'Upload a clear image of the transfer confirmation'
+                    }
+                  />
+
+                  {submitError ? (
+                    <Text style={[styles.errorText, dirStyle]}>{submitError}</Text>
+                  ) : null}
+
+                  <Button
+                    label={
+                      submitting
+                        ? ar
+                          ? 'جاري الإرسال…'
+                          : 'Submitting…'
+                        : ar
+                          ? 'إرسال الدفعة'
+                          : 'Submit payment'
+                    }
+                    variant="cta"
+                    onPress={submitBundlePayment}
+                    disabled={submitting}
+                  />
+                </>
+              )}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -848,5 +1088,95 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 12,
     color: colors.yd,
+  },
+
+  // Inline bundle-buy payment modal
+  paySheet: {
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: '90%',
+    backgroundColor: colors.white,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.g200,
+    overflow: 'hidden',
+    ...shadow.sl,
+  },
+  paySheetContent: {
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  payHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  methodToggle: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  methodChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.g200,
+    backgroundColor: colors.white,
+  },
+  methodChipInstapay: {
+    backgroundColor: '#7B2FBE',
+    borderColor: '#7B2FBE',
+  },
+  methodChipWallet: {
+    backgroundColor: '#10b981',
+    borderColor: '#10b981',
+  },
+  methodChipText: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: colors.g600,
+  },
+  methodChipTextActive: {
+    color: colors.white,
+  },
+  errorText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.red,
+  },
+  successWrap: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+  },
+  successIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  successTitle: {
+    fontFamily: fonts.black,
+    fontSize: 16,
+    color: colors.dk,
+  },
+  successMsg: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.g600,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  successBtn: {
+    marginTop: spacing.sm,
+    alignSelf: 'stretch',
   },
 })
