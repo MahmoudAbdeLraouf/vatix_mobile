@@ -372,6 +372,7 @@ export interface Translations {
   totalProducts: string
   activeProducts: string
   totalViews: string
+  totalReach: string
   totalPhoneClicks: string
   totalWhatsappClicks: string
   totalChatContacts: string
@@ -384,6 +385,7 @@ export interface Translations {
   last14Days: string
   last30Days: string
   viewsByDay: string
+  reachByDay: string
   productsPerformance: string
   noAnalyticsData: string
   // Phase 4 — Invoices
@@ -901,7 +903,8 @@ export const translations: Record<Locale, Translations> = {
     // Phase 4 — Analytics
     totalProducts: 'إجمالي المنتجات',
     activeProducts: 'المنتجات النشطة',
-    totalViews: 'إجمالي المشاهدات',
+    totalViews: 'إجمالي التفاعل',
+    totalReach: 'إجمالي الوصول',
     totalPhoneClicks: 'مكالمات الهاتف',
     totalWhatsappClicks: 'واتساب',
     totalChatContacts: 'محادثات',
@@ -913,7 +916,8 @@ export const translations: Record<Locale, Translations> = {
     last7Days: 'آخر ٧ أيام',
     last14Days: 'آخر ١٤ يوم',
     last30Days: 'آخر ٣٠ يوم',
-    viewsByDay: 'المشاهدات اليومية',
+    viewsByDay: 'التفاعل اليومي',
+    reachByDay: 'الوصول اليومي',
     productsPerformance: 'أداء المنتجات',
     noAnalyticsData: 'لا توجد بيانات كافية بعد',
     // Phase 4 — Invoices
@@ -1436,7 +1440,8 @@ export const translations: Record<Locale, Translations> = {
     // Phase 4 — Analytics
     totalProducts: 'Total Products',
     activeProducts: 'Active Products',
-    totalViews: 'Total Views',
+    totalViews: 'Total Interact',
+    totalReach: 'Total Reach',
     totalPhoneClicks: 'Phone Clicks',
     totalWhatsappClicks: 'WhatsApp',
     totalChatContacts: 'Chats',
@@ -1448,7 +1453,8 @@ export const translations: Record<Locale, Translations> = {
     last7Days: 'Last 7 days',
     last14Days: 'Last 14 days',
     last30Days: 'Last 30 days',
-    viewsByDay: 'Views by Day',
+    viewsByDay: 'Interact by Day',
+    reachByDay: 'Reach by Day',
     productsPerformance: 'Products Performance',
     noAnalyticsData: 'Not enough data yet',
     // Phase 4 — Invoices

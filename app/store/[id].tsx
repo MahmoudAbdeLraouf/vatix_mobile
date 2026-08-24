@@ -34,8 +34,8 @@ import {
   Product,
   Store,
 } from '@/lib/api'
-import { authErrorMessage, authPost } from '@/lib/auth'
-import { trackStorePhoneClick, trackStoreView } from '@/lib/analytics'
+import { authErrorMessage, authPost, logShare } from '@/lib/auth'
+import { trackStorePhoneClick, trackStoreView, trackStoreWhatsappClick } from '@/lib/analytics'
 import { FollowButton } from '@/components/FollowButton'
 import { ProductCard } from '@/components/ProductCard'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -72,6 +72,12 @@ type PhoneEntry = {
   phone: string
 }
 
+function maskPhone(phone: string): string {
+  const digits = phone.replace(/\s/g, '')
+  if (digits.length <= 6) return phone
+  return digits.slice(0, 4) + 'x'.repeat(Math.max(0, digits.length - 6)) + digits.slice(-2)
+}
+
 export default function StoreDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { t, locale, isRtl, setLocale } = useLocale()
@@ -96,6 +102,7 @@ export default function StoreDetailScreen() {
   const [descTruncatable, setDescTruncatable] = useState(false)
   const [activeTab, setActiveTab] = useState<TabKey>('products')
   const [phoneSheetOpen, setPhoneSheetOpen] = useState(false)
+  const [revealedPhones, setRevealedPhones] = useState<Set<string>>(new Set())
 
   const storeId = Number(id)
 
@@ -256,6 +263,7 @@ export default function StoreDetailScreen() {
 
   const onSharePress = async () => {
     try {
+      logShare('store', storeId, 'native')
       await Share.share({
         message: waMessage,
         url: shareStoreUrl,
@@ -327,9 +335,16 @@ export default function StoreDetailScreen() {
           iconColor: colors.y,
         })}
       {canWhats &&
-        renderActionPill('wa', 'logo-whatsapp', t.whatsappSeller, () => Linking.openURL(waLink!), {
-          iconColor: '#25D366',
-        })}
+        renderActionPill(
+          'wa',
+          'logo-whatsapp',
+          t.whatsappSeller,
+          () => {
+            trackStoreWhatsappClick(storeId)
+            Linking.openURL(waLink!)
+          },
+          { iconColor: '#25D366' },
+        )}
       {canWebsite &&
         renderActionPill('web', 'globe-outline', t.storeWebsite, () => Linking.openURL(storePlusUrl!), {
           iconColor: colors.dk,
@@ -554,8 +569,17 @@ export default function StoreDetailScreen() {
                   <Text style={[styles.aboutBlockTitle, dir]}>{t.phone}</Text>
                   <View style={styles.phoneList}>
                     {phoneEntries.map(entry => {
+                      const isRevealed = revealedPhones.has(entry.key)
                       const handleTap = () => {
-                        trackStorePhoneClick(storeId)
+                        if (!isRevealed) {
+                          setRevealedPhones(prev => {
+                            const next = new Set(prev)
+                            next.add(entry.key)
+                            return next
+                          })
+                          trackStorePhoneClick(storeId)
+                          return
+                        }
                         Linking.openURL(`tel:${entry.phone}`).catch(() => {})
                       }
                       return (
@@ -572,7 +596,7 @@ export default function StoreDetailScreen() {
                               {entry.label}
                             </Text>
                             <Text style={[styles.contactText, dir]} numberOfLines={1}>
-                              {entry.phone}
+                              {isRevealed ? entry.phone : maskPhone(entry.phone)}
                             </Text>
                           </View>
                           <Ionicons name={forwardIcon} size={16} color={colors.g400} />

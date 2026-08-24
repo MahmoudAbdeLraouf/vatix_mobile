@@ -29,7 +29,8 @@ import {
   Product,
   ProductImage,
 } from '@/lib/api'
-import { trackProductView } from '@/lib/analytics'
+import { logShare } from '@/lib/auth'
+import { trackProductView, trackProductWhatsappClick } from '@/lib/analytics'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { MessagesBell } from '@/components/MessagesBell'
 import { RevealPhone } from '@/components/RevealPhone'
@@ -299,6 +300,7 @@ export default function ProductDetailScreen() {
                 const msg = locale === 'ar'
                   ? `${product.title}\nالسعر: ${product.price} جنيه\n${url}`
                   : `${product.title}\nPrice: ${product.price} EGP\n${url}`
+                logShare('product', product.id, 'native')
                 Share.share({ message: msg, url, title: product.title }).catch(() => {})
               }}
               hitSlop={8}
@@ -586,6 +588,7 @@ export default function ProductDetailScreen() {
           {waLink ? (
             <Pressable
               onPress={() => {
+                trackProductWhatsappClick(product.id)
                 Linking.openURL(waLink).catch(() => {})
               }}
               style={({ pressed }) => [

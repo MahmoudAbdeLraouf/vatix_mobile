@@ -11,6 +11,7 @@ interface ProductRow {
   id: number
   title: string
   isActive: boolean
+  reach: number
   views: number
   phoneClicks: number
   whatsappClicks: number
@@ -26,6 +27,7 @@ interface DayRow {
 }
 
 interface Analytics {
+  totalReach: number
   totalViews: number
   totalPhoneClicks: number
   totalWhatsappClicks?: number
@@ -40,6 +42,7 @@ interface Analytics {
   activeProducts: number
   products: ProductRow[]
   viewsByDay: DayRow[]
+  reachByDay: DayRow[]
 }
 
 function shortDate(iso: string) {
@@ -87,19 +90,34 @@ export default function AnalyticsScreen() {
 
   const fmt = (n: number) => n.toLocaleString(ar ? 'ar-EG' : 'en-EG')
 
-  const days = useMemo(
+  const interactDays = useMemo(
     () => data?.viewsByDay.slice(-range) ?? [],
     [data, range],
   )
 
-  const maxViews = useMemo(
-    () => Math.max(...days.map(d => d.count), 1),
-    [days],
+  const reachDays = useMemo(
+    () => data?.reachByDay?.slice(-range) ?? [],
+    [data, range],
   )
 
-  const totalRange = useMemo(
-    () => days.reduce((s, d) => s + d.count, 0),
-    [days],
+  const maxInteract = useMemo(
+    () => Math.max(...interactDays.map(d => d.count), 1),
+    [interactDays],
+  )
+
+  const maxReach = useMemo(
+    () => Math.max(...reachDays.map(d => d.count), 1),
+    [reachDays],
+  )
+
+  const totalInteractRange = useMemo(
+    () => interactDays.reduce((s, d) => s + d.count, 0),
+    [interactDays],
+  )
+
+  const totalReachRange = useMemo(
+    () => reachDays.reduce((s, d) => s + d.count, 0),
+    [reachDays],
   )
 
   const productMax = useMemo(
@@ -115,6 +133,13 @@ export default function AnalyticsScreen() {
     bg: string
   }[] = data
     ? [
+        {
+          label: t.totalReach,
+          value: data.totalReach ?? 0,
+          icon: 'radio-outline',
+          color: colors.dk,
+          bg: colors.g100,
+        },
         {
           label: t.totalViews,
           value: data.totalViews,
@@ -255,7 +280,92 @@ export default function AnalyticsScreen() {
             </View>
           )}
 
-          {/* Daily views chart */}
+          {/* Daily reach chart */}
+          <View style={styles.card}>
+            <View style={styles.chartHead}>
+              <Text style={[styles.cardTitle, dirStyle]}>
+                {t.reachByDay}
+              </Text>
+              <View style={styles.rangeRow}>
+                {RANGES.map(r => {
+                  const active = range === r
+                  return (
+                    <Pressable
+                      key={r}
+                      onPress={() => setRange(r)}
+                      style={({ pressed }) => [
+                        styles.rangePill,
+                        active && styles.rangePillActive,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.rangePillText,
+                          active && styles.rangePillTextActive,
+                        ]}
+                      >
+                        {r} {ar ? 'يوم' : 'd'}
+                      </Text>
+                    </Pressable>
+                  )
+                })}
+              </View>
+            </View>
+
+            {reachDays.length === 0 || reachDays.every(d => d.count === 0) ? (
+              <Text style={styles.chartEmpty}>
+                {ar
+                  ? 'لا يوجد وصول بعد. شارك إعلاناتك لزيادة الظهور!'
+                  : 'No reach yet. Share your listings to boost visibility!'}
+              </Text>
+            ) : (
+              <View>
+                <View style={styles.chartArea}>
+                  {reachDays.map(d => {
+                    const h = Math.max(4, (d.count / maxReach) * 100)
+                    return (
+                      <View
+                        key={d.date}
+                        style={[
+                          styles.bar,
+                          {
+                            height: `${h}%`,
+                            backgroundColor:
+                              d.count > 0 ? colors.dk : colors.g200,
+                            opacity:
+                              d.count > 0
+                                ? 0.75 + (d.count / maxReach) * 0.25
+                                : 1,
+                          },
+                        ]}
+                      />
+                    )
+                  })}
+                </View>
+                <View style={styles.chartAxis}>
+                  {reachDays.map((d, i) => {
+                    const show =
+                      i === 0 ||
+                      i === Math.floor(reachDays.length / 2) ||
+                      i === reachDays.length - 1
+                    return (
+                      <Text key={d.date} style={styles.axisLabel}>
+                        {show ? shortDate(d.date) : ''}
+                      </Text>
+                    )
+                  })}
+                </View>
+                <Text style={styles.chartFooter}>
+                  {ar
+                    ? `المجموع: ${fmt(totalReachRange)} وصول في ${rangeLabel[range]}`
+                    : `Total: ${fmt(totalReachRange)} reach · ${rangeLabel[range]}`}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Daily interact chart */}
           <View style={styles.card}>
             <View style={styles.chartHead}>
               <Text style={[styles.cardTitle, dirStyle]}>
@@ -288,13 +398,17 @@ export default function AnalyticsScreen() {
               </View>
             </View>
 
-            {days.length === 0 || days.every(d => d.count === 0) ? (
-              <Text style={styles.chartEmpty}>{t.noAnalyticsData}</Text>
+            {interactDays.length === 0 || interactDays.every(d => d.count === 0) ? (
+              <Text style={styles.chartEmpty}>
+                {ar
+                  ? 'لا يوجد تفاعل بعد. عندما يتفاعل المستخدمون مع إعلاناتك سيظهر هنا.'
+                  : 'No interactions yet. Once users engage with your listings it will show here.'}
+              </Text>
             ) : (
               <View>
                 <View style={styles.chartArea}>
-                  {days.map(d => {
-                    const h = Math.max(4, (d.count / maxViews) * 100)
+                  {interactDays.map(d => {
+                    const h = Math.max(4, (d.count / maxInteract) * 100)
                     return (
                       <View
                         key={d.date}
@@ -306,7 +420,7 @@ export default function AnalyticsScreen() {
                               d.count > 0 ? colors.blue : colors.g200,
                             opacity:
                               d.count > 0
-                                ? 0.75 + (d.count / maxViews) * 0.25
+                                ? 0.75 + (d.count / maxInteract) * 0.25
                                 : 1,
                           },
                         ]}
@@ -315,11 +429,11 @@ export default function AnalyticsScreen() {
                   })}
                 </View>
                 <View style={styles.chartAxis}>
-                  {days.map((d, i) => {
+                  {interactDays.map((d, i) => {
                     const show =
                       i === 0 ||
-                      i === Math.floor(days.length / 2) ||
-                      i === days.length - 1
+                      i === Math.floor(interactDays.length / 2) ||
+                      i === interactDays.length - 1
                     return (
                       <Text key={d.date} style={styles.axisLabel}>
                         {show ? shortDate(d.date) : ''}
@@ -329,8 +443,8 @@ export default function AnalyticsScreen() {
                 </View>
                 <Text style={styles.chartFooter}>
                   {ar
-                    ? `المجموع: ${fmt(totalRange)} مشاهدة في ${rangeLabel[range]}`
-                    : `Total: ${fmt(totalRange)} views · ${rangeLabel[range]}`}
+                    ? `المجموع: ${fmt(totalInteractRange)} تفاعل في ${rangeLabel[range]}`
+                    : `Total: ${fmt(totalInteractRange)} interactions · ${rangeLabel[range]}`}
                 </Text>
               </View>
             )}
@@ -402,6 +516,18 @@ export default function AnalyticsScreen() {
                       </View>
 
                       <View style={styles.pStatsRow}>
+                        <View style={styles.pStat}>
+                          <Ionicons
+                            name="radio-outline"
+                            size={14}
+                            color={colors.dk}
+                          />
+                          <Text
+                            style={[styles.pStatValue, { color: colors.dk }]}
+                          >
+                            {fmt(p.reach ?? 0)}
+                          </Text>
+                        </View>
                         <View style={styles.pStat}>
                           <Ionicons
                             name="eye-outline"

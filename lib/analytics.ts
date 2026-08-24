@@ -37,6 +37,21 @@ export function trackStorePhoneClick(storeId: number) {
   fireAndForget(`${API}/stores/${storeId}/phone-click`, { method: 'POST' })
 }
 
+export function trackStoreWhatsappClick(storeId: number) {
+  if (!Number.isFinite(storeId) || storeId <= 0) return
+  fireAndForget(`${API}/stores/${storeId}/whatsapp-click`, { method: 'POST' })
+}
+
+export function trackProductPhoneClick(productId: number) {
+  if (!Number.isFinite(productId) || productId <= 0) return
+  fireAndForget(`${API}/products/${productId}/phone-click`, { method: 'POST' })
+}
+
+export function trackProductWhatsappClick(productId: number) {
+  if (!Number.isFinite(productId) || productId <= 0) return
+  fireAndForget(`${API}/products/${productId}/whatsapp-click`, { method: 'POST' })
+}
+
 export function trackSearch(keyword: string, zeroResults = false) {
   const trimmed = keyword.trim()
   if (!trimmed) return

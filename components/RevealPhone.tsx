@@ -9,9 +9,9 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
+import { trackProductPhoneClick, trackProductWhatsappClick } from '@/lib/analytics'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
-const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 const WA_GREEN = '#25D366'
 
 interface RevealPhoneProps {
@@ -27,11 +27,6 @@ export function RevealPhone({ productId, phone, waLink, showPhone, style }: Reve
   const ar = locale === 'ar'
   const [revealed, setRevealed] = useState(false)
 
-  const reveal = () => {
-    setRevealed(true)
-    fetch(`${BASE}/products/${productId}/phone-click`, { method: 'POST' }).catch(() => {})
-  }
-
   const showPhoneLabel = ar ? 'عرض الرقم' : 'Show phone'
   const showWhatsappLabel = ar ? 'عرض واتساب' : 'Show WhatsApp'
 
@@ -39,12 +34,20 @@ export function RevealPhone({ productId, phone, waLink, showPhone, style }: Reve
   const hasWaBtn = !!waLink
 
   const handlePhonePress = () => {
-    if (!revealed) return reveal()
+    if (!revealed) {
+      setRevealed(true)
+      trackProductPhoneClick(productId)
+      return
+    }
     if (phone) Linking.openURL(`tel:${phone}`).catch(() => {})
   }
 
   const handleWaPress = () => {
-    if (!revealed) return reveal()
+    if (!revealed) {
+      setRevealed(true)
+      trackProductWhatsappClick(productId)
+      return
+    }
     if (waLink) Linking.openURL(waLink).catch(() => {})
   }
 
