@@ -88,19 +88,22 @@ export function RateAppDialog({ visible, onClose }: Props) {
     clearAutoHide()
     markActionSeen('rate_app_dialog')
     onClose()
+    // Prefer opening the configured store URL — the native in-app review sheet
+    // silently no-ops in dev/internal-track builds and past quota, leaving the
+    // user with no visible feedback.
     try {
+      const url = StoreReview.storeUrl()
+      if (url) {
+        await Linking.openURL(url)
+        return
+      }
       const canReview =
         (await StoreReview.hasAction()) && (await StoreReview.isAvailableAsync())
       if (canReview) {
         await StoreReview.requestReview()
-        return
-      }
-      const url = StoreReview.storeUrl()
-      if (url) {
-        await Linking.openURL(url)
       }
     } catch {
-      // Silent — user already committed by tapping, native sheet quota may block
+      // Silent — user already committed by tapping
     }
   }
 
