@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  Image,
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -14,6 +13,7 @@ import {
   Text,
   View,
 } from 'react-native'
+import { Image } from 'expo-image'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -42,6 +42,11 @@ import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 const { width: SCREEN_W } = Dimensions.get('window')
 const HERO_H = 340
+// Hero targets the device pixel width (capped) so we don't ship a 3000-px
+// original when the screen is 390 pt wide. The list card already caches a
+// 400-px thumbnail — we pass it as `placeholder` for instant paint.
+const HERO_TARGET_W = Math.min(1080, Math.round(SCREEN_W * 2))
+const THUMB_TARGET_W = 160
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://vatix.store'
 const WA_GREEN = '#25D366'
@@ -181,7 +186,7 @@ export default function ProductDetailScreen() {
     (owner?.clientProfile
       ? `${owner.clientProfile.firstName ?? ''} ${owner.clientProfile.lastName ?? ''}`.trim()
       : '')
-  const storeLogo = imgUrl(owner?.storeProfile?.logo)
+  const storeLogo = imgUrl(owner?.storeProfile?.logo, { w: THUMB_TARGET_W })
   const ownerBadge =
     owner?.type === 'store_plus'
       ? { label: locale === 'ar' ? 'متجر مميز ⭐' : 'Store Plus ⭐', bg: colors.yl, fg: colors.dk }
@@ -239,9 +244,20 @@ export default function ProductDetailScreen() {
               showsHorizontalScrollIndicator={false}
               keyExtractor={(img) => String(img.id)}
               renderItem={({ item }) => {
-                const u = imgUrl(item.url)
+                const u = imgUrl(item.url, { w: HERO_TARGET_W })
+                // ProductCard cached this same asset at w:400 — reuse it as an
+                // instant placeholder while the higher-res hero streams in.
+                const placeholder = imgUrl(item.url, { w: 400 })
                 return u ? (
-                  <Image source={{ uri: u }} style={styles.heroImage} resizeMode="cover" />
+                  <Image
+                    source={{ uri: u }}
+                    placeholder={placeholder ? { uri: placeholder } : undefined}
+                    style={styles.heroImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={150}
+                    recyclingKey={String(item.id)}
+                  />
                 ) : (
                   <View style={styles.heroPlaceholder} />
                 )
@@ -348,15 +364,21 @@ export default function ProductDetailScreen() {
               contentContainerStyle={styles.thumbListContent}
               showsHorizontalScrollIndicator={false}
             >
-              {images.map((img, i) => (
-                <Pressable key={img.id} onPress={() => scrollToImage(i)}>
-                  <Image
-                    source={{ uri: imgUrl(img.url) ?? undefined }}
-                    style={[styles.thumb, i === imgIndex && styles.thumbActive]}
-                    resizeMode="cover"
-                  />
-                </Pressable>
-              ))}
+              {images.map((img, i) => {
+                const thumbUrl = imgUrl(img.url, { w: THUMB_TARGET_W })
+                return (
+                  <Pressable key={img.id} onPress={() => scrollToImage(i)}>
+                    <Image
+                      source={thumbUrl ? { uri: thumbUrl } : undefined}
+                      style={[styles.thumb, i === imgIndex && styles.thumbActive]}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={100}
+                      recyclingKey={String(img.id)}
+                    />
+                  </Pressable>
+                )
+              })}
             </ScrollView>
           )}
         </View>
@@ -429,7 +451,13 @@ export default function ProductDetailScreen() {
               >
                 <View style={styles.sellerLogo}>
                   {storeLogo ? (
-                    <Image source={{ uri: storeLogo }} style={styles.sellerLogoImg} />
+                    <Image
+                      source={{ uri: storeLogo }}
+                      style={styles.sellerLogoImg}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={120}
+                    />
                   ) : (
                     <Text style={styles.sellerLogoFallback}>🏪</Text>
                   )}
