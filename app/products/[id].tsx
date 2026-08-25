@@ -252,6 +252,7 @@ export default function ProductDetailScreen() {
                   <Image
                     source={{ uri: u }}
                     placeholder={placeholder ? { uri: placeholder } : undefined}
+                    placeholderContentFit="cover"
                     style={styles.heroImage}
                     contentFit="cover"
                     cachePolicy="memory-disk"
