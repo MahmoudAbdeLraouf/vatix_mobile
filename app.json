@@ -16,6 +16,7 @@
     },
     "android": {
       "package": "com.vatix.app",
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.vatix.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#1A2540",
