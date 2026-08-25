@@ -469,13 +469,25 @@ export function markStoreShareDialogSeen(): void {
   authPost('/user/profile/store-share-dialog/seen', {}).catch(() => {})
 }
 
-/** Generic tracker — first call inserts; subsequent calls bump seenCount. */
+/** Generic tracker — first call inserts; subsequent calls bump seenCount.
+ * Guest-safe: silently skips when there's no token instead of clearing the
+ * session or throwing. Callers on the guest path should also record locally
+ * via lib/rate-app-engagement.ts.
+ */
 export function markActionSeen(actionKey: string): void {
-  authPost(`/user/actions/${actionKey}/seen`, {}).catch(() => {})
+  void (async () => {
+    const token = await getToken()
+    if (!token) return
+    authPost(`/user/actions/${actionKey}/seen`, {}).catch(() => {})
+  })()
 }
 
 export function markActionDismissed(actionKey: string): void {
-  authPost(`/user/actions/${actionKey}/dismiss`, {}).catch(() => {})
+  void (async () => {
+    const token = await getToken()
+    if (!token) return
+    authPost(`/user/actions/${actionKey}/dismiss`, {}).catch(() => {})
+  })()
 }
 
 // ─── Background proactive refresh ────────────────────────────────────────────

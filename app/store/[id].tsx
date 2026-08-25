@@ -36,6 +36,7 @@ import {
 } from '@/lib/api'
 import { authErrorMessage, authPost, logShare } from '@/lib/auth'
 import { trackStorePhoneClick, trackStoreView, trackStoreWhatsappClick } from '@/lib/analytics'
+import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { FollowButton } from '@/components/FollowButton'
 import { ProductCard } from '@/components/ProductCard'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -164,7 +165,10 @@ export default function StoreDetailScreen() {
   }, [loadData])
 
   useEffect(() => {
-    if (Number.isFinite(storeId) && storeId > 0) trackStoreView(storeId)
+    if (Number.isFinite(storeId) && storeId > 0) {
+      trackStoreView(storeId)
+      void bumpEngagement('store_open')
+    }
   }, [storeId])
 
   if (loading) {

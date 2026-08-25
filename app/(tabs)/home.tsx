@@ -26,6 +26,7 @@ import {
   getCategories,
   getBrands,
   getProducts,
+  getRateAppEnabled,
   getSiteStats,
   getStores,
   imgUrl,
@@ -34,11 +35,19 @@ import {
   SiteStats,
   Store,
 } from '@/lib/api'
+import { markActionSeen } from '@/lib/auth'
+import {
+  bumpEngagement,
+  markShown as markRateAppShown,
+  shouldShowRateApp,
+  type Audience,
+} from '@/lib/rate-app-engagement'
 import { getBrandIcon } from '@/lib/brand-icons'
 import { getCategoryIcon, type IoniconName as SharedIoniconName } from '@/lib/category-icons'
 import { ProductCard } from '@/components/ProductCard'
 import { StoreCard } from '@/components/StoreCard'
 import { MessagesBell } from '@/components/MessagesBell'
+import { RateAppDialog } from '@/components/RateAppDialog'
 import { Logo } from '@/components/ui/Logo'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -398,6 +407,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true)
   const [activePromo, setActivePromo] = useState(0)
   const [search, setSearch] = useState('')
+  const [showRateAppDialog, setShowRateAppDialog] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -437,6 +447,25 @@ export default function HomeScreen() {
       setLoading(false)
     })
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      await bumpEngagement('session_start')
+      const { enabled } = await getRateAppEnabled().catch(() => ({ enabled: false }))
+      if (!enabled || cancelled) return
+      const audience: Audience = (user?.type as Audience) ?? 'guest'
+      const should = await shouldShowRateApp(audience)
+      if (should && !cancelled) {
+        await markRateAppShown()
+        await markActionSeen('rate_app_dialog')
+        setShowRateAppDialog(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user?.type])
 
   function handlePromoScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const x = e.nativeEvent.contentOffset.x
@@ -654,6 +683,10 @@ export default function HomeScreen() {
           </>
         )}
       </View>
+      <RateAppDialog
+        visible={showRateAppDialog}
+        onClose={() => setShowRateAppDialog(false)}
+      />
     </SafeAreaView>
   )
 }

@@ -6,6 +6,7 @@ import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
 import { authDelete, authFetch, authPost } from '@/lib/auth'
 import { FavoriteProduct } from '@/lib/api'
+import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors } from '@/constants/theme'
 
 interface FavoriteButtonProps {
@@ -65,6 +66,7 @@ export function FavoriteButton({
     try {
       if (next) {
         await authPost(`/products/${productId}/favorite`, {})
+        void bumpEngagement('favorite')
       } else {
         await authDelete(`/products/${productId}/favorite`)
       }

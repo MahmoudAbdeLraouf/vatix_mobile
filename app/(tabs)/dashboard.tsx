@@ -6,11 +6,11 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { AddProductDialog } from '@/components/AddProductDialog'
 import { StoreLogoDialog } from '@/components/StoreLogoDialog'
 import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDialog'
-import { RateAppDialog } from '@/components/RateAppDialog'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
 import type { FavoriteProduct, Product, UserProfile } from '@/lib/api'
+import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 function normalizeType(t: string | null | undefined): 'client' | 'store' | 'store_plus' | 'unknown' {
@@ -34,7 +34,6 @@ export default function DashboardScreen() {
   const [showAddProductDialog, setShowAddProductDialog] = useState(false)
   const [showExpiringDialog, setShowExpiringDialog] = useState(false)
   const [expiringEndsAt, setExpiringEndsAt] = useState<string | null>(null)
-  const [showRateAppDialog, setShowRateAppDialog] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -58,14 +57,16 @@ export default function DashboardScreen() {
         setExpiringEndsAt(profile.flags.subscriptionEndsAt)
         setShowExpiringDialog(true)
       }
-      if (profile?.flags?.showRateAppDialog) {
-        setShowRateAppDialog(true)
-      }
     }
     load()
     return () => {
       cancelled = true
     }
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    void bumpEngagement('dashboard_visit')
   }, [isAuthenticated])
 
   if (loading) return null
@@ -191,10 +192,6 @@ export default function DashboardScreen() {
           subscriptionEndsAt={expiringEndsAt}
         />
       )}
-      <RateAppDialog
-        visible={showRateAppDialog}
-        onClose={() => setShowRateAppDialog(false)}
-      />
     </DashboardLayout>
   )
 }

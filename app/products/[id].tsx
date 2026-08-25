@@ -31,6 +31,7 @@ import {
 } from '@/lib/api'
 import { logShare } from '@/lib/auth'
 import { trackProductView, trackProductWhatsappClick } from '@/lib/analytics'
+import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { MessagesBell } from '@/components/MessagesBell'
 import { RevealPhone } from '@/components/RevealPhone'
@@ -122,7 +123,10 @@ export default function ProductDetailScreen() {
 
   useEffect(() => {
     const pid = Number(id)
-    if (Number.isFinite(pid) && pid > 0) trackProductView(pid)
+    if (Number.isFinite(pid) && pid > 0) {
+      trackProductView(pid)
+      void bumpEngagement('product_view')
+    }
   }, [id])
 
   if (loading) {

@@ -319,6 +319,10 @@ export function getCategories(): Promise<Category[]> {
   return apiFetch('/categories')
 }
 
+export function getRateAppEnabled(): Promise<{ enabled: boolean }> {
+  return apiFetch('/user-actions/public/rate-app')
+}
+
 export function getBrands(): Promise<Brand[]> {
   return apiFetch('/brands')
 }
