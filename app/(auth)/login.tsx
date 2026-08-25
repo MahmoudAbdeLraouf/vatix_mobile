@@ -150,9 +150,11 @@ export default function LoginScreen() {
               onRightIconPress={() => setShowPass(v => !v)}
             />
 
+            {/* TODO: Re-enable once backend /auth/reset-password is re-enabled (SMS provider + signed-token flow). See VATIX-BACKEND-4.
             <Pressable style={styles.forgot} onPress={() => router.push('/(auth)/forgot')}>
               <Text style={[styles.forgotText, dirStyle]}>{t.forgotPassword}</Text>
             </Pressable>
+            */}
 
             {!!error && (
               <View style={styles.errorBox}>
