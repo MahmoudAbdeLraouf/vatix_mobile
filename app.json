@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vatix",
     "slug": "vatix_mobile",
-    "version": "1.2.2",
+    "version": "1.2.3",
     "scheme": "vatix",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -71,9 +71,7 @@
       }
     },
     "owner": "ekraouf",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1",
     "updates": {
       "url": "https://u.expo.dev/1821eea1-16a1-482e-8cbf-2156a10616a4"
     }
