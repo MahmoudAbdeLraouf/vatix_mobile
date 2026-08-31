@@ -14,6 +14,7 @@ import {
   SubStatus,
   WalletBalance,
 } from '@/lib/api'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 export default function SubscriptionScreen() {
@@ -177,17 +178,20 @@ export default function SubscriptionScreen() {
                       : `${fmt(daysLeft)} ${t.daysLeftLabel}`}
                   </Text>
                 </View>
-                <Pressable
-                  onPress={() => setModal('upgrade-to-plus')}
-                  style={({ pressed }) => [
-                    styles.renewBtn,
-                    pressed && styles.actionPressed,
-                  ]}
-                >
-                  <Text style={styles.renewBtnText}>
-                    {ar ? 'جدّد ←' : 'Renew →'}
-                  </Text>
-                </Pressable>
+                {/* Renew — iOS hides paid entry (App Store §3.1.1) */}
+                {PAID_UI_ENABLED && (
+                  <Pressable
+                    onPress={() => setModal('upgrade-to-plus')}
+                    style={({ pressed }) => [
+                      styles.renewBtn,
+                      pressed && styles.actionPressed,
+                    ]}
+                  >
+                    <Text style={styles.renewBtnText}>
+                      {ar ? 'جدّد ←' : 'Renew →'}
+                    </Text>
+                  </Pressable>
+                )}
               </View>
               <View style={styles.progressTrack}>
                 <View
@@ -261,8 +265,8 @@ export default function SubscriptionScreen() {
           </View>
           )}
 
-          {/* Upgrade CTAs */}
-          {isClient && (
+          {/* Upgrade CTAs — iOS hides paid entries (App Store §3.1.1) */}
+          {isClient && PAID_UI_ENABLED && (
             <>
               <Pressable
                 style={({ pressed }) => [
@@ -318,7 +322,7 @@ export default function SubscriptionScreen() {
             </>
           )}
 
-          {isStore && (
+          {isStore && PAID_UI_ENABLED && (
             <Pressable
               style={({ pressed }) => [
                 styles.actionCard,
@@ -387,17 +391,20 @@ export default function SubscriptionScreen() {
                 {fmt(walletBal ?? 0)} {ar ? 'ج.م' : 'EGP'}
               </Text>
             </View>
-            <Pressable
-              style={({ pressed }) => [
-                styles.topupBtn,
-                rowDir,
-                pressed && styles.actionPressed,
-              ]}
-              onPress={() => setWalletModal(true)}
-            >
-              <Ionicons name="add-circle" size={18} color={colors.dk} />
-              <Text style={[styles.topupBtnText, dirStyle]}>{t.topUpWallet}</Text>
-            </Pressable>
+            {/* Top-up — iOS hides paid entry (App Store §3.1.1) */}
+            {PAID_UI_ENABLED && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.topupBtn,
+                  rowDir,
+                  pressed && styles.actionPressed,
+                ]}
+                onPress={() => setWalletModal(true)}
+              >
+                <Ionicons name="add-circle" size={18} color={colors.dk} />
+                <Text style={[styles.topupBtnText, dirStyle]}>{t.topUpWallet}</Text>
+              </Pressable>
+            )}
           </View>
 
           {/* Subscription history */}
@@ -459,11 +466,14 @@ export default function SubscriptionScreen() {
         onClose={() => setModal(null)}
         onSuccess={refreshAfterUpgrade}
       />
-      <WalletTopupModal
-        visible={walletModal}
-        onClose={() => setWalletModal(false)}
-        onSuccess={refreshWallet}
-      />
+      {/* Wallet top-up modal — iOS suppresses render (App Store §3.1.1) */}
+      {PAID_UI_ENABLED && (
+        <WalletTopupModal
+          visible={walletModal}
+          onClose={() => setWalletModal(false)}
+          onSuccess={refreshWallet}
+        />
+      )}
     </DashboardLayout>
   )
 }

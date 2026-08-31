@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { WalletTopupModal } from '@/components/WalletTopupModal'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 import { PaymentRecord, WalletBalance } from '@/lib/api'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -118,13 +119,16 @@ export default function WalletScreen() {
                 {fmt(balance ?? 0)} <Text style={styles.balanceCurrency}>{currency}</Text>
               </Text>
             </View>
-            <Pressable
-              style={({ pressed }) => [styles.topupBtn, rowDir, pressed && styles.pressed]}
-              onPress={() => setTopupModal(true)}
-            >
-              <Ionicons name="add-circle" size={18} color={colors.dk} />
-              <Text style={[styles.topupBtnText, dirStyle]}>{t.topUpWallet}</Text>
-            </Pressable>
+            {/* Top-up — iOS hides paid entry (App Store §3.1.1) */}
+            {PAID_UI_ENABLED && (
+              <Pressable
+                style={({ pressed }) => [styles.topupBtn, rowDir, pressed && styles.pressed]}
+                onPress={() => setTopupModal(true)}
+              >
+                <Ionicons name="add-circle" size={18} color={colors.dk} />
+                <Text style={[styles.topupBtnText, dirStyle]}>{t.topUpWallet}</Text>
+              </Pressable>
+            )}
           </View>
 
           {/* Stat cards */}
@@ -217,14 +221,16 @@ export default function WalletScreen() {
         </View>
       )}
 
-      <WalletTopupModal
-        visible={topupModal}
-        onClose={() => setTopupModal(false)}
-        onSuccess={() => {
-          setTopupModal(false)
-          load()
-        }}
-      />
+      {PAID_UI_ENABLED && (
+        <WalletTopupModal
+          visible={topupModal}
+          onClose={() => setTopupModal(false)}
+          onSuccess={() => {
+            setTopupModal(false)
+            load()
+          }}
+        />
+      )}
     </DashboardLayout>
   )
 }

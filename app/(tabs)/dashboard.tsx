@@ -9,6 +9,7 @@ import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDia
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 import type { FavoriteProduct, Product, UserProfile } from '@/lib/api'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
@@ -108,8 +109,8 @@ export default function DashboardScreen() {
         <StatTile value={favsCount} label={t.favorites} />
       </View>
 
-      {/* Pending InstaPay notice */}
-      {pendingInstapay && (
+      {/* Pending InstaPay notice — iOS hides paid surfaces (App Store §3.1.1) */}
+      {pendingInstapay && PAID_UI_ENABLED && (
         <View style={styles.instapayCard}>
           <View style={styles.instapayIconWrap}>
             <Text style={styles.instapayIcon}>🕐</Text>
@@ -121,8 +122,8 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      {/* Client → Store upgrade */}
-      {isClient && (
+      {/* Client → Store upgrade — iOS hides paid surfaces (App Store §3.1.1) */}
+      {isClient && PAID_UI_ENABLED && (
         <UpgradeBanner
           variant="store"
           icon="storefront"
@@ -140,8 +141,8 @@ export default function DashboardScreen() {
         />
       )}
 
-      {/* Store → Store Plus upgrade */}
-      {isStore && (
+      {/* Store → Store Plus upgrade — iOS hides paid surfaces (App Store §3.1.1) */}
+      {isStore && PAID_UI_ENABLED && (
         <UpgradeBanner
           variant="plus"
           icon="diamond"
@@ -171,12 +172,15 @@ export default function DashboardScreen() {
               <Text style={styles.plusSub}>{t.storePlusActiveSub}</Text>
             </View>
           </View>
-          <Pressable
-            onPress={() => router.push('/dashboard/subscription')}
-            style={({ pressed }) => [styles.plusCta, pressed && { opacity: 0.8 }]}
-          >
-            <Text style={styles.plusCtaText}>{t.manageSubscription}</Text>
-          </Pressable>
+          {/* Manage subscription — iOS hides paid entry (App Store §3.1.1) */}
+          {PAID_UI_ENABLED && (
+            <Pressable
+              onPress={() => router.push('/dashboard/subscription')}
+              style={({ pressed }) => [styles.plusCta, pressed && { opacity: 0.8 }]}
+            >
+              <Text style={styles.plusCtaText}>{t.manageSubscription}</Text>
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -185,7 +189,7 @@ export default function DashboardScreen() {
         visible={showAddProductDialog}
         onClose={() => setShowAddProductDialog(false)}
       />
-      {expiringEndsAt && (
+      {expiringEndsAt && PAID_UI_ENABLED && (
         <SubscriptionExpiringDialog
           visible={showExpiringDialog}
           onClose={() => setShowExpiringDialog(false)}

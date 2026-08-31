@@ -23,6 +23,7 @@ import {
   type SiteSettings,
 } from '@/lib/api'
 import { authDelete, authErrorMessage, authFetch, authPost } from '@/lib/auth'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -323,7 +324,8 @@ export default function MyAdsScreen() {
         )
       )}
 
-      {/* No-credits modal */}
+      {/* No-credits modal — iOS hides paid entry (App Store §3.1.1) */}
+      {PAID_UI_ENABLED && (
       <Modal
         visible={!!noCreditsProduct}
         transparent
@@ -411,8 +413,10 @@ export default function MyAdsScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+      )}
 
-      {/* Inline bundle-buy payment modal (mirrors website's myads instapayFor popover) */}
+      {/* Inline bundle-buy payment modal — iOS hides paid entry (App Store §3.1.1) */}
+      {PAID_UI_ENABLED && (
       <Modal
         visible={!!payFor}
         transparent
@@ -579,6 +583,7 @@ export default function MyAdsScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+      )}
     </DashboardLayout>
   )
 }
@@ -687,7 +692,8 @@ function ProductRow({
       </View>
 
       <View style={[styles.actions, dirContainer]}>
-        {!isPromoted && (
+        {/* Boost — iOS hides paid entry (App Store §3.1.1) */}
+        {!isPromoted && PAID_UI_ENABLED && (
           <Pressable
             onPress={onBoost}
             disabled={boosting}

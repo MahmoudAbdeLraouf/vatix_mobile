@@ -38,6 +38,7 @@ import {
   payWithWalletForPromotion,
   payWithWalletForSubscription,
 } from '@/lib/payment'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 type Panel = 'pick' | 'instapay' | 'mobile-wallet'
@@ -123,6 +124,12 @@ export default function CheckoutScreen() {
   useEffect(() => {
     void load()
   }, [load])
+
+  // App Store §3.1.1: iOS cannot expose paid checkout without Apple IAP.
+  useEffect(() => {
+    if (!PAID_UI_ENABLED) router.replace('/(tabs)/dashboard')
+  }, [])
+  if (!PAID_UI_ENABLED) return null
 
   // ─── Amount / title resolution ────────────────────────────────────────────
 

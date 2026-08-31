@@ -30,6 +30,7 @@ import { FileUpload } from '@/components/ui/FileUpload'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 
 // Mirrors vatix_website/components/upgrade-modal.tsx
 // Three modes × multi-step flow:
@@ -306,6 +307,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       : mode === 'upgrade-to-plus'
         ? `${t.upgradeToStorePlus} · ${priceLabel}`
         : `${t.upgradeToStore} · ${priceLabel}`
+
+  // App Store §3.1.1: iOS may only render cancel-store; all paid subscription
+  // flows (upgrade-to-store, upgrade-to-plus) require Apple IAP and are blocked.
+  if (!PAID_UI_ENABLED && mode !== 'cancel-store') return null
 
   return (
     <Modal

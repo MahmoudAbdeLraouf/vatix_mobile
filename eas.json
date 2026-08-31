@@ -39,6 +39,11 @@
   },
   "submit": {
     "production": {
+      "ios": {
+        "appleId": "ekraouf@icloud.com",
+        "ascAppId": "6805994852",
+        "appleTeamId": "2P9K2ZD36W"
+      },
       "android": {
         "serviceAccountKeyPath": "../vatix-play-service-account.json",
         "track": "internal",

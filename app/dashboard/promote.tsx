@@ -39,6 +39,7 @@ import {
   getSiteSettings,
   imgUrl,
 } from '@/lib/api'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 type Step =
@@ -158,7 +159,7 @@ export default function PromoteScreen() {
       setBundlesLoaded(true)
       if (s) setPaySettings({ ...DEFAULT_SETTINGS, ...s })
       const pre = params.bundleId ? Number(params.bundleId) : null
-      if (pre && bs.some(b => b.id === pre)) {
+      if (pre && bs.some(b => b.id === pre) && PAID_UI_ENABLED) {
         setSelected(pre)
         setStep('method')
       }
@@ -439,8 +440,8 @@ export default function PromoteScreen() {
             </View>
           </View>
 
-          {/* Step: pick */}
-          {step === 'pick' && (
+          {/* Step: pick — iOS hides paid entry (App Store §3.1.1) */}
+          {step === 'pick' && PAID_UI_ENABLED && (
             <View style={styles.card}>
               <View style={colDir}>
                 <Text style={[styles.cardTitle, dirStyle]}>
@@ -519,8 +520,8 @@ export default function PromoteScreen() {
             </View>
           )}
 
-          {/* Step: method */}
-          {step === 'method' && bundle && (
+          {/* Step: method — iOS hides paid entry (App Store §3.1.1) */}
+          {step === 'method' && bundle && PAID_UI_ENABLED && (
             <View style={styles.card}>
               <Pressable
                 onPress={back}
@@ -632,8 +633,8 @@ export default function PromoteScreen() {
             </View>
           )}
 
-          {/* Step: instapay form */}
-          {step === 'instapay' && bundle && (
+          {/* Step: instapay form — iOS hides paid entry (App Store §3.1.1) */}
+          {step === 'instapay' && bundle && PAID_UI_ENABLED && (
             <View style={styles.card}>
               <Pressable
                 onPress={back}
@@ -682,8 +683,8 @@ export default function PromoteScreen() {
             </View>
           )}
 
-          {/* Step: mobile-wallet form */}
-          {step === 'mobile-wallet' && bundle && (
+          {/* Step: mobile-wallet form — iOS hides paid entry (App Store §3.1.1) */}
+          {step === 'mobile-wallet' && bundle && PAID_UI_ENABLED && (
             <View style={styles.card}>
               <Pressable
                 onPress={back}

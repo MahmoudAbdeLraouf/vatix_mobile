@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/Input'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 
 const AMOUNT_BY_TYPE: Record<'store' | 'store_plus', number> = {
   store: 300,
@@ -278,7 +279,8 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                     {t.expiredRecovery.subtitle}
                   </Text>
 
-                  {paySettings.instapayEnabled && (
+                  {/* iOS hides paid entry (App Store §3.1.1) */}
+                  {PAID_UI_ENABLED && paySettings.instapayEnabled && (
                     <MethodCard
                       icon="phone-portrait-outline"
                       iconColor="#7B2FBE"
@@ -291,7 +293,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                     />
                   )}
 
-                  {paySettings.mobileWalletEnabled && (
+                  {PAID_UI_ENABLED && paySettings.mobileWalletEnabled && (
                     <MethodCard
                       icon="wallet-outline"
                       iconColor="#10b981"
@@ -354,7 +356,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                 </>
               )}
 
-              {step === 'instapay' && (
+              {PAID_UI_ENABLED && step === 'instapay' && (
                 <>
                   <InstapayQrCard amount={amount} />
 
@@ -422,7 +424,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                 </>
               )}
 
-              {step === 'instapay-done' && (
+              {PAID_UI_ENABLED && step === 'instapay-done' && (
                 <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
                   <View style={styles.successCircle}>
                     <Ionicons name="checkmark" size={40} color={colors.white} />
@@ -444,7 +446,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                 </View>
               )}
 
-              {step === 'mobile-wallet' && (
+              {PAID_UI_ENABLED && step === 'mobile-wallet' && (
                 <>
                   <MobileWalletCard
                     amount={amount}
@@ -516,7 +518,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                 </>
               )}
 
-              {step === 'mobile-wallet-done' && (
+              {PAID_UI_ENABLED && step === 'mobile-wallet-done' && (
                 <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
                   <View style={styles.successCircle}>
                     <Ionicons name="checkmark" size={40} color={colors.white} />

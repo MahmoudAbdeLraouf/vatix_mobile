@@ -21,6 +21,7 @@ import * as Notifications from 'expo-notifications'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 import { Logo } from '@/components/ui/Logo'
 import { MessagesBell } from '@/components/MessagesBell'
 import { NotificationBell } from '@/components/NotificationBell'
@@ -131,6 +132,10 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
   const nav = useMemo(
     () =>
       NAV.filter((n) => {
+        // App Store §3.1.1: hide paid entry points on iOS (no Apple IAP integration).
+        if (!PAID_UI_ENABLED && (n.href === '/dashboard/promote' || n.href === '/dashboard/subscription' || n.href === '/dashboard/wallet')) {
+          return false
+        }
         switch (n.kind) {
           case 'all':
             return true
@@ -315,14 +320,14 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
             </View>
           </View>
 
-          {/* Upgrade CTA */}
-          {isClient && (
+          {/* Upgrade CTA — hidden on iOS (App Store §3.1.1) */}
+          {PAID_UI_ENABLED && isClient && (
             <Pressable style={styles.upgradeBtn} onPress={() => go('/dashboard/subscription')}>
               <Ionicons name="storefront" size={16} color={colors.dk} />
               <Text style={[styles.upgradeText, dirText]}>{t.upgClientToStoreTitle}</Text>
             </Pressable>
           )}
-          {isStore && (
+          {PAID_UI_ENABLED && isStore && (
             <Pressable style={styles.upgradeBtn} onPress={() => go('/dashboard/subscription')}>
               <Ionicons name="diamond" size={16} color={colors.dk} />
               <Text style={[styles.upgradeText, dirText]}>{t.upgStoreToPlusTitle}</Text>

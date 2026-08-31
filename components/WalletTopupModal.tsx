@@ -16,6 +16,7 @@ import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { useLocale } from '@/contexts/locale'
 import { authErrorMessage, authPost } from '@/lib/auth'
 import { getSiteSettings, SiteSettings } from '@/lib/api'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
@@ -154,6 +155,9 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
       setBusy(false)
     }
   }
+
+  // App Store §3.1.1: iOS cannot expose paid wallet top-up without Apple IAP.
+  if (!PAID_UI_ENABLED) return null
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>

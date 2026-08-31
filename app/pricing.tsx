@@ -18,6 +18,7 @@ import {
   PlanData,
 } from '@/lib/api'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 
 type Billing = 'monthly' | 'yearly'
 
@@ -543,31 +544,34 @@ export default function PricingScreen() {
                       </Text>
                     </View>
 
-                    <Pressable
-                      onPress={() =>
-                        router.push({
-                          pathname: '/dashboard/promotions',
-                          params: { bundleId: String(b.id) },
-                        })
-                      }
-                      style={[
-                        s.bundleCta,
-                        isFeatured
-                          ? { backgroundColor: colors.y }
-                          : { backgroundColor: colors.dk },
-                      ]}
-                    >
-                      <Text
+                    {/* Bundle Select CTA — iOS hides paid entry (App Store §3.1.1) */}
+                    {PAID_UI_ENABLED && (
+                      <Pressable
+                        onPress={() =>
+                          router.push({
+                            pathname: '/dashboard/promotions',
+                            params: { bundleId: String(b.id) },
+                          })
+                        }
                         style={[
-                          s.bundleCtaText,
+                          s.bundleCta,
                           isFeatured
-                            ? { color: colors.dk }
-                            : { color: colors.white },
+                            ? { backgroundColor: colors.y }
+                            : { backgroundColor: colors.dk },
                         ]}
                       >
-                        {ar ? 'اختر ←' : 'Select →'}
-                      </Text>
-                    </Pressable>
+                        <Text
+                          style={[
+                            s.bundleCtaText,
+                            isFeatured
+                              ? { color: colors.dk }
+                              : { color: colors.white },
+                          ]}
+                        >
+                          {ar ? 'اختر ←' : 'Select →'}
+                        </Text>
+                      </Pressable>
+                    )}
                   </View>
                 )
               })}

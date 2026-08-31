@@ -16,6 +16,7 @@ import { useLocale } from '@/contexts/locale'
 import { markActionDismissed, markActionSeen } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { PAID_UI_ENABLED } from '@/lib/platform'
 
 interface Props {
   visible: boolean
@@ -72,6 +73,9 @@ export function SubscriptionExpiringDialog({ visible, onClose, subscriptionEndsA
     onClose()
     router.push('/dashboard/wallet')
   }
+
+  // App Store §3.1.1: iOS cannot expose paid renewal/top-up nudges without Apple IAP.
+  if (!PAID_UI_ENABLED) return null
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleDismiss}>
