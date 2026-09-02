@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Dimensions,
   Keyboard,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -86,6 +87,7 @@ export default function AddProductScreen() {
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [publishedId, setPublishedId] = useState<number | string | null>(null)
   const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   const hydrated = useRef(false)
@@ -280,15 +282,30 @@ export default function AddProductScreen() {
           .map((img, i) => ({ url: img.url, sortOrder: i })),
       }
 
-      await authPost('/products', payload)
+      const created = await authPost<{ id?: number | string }>('/products', payload)
       await SecureStore.deleteItemAsync(DRAFT_KEY).catch(() => {})
-      router.back()
+      setPublishedId(created?.id ?? '')
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
     } finally {
       setSubmitting(false)
     }
   }, [brandId, categoryId, condition, description, images, limit, locationId, price, showPhone, t, title, uploading])
+
+  const goPromote = useCallback(() => {
+    const id = publishedId
+    setPublishedId(null)
+    if (id) {
+      router.replace(`/dashboard/promote?resumeProductId=${id}`)
+    } else {
+      router.replace('/dashboard/promote')
+    }
+  }, [publishedId])
+
+  const goMyAds = useCallback(() => {
+    setPublishedId(null)
+    router.replace('/dashboard/my-ads')
+  }, [])
 
   return (
     <DashboardLayout title={t.addProduct} scroll={false} contentPadding={false} bottomBar={<BottomTabBar />}>
@@ -571,6 +588,59 @@ export default function AddProductScreen() {
             </Text>
           </View>
       </ScrollView>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={publishedId !== null}
+        onRequestClose={goMyAds}
+        statusBarTranslucent
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalCheck}>
+                <Ionicons name="checkmark" size={32} color={colors.dk} />
+              </View>
+              <Text style={[styles.modalTitle, dirStyle]}>
+                {ar ? 'تم نشر إعلانك بنجاح! 🎉' : 'Your ad is live! 🎉'}
+              </Text>
+              <Text style={[styles.modalSubtitle, dirStyle]}>
+                {ar
+                  ? 'إعلانك أصبح متاحاً للمشترين الآن. لعرض أفضل وبيع أسرع، رشّح إعلانك للترقية.'
+                  : 'Your ad is now visible to buyers. For faster sales and better visibility, promote it.'}
+              </Text>
+            </View>
+
+            <View style={styles.promoteBox}>
+              <Text style={styles.promoteEmoji}>🚀</Text>
+              <View style={styles.promoteTextWrap}>
+                <Text style={[styles.promoteTitle, dirStyle]}>
+                  {ar ? 'رشّح إعلانك للترقية' : 'Promote your ad'}
+                </Text>
+                <Text style={[styles.promoteHint, dirStyle]}>
+                  {ar
+                    ? 'ظهور في أعلى نتائج البحث · مشاهدات أكثر · شارة "مميز" على الإعلان.'
+                    : 'Top of search results · up to 5× more views · a "Featured" badge.'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <Button
+                label={`🚀  ${ar ? 'ترقية الإعلان الآن' : 'Promote Now'}`}
+                onPress={goPromote}
+                variant="cta"
+              />
+              <Button
+                label={ar ? 'لاحقاً — عرض إعلاناتي' : 'Later — View my ads'}
+                onPress={goMyAds}
+                variant="outline"
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </DashboardLayout>
   )
 }
@@ -922,5 +992,90 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 11,
     color: colors.g400,
+  },
+
+  /* SUCCESS MODAL */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(6,43,91,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 460,
+    backgroundColor: colors.white,
+    borderRadius: radius.xl,
+    borderWidth: 1.5,
+    borderColor: colors.g200,
+    overflow: 'hidden',
+    ...shadow.sl,
+  },
+  modalHeader: {
+    backgroundColor: colors.yl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg + 4,
+    paddingBottom: spacing.md,
+    alignItems: 'center',
+  },
+  modalCheck: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.y,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm + 4,
+    ...shadow.sm,
+  },
+  modalTitle: {
+    fontFamily: fonts.black,
+    fontSize: 18,
+    color: colors.dk,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.g600,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  promoteBox: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    backgroundColor: colors.yl,
+    borderWidth: 1.5,
+    borderColor: colors.y,
+    borderRadius: radius.md,
+    padding: spacing.sm + 4,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  promoteEmoji: {
+    fontSize: 24,
+    lineHeight: 26,
+  },
+  promoteTextWrap: {
+    flex: 1,
+  },
+  promoteTitle: {
+    fontFamily: fonts.extraBold,
+    fontSize: 14,
+    color: colors.dk,
+    marginBottom: 3,
+  },
+  promoteHint: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.g700,
+    lineHeight: 17,
+  },
+  modalActions: {
+    padding: spacing.lg,
+    gap: spacing.sm + 2,
   },
 })
