@@ -1,14 +1,13 @@
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
-import { Image } from 'expo-image'
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useLocale } from '@/contexts/locale'
 import { fonts, radius } from '@/constants/theme'
+
+const INSTAPAY_URL = 'https://ipn.eg/S/vatix/instapay/9BX0v3'
 
 interface Props {
   amount: number | string
 }
-
-const QR_SOURCE = require('@/assets/instapay-qr.jpeg')
 
 export function InstapayQrCard({ amount }: Props) {
   const { locale } = useLocale()
@@ -17,18 +16,19 @@ export function InstapayQrCard({ amount }: Props) {
   return (
     <View style={styles.card}>
       <Text style={styles.header}>
-        {ar ? 'امسح الكود لفتح تطبيق InstaPay والدفع' : 'Scan to open InstaPay and pay'}
+        {ar ? 'اضغط الزر لفتح تطبيق إنستا باي وإتمام الدفع' : 'Tap the button to open InstaPay and complete payment'}
       </Text>
 
-      <View style={styles.qrFrame}>
-        <Image
-          source={QR_SOURCE}
-          style={styles.qrImage}
-          contentFit="contain"
-          transition={0}
-          accessibilityLabel="InstaPay QR"
-        />
-      </View>
+      <Pressable
+        style={({ pressed }) => [styles.openButton, pressed && styles.openButtonPressed]}
+        onPress={() => Linking.openURL(INSTAPAY_URL).catch(() => {})}
+        accessibilityRole="link"
+        accessibilityLabel={ar ? 'فتح تطبيق إنستا باي' : 'Open InstaPay app'}
+      >
+        <Text style={styles.openButtonText}>
+          {ar ? 'فتح تطبيق إنستا باي' : 'Open InstaPay app'}
+        </Text>
+      </Pressable>
 
       <View style={styles.amountPill}>
         <Text style={styles.amountLabel}>{ar ? 'المبلغ: ' : 'Amount: '}</Text>
@@ -65,15 +65,26 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     textAlign: 'center',
   },
-  qrFrame: {
+  openButton: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
+    borderRadius: 999,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  qrImage: {
-    width: 220,
-    height: 235,
+  openButtonPressed: {
+    opacity: 0.85,
+  },
+  openButtonText: {
+    color: '#7B2FBE',
+    fontSize: 14,
+    fontFamily: fonts.black,
+    textAlign: 'center',
   },
   amountPill: {
     backgroundColor: 'rgba(255,255,255,0.15)',
