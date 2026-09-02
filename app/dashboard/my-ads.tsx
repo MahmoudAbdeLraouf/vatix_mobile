@@ -317,6 +317,7 @@ export default function MyAdsScreen() {
                 boosting={boostingId === p.id}
                 onBoost={() => handleBoost(p)}
                 onView={() => router.push(`/products/${p.id}`)}
+                onEdit={() => router.push(`/products/edit/${p.id}`)}
                 onDelete={() => confirmDelete(p.id)}
               />
             ))}
@@ -620,6 +621,7 @@ function ProductRow({
   boosting,
   onBoost,
   onView,
+  onEdit,
   onDelete,
 }: {
   product: Product
@@ -629,6 +631,7 @@ function ProductRow({
   boosting: boolean
   onBoost: () => void
   onView: () => void
+  onEdit: () => void
   onDelete: () => void
 }) {
   const thumb = imgUrl(product.images?.[0]?.url)
@@ -721,6 +724,19 @@ function ProductRow({
           <Ionicons name="eye-outline" size={13} color={colors.dk} />
           <Text style={[styles.actionText, { color: colors.dk }]}>
             {ar ? 'عرض' : 'View'}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={onEdit}
+          style={({ pressed }) => [
+            styles.actionBtn,
+            styles.viewBtn,
+            pressed && { opacity: 0.85 },
+          ]}
+        >
+          <Ionicons name="pencil-outline" size={13} color={colors.dk} />
+          <Text style={[styles.actionText, { color: colors.dk }]}>
+            {ar ? 'تعديل' : 'Edit'}
           </Text>
         </Pressable>
         <Pressable
