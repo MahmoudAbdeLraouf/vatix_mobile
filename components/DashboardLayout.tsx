@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
   Easing,
@@ -74,6 +74,22 @@ interface Props {
   bottomBar?: React.ReactNode
 }
 
+interface DashboardChromeApi {
+  openDrawer: () => void
+  closeDrawer: () => void
+}
+
+const DashboardChromeContext = createContext<DashboardChromeApi | null>(null)
+
+export function useDashboardChrome(): DashboardChromeApi {
+  const ctx = useContext(DashboardChromeContext)
+  if (!ctx) {
+    // Rendered outside DashboardLayout — return no-ops so consumers stay safe.
+    return { openDrawer: () => {}, closeDrawer: () => {} }
+  }
+  return ctx
+}
+
 export function DashboardLayout({ title, children, scroll = true, contentPadding = true, bottomBar }: Props) {
   const { user, isAuthenticated, loading, logout } = useAuth()
   const { t, isRtl, locale, setLocale } = useLocale()
@@ -90,6 +106,13 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
   const drawerX = useRef(new Animated.Value(0)).current
 
   const drawerWidth = Math.min(320, width * 0.86)
+
+  const openDrawer = useCallback(() => setDrawerOpen(true), [])
+  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+  const chromeApi = useMemo<DashboardChromeApi>(
+    () => ({ openDrawer, closeDrawer }),
+    [openDrawer, closeDrawer],
+  )
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -188,6 +211,10 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
   if (loading) return null
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />
 
+  const wrappedChildren = (
+    <DashboardChromeContext.Provider value={chromeApi}>{children}</DashboardChromeContext.Provider>
+  )
+
   const Body = scroll ? (
     <ScrollView
       style={[styles.body, dirContainer]}
@@ -197,10 +224,10 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
       ]}
       showsVerticalScrollIndicator={false}
     >
-      {children}
+      {wrappedChildren}
     </ScrollView>
   ) : (
-    <View style={[styles.body, dirContainer, contentPadding && styles.bodyPadding]}>{children}</View>
+    <View style={[styles.body, dirContainer, contentPadding && styles.bodyPadding]}>{wrappedChildren}</View>
   )
 
   return (

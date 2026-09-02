@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Redirect, router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { DashboardLayout } from '@/components/DashboardLayout'
+import { DashboardLayout, useDashboardChrome } from '@/components/DashboardLayout'
 import { AddProductDialog } from '@/components/AddProductDialog'
 import { StoreLogoDialog } from '@/components/StoreLogoDialog'
 import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDialog'
@@ -158,6 +158,7 @@ export default function DashboardScreen() {
           icon="stats-chart-outline"
           onPress={() => router.push('/dashboard/analytics')}
         />
+        <SeeMoreTile label={t.viewMore} />
       </View>
 
       {/* Pending InstaPay notice — iOS hides paid surfaces (App Store §3.1.1) */}
@@ -248,6 +249,28 @@ export default function DashboardScreen() {
         />
       )}
     </DashboardLayout>
+  )
+}
+
+function SeeMoreTile({ label }: { label: string }) {
+  const { openDrawer } = useDashboardChrome()
+  return (
+    <Pressable
+      onPress={openDrawer}
+      style={({ pressed }) => [styles.statTile, pressed && { opacity: 0.85 }]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <View style={styles.statIconWrap}>
+        <Ionicons name="menu-outline" size={18} color={colors.dk} />
+      </View>
+      <Text style={styles.statValue} numberOfLines={1}>
+        •••
+      </Text>
+      <Text style={styles.statLabel} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
   )
 }
 
