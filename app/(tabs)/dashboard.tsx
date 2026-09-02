@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
 import { PAID_UI_ENABLED } from '@/lib/platform'
-import type { FavoriteProduct, Product, UserProfile } from '@/lib/api'
+import type { Analytics, FavoriteProduct, Product, PromoInfo, UserProfile, WalletBalance } from '@/lib/api'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -30,6 +30,10 @@ export default function DashboardScreen() {
 
   const [adsCount, setAdsCount] = useState<number | null>(null)
   const [favsCount, setFavsCount] = useState<number | null>(null)
+  const [msgUnread, setMsgUnread] = useState<number | null>(null)
+  const [walletBalance, setWalletBalance] = useState<number | null>(null)
+  const [promoCredits, setPromoCredits] = useState<number | null>(null)
+  const [analyticsViews, setAnalyticsViews] = useState<number | null>(null)
   const [pendingInstapay, setPendingInstapay] = useState(false)
   const [showLogoDialog, setShowLogoDialog] = useState(false)
   const [showAddProductDialog, setShowAddProductDialog] = useState(false)
@@ -40,15 +44,23 @@ export default function DashboardScreen() {
     if (!isAuthenticated) return
     let cancelled = false
     const load = async () => {
-      const [ads, favs, payments, profile] = await Promise.all([
+      const [ads, favs, payments, profile, unread, wallet, promo, analytics] = await Promise.all([
         authFetch<Product[]>('/products/mine'),
         authFetch<FavoriteProduct[]>('/products/favorites'),
         authFetch<{ status: string; method: string }[]>('/payments/history'),
         authFetch<UserProfile>('/user/profile'),
+        authFetch<{ count: number }>('/conversations/unread-count'),
+        PAID_UI_ENABLED ? authFetch<WalletBalance>('/payments/wallet/balance') : Promise.resolve(null),
+        PAID_UI_ENABLED ? authFetch<PromoInfo>('/payments/promo-credits') : Promise.resolve(null),
+        authFetch<Analytics>('/user/analytics'),
       ])
       if (cancelled) return
       setAdsCount(ads?.length ?? 0)
       setFavsCount(favs?.length ?? 0)
+      setMsgUnread(unread?.count ?? 0)
+      setWalletBalance(wallet ? Number(wallet.balance) : null)
+      setPromoCredits(promo ? Number(promo.total) : null)
+      setAnalyticsViews(analytics?.totalViews ?? 0)
       setPendingInstapay(
         !!payments?.some((p) => p.method === 'instapay' && p.status === 'pending_verification'),
       )
@@ -103,10 +115,49 @@ export default function DashboardScreen() {
         </Pressable>
       </View>
 
-      {/* Stats grid */}
+      {/* Shortcuts grid */}
       <View style={styles.statsGrid}>
-        <StatTile value={adsCount} label={t.myAds} />
-        <StatTile value={favsCount} label={t.favorites} />
+        <StatTile
+          value={adsCount}
+          label={t.myAds}
+          icon="list-outline"
+          onPress={() => router.push('/dashboard/my-ads')}
+        />
+        <StatTile
+          value={favsCount}
+          label={t.favorites}
+          icon="heart-outline"
+          onPress={() => router.push('/dashboard/favorites')}
+        />
+        <StatTile
+          value={msgUnread}
+          label={t.messages}
+          icon="chatbubble-outline"
+          badge={msgUnread && msgUnread > 0 ? msgUnread : null}
+          onPress={() => router.push('/dashboard/messages')}
+        />
+        {PAID_UI_ENABLED && (
+          <StatTile
+            value={walletBalance}
+            label={t.wallet}
+            icon="wallet-outline"
+            onPress={() => router.push('/dashboard/wallet')}
+          />
+        )}
+        {PAID_UI_ENABLED && (
+          <StatTile
+            value={promoCredits}
+            label={t.promote}
+            icon="star-outline"
+            onPress={() => router.push('/dashboard/promote')}
+          />
+        )}
+        <StatTile
+          value={analyticsViews}
+          label={t.analytics}
+          icon="stats-chart-outline"
+          onPress={() => router.push('/dashboard/analytics')}
+        />
       </View>
 
       {/* Pending InstaPay notice — iOS hides paid surfaces (App Store §3.1.1) */}
@@ -200,13 +251,56 @@ export default function DashboardScreen() {
   )
 }
 
-function StatTile({ value, label }: { value: number | null; label: string }) {
-  return (
-    <View style={styles.statTile}>
-      <Text style={styles.statValue}>{value === null ? '...' : String(value)}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+function StatTile({
+  value,
+  label,
+  icon,
+  onPress,
+  badge,
+}: {
+  value: number | null
+  label: string
+  icon?: React.ComponentProps<typeof Ionicons>['name']
+  onPress?: () => void
+  badge?: number | null
+}) {
+  const content = (
+    <>
+      {icon && (
+        <View style={styles.statIconWrap}>
+          <Ionicons name={icon} size={18} color={colors.dk} />
+          {badge && badge > 0 ? (
+            <View style={styles.statBadge}>
+              <Text style={styles.statBadgeText} numberOfLines={1}>
+                {badge > 99 ? '99+' : String(badge)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      )}
+      <Text style={styles.statValue} numberOfLines={1}>
+        {value === null ? '...' : String(value)}
+      </Text>
+      <Text style={styles.statLabel} numberOfLines={1}>
+        {label}
+      </Text>
+    </>
   )
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [styles.statTile, pressed && { opacity: 0.85 }]}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
+        {content}
+      </Pressable>
+    )
+  }
+
+  return <View style={styles.statTile}>{content}</View>
 }
 
 function UpgradeBanner({
@@ -325,12 +419,14 @@ const styles = StyleSheet.create({
   // Stats
   statsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
   statTile: {
-    flex: 1,
-    minWidth: 140,
+    flexGrow: 1,
+    flexBasis: 100,
+    minWidth: 100,
     backgroundColor: colors.white,
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -340,16 +436,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadow.ss,
   },
+  statIconWrap: {
+    position: 'relative',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.yl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  statBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
+    borderRadius: 9,
+    backgroundColor: '#E11D48',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  statBadgeText: {
+    fontFamily: fonts.bold,
+    fontSize: 9,
+    color: colors.white,
+    lineHeight: 12,
+  },
   statValue: {
     fontFamily: fonts.black,
-    fontSize: 26,
+    fontSize: 20,
     color: colors.yd,
   },
   statLabel: {
     fontFamily: fonts.semiBold,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.g500,
-    marginTop: 4,
+    marginTop: 2,
+    textAlign: 'center',
   },
 
   // Instapay
