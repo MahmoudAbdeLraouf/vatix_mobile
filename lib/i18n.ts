@@ -602,7 +602,7 @@ export const translations: Record<Locale, Translations> = {
     categories: 'الاقسام',
     // Products
     addProduct: 'إضافة منتج',
-    productTitle: 'عنوان المنتج',
+    productTitle: 'اسم المنتج',
     addPhotos: 'إضافة صور',
     publish: 'نشر المنتج',
     selectCategory: 'اختر الفئة',
@@ -1139,7 +1139,7 @@ export const translations: Record<Locale, Translations> = {
     categories: 'Categories',
     // Products
     addProduct: 'Add Product',
-    productTitle: 'Product Title',
+    productTitle: 'Product Name',
     addPhotos: 'Add Photos',
     publish: 'Publish Product',
     selectCategory: 'Select Category',
