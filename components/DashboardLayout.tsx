@@ -21,7 +21,7 @@ import * as Notifications from 'expo-notifications'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
-import { PAID_UI_ENABLED } from '@/lib/platform'
+import { PAID_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { Logo } from '@/components/ui/Logo'
 import { MessagesBell } from '@/components/MessagesBell'
 import { NotificationBell } from '@/components/NotificationBell'
@@ -155,10 +155,8 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
   const nav = useMemo(
     () =>
       NAV.filter((n) => {
-        // App Store §3.1.1: hide paid entry points on iOS (no Apple IAP integration).
-        if (!PAID_UI_ENABLED && (n.href === '/dashboard/promote' || n.href === '/dashboard/subscription' || n.href === '/dashboard/wallet')) {
-          return false
-        }
+        // iOS: Promote + Subscription go through Apple IAP; only wallet top-up stays hidden.
+        if (!PAID_UI_ENABLED && n.href === '/dashboard/wallet') return false
         switch (n.kind) {
           case 'all':
             return true
@@ -347,14 +345,14 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
             </View>
           </View>
 
-          {/* Upgrade CTA — hidden on iOS (App Store §3.1.1) */}
-          {PAID_UI_ENABLED && isClient && (
+          {/* Upgrade CTA — subscription flow uses Apple IAP on iOS, InstaPay/wallet on Android */}
+          {SUBSCRIPTION_UI_ENABLED && isClient && (
             <Pressable style={styles.upgradeBtn} onPress={() => go('/dashboard/subscription')}>
               <Ionicons name="storefront" size={16} color={colors.dk} />
               <Text style={[styles.upgradeText, dirText]}>{t.upgClientToStoreTitle}</Text>
             </Pressable>
           )}
-          {PAID_UI_ENABLED && isStore && (
+          {SUBSCRIPTION_UI_ENABLED && isStore && (
             <Pressable style={styles.upgradeBtn} onPress={() => go('/dashboard/subscription')}>
               <Ionicons name="diamond" size={16} color={colors.dk} />
               <Text style={[styles.upgradeText, dirText]}>{t.upgStoreToPlusTitle}</Text>

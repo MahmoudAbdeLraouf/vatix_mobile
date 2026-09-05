@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -22,6 +23,7 @@ import { Button } from './Button'
 // via short-lived presigned GET.
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
+const CLIENT_PLATFORM = Platform.OS
 
 interface Props {
   label: string
@@ -80,7 +82,7 @@ export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect =
 
       const res = await fetch(`${BASE}/user/upload/payment-screenshot`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'X-Client-Platform': 'mobile' },
+        headers: { Authorization: `Bearer ${token}`, 'X-Client-Platform': CLIENT_PLATFORM },
         body: formData,
       })
       if (!res.ok) {

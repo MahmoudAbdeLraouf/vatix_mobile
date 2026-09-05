@@ -17,6 +17,19 @@ import { Input } from '@/components/ui/Input'
 import { authErrorMessage, deleteAccount } from '@/lib/auth'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { validatePassword } from '@/lib/password-policy'
+import { IS_IOS } from '@/lib/platform'
+import type { EventSubscription, Purchase, PurchaseError } from 'react-native-iap'
+import {
+  addPurchaseErrorListener,
+  addPurchaseUpdatedListener,
+  endIap,
+  finishIosPurchase,
+  getIosJws,
+  initIap,
+  restoreIosPurchases,
+} from '@/lib/iap'
+import { getIapProduct } from '@/lib/iap-products'
+import { finalizePaymentSuccess, verifyIapPurchase } from '@/lib/payment'
 
 type Msg = { ok: boolean; text: string } | null
 
@@ -68,6 +81,8 @@ export default function SettingsScreen() {
   const [deleting, setDeleting] = useState(false)
   const [deleteMsg, setDeleteMsg] = useState<Msg>(null)
   const [rating, setRating] = useState(false)
+  const [restoring, setRestoring] = useState(false)
+  const [restoreMsg, setRestoreMsg] = useState<Msg>(null)
 
   function handleSavePassword() {
     setPasswordMsg(null)
@@ -139,6 +154,88 @@ export default function SettingsScreen() {
       // silent — nothing actionable
     } finally {
       setRating(false)
+    }
+  }
+
+  // App Store §3.1.1: iOS apps offering non-consumable IAP (subscriptions) must
+  // expose a "Restore Purchases" mechanism. StoreKit re-emits active/valid
+  // transactions via the purchaseUpdatedListener; we verify each JWS with the
+  // backend, finish the transaction, then refresh the session so entitlement
+  // reflects on-device. Consumables (promotion bundles) are not restorable.
+  async function handleRestorePurchases() {
+    if (restoring) return
+    setRestoreMsg(null)
+    setRestoring(true)
+
+    // Object wrapper avoids TS control-flow narrowing `let` closure-captured
+    // subscriptions to `never` in the `finally` block.
+    const subs: { updated: EventSubscription | null; error: EventSubscription | null } = {
+      updated: null,
+      error: null,
+    }
+    const restored: Purchase[] = []
+    let restoreError: string | null = null
+
+    try {
+      await initIap()
+
+      subs.updated = addPurchaseUpdatedListener(p => {
+        restored.push(p)
+      })
+      subs.error = addPurchaseErrorListener((e: PurchaseError) => {
+        if (e.code === 'user-cancelled' || /cancel/i.test(e.message ?? '')) return
+        restoreError = e.message || 'Restore failed'
+      })
+
+      await restoreIosPurchases()
+      // StoreKit dispatches restored transactions asynchronously via the
+      // listener; give it a short window to drain before we tally.
+      await new Promise(resolve => setTimeout(resolve, 2500))
+
+      if (restoreError && restored.length === 0) {
+        throw new Error(restoreError)
+      }
+
+      let verifiedCount = 0
+      for (const purchase of restored) {
+        const jws = await getIosJws(purchase)
+        if (!jws) continue
+        try {
+          await verifyIapPurchase({
+            signedTransaction: jws,
+            metadata: { restored: true },
+          })
+          const product = getIapProduct(purchase.productId)
+          await finishIosPurchase(purchase, product?.isConsumable ?? false)
+          verifiedCount++
+        } catch {
+          // Skip and continue — one bad transaction shouldn't block the rest.
+        }
+      }
+
+      if (verifiedCount > 0) {
+        await finalizePaymentSuccess()
+        setRestoreMsg({
+          ok: true,
+          text: ar
+            ? `تم استرجاع ${verifiedCount} عملية شراء بنجاح.`
+            : `Restored ${verifiedCount} purchase(s) successfully.`,
+        })
+      } else {
+        setRestoreMsg({
+          ok: true,
+          text: ar
+            ? 'لا توجد عمليات شراء لاستعادتها.'
+            : 'No purchases available to restore.',
+        })
+      }
+    } catch (e: unknown) {
+      setRestoreMsg({ ok: false, text: authErrorMessage(e, t) })
+    } finally {
+      subs.updated?.remove()
+      subs.error?.remove()
+      await endIap()
+      setRestoring(false)
     }
   }
 
@@ -389,6 +486,54 @@ export default function SettingsScreen() {
             }
           />
         </View>
+
+        {/* Restore Purchases — iOS only (App Store §3.1.1 requirement) */}
+        {IS_IOS && (
+          <View style={styles.card}>
+            <Text style={[styles.cardTitle, dirStyle]}>
+              {ar ? 'استعادة المشتريات' : 'Restore Purchases'}
+            </Text>
+            <Text style={[styles.helperText, dirStyle]}>
+              {ar
+                ? 'استعد اشتراكاتك السابقة بعد إعادة تثبيت التطبيق أو تغيير الجهاز.'
+                : 'Recover your prior subscriptions after reinstalling the app or switching devices.'}
+            </Text>
+
+            {restoreMsg && (
+              <View
+                style={[
+                  styles.msgBox,
+                  {
+                    backgroundColor: restoreMsg.ok ? colors.gl : colors.rl,
+                    borderColor: restoreMsg.ok ? colors.green : colors.red,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={restoreMsg.ok ? 'checkmark-circle-outline' : 'alert-circle-outline'}
+                  size={16}
+                  color={restoreMsg.ok ? colors.green : colors.red}
+                />
+                <Text
+                  style={[
+                    styles.msgText,
+                    { color: restoreMsg.ok ? colors.green : colors.red },
+                  ]}
+                >
+                  {restoreMsg.text}
+                </Text>
+              </View>
+            )}
+
+            <Button
+              label={ar ? 'استعادة المشتريات' : 'Restore Purchases'}
+              onPress={handleRestorePurchases}
+              loading={restoring}
+              variant="dk"
+              leftIcon={<Ionicons name="refresh" size={18} color={colors.y} />}
+            />
+          </View>
+        )}
 
         {/* Delete Account card */}
         <View style={styles.card}>

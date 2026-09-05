@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, router } from 'expo-router'
+import type { EventSubscription, Purchase, PurchaseError } from 'react-native-iap'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -39,7 +40,24 @@ import {
   getSiteSettings,
   imgUrl,
 } from '@/lib/api'
-import { PAID_UI_ENABLED } from '@/lib/platform'
+import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED } from '@/lib/platform'
+import {
+  addPurchaseErrorListener,
+  addPurchaseUpdatedListener,
+  endIap,
+  fetchIosProducts,
+  finishIosPurchase,
+  getIosJws,
+  initIap,
+  requestIosPurchase,
+} from '@/lib/iap'
+import {
+  PROMOTION_SKUS,
+  getIapProduct,
+  iosFallbackDisplayPrice,
+  promotionSkuForCount,
+} from '@/lib/iap-products'
+import { finalizePaymentSuccess, verifyIapPurchase } from '@/lib/payment'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 type Step =
@@ -50,6 +68,8 @@ type Step =
   | 'mobile-wallet'
   | 'mobile-wallet-done'
   | 'wallet-done'
+  | 'apple-iap'
+  | 'apple-iap-done'
 type PromoTab = 'ads' | 'history'
 
 const DEFAULT_SETTINGS: SiteSettings = {
@@ -117,6 +137,10 @@ export default function PromoteScreen() {
 
   const [bundles, setBundles] = useState<Bundle[]>([])
   const [bundlesLoaded, setBundlesLoaded] = useState(false)
+  // StoreKit-formatted prices keyed by SKU. iOS-only; empty on Android/web.
+  // Sourced from App Store Connect so Apple's 30% commission gross-up is
+  // reflected without duplicating the pricing table in the client.
+  const [iosPriceMap, setIosPriceMap] = useState<Record<string, string>>({})
   const [credits, setCredits] = useState<PromoInfo | null>(null)
   const [wallet, setWallet] = useState<number | null>(null)
   const [promoted, setPromoted] = useState<PromotedProductItem[]>([])
@@ -159,9 +183,23 @@ export default function PromoteScreen() {
       setBundlesLoaded(true)
       if (s) setPaySettings({ ...DEFAULT_SETTINGS, ...s })
       const pre = params.bundleId ? Number(params.bundleId) : null
-      if (pre && bs.some(b => b.id === pre) && PAID_UI_ENABLED) {
+      if (pre && bs.some(b => b.id === pre) && PROMOTION_UI_ENABLED) {
         setSelected(pre)
         setStep('method')
+      }
+      if (IS_IOS) {
+        try {
+          const products = await fetchIosProducts(PROMOTION_SKUS, 'in-app')
+          if (!cancelled) {
+            const map: Record<string, string> = {}
+            for (const p of products) {
+              if (p?.id && p?.displayPrice) map[p.id] = p.displayPrice
+            }
+            setIosPriceMap(map)
+          }
+        } catch {
+          // StoreKit unreachable (sandbox/network) — fall back to backend price.
+        }
       }
       await load()
       if (!cancelled) setPageLoading(false)
@@ -378,6 +416,84 @@ export default function PromoteScreen() {
     }
   }
 
+  // App Store §3.1.1: iOS promo bundles must use Apple IAP. Flow mirrors
+  // UpgradeModal — init StoreKit → fetch product → requestPurchase →
+  // resolve via listener → extract JWS → POST /payments/iap/verify with
+  // { bundleId, productId? } metadata → finishTransaction ONLY after
+  // backend verify succeeds → refresh session + credits.
+  async function handleAppleIapPurchase() {
+    if (!bundle) return
+    const productCount = bundle.productCount as 1 | 3 | 5
+    const sku = promotionSkuForCount(productCount)
+    if (!sku) {
+      setError(ar ? 'الباقة غير متاحة عبر Apple' : 'Bundle unavailable via Apple')
+      return
+    }
+    const product = getIapProduct(sku)
+    if (!product) {
+      setError(ar ? 'المنتج غير متاح' : 'Product unavailable')
+      return
+    }
+    setError('')
+    setStep('apple-iap')
+    setLoading(true)
+    const subs: {
+      updated: EventSubscription | null
+      error: EventSubscription | null
+    } = { updated: null, error: null }
+    let cancelled = false
+    try {
+      await initIap()
+      await fetchIosProducts([sku], product.type)
+      const purchase = await new Promise<Purchase>((resolve, reject) => {
+        subs.updated = addPurchaseUpdatedListener(p => {
+          if (p.productId === sku) resolve(p)
+        })
+        subs.error = addPurchaseErrorListener((e: PurchaseError) => {
+          if (e.code === 'user-cancelled' || /cancel/i.test(e.message ?? '')) {
+            cancelled = true
+            reject(new Error('__CANCELLED__'))
+            return
+          }
+          reject(new Error(e.message || 'Purchase failed'))
+        })
+        requestIosPurchase(sku, product.type).catch(reject)
+      })
+      const jws = await getIosJws(purchase)
+      if (!jws) {
+        throw new Error(
+          ar ? 'تعذر التحقق من العملية' : 'Could not verify transaction',
+        )
+      }
+      await verifyIapPurchase({
+        signedTransaction: jws,
+        metadata: {
+          bundleId: bundle.id,
+          ...(resumeProductId && { productId: Number(resumeProductId) }),
+        },
+      })
+      await finishIosPurchase(purchase, product.isConsumable)
+      await finalizePaymentSuccess()
+      await load()
+      setStep('apple-iap-done')
+      if (resumeProductId) {
+        router.push('/dashboard/my-ads')
+      }
+    } catch (e: unknown) {
+      if (cancelled) {
+        setStep('method')
+      } else {
+        setError(authErrorMessage(e, t))
+        setStep('method')
+      }
+    } finally {
+      subs.updated?.remove()
+      subs.error?.remove()
+      await endIap()
+      setLoading(false)
+    }
+  }
+
   return (
     <DashboardLayout title={ar ? 'ترويج الإعلانات' : 'Promote Listings'}>
       {pageLoading ? (
@@ -440,8 +556,8 @@ export default function PromoteScreen() {
             </View>
           </View>
 
-          {/* Step: pick — iOS hides paid entry (App Store §3.1.1) */}
-          {step === 'pick' && PAID_UI_ENABLED && (
+          {/* Step: pick — promotion IAP is enabled on iOS (App Store §3.1.1) */}
+          {step === 'pick' && PROMOTION_UI_ENABLED && (
             <View style={styles.card}>
               <View style={colDir}>
                 <Text style={[styles.cardTitle, dirStyle]}>
@@ -475,6 +591,20 @@ export default function PromoteScreen() {
                     const perAd = b.productCount
                       ? Math.round(price / b.productCount)
                       : price
+                    // Prefer StoreKit's localized displayPrice on iOS so the
+                    // shown price matches what App Store Connect will actually
+                    // charge (Apple's 30% commission is priced in there).
+                    const iosSku =
+                      IS_IOS && (b.productCount === 1 || b.productCount === 3 || b.productCount === 5)
+                        ? promotionSkuForCount(b.productCount)
+                        : null
+                    // Prefer StoreKit displayPrice; fall back to the App Store
+                    // Connect tier we grossed up for (349/849/1199 EGP) so
+                    // Expo Go / dev builds don't leak the pre-commission
+                    // backend price into the UI.
+                    const iosDisplay = iosSku
+                      ? (iosPriceMap[iosSku] ?? iosFallbackDisplayPrice(iosSku))
+                      : undefined
                     return (
                       <Pressable
                         key={b.id}
@@ -499,18 +629,30 @@ export default function PromoteScreen() {
                             style={[styles.bundleMeta, dirStyle]}
                             numberOfLines={1}
                           >
-                            {ar
-                              ? `${fmt(perAd)} ${currency} / إعلان · ٧ أيام`
-                              : `${fmt(perAd)} ${currency} / ad · 7 days`}
+                            {IS_IOS
+                              ? ar
+                                ? `${fmt(b.productCount)} إعلان · ٧ أيام`
+                                : `${b.productCount} ads · 7 days`
+                              : ar
+                                ? `${fmt(perAd)} ${currency} / إعلان · ٧ أيام`
+                                : `${fmt(perAd)} ${currency} / ad · 7 days`}
                           </Text>
                         </View>
                         <View style={styles.bundlePrice}>
-                          <Text style={styles.bundlePriceValue}>
-                            {fmt(price)}
-                          </Text>
-                          <Text style={styles.bundlePriceCurrency}>
-                            {currency}
-                          </Text>
+                          {iosDisplay ? (
+                            <Text style={styles.bundlePriceValue}>
+                              {iosDisplay}
+                            </Text>
+                          ) : (
+                            <>
+                              <Text style={styles.bundlePriceValue}>
+                                {fmt(price)}
+                              </Text>
+                              <Text style={styles.bundlePriceCurrency}>
+                                {currency}
+                              </Text>
+                            </>
+                          )}
                         </View>
                       </Pressable>
                     )
@@ -520,8 +662,8 @@ export default function PromoteScreen() {
             </View>
           )}
 
-          {/* Step: method — iOS hides paid entry (App Store §3.1.1) */}
-          {step === 'method' && bundle && PAID_UI_ENABLED && (
+          {/* Step: method — iOS shows Apple IAP only (App Store §3.1.1) */}
+          {step === 'method' && bundle && PROMOTION_UI_ENABLED && (
             <View style={styles.card}>
               <Pressable
                 onPress={back}
@@ -557,10 +699,28 @@ export default function PromoteScreen() {
                   </Text>
                 </View>
                 <View style={styles.bundlePrice}>
-                  <Text style={styles.bundlePriceValue}>
-                    {fmt(bundle.price)}
-                  </Text>
-                  <Text style={styles.bundlePriceCurrency}>{currency}</Text>
+                  {(() => {
+                    const iosSku =
+                      IS_IOS && (bundle.productCount === 1 || bundle.productCount === 3 || bundle.productCount === 5)
+                        ? promotionSkuForCount(bundle.productCount)
+                        : null
+                    const iosDisplay = iosSku
+                      ? (iosPriceMap[iosSku] ?? iosFallbackDisplayPrice(iosSku))
+                      : undefined
+                    if (iosDisplay) {
+                      return (
+                        <Text style={styles.bundlePriceValue}>{iosDisplay}</Text>
+                      )
+                    }
+                    return (
+                      <>
+                        <Text style={styles.bundlePriceValue}>
+                          {fmt(bundle.price)}
+                        </Text>
+                        <Text style={styles.bundlePriceCurrency}>{currency}</Text>
+                      </>
+                    )
+                  })()}
                 </View>
               </View>
 
@@ -571,39 +731,58 @@ export default function PromoteScreen() {
               </View>
 
               <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-                {paySettings.instapayEnabled && (
+                {IS_IOS ? (
+                  // App Store §3.1.1: iOS shows Apple IAP as the sole external
+                  // checkout path for promo bundles. InstaPay + mobile wallet are
+                  // hidden here — wallet balance stays available below.
                   <MethodCard
-                    icon="phone-portrait"
-                    color={'#7B2FBE'}
-                    bg={'#F5EDFA'}
-                    title={ar ? 'انستاباي' : 'InstaPay'}
+                    icon="logo-apple"
+                    color={colors.dk}
+                    bg={colors.g100}
+                    title={ar ? 'الدفع عبر Apple' : 'Pay with Apple'}
                     subtitle={
-                      ar ? 'تحويل بنكي مع إيصال' : 'Bank transfer with receipt'
+                      ar ? 'App Store · شراء آمن' : 'App Store · Secure purchase'
                     }
-                    onPress={() => {
-                      setStep('instapay')
-                      setError('')
-                    }}
+                    onPress={handleAppleIapPurchase}
                     disabled={loading}
                   />
-                )}
-                {paySettings.mobileWalletEnabled && (
-                  <MethodCard
-                    icon="phone-portrait-outline"
-                    color={'#10b981'}
-                    bg={'#ECFDF5'}
-                    title={ar ? 'محفظة موبايل' : 'Mobile Wallet'}
-                    subtitle={
-                      ar
-                        ? 'تحويل من محفظة الموبايل مع إيصال'
-                        : 'Mobile wallet transfer with receipt'
-                    }
-                    onPress={() => {
-                      setStep('mobile-wallet')
-                      setError('')
-                    }}
-                    disabled={loading}
-                  />
+                ) : (
+                  <>
+                    {paySettings.instapayEnabled && (
+                      <MethodCard
+                        icon="phone-portrait"
+                        color={'#7B2FBE'}
+                        bg={'#F5EDFA'}
+                        title={ar ? 'انستاباي' : 'InstaPay'}
+                        subtitle={
+                          ar ? 'تحويل بنكي مع إيصال' : 'Bank transfer with receipt'
+                        }
+                        onPress={() => {
+                          setStep('instapay')
+                          setError('')
+                        }}
+                        disabled={loading}
+                      />
+                    )}
+                    {paySettings.mobileWalletEnabled && (
+                      <MethodCard
+                        icon="phone-portrait-outline"
+                        color={'#10b981'}
+                        bg={'#ECFDF5'}
+                        title={ar ? 'محفظة موبايل' : 'Mobile Wallet'}
+                        subtitle={
+                          ar
+                            ? 'تحويل من محفظة الموبايل مع إيصال'
+                            : 'Mobile wallet transfer with receipt'
+                        }
+                        onPress={() => {
+                          setStep('mobile-wallet')
+                          setError('')
+                        }}
+                        disabled={loading}
+                      />
+                    )}
+                  </>
                 )}
                 <MethodCard
                   icon="wallet"
@@ -797,6 +976,58 @@ export default function PromoteScreen() {
                   setPhone('')
                 }}
                 style={{ marginTop: spacing.md, alignSelf: 'stretch' }}
+              />
+            </View>
+          )}
+
+          {/* Step: apple-iap — loading while StoreKit sheet is up */}
+          {step === 'apple-iap' && (
+            <View style={[styles.card, styles.doneCard]}>
+              <ActivityIndicator color={colors.dk} />
+              <Text style={[styles.doneTitle, { marginTop: spacing.md }]}>
+                {ar ? 'جارٍ الاتصال بـ App Store...' : 'Connecting to App Store...'}
+              </Text>
+              <Text style={styles.doneBody}>
+                {ar
+                  ? 'أكمل عملية الشراء في نافذة Apple.'
+                  : 'Complete the purchase in the Apple sheet.'}
+              </Text>
+              {error ? <ErrorBox text={error} /> : null}
+            </View>
+          )}
+
+          {/* Step: apple-iap-done */}
+          {step === 'apple-iap-done' && (
+            <View style={[styles.card, styles.doneCard]}>
+              <View style={styles.doneIconWrap}>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={56}
+                  color={colors.green}
+                />
+              </View>
+              <Text style={styles.doneTitle}>
+                {ar ? 'تم الدفع بنجاح!' : 'Payment Successful!'}
+              </Text>
+              <Text style={styles.doneBody}>
+                {ar
+                  ? 'تم تفعيل الباقة على حسابك.'
+                  : 'Your bundle has been activated.'}
+              </Text>
+              <Button
+                label={ar ? 'ابدأ الترويج' : 'Start Promoting'}
+                variant="cta"
+                onPress={() => router.push('/dashboard/my-ads')}
+                style={{ marginTop: spacing.md, alignSelf: 'stretch' }}
+              />
+              <Button
+                label={ar ? 'العودة للباقات' : 'Back to Bundles'}
+                variant="ghost"
+                onPress={() => {
+                  setSelected(null)
+                  setStep('pick')
+                }}
+                style={{ marginTop: spacing.xs, alignSelf: 'stretch' }}
               />
             </View>
           )}

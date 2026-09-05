@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Modal,
@@ -13,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
+import type { EventSubscription, Purchase, PurchaseError } from 'react-native-iap'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
@@ -30,7 +32,24 @@ import { FileUpload } from '@/components/ui/FileUpload'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
-import { PAID_UI_ENABLED } from '@/lib/platform'
+import { IS_IOS } from '@/lib/platform'
+import {
+  addPurchaseErrorListener,
+  addPurchaseUpdatedListener,
+  endIap,
+  fetchIosProducts,
+  finishIosPurchase,
+  getIosJws,
+  initIap,
+  requestIosPurchase,
+} from '@/lib/iap'
+import {
+  SUBSCRIPTION_SKUS,
+  getIapProduct,
+  iosFallbackDisplayPrice,
+  subscriptionSkuForStoreType,
+} from '@/lib/iap-products'
+import { finalizePaymentSuccess, verifyIapPurchase } from '@/lib/payment'
 
 // Mirrors vatix_website/components/upgrade-modal.tsx
 // Three modes × multi-step flow:
@@ -53,6 +72,8 @@ type Step =
   | 'mobile-wallet-done'
   | 'wallet'
   | 'wallet-done'
+  | 'apple-iap'
+  | 'apple-iap-done'
 
 interface Props {
   visible: boolean
@@ -117,6 +138,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   const [plans, setPlans] = useState<PlanData[]>([])
   const [settings, setSettings] = useState<SiteSettings | null>(null)
   const [wallet, setWallet] = useState<WalletBalance | null>(null)
+  // StoreKit-formatted prices keyed by SKU. iOS-only; empty on Android/web.
+  // Sourced from App Store Connect so Apple's 30% commission gross-up is
+  // reflected without duplicating the pricing table in the client.
+  const [iosPriceMap, setIosPriceMap] = useState<Record<string, string>>({})
 
   // Store-info form — storeType is fully determined by mode (which CTA was tapped);
   // no in-modal selector.
@@ -158,6 +183,19 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       setPlans(p)
       setSettings(s)
       setWallet(w)
+      if (IS_IOS) {
+        try {
+          const products = await fetchIosProducts(SUBSCRIPTION_SKUS, 'subs')
+          if (!live) return
+          const map: Record<string, string> = {}
+          for (const prod of products) {
+            if (prod?.id && prod?.displayPrice) map[prod.id] = prod.displayPrice
+          }
+          setIosPriceMap(map)
+        } catch {
+          // StoreKit unreachable (sandbox/network) — fall back to backend price.
+        }
+      }
     })()
     return () => {
       live = false
@@ -177,6 +215,15 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   }, [plans, selectedType])
 
   const walletBalance = wallet?.balance ?? null
+
+  // On iOS, prefer the StoreKit-formatted price for the selected plan. Falls
+  // back to the grossed-up App Store Connect tier (999 / 1699 EGP) when
+  // StoreKit is unreachable (Expo Go, dev, offline) so the UI never shows the
+  // pre-commission backend price on an iOS build.
+  const iosDisplayPrice = IS_IOS
+    ? (iosPriceMap[subscriptionSkuForStoreType(storeType)] ??
+      iosFallbackDisplayPrice(subscriptionSkuForStoreType(storeType)))
+    : undefined
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -297,20 +344,97 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
     }
   }
 
+  // App Store §3.1.1: iOS subscriptions must use Apple IAP. Flow:
+  //   1. init StoreKit  2. fetch product  3. requestPurchase (fire-and-forget)
+  //   4. resolve via purchaseUpdatedListener  5. extract JWS
+  //   6. POST /payments/iap/verify with store metadata
+  //   7. finishTransaction (ONLY after backend verify succeeds — finishing
+  //      earlier loses the transaction if the server call fails)
+  //   8. refresh session + user profile.
+  // User-cancels (ErrorCode.UserCancelled == "user-cancelled") return silently to pay-method.
+  async function handleAppleIapPurchase() {
+    if (needsStoreCreation && !storeName.trim()) {
+      setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
+      return
+    }
+    const sku = subscriptionSkuForStoreType(storeType)
+    const product = getIapProduct(sku)
+    if (!product) {
+      setErr(ar ? 'المنتج غير متاح' : 'Product unavailable')
+      return
+    }
+
+    setErr('')
+    setStep('apple-iap')
+    setBusy(true)
+
+    // Object wrapper avoids TS control-flow narrowing `let` closure-captured
+    // subscriptions to `never` in the `finally` block.
+    const subs: { updated: EventSubscription | null; error: EventSubscription | null } = {
+      updated: null,
+      error: null,
+    }
+    let cancelled = false
+
+    try {
+      await initIap()
+      await fetchIosProducts([sku], product.type)
+
+      const purchase = await new Promise<Purchase>((resolve, reject) => {
+        subs.updated = addPurchaseUpdatedListener(p => {
+          if (p.productId === sku) resolve(p)
+        })
+        subs.error = addPurchaseErrorListener((e: PurchaseError) => {
+          if (e.code === 'user-cancelled' || /cancel/i.test(e.message ?? '')) {
+            cancelled = true
+            reject(new Error('__CANCELLED__'))
+            return
+          }
+          reject(new Error(e.message || 'Purchase failed'))
+        })
+        requestIosPurchase(sku, product.type).catch(reject)
+      })
+
+      const jws = await getIosJws(purchase)
+      if (!jws) {
+        throw new Error(ar ? 'تعذر التحقق من العملية' : 'Could not verify transaction')
+      }
+
+      await verifyIapPurchase({
+        signedTransaction: jws,
+        metadata: buildStoreMetadata(),
+      })
+
+      await finishIosPurchase(purchase, product.isConsumable)
+      await finalizePaymentSuccess()
+      await refetchUser()
+
+      setStep('apple-iap-done')
+    } catch (e: unknown) {
+      if (cancelled) {
+        setStep('pay-method')
+      } else {
+        setErr(authErrorMessage(e, t))
+        setStep('pay-method')
+      }
+    } finally {
+      subs.updated?.remove()
+      subs.error?.remove()
+      await endIap()
+      setBusy(false)
+    }
+  }
+
   // ─── Title ─────────────────────────────────────────────────────────────────
 
   const currencyLabel = ar ? 'ج.م' : 'EGP'
-  const priceLabel = `${selectedPlan.amount} ${currencyLabel}`
+  const priceLabel = iosDisplayPrice ?? `${selectedPlan.amount} ${currencyLabel}`
   const title =
     mode === 'cancel-store'
       ? t.cancelStore
       : mode === 'upgrade-to-plus'
         ? `${t.upgradeToStorePlus} · ${priceLabel}`
         : `${t.upgradeToStore} · ${priceLabel}`
-
-  // App Store §3.1.1: iOS may only render cancel-store; all paid subscription
-  // flows (upgrade-to-store, upgrade-to-plus) require Apple IAP and are blocked.
-  if (!PAID_UI_ENABLED && mode !== 'cancel-store') return null
 
   return (
     <Modal
@@ -364,6 +488,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
                   cover={cover}
                   onCoverChange={setCover}
                   price={selectedPlan.amount}
+                  iosDisplayPrice={iosDisplayPrice}
                   err={err}
                   busy={busy}
                   onBack={onClose}
@@ -379,6 +504,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
               ) : step === 'pay-method' ? (
                 <PayMethodPanel
                   price={selectedPlan.amount}
+                  iosDisplayPrice={iosDisplayPrice}
                   settings={settings}
                   walletBalance={walletBalance}
                   err={err}
@@ -400,6 +526,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
                     setErr('')
                     setStep('wallet')
                   }}
+                  onPickAppleIap={handleAppleIapPurchase}
                 />
               ) : step === 'instapay' ? (
                 <InstapayPanel
@@ -450,6 +577,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
               ) : step === 'wallet' ? (
                 <WalletPanel
                   price={selectedPlan.amount}
+                  iosDisplayPrice={iosDisplayPrice}
                   walletBalance={walletBalance}
                   err={err}
                   busy={busy}
@@ -457,6 +585,18 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
                   onPay={handleWalletPayment}
                 />
               ) : step === 'wallet-done' ? (
+                <DonePanel
+                  title={t.paymentSuccess}
+                  body={t.paymentSuccessBody}
+                  onClose={() => {
+                    onSuccess?.()
+                    onClose()
+                  }}
+                  ctaLabel={t.continueToStore}
+                />
+              ) : step === 'apple-iap' ? (
+                <AppleIapPanel err={err} />
+              ) : step === 'apple-iap-done' ? (
                 <DonePanel
                   title={t.paymentSuccess}
                   body={t.paymentSuccessBody}
@@ -500,6 +640,7 @@ function StoreInfoPanel(props: {
   cover: string
   onCoverChange: (v: string) => void
   price: number
+  iosDisplayPrice?: string
   err: string
   busy: boolean
   onBack: () => void
@@ -545,7 +686,8 @@ function StoreInfoPanel(props: {
           <Text style={[styles.priceLabel, dirStyle]}>{t.planCost}</Text>
         </View>
         <Text style={styles.priceValue}>
-          {props.price} {ar ? 'ج.م' : 'EGP'} <Text style={styles.priceUnit}>/{t.monthlyBilling}</Text>
+          {props.iosDisplayPrice ?? `${props.price} ${ar ? 'ج.م' : 'EGP'}`}{' '}
+          <Text style={styles.priceUnit}>/{t.monthlyBilling}</Text>
         </Text>
       </View>
 
@@ -577,6 +719,7 @@ function StoreInfoPanel(props: {
 
 function PayMethodPanel(props: {
   price: number
+  iosDisplayPrice?: string
   settings: SiteSettings | null
   walletBalance: number | null
   err: string
@@ -587,6 +730,7 @@ function PayMethodPanel(props: {
   onPickInstapay: () => void
   onPickMobileWallet: () => void
   onPickWallet: () => void
+  onPickAppleIap: () => void
 }) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
@@ -606,33 +750,48 @@ function PayMethodPanel(props: {
           <Text style={[styles.priceLabel, dirStyle]}>{t.planCost}</Text>
         </View>
         <Text style={styles.priceValue}>
-          {price} {ar ? 'ج.م' : 'EGP'}
+          {props.iosDisplayPrice ?? `${price} ${ar ? 'ج.م' : 'EGP'}`}
         </Text>
       </View>
 
       <View style={styles.methodList}>
-        {instapayOn ? (
+        {IS_IOS ? (
+          // App Store §3.1.1: iOS shows Apple IAP as the sole external-checkout
+          // path for digital goods. InstaPay + mobile wallet are hidden here.
           <MethodCard
-            icon="phone-portrait-outline"
-            iconColor={'#7B2FBE'}
-            title={t.payWithInstapay}
-            subtitle={ar ? 'تحويل يدوي + إثبات' : 'Manual transfer + proof'}
-            onPress={props.onPickInstapay}
+            icon="logo-apple"
+            iconColor={colors.dk}
+            title={ar ? 'الدفع عبر Apple' : 'Pay with Apple'}
+            subtitle={ar ? 'App Store · اشتراك آمن' : 'App Store · Secure subscription'}
+            onPress={props.onPickAppleIap}
             disabled={props.busy}
-            gradientBg
           />
-        ) : null}
-        {mobileWalletOn ? (
-          <MethodCard
-            icon="phone-portrait-outline"
-            iconColor={'#059669'}
-            title={t.payWithMobileWallet}
-            subtitle={ar ? 'تحويل يدوي + إثبات' : 'Manual transfer + proof'}
-            onPress={props.onPickMobileWallet}
-            disabled={props.busy}
-            mobileWalletBg
-          />
-        ) : null}
+        ) : (
+          <>
+            {instapayOn ? (
+              <MethodCard
+                icon="phone-portrait-outline"
+                iconColor={'#7B2FBE'}
+                title={t.payWithInstapay}
+                subtitle={ar ? 'تحويل يدوي + إثبات' : 'Manual transfer + proof'}
+                onPress={props.onPickInstapay}
+                disabled={props.busy}
+                gradientBg
+              />
+            ) : null}
+            {mobileWalletOn ? (
+              <MethodCard
+                icon="phone-portrait-outline"
+                iconColor={'#059669'}
+                title={t.payWithMobileWallet}
+                subtitle={ar ? 'تحويل يدوي + إثبات' : 'Manual transfer + proof'}
+                onPress={props.onPickMobileWallet}
+                disabled={props.busy}
+                mobileWalletBg
+              />
+            ) : null}
+          </>
+        )}
         <MethodCard
           icon="wallet-outline"
           iconColor={colors.y}
@@ -872,6 +1031,7 @@ function MobileWalletPanel(props: {
 
 function WalletPanel(props: {
   price: number
+  iosDisplayPrice?: string
   walletBalance: number | null
   err: string
   busy: boolean
@@ -900,7 +1060,7 @@ function WalletPanel(props: {
           <Text style={[styles.detailLabel, dirStyle]}>{t.planCost}</Text>
         </View>
         <Text style={styles.detailValue}>
-          {price} {ar ? 'ج.م' : 'EGP'}
+          {props.iosDisplayPrice ?? `${price} ${ar ? 'ج.م' : 'EGP'}`}
         </Text>
       </View>
 
@@ -936,6 +1096,24 @@ function WalletPanel(props: {
           />
         </View>
       </View>
+    </View>
+  )
+}
+
+function AppleIapPanel({ err }: { err: string }) {
+  const { ar, colDir, dirStyle } = useDir()
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
+      <ActivityIndicator size="large" color={colors.dk} />
+      <View style={[colDir, { marginTop: spacing.md, alignSelf: 'stretch' }]}>
+        <Text style={[styles.stepHeading, dirStyle, { textAlign: 'center' }]}>
+          {ar ? 'جارٍ الاتصال بـ App Store...' : 'Connecting to App Store...'}
+        </Text>
+        <Text style={[styles.helpText, dirStyle, { textAlign: 'center' }]}>
+          {ar ? 'أكمل عملية الشراء في نافذة Apple' : 'Complete the purchase in the Apple dialog'}
+        </Text>
+      </View>
+      <ErrorBox err={err} />
     </View>
   )
 }

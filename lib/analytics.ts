@@ -1,14 +1,16 @@
+import { Platform } from 'react-native'
+
 const API = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
+const CLIENT_PLATFORM = Platform.OS
 
 let visitCounted = false
 
-// Backend distinguishes web vs mobile traffic via X-Client-Platform (only the
-// literals 'web' | 'mobile' are accepted; anything else is stored as NULL).
-// Merge it into every tracking request so ProductView / StoreView / search /
-// homepage-view rows are attributed to the mobile client.
+// Backend distinguishes traffic via X-Client-Platform ('ios' | 'android' | 'web').
+// iOS gating for IAP-only payment methods keys off the same header, so it must
+// reflect the actual device OS — not a generic 'mobile' literal.
 function fireAndForget(url: string, init?: RequestInit) {
   const headers: Record<string, string> = {
-    'X-Client-Platform': 'mobile',
+    'X-Client-Platform': CLIENT_PLATFORM,
     ...((init?.headers as Record<string, string> | undefined) ?? {}),
   }
   fetch(url, { ...init, headers }).catch(() => {

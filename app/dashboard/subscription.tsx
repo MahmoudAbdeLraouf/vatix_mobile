@@ -14,7 +14,7 @@ import {
   SubStatus,
   WalletBalance,
 } from '@/lib/api'
-import { PAID_UI_ENABLED } from '@/lib/platform'
+import { PAID_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 export default function SubscriptionScreen() {
@@ -178,8 +178,8 @@ export default function SubscriptionScreen() {
                       : `${fmt(daysLeft)} ${t.daysLeftLabel}`}
                   </Text>
                 </View>
-                {/* Renew — iOS hides paid entry (App Store §3.1.1) */}
-                {PAID_UI_ENABLED && (
+                {/* Renew — iOS routes through Apple IAP inside the modal */}
+                {SUBSCRIPTION_UI_ENABLED && (
                   <Pressable
                     onPress={() => setModal('upgrade-to-plus')}
                     style={({ pressed }) => [
@@ -265,8 +265,8 @@ export default function SubscriptionScreen() {
           </View>
           )}
 
-          {/* Upgrade CTAs — iOS hides paid entries (App Store §3.1.1) */}
-          {isClient && PAID_UI_ENABLED && (
+          {/* Upgrade CTAs — iOS routes through Apple IAP inside the modal */}
+          {isClient && SUBSCRIPTION_UI_ENABLED && (
             <>
               <Pressable
                 style={({ pressed }) => [
@@ -322,7 +322,7 @@ export default function SubscriptionScreen() {
             </>
           )}
 
-          {isStore && PAID_UI_ENABLED && (
+          {isStore && SUBSCRIPTION_UI_ENABLED && (
             <Pressable
               style={({ pressed }) => [
                 styles.actionCard,

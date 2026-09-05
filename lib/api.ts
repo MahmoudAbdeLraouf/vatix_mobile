@@ -1,7 +1,9 @@
+import { Platform } from 'react-native'
 import { AUTH_ERR } from '@/lib/auth'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 const MINIO_PUBLIC = process.env.EXPO_PUBLIC_MINIO_URL ?? 'http://localhost:9000'
+const CLIENT_PLATFORM = Platform.OS
 
 // eslint-disable-next-line no-console
 console.log('[api] BASE=', BASE, 'MINIO=', MINIO_PUBLIC)
@@ -262,7 +264,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       ...init,
       headers: {
         'Content-Type': 'application/json',
-        'X-Client-Platform': 'mobile',
+        'X-Client-Platform': CLIENT_PLATFORM,
         ...(init?.headers as Record<string, string> | undefined),
       },
     })
@@ -475,7 +477,7 @@ export async function uploadPublic(
   const res = await fetch(`${BASE}/uploads/public`, {
     method: 'POST',
     body: form,
-    headers: { 'X-Client-Platform': 'mobile' },
+    headers: { 'X-Client-Platform': CLIENT_PLATFORM },
   })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))

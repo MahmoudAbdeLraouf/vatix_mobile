@@ -23,7 +23,7 @@ import {
   type SiteSettings,
 } from '@/lib/api'
 import { authDelete, authErrorMessage, authFetch, authPost } from '@/lib/auth'
-import { PAID_UI_ENABLED } from '@/lib/platform'
+import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED } from '@/lib/platform'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -133,7 +133,12 @@ export default function MyAdsScreen() {
       await authPost(`/payments/promo-credits/apply/${p.id}`, {})
       load()
     } catch {
-      setNoCreditsProduct(p)
+      // iOS: route to Apple-IAP-wired promote screen (no InstaPay modal on iOS).
+      if (IS_IOS) {
+        goPromote(p.id)
+      } else {
+        setNoCreditsProduct(p)
+      }
     } finally {
       setBoostingId(null)
     }
@@ -695,8 +700,8 @@ function ProductRow({
       </View>
 
       <View style={[styles.actions, dirContainer]}>
-        {/* Boost — iOS hides paid entry (App Store §3.1.1) */}
-        {!isPromoted && PAID_UI_ENABLED && (
+        {/* Boost — iOS uses Apple IAP via /dashboard/promote when credits are 0. */}
+        {!isPromoted && PROMOTION_UI_ENABLED && (
           <Pressable
             onPress={onBoost}
             disabled={boosting}

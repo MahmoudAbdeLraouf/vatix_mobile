@@ -1,7 +1,12 @@
+import { Platform } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import type { Translations } from '@/lib/i18n'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
+
+// Backend `RequestPlatformHeader` decorator expects `ios | android | web | unknown`.
+// Platform.OS returns `ios` or `android` on device, so it maps directly.
+const CLIENT_PLATFORM = Platform.OS
 
 // Error codes thrown from this module. UI layer should translate via
 // authErrorMessage(err, t) since this module has no locale context.
@@ -215,7 +220,7 @@ async function _doRefresh(): Promise<boolean> {
   try {
     const res = await fetch(`${BASE}/auth/refresh-token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Client-Platform': 'mobile' },
+      headers: { 'Content-Type': 'application/json', 'X-Client-Platform': CLIENT_PLATFORM },
       body: JSON.stringify({ refreshToken }),
     })
     if (!res.ok) return false
@@ -250,7 +255,7 @@ export async function authFetch<T>(path: string, init?: RequestInit): Promise<T 
       ...init,
       headers: {
         'Content-Type': 'application/json',
-        'X-Client-Platform': 'mobile',
+        'X-Client-Platform': CLIENT_PLATFORM,
         Authorization: `Bearer ${token}`,
         ...(init?.headers as Record<string, string> | undefined),
       },
@@ -281,7 +286,7 @@ export async function authPost<T>(path: string, body: unknown): Promise<T> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Client-Platform': 'mobile',
+      'X-Client-Platform': CLIENT_PLATFORM,
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(body),
@@ -314,7 +319,7 @@ export async function authPatch<T>(path: string, body: unknown): Promise<T> {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      'X-Client-Platform': 'mobile',
+      'X-Client-Platform': CLIENT_PLATFORM,
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(body),
@@ -345,7 +350,7 @@ export async function authDelete(path: string, body?: unknown): Promise<boolean>
   }
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
-    'X-Client-Platform': 'mobile',
+    'X-Client-Platform': CLIENT_PLATFORM,
   }
   const init: RequestInit = { method: 'DELETE', headers }
   if (body !== undefined) {
@@ -374,7 +379,7 @@ export async function authDeleteJson<T>(path: string, body?: unknown): Promise<T
   }
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
-    'X-Client-Platform': 'mobile',
+    'X-Client-Platform': CLIENT_PLATFORM,
   }
   const init: RequestInit = { method: 'DELETE', headers }
   if (body !== undefined) {
@@ -411,7 +416,7 @@ export async function deleteAccount(password: string): Promise<void> {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
-      'X-Client-Platform': 'mobile',
+      'X-Client-Platform': CLIENT_PLATFORM,
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ password }),
@@ -443,7 +448,7 @@ export async function authUploadFile(localUri: string, mimeType = 'image/jpeg'):
   try {
     const res = await fetch(`${BASE}/user/upload`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'X-Client-Platform': 'mobile' },
+      headers: { Authorization: `Bearer ${token}`, 'X-Client-Platform': CLIENT_PLATFORM },
       body: formData,
     })
     if (!res.ok) return null

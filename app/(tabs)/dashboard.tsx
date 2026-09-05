@@ -9,7 +9,7 @@ import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDia
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
-import { PAID_UI_ENABLED } from '@/lib/platform'
+import { PAID_UI_ENABLED, PROMOTION_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import type { Analytics, FavoriteProduct, Product, PromoInfo, UserProfile, WalletBalance } from '@/lib/api'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
@@ -51,7 +51,7 @@ export default function DashboardScreen() {
         authFetch<UserProfile>('/user/profile'),
         authFetch<{ count: number }>('/conversations/unread-count'),
         PAID_UI_ENABLED ? authFetch<WalletBalance>('/payments/wallet/balance') : Promise.resolve(null),
-        PAID_UI_ENABLED ? authFetch<PromoInfo>('/payments/promo-credits') : Promise.resolve(null),
+        PROMOTION_UI_ENABLED ? authFetch<PromoInfo>('/payments/promo-credits') : Promise.resolve(null),
         authFetch<Analytics>('/user/analytics'),
       ])
       if (cancelled) return
@@ -144,7 +144,7 @@ export default function DashboardScreen() {
             onPress={() => router.push('/dashboard/wallet')}
           />
         )}
-        {PAID_UI_ENABLED && (
+        {PROMOTION_UI_ENABLED && (
           <StatTile
             value={promoCredits}
             label={t.promote}
@@ -174,8 +174,8 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      {/* Client → Store upgrade — iOS hides paid surfaces (App Store §3.1.1) */}
-      {isClient && PAID_UI_ENABLED && (
+      {/* Client → Store upgrade — iOS pays via Apple IAP, Android/web via InstaPay */}
+      {isClient && SUBSCRIPTION_UI_ENABLED && (
         <UpgradeBanner
           variant="store"
           icon="storefront"
@@ -193,8 +193,8 @@ export default function DashboardScreen() {
         />
       )}
 
-      {/* Store → Store Plus upgrade — iOS hides paid surfaces (App Store §3.1.1) */}
-      {isStore && PAID_UI_ENABLED && (
+      {/* Store → Store Plus upgrade — iOS pays via Apple IAP, Android/web via InstaPay */}
+      {isStore && SUBSCRIPTION_UI_ENABLED && (
         <UpgradeBanner
           variant="plus"
           icon="diamond"
@@ -224,8 +224,8 @@ export default function DashboardScreen() {
               <Text style={styles.plusSub}>{t.storePlusActiveSub}</Text>
             </View>
           </View>
-          {/* Manage subscription — iOS hides paid entry (App Store §3.1.1) */}
-          {PAID_UI_ENABLED && (
+          {/* Manage subscription — iOS uses Apple IAP, Android/web uses InstaPay/wallet */}
+          {SUBSCRIPTION_UI_ENABLED && (
             <Pressable
               onPress={() => router.push('/dashboard/subscription')}
               style={({ pressed }) => [styles.plusCta, pressed && { opacity: 0.8 }]}
@@ -241,7 +241,7 @@ export default function DashboardScreen() {
         visible={showAddProductDialog}
         onClose={() => setShowAddProductDialog(false)}
       />
-      {expiringEndsAt && PAID_UI_ENABLED && (
+      {expiringEndsAt && SUBSCRIPTION_UI_ENABLED && (
         <SubscriptionExpiringDialog
           visible={showExpiringDialog}
           onClose={() => setShowExpiringDialog(false)}

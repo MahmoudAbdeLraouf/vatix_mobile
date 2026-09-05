@@ -9,7 +9,11 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type PaymentContext = 'subscription' | 'promotion' | 'wallet_topup'
-export type PaymentMethodChoice = 'instapay' | 'wallet' | 'mobile_wallet'
+export type PaymentMethodChoice =
+  | 'instapay'
+  | 'wallet'
+  | 'mobile_wallet'
+  | 'apple_iap'
 export type SubscriptionType = 'subscription_store' | 'subscription_store_plus'
 
 // ─── InstaPay initiators ──────────────────────────────────────────────────────
@@ -77,6 +81,31 @@ export function payWithWalletForPromotion(input: {
   bundleId: number
 }): Promise<{ paymentId: number; status: string }> {
   return authPost('/payments/promotions/wallet', input)
+}
+
+// ─── Apple IAP (iOS) ──────────────────────────────────────────────────────────
+
+export interface IapVerifyResult {
+  id: number
+  status: string
+  type: string
+  method: string
+  amount: number
+}
+
+export function verifyIapPurchase(input: {
+  signedTransaction: string
+  metadata?: Record<string, unknown>
+}): Promise<IapVerifyResult> {
+  return authPost('/payments/iap/verify', input)
+}
+
+// ─── Payment methods discovery ────────────────────────────────────────────────
+
+export function fetchAvailablePaymentMethods(
+  context: PaymentContext,
+): Promise<{ methods: PaymentMethodChoice[] } | null> {
+  return authFetch(`/payments/methods?context=${context}`)
 }
 
 // ─── Post-success cleanup ─────────────────────────────────────────────────────

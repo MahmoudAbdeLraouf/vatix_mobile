@@ -1,0 +1,112 @@
+import { Platform } from 'react-native'
+import Constants from 'expo-constants'
+import type {
+  EventSubscription,
+  Product,
+  ProductSubscription,
+  Purchase,
+  PurchaseError,
+} from 'react-native-iap'
+
+// StoreKit 2 wrapper — iOS only. Per the locked payment matrix, IAP is the sole
+// digital-goods path on iOS; Android/web use InstaPay / mobile wallet / balance.
+// All calls on non-iOS or inside Expo Go return safe no-ops so this module can
+// be imported freely. `react-native-iap` uses NitroModules which crash on load
+// inside Expo Go, so the native module is required lazily (never at top level).
+
+const IS_IOS = Platform.OS === 'ios'
+const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient'
+const IAP_AVAILABLE = IS_IOS && !IS_EXPO_GO
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function loadIap(): any | null {
+  if (!IAP_AVAILABLE) return null
+  // Lazy require so Expo Go / Android never touch the native NitroModule.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require('react-native-iap')
+}
+
+export type IosProductType = 'in-app' | 'subs'
+
+export async function initIap(): Promise<boolean> {
+  const iap = loadIap()
+  if (!iap) return false
+  try {
+    await iap.initConnection()
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function endIap(): Promise<void> {
+  const iap = loadIap()
+  if (!iap) return
+  try {
+    await iap.endConnection()
+  } catch {
+    // ignore — cleanup only
+  }
+}
+
+export async function fetchIosProducts(
+  skus: string[],
+  type: IosProductType,
+): Promise<(Product | ProductSubscription)[]> {
+  const iap = loadIap()
+  if (!iap || skus.length === 0) return []
+  const res = await iap.fetchProducts({ skus, type })
+  return (res ?? []) as (Product | ProductSubscription)[]
+}
+
+// Event-based: resolution arrives via purchaseUpdatedListener / purchaseErrorListener.
+export async function requestIosPurchase(sku: string, type: IosProductType): Promise<void> {
+  const iap = loadIap()
+  if (!iap) return
+  if (type === 'subs') {
+    await iap.requestPurchase({ request: { apple: { sku } }, type: 'subs' })
+  } else {
+    await iap.requestPurchase({ request: { apple: { sku } }, type: 'in-app' })
+  }
+}
+
+// Call ONLY after backend has verified the JWS. Finishing before verification
+// loses the transaction if the server call fails.
+export async function finishIosPurchase(purchase: Purchase, isConsumable: boolean): Promise<void> {
+  const iap = loadIap()
+  if (!iap) return
+  await iap.finishTransaction({ purchase, isConsumable })
+}
+
+export async function restoreIosPurchases(): Promise<void> {
+  const iap = loadIap()
+  if (!iap) return
+  await iap.restorePurchases()
+}
+
+// StoreKit 2 JWS payload for backend verification.
+// `purchase.purchaseToken` is the unified field that carries the JWS on iOS;
+// `getTransactionJwsIOS` is the explicit fallback if the listener payload is empty.
+export async function getIosJws(purchase: Purchase): Promise<string | null> {
+  const iap = loadIap()
+  if (!iap) return null
+  if (purchase.purchaseToken) return purchase.purchaseToken
+  const jws = await iap.getTransactionJwsIOS(purchase.productId)
+  return jws ?? null
+}
+
+export function addPurchaseUpdatedListener(
+  cb: (purchase: Purchase) => void,
+): EventSubscription | null {
+  const iap = loadIap()
+  if (!iap) return null
+  return iap.purchaseUpdatedListener(cb)
+}
+
+export function addPurchaseErrorListener(
+  cb: (error: PurchaseError) => void,
+): EventSubscription | null {
+  const iap = loadIap()
+  if (!iap) return null
+  return iap.purchaseErrorListener(cb)
+}

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vatix",
     "slug": "vatix_mobile",
-    "version": "1.2.3",
+    "version": "1.3.0",
     "scheme": "vatix",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -62,7 +62,8 @@
           "organization": "vatix",
           "project": "vatix-mobile"
         }
-      ]
+      ],
+      "react-native-iap"
     ],
     "extra": {
       "router": {},
