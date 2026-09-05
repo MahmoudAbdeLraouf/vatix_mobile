@@ -581,14 +581,30 @@ export function checkOtp(phone: string, code: string): Promise<{ verified: boole
   return apiFetch('/auth/verify/check', { method: 'POST', body: JSON.stringify({ phone, code }) })
 }
 
-export function resetPassword(
+export function forgotPasswordSend(phone: string): Promise<{ success: boolean }> {
+  return apiFetch('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ phone }),
+  })
+}
+
+export function forgotPasswordVerify(
   phone: string,
   code: string,
+): Promise<{ success: boolean }> {
+  return apiFetch('/auth/forgot-password/verify', {
+    method: 'POST',
+    body: JSON.stringify({ phone, code }),
+  })
+}
+
+export function forgotPasswordReset(
+  phone: string,
   newPassword: string,
 ): Promise<{ success: boolean }> {
-  return apiFetch('/auth/reset-password', {
+  return apiFetch('/auth/forgot-password/reset', {
     method: 'POST',
-    body: JSON.stringify({ phone, code, newPassword }),
+    body: JSON.stringify({ phone, newPassword }),
   })
 }
 

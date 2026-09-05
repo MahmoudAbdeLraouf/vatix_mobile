@@ -11,7 +11,7 @@ import {
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
-import { sendOtp, resetPassword } from '@/lib/api'
+import { forgotPasswordSend, forgotPasswordVerify, forgotPasswordReset } from '@/lib/api'
 import { authErrorMessage } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -44,7 +44,7 @@ export default function ForgotScreen() {
     if (!phone.trim()) { setError(t.requiredField); return }
     setLoading(true)
     try {
-      await sendOtp(phone.trim())
+      await forgotPasswordSend(phone.trim())
       setStep('otp')
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
@@ -55,8 +55,16 @@ export default function ForgotScreen() {
 
   async function handleVerifyOtp() {
     setError('')
-    if (code.length < 4) { setError(t.requiredField); return }
-    setStep('password')
+    if (!/^\d{6}$/.test(code)) { setError(t.requiredField); return }
+    setLoading(true)
+    try {
+      await forgotPasswordVerify(phone.trim(), code)
+      setStep('password')
+    } catch (e: unknown) {
+      setError(authErrorMessage(e, t))
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleReset() {
@@ -67,7 +75,7 @@ export default function ForgotScreen() {
     if (newPassword !== confirmPassword) { setError(t.passwordMismatch); return }
     setLoading(true)
     try {
-      await resetPassword(phone.trim(), code, newPassword)
+      await forgotPasswordReset(phone.trim(), newPassword)
       router.replace('/(auth)/login')
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
