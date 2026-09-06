@@ -51,8 +51,11 @@ vatix-fcm-service-account.json
 
 # build artifacts
 *.aab
+*.aab.bak
 *.apk
+*.ipa
 build*.log
+build-artifacts/
 
 # local-only assets
 screenshots/
