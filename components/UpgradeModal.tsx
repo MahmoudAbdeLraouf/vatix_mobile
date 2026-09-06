@@ -18,7 +18,7 @@ import type { EventSubscription, Purchase, PurchaseError } from 'react-native-ia
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
-import { authErrorMessage, authFetch, authPost, updateStoredUser } from '@/lib/auth'
+import { AUTH_ERR, authErrorMessage, authFetch, authPost, updateStoredUser } from '@/lib/auth'
 import {
   getSiteSettings,
   getSubscriptionPlans,
@@ -42,6 +42,7 @@ import {
   getIosJws,
   initIap,
   requestIosPurchase,
+  requireIosProduct,
 } from '@/lib/iap'
 import {
   SUBSCRIPTION_SKUS,
@@ -378,7 +379,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
 
     try {
       await initIap()
-      await fetchIosProducts([sku], product.type)
+      await requireIosProduct(sku, product.type)
 
       const purchase = await new Promise<Purchase>((resolve, reject) => {
         subs.updated = addPurchaseUpdatedListener(p => {
@@ -388,6 +389,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
           if (e.code === 'user-cancelled' || /cancel/i.test(e.message ?? '')) {
             cancelled = true
             reject(new Error('__CANCELLED__'))
+            return
+          }
+          if (e.code === 'sku-not-found') {
+            reject(new Error(AUTH_ERR.IAP_PRODUCT_UNAVAILABLE))
             return
           }
           reject(new Error(e.message || 'Purchase failed'))

@@ -20,6 +20,7 @@ import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
+  AUTH_ERR,
   authDelete,
   authErrorMessage,
   authFetch,
@@ -50,6 +51,7 @@ import {
   getIosJws,
   initIap,
   requestIosPurchase,
+  requireIosProduct,
 } from '@/lib/iap'
 import {
   PROMOTION_SKUS,
@@ -444,7 +446,7 @@ export default function PromoteScreen() {
     let cancelled = false
     try {
       await initIap()
-      await fetchIosProducts([sku], product.type)
+      await requireIosProduct(sku, product.type)
       const purchase = await new Promise<Purchase>((resolve, reject) => {
         subs.updated = addPurchaseUpdatedListener(p => {
           if (p.productId === sku) resolve(p)
@@ -453,6 +455,10 @@ export default function PromoteScreen() {
           if (e.code === 'user-cancelled' || /cancel/i.test(e.message ?? '')) {
             cancelled = true
             reject(new Error('__CANCELLED__'))
+            return
+          }
+          if (e.code === 'sku-not-found') {
+            reject(new Error(AUTH_ERR.IAP_PRODUCT_UNAVAILABLE))
             return
           }
           reject(new Error(e.message || 'Purchase failed'))

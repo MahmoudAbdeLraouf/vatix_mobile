@@ -15,6 +15,7 @@ export const AUTH_ERR = {
   SESSION_EXPIRED: 'AUTH_SESSION_EXPIRED',
   SERVER_ERROR: 'AUTH_SERVER_ERROR',
   ACCOUNT_DELETE_FAILED: 'AUTH_ACCOUNT_DELETE_FAILED',
+  IAP_PRODUCT_UNAVAILABLE: 'IAP_PRODUCT_UNAVAILABLE',
 } as const
 
 export function authErrorMessage(err: unknown, t: Translations): string {
@@ -28,6 +29,9 @@ export function authErrorMessage(err: unknown, t: Translations): string {
       return t.serverError
     case AUTH_ERR.ACCOUNT_DELETE_FAILED:
       return t.accountDeletionError
+    case AUTH_ERR.IAP_PRODUCT_UNAVAILABLE:
+    case 'sku-not-found':
+      return t.iapProductUnavailable
     default:
       return err.message || t.serverError
   }

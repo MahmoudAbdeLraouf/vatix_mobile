@@ -59,6 +59,21 @@ export async function fetchIosProducts(
   return (res ?? []) as (Product | ProductSubscription)[]
 }
 
+// Throws AUTH_ERR.IAP_PRODUCT_UNAVAILABLE if StoreKit is missing any requested
+// SKU (typically because it hasn't been included in the current review submission
+// or hasn't finished processing). Callers should surface the error via
+// authErrorMessage so the user sees a translated message instead of the raw
+// `sku-not-found` code that OpenIAP would emit at purchase time.
+export async function requireIosProduct(
+  sku: string,
+  type: IosProductType,
+): Promise<Product | ProductSubscription> {
+  const products = await fetchIosProducts([sku], type)
+  const match = products.find((p) => p.id === sku)
+  if (!match) throw new Error('IAP_PRODUCT_UNAVAILABLE')
+  return match
+}
+
 // Event-based: resolution arrives via purchaseUpdatedListener / purchaseErrorListener.
 export async function requestIosPurchase(sku: string, type: IosProductType): Promise<void> {
   const iap = loadIap()

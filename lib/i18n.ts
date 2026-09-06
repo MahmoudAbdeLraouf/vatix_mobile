@@ -216,6 +216,7 @@ export interface Translations {
   sessionExpiredError: string
   accountDeletionError: string
   walletNotAvailable: string
+  iapProductUnavailable: string
   phoneRequired: string
   unsupportedOperation: string
   submissionFailed: string
@@ -748,6 +749,7 @@ export const translations: Record<Locale, Translations> = {
     sessionExpiredError: 'انتهت الجلسة',
     accountDeletionError: 'تعذّر حذف الحساب',
     walletNotAvailable: 'المحفظة غير متاحة لهذه العملية',
+    iapProductUnavailable: 'المنتج غير متاح حالياً في متجر التطبيقات، حاول مرة أخرى لاحقاً',
     phoneRequired: 'الرجاء إدخال رقم هاتفك',
     unsupportedOperation: 'العملية غير مدعومة',
     submissionFailed: 'فشل الإرسال',
@@ -1285,6 +1287,7 @@ export const translations: Record<Locale, Translations> = {
     sessionExpiredError: 'Session expired',
     accountDeletionError: 'Could not delete account',
     walletNotAvailable: 'Wallet not available for this operation',
+    iapProductUnavailable: 'This product is currently unavailable in the App Store, please try again later',
     phoneRequired: 'Please enter your phone number',
     unsupportedOperation: 'Unsupported operation',
     submissionFailed: 'Submission failed',
