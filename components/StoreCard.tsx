@@ -15,7 +15,7 @@ interface StoreCardProps {
   style?: ViewStyle
 }
 
-export function StoreCard({ store, style }: StoreCardProps) {
+function StoreCardImpl({ store, style }: StoreCardProps) {
   if (!store.storeProfile) return null
   // Logo is 44px, cover is 80px tall in a full-width card — request modest
   // widths so the resize endpoint returns thumbnails, not originals.
@@ -85,6 +85,8 @@ export function StoreCard({ store, style }: StoreCardProps) {
     </Pressable>
   )
 }
+
+export const StoreCard = React.memo(StoreCardImpl)
 
 const styles = StyleSheet.create({
   card: {

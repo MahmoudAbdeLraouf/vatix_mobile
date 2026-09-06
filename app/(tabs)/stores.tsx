@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   FlatList,
   StyleSheet,
@@ -61,9 +61,19 @@ export default function StoresScreen() {
     load()
   }, [load])
 
-  const filtered = search.trim()
-    ? stores.filter(s => s.storeProfile?.name?.toLowerCase().includes(search.toLowerCase()))
-    : stores
+  // Memoized so FlatList's `data` prop stays referentially stable across
+  // unrelated re-renders (header language toggle, notif icon presses etc.) —
+  // otherwise every render forces the virtualizer to recompute cell layouts.
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return stores
+    return stores.filter(s => s.storeProfile?.name?.toLowerCase().includes(q))
+  }, [stores, search])
+
+  const renderStore = useCallback(
+    ({ item }: { item: Store }) => <StoreCard store={item} style={styles.gridItem} />,
+    [],
+  )
 
   return (
     <SafeAreaView
@@ -116,7 +126,13 @@ export default function StoresScreen() {
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.list}
             ListEmptyComponent={<EmptyState title={t.noResults} subtitle={t.notFoundHint} />}
-            renderItem={({ item }) => <StoreCard store={item} style={{ flex: 1 }} />}
+            renderItem={renderStore}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={7}
+            updateCellsBatchingPeriod={50}
+            keyboardShouldPersistTaps="handled"
+            removeClippedSubviews
           />
         )}
       </View>
@@ -184,5 +200,10 @@ const styles = StyleSheet.create({
   row: {
     gap: spacing.lg,
     justifyContent: 'flex-start',
+  },
+  // Hoisted so `renderStore`'s style prop is a stable reference —
+  // an inline `{ flex: 1 }` object would defeat StoreCard's React.memo.
+  gridItem: {
+    flex: 1,
   },
 })

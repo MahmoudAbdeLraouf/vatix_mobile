@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { router } from 'expo-router'
 import {
   clearSession,
@@ -65,48 +65,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  async function login(response: AuthResponse, redirect?: string) {
+  const login = useCallback(async (response: AuthResponse, redirect?: string) => {
     await saveSession(response.accessToken, response.refreshToken, response.user)
     const stored = await getStoredUser()
     setUser(stored)
     startTokenRefresher()
     registerForPushNotifications().catch(() => {})
     router.replace(resolveRedirect(redirect) as never)
-  }
+  }, [])
 
-  async function logout() {
+  const logout = useCallback(async () => {
     await unregisterPushNotifications()
     await clearSession()
     setUser(null)
     router.replace('/(auth)/login')
-  }
+  }, [])
 
-  async function updateDisplayName(name: string) {
+  const updateDisplayName = useCallback(async (name: string) => {
     await updateStoredDisplayName(name)
     const stored = await getStoredUser()
     setUser(stored)
-  }
+  }, [])
 
-  async function refetchUser() {
+  const refetchUser = useCallback(async () => {
     const stored = await getStoredUser()
     setUser(stored)
-  }
+  }, [])
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        loading,
-        login,
-        logout,
-        updateDisplayName,
-        refetchUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      isAuthenticated: !!user,
+      loading,
+      login,
+      logout,
+      updateDisplayName,
+      refetchUser,
+    }),
+    [user, loading, login, logout, updateDisplayName, refetchUser],
   )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth(): AuthContextValue {

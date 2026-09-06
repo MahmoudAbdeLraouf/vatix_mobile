@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Dimensions,
@@ -6,7 +6,6 @@ import {
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -349,6 +348,28 @@ const brandCardStyles = StyleSheet.create({
   name: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.g700, textAlign: 'center' },
 })
 
+function SectionHeader({ title, onMore }: { title: string; onMore?: () => void }) {
+  const { t, isRtl } = useLocale()
+  return (
+    <View style={styles.sectionHeader}>
+      <View style={styles.sectionTitleRow}>
+        <View style={styles.titleAccent} />
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
+      {onMore && (
+        <TouchableOpacity onPress={onMore} style={styles.seeAllBtn}>
+          <Text style={styles.seeAll}>{t.seeAll}</Text>
+          <Ionicons
+            name={isRtl ? 'chevron-back-outline' : 'chevron-forward-outline'}
+            size={13}
+            color={colors.dk}
+          />
+        </TouchableOpacity>
+      )}
+    </View>
+  )
+}
+
 function Section({
   title,
   children,
@@ -358,28 +379,16 @@ function Section({
   children: React.ReactNode
   onMore?: () => void
 }) {
-  const { t, isRtl } = useLocale()
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <View style={styles.titleAccent} />
-          <Text style={styles.sectionTitle}>{title}</Text>
-        </View>
-        {onMore && (
-          <TouchableOpacity onPress={onMore} style={styles.seeAllBtn}>
-            <Text style={styles.seeAll}>{t.seeAll}</Text>
-            <Ionicons
-              name={isRtl ? 'chevron-back-outline' : 'chevron-forward-outline'}
-              size={13}
-              color={colors.dk}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
+      <SectionHeader title={title} onMore={onMore} />
       {children}
     </View>
   )
+}
+
+function ProductRowSeparator() {
+  return <View style={styles.productRowSep} />
 }
 
 // ─── Category Icon Mapping ────────────────────────────────────────────────────
@@ -393,7 +402,7 @@ interface CategoryItem {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const { t, locale, isRtl } = useLocale()
+  const { t, locale, isRtl, setLocale } = useLocale()
   const { user } = useAuth()
 
   const [stores, setStores] = useState<Store[]>([])
@@ -467,19 +476,174 @@ export default function HomeScreen() {
     }
   }, [user?.type])
 
-  function handlePromoScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+  const handlePromoScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x
     setActivePromo(Math.round(x / (PROMO_W + spacing.md)))
-  }
+  }, [])
 
-  function submitSearch() {
+  const submitSearch = useCallback(() => {
     const q = search.trim()
     if (q) {
       router.push({ pathname: '/(tabs)/products', params: { search: q } })
     } else {
       router.push('/(tabs)/products')
     }
-  }
+  }, [search])
+
+  const renderProduct = useCallback(
+    ({ item }: { item: Product }) => (
+      <ProductCard product={item} style={styles.productCardFull} />
+    ),
+    [],
+  )
+  const productKey = useCallback((p: Product) => String(p.id), [])
+  const renderPromo = useCallback(({ item }: { item: PromoBanner }) => <PromoCard item={item} />, [])
+  const promoKey = useCallback((p: PromoBanner) => String(p.id), [])
+  const renderStore = useCallback(
+    ({ item }: { item: Store }) => <StoreCard store={item} style={styles.storeCardWide} />,
+    [],
+  )
+  const storeKey = useCallback((s: Store) => String(s.id), [])
+
+  const listHeader = useMemo(
+    () => (
+      <>
+        {/* Promo Carousel */}
+        <View style={styles.promoSection}>
+          <FlatList
+            horizontal
+            data={PROMO_BANNERS}
+            keyExtractor={promoKey}
+            renderItem={renderPromo}
+            contentContainerStyle={styles.promoList}
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={PROMO_W + spacing.md}
+            decelerationRate="fast"
+            onScroll={handlePromoScroll}
+            scrollEventThrottle={16}
+          />
+          <PromoDots count={PROMO_BANNERS.length} active={activePromo} />
+        </View>
+
+        {/* Category Icons */}
+        {categories.length > 1 && (
+          <Section title={t.categories} onMore={() => router.push('/(tabs)/products')}>
+            <FlatList
+              horizontal
+              data={categories}
+              keyExtractor={c => String(c.id)}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.categoryItem}
+                  onPress={() =>
+                    item.id === null
+                      ? router.push('/(tabs)/products')
+                      : router.push({
+                          pathname: '/(tabs)/products',
+                          params: { categoryId: String(item.id) },
+                        })
+                  }
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.categoryIconWrap}>
+                    <Ionicons name={item.icon} size={28} color={colors.blue} />
+                  </View>
+                  <Text style={styles.categoryName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={styles.categoriesList}
+              showsHorizontalScrollIndicator={false}
+            />
+          </Section>
+        )}
+
+        {/* Featured Stores */}
+        {stores.length > 0 && (
+          <Section title={t.featuredStores} onMore={() => router.push('/(tabs)/stores')}>
+            <FlatList
+              horizontal
+              data={stores}
+              keyExtractor={storeKey}
+              renderItem={renderStore}
+              contentContainerStyle={styles.hList}
+              showsHorizontalScrollIndicator={false}
+            />
+          </Section>
+        )}
+
+        {/* Featured Products */}
+        {featuredProducts.length > 0 && (
+          <Section
+            title={t.featuredProducts}
+            onMore={() => router.push({ pathname: '/(tabs)/products', params: { promoted: 'true' } })}
+          >
+            <View style={styles.productsGrid}>
+              {featuredProducts.map(p => (
+                <ProductCard key={p.id} product={p} style={styles.productCardFull} />
+              ))}
+            </View>
+          </Section>
+        )}
+
+        {/* Latest Products header */}
+        {latestProducts.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader
+              title={t.latestProducts}
+              onMore={() => router.push('/(tabs)/products')}
+            />
+          </View>
+        )}
+      </>
+    ),
+    [
+      t,
+      activePromo,
+      categories,
+      stores,
+      featuredProducts,
+      latestProducts.length,
+      handlePromoScroll,
+      renderPromo,
+      promoKey,
+      renderStore,
+      storeKey,
+    ],
+  )
+
+  const listFooter = useMemo(
+    () => (
+      <>
+        {/* All Stores */}
+        {allStores.length > 0 && (
+          <Section title={t.allStores} onMore={() => router.push('/(tabs)/stores')}>
+            <FlatList
+              horizontal
+              data={allStores}
+              keyExtractor={storeKey}
+              renderItem={renderStore}
+              contentContainerStyle={styles.hList}
+              showsHorizontalScrollIndicator={false}
+            />
+          </Section>
+        )}
+
+        {/* Brands */}
+        {brands.length > 0 && (
+          <Section title={t.brands}>
+            <View style={styles.brandsGrid}>
+              {brands.map(b => (
+                <BrandCard key={b.id} brand={b} locale={locale} width={BRAND_W} />
+              ))}
+            </View>
+          </Section>
+        )}
+      </>
+    ),
+    [t, allStores, brands, locale, renderStore, storeKey],
+  )
 
   return (
     <SafeAreaView style={[styles.safe, { direction: isRtl ? 'rtl' : 'ltr' }]} edges={['top']}>
@@ -494,6 +658,13 @@ export default function HomeScreen() {
               <View style={styles.titleRow}>
                 <Logo size="sm" light />
                 <View style={styles.headerActions}>
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="globe-outline" size={20} color={colors.white} />
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.iconBtn}
                     onPress={() => router.push('/dashboard/notifications')}
@@ -559,126 +730,22 @@ export default function HomeScreen() {
               </View>
             </View>
             <View style={styles.content}>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
+              <FlatList
+                data={latestProducts}
+                keyExtractor={productKey}
+                renderItem={renderProduct}
+                numColumns={2}
+                columnWrapperStyle={styles.productRow}
+                ItemSeparatorComponent={ProductRowSeparator}
+                ListHeaderComponent={listHeader}
+                ListFooterComponent={listFooter}
                 contentContainerStyle={styles.scrollContent}
-              >
-          {/* Promo Carousel */}
-          <View style={styles.promoSection}>
-            <FlatList
-              horizontal
-              data={PROMO_BANNERS}
-              keyExtractor={item => String(item.id)}
-              renderItem={({ item }) => <PromoCard item={item} />}
-              contentContainerStyle={styles.promoList}
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={PROMO_W + spacing.md}
-              decelerationRate="fast"
-              onScroll={handlePromoScroll}
-              scrollEventThrottle={16}
-            />
-            <PromoDots count={PROMO_BANNERS.length} active={activePromo} />
-          </View>
-
-          {/* Category Icons */}
-          {categories.length > 1 && (
-            <Section title={t.categories} onMore={() => router.push('/(tabs)/products')}>
-              <FlatList
-                horizontal
-                data={categories}
-                keyExtractor={c => String(c.id)}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.categoryItem}
-                    onPress={() =>
-                      item.id === null
-                        ? router.push('/(tabs)/products')
-                        : router.push({
-                            pathname: '/(tabs)/products',
-                            params: { categoryId: String(item.id) },
-                          })
-                    }
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.categoryIconWrap}>
-                      <Ionicons name={item.icon} size={28} color={colors.blue} />
-                    </View>
-                    <Text style={styles.categoryName} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                contentContainerStyle={styles.categoriesList}
-                showsHorizontalScrollIndicator={false}
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews
+                initialNumToRender={6}
+                maxToRenderPerBatch={8}
+                windowSize={9}
               />
-            </Section>
-          )}
-
-          {/* Featured Stores */}
-          {stores.length > 0 && (
-            <Section title={t.featuredStores} onMore={() => router.push('/(tabs)/stores')}>
-              <FlatList
-                horizontal
-                data={stores}
-                keyExtractor={s => String(s.id)}
-                renderItem={({ item }) => <StoreCard store={item} style={{ width: 150 }} />}
-                contentContainerStyle={styles.hList}
-                showsHorizontalScrollIndicator={false}
-              />
-            </Section>
-          )}
-
-          {/* Featured Products */}
-          {featuredProducts.length > 0 && (
-            <Section
-              title={t.featuredProducts}
-              onMore={() => router.push({ pathname: '/(tabs)/products', params: { promoted: 'true' } })}
-            >
-              <View style={styles.productsGrid}>
-                {featuredProducts.map(p => (
-                  <ProductCard key={p.id} product={p} style={{ width: CARD_W }} />
-                ))}
-              </View>
-            </Section>
-          )}
-
-          {/* Latest Products */}
-          {latestProducts.length > 0 && (
-            <Section title={t.latestProducts} onMore={() => router.push('/(tabs)/products')}>
-              <View style={styles.productsGrid}>
-                {latestProducts.map(p => (
-                  <ProductCard key={p.id} product={p} style={{ width: CARD_W }} />
-                ))}
-              </View>
-            </Section>
-          )}
-
-          {/* All Stores */}
-          {allStores.length > 0 && (
-            <Section title={t.allStores} onMore={() => router.push('/(tabs)/stores')}>
-              <FlatList
-                horizontal
-                data={allStores}
-                keyExtractor={s => String(s.id)}
-                renderItem={({ item }) => <StoreCard store={item} style={{ width: 150 }} />}
-                contentContainerStyle={styles.hList}
-                showsHorizontalScrollIndicator={false}
-              />
-            </Section>
-          )}
-
-          {/* Brands */}
-          {brands.length > 0 && (
-            <Section title={t.brands}>
-              <View style={styles.brandsGrid}>
-                {brands.map(b => (
-                  <BrandCard key={b.id} brand={b} locale={locale} width={BRAND_W} />
-                ))}
-              </View>
-            </Section>
-          )}
-
-              </ScrollView>
             </View>
           </>
         )}
@@ -890,6 +957,19 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
+  },
+  productRow: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+  },
+  productRowSep: {
+    height: spacing.md,
+  },
+  productCardFull: {
+    width: CARD_W,
+  },
+  storeCardWide: {
+    width: 150,
   },
   emptyText: {
     fontFamily: fonts.regular,

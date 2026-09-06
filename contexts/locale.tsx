@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { View } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import { Locale, Translations, translations } from '@/lib/i18n'
@@ -32,14 +32,25 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
-  async function setLocale(l: Locale) {
+  const setLocale = useCallback(async (l: Locale) => {
     await SecureStore.setItemAsync(LOCALE_KEY, l)
     applyTextDirectionDefaults(l === 'ar')
     setLocaleState(l)
-  }
+  }, [])
+
+  const isRtl = locale === 'ar'
+
+  const value = useMemo<LocaleContextValue>(
+    () => ({
+      locale: locale as Locale,
+      t: translations[(locale ?? DEFAULT_LOCALE) as Locale],
+      isRtl,
+      setLocale,
+    }),
+    [locale, isRtl, setLocale],
+  )
 
   if (locale === null) return null
-  const isRtl = locale === 'ar'
 
   // Setting `direction: rtl` on this root View propagates through the Yoga
   // layout tree: flexDirection:'row' children mirror, and start/end resolve
@@ -50,14 +61,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   // The `key={locale}` prop forces a full re-mount when the user switches
   // language so Text.defaultProps changes actually flow into the tree.
   return (
-    <LocaleContext.Provider
-      value={{
-        locale,
-        t: translations[locale],
-        isRtl,
-        setLocale,
-      }}
-    >
+    <LocaleContext.Provider value={value}>
       <View key={locale} style={{ flex: 1, direction: isRtl ? 'rtl' : 'ltr' }}>
         {children}
       </View>
