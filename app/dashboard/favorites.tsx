@@ -233,7 +233,7 @@ export default function FavoritesScreen() {
                       </Text>
 
                       <Text style={[styles.price, textDirStyle]} numberOfLines={1}>
-                        {Number(p.price ?? 0).toLocaleString()}{' '}
+                        {Number(p.price ?? 0).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}{' '}
                         <Text style={styles.priceUnit}>{t.egp}</Text>
                       </Text>
                     </View>

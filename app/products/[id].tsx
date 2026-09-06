@@ -4,13 +4,12 @@ import {
   Dimensions,
   FlatList,
   Linking,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   Share,
   StyleSheet,
   Text,
+  ViewToken,
   View,
 } from 'react-native'
 import { Image } from 'expo-image'
@@ -97,6 +96,29 @@ export default function ProductDetailScreen() {
   const [loading, setLoading] = useState(true)
   const [imgIndex, setImgIndex] = useState(0)
   const galleryRef = useRef<FlatList<ProductImage>>(null)
+  // Both refs must be stable — FlatList throws "Changing onViewableItemsChanged
+  // on the fly is not supported" on Android if these are re-created per render.
+  // The callback reads current `isRtl` / images length through mutable refs so
+  // it never has to rebind.
+  const isRtlRef = useRef(isRtl)
+  const imagesLenRef = useRef(0)
+  useEffect(() => {
+    isRtlRef.current = isRtl
+  }, [isRtl])
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const first = viewableItems[0]
+      if (first?.index == null) return
+      // CSS `direction: rtl` doesn't propagate into FlatList's internal
+      // ScrollView, so under Arabic we render `images` reversed to put the
+      // first data image on the visual right. Convert display idx → data idx
+      // before storing so dots/counter reflect logical order.
+      const len = imagesLenRef.current
+      const dataIdx = isRtlRef.current && len > 0 ? len - 1 - first.index : first.index
+      setImgIndex(dataIdx)
+    },
+  ).current
 
   // Direction-aware text styling — applied to every Text node so Arabic text
   // reads right-to-left and English left-to-right regardless of the native
@@ -133,6 +155,18 @@ export default function ProductDetailScreen() {
       void bumpEngagement('product_view')
     }
   }, [id])
+
+  // Derived image lists — placed before early returns so `useMemo`/`useEffect`
+  // hook order is stable across renders regardless of load/expired state.
+  const rawImages: ProductImage[] =
+    product && !isExpiredResource(product) ? product.images : []
+  const displayImages = useMemo(
+    () => (isRtl ? [...rawImages].reverse() : rawImages),
+    [rawImages, isRtl],
+  )
+  useEffect(() => {
+    imagesLenRef.current = rawImages.length
+  }, [rawImages.length])
 
   if (loading) {
     return (
@@ -212,17 +246,6 @@ export default function ProductDetailScreen() {
   const avg = product.averageRating ?? 0
   const ratingsCount = product.ratingsCount ?? 0
 
-  const onGalleryScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const x = e.nativeEvent.contentOffset.x
-    const i = Math.round(x / SCREEN_W)
-    if (i !== imgIndex) setImgIndex(i)
-  }
-
-  const scrollToImage = (i: number) => {
-    setImgIndex(i)
-    galleryRef.current?.scrollToOffset({ offset: i * SCREEN_W, animated: true })
-  }
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
@@ -238,7 +261,7 @@ export default function ProductDetailScreen() {
           {images.length > 0 ? (
             <FlatList
               ref={galleryRef}
-              data={images}
+              data={displayImages}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
@@ -263,18 +286,14 @@ export default function ProductDetailScreen() {
                   <View style={styles.heroPlaceholder} />
                 )
               }}
-              onMomentumScrollEnd={onGalleryScrollEnd}
+              viewabilityConfig={viewabilityConfig}
+              onViewableItemsChanged={onViewableItemsChanged}
               getItemLayout={(_, i) => ({ length: SCREEN_W, offset: SCREEN_W * i, index: i })}
-              // FlatList caches direction; force LTR-ordered paging regardless of
-              // app-wide RTL so index 0 is always the first image.
-              inverted={false}
+              initialScrollIndex={isRtl ? Math.max(0, images.length - 1) : 0}
             />
           ) : (
             <View style={styles.heroPlaceholder} />
           )}
-
-          {/* Bottom fade — smooths the transition into the white card. */}
-          <View pointerEvents="none" style={styles.heroFade} />
 
           {/* Page dots */}
           {images.length > 1 && (
@@ -356,32 +375,6 @@ export default function ProductDetailScreen() {
               </Pressable>
             )}
           </View>
-
-          {/* Thumbnail strip */}
-          {images.length > 1 && (
-            <ScrollView
-              horizontal
-              style={styles.thumbList}
-              contentContainerStyle={styles.thumbListContent}
-              showsHorizontalScrollIndicator={false}
-            >
-              {images.map((img, i) => {
-                const thumbUrl = imgUrl(img.url, { w: THUMB_TARGET_W })
-                return (
-                  <Pressable key={img.id} onPress={() => scrollToImage(i)}>
-                    <Image
-                      source={thumbUrl ? { uri: thumbUrl } : undefined}
-                      style={[styles.thumb, i === imgIndex && styles.thumbActive]}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      transition={100}
-                      recyclingKey={String(img.id)}
-                    />
-                  </Pressable>
-                )
-              })}
-            </ScrollView>
-          )}
         </View>
 
         {/* ── White content card ── */}
@@ -432,7 +425,7 @@ export default function ProductDetailScreen() {
             <View style={styles.priceMain}>
               <Text style={[styles.priceLabel, dir]}>{t.price}</Text>
               <View style={styles.priceRow}>
-                <Text style={[styles.price, dir]}>{product.price.toLocaleString()}</Text>
+                <Text style={[styles.price, dir]}>{Number(product.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}</Text>
                 <Text style={[styles.currency, dir]}>{t.egp}</Text>
               </View>
             </View>
@@ -932,18 +925,9 @@ const styles = StyleSheet.create({
     height: HERO_H,
     backgroundColor: colors.dk2,
   },
-  heroFade: {
-    position: 'absolute',
-    start: 0,
-    end: 0,
-    bottom: 0,
-    height: 90,
-    backgroundColor: colors.dk,
-    opacity: 0.35,
-  },
   dotsRow: {
     position: 'absolute',
-    bottom: spacing.lg + 68,
+    bottom: spacing.xl + spacing.sm,
     start: 0,
     end: 0,
     flexDirection: 'row',
@@ -954,15 +938,15 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
   dotActive: {
-    width: 18,
+    width: 20,
     backgroundColor: colors.y,
   },
   counterPill: {
     position: 'absolute',
-    bottom: spacing.lg + 60,
+    bottom: spacing.xl + spacing.sm - 4,
     end: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -996,26 +980,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  thumbList: {
-    paddingVertical: spacing.sm,
-  },
-  thumbListContent: {
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-  },
-  thumb: {
-    width: 58,
-    height: 58,
-    borderRadius: radius.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    opacity: 0.55,
-  },
-  thumbActive: {
-    borderColor: colors.y,
-    opacity: 1,
-  },
-
   // ── Content card ──
   card: {
     backgroundColor: colors.white,

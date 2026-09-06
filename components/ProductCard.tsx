@@ -115,7 +115,7 @@ export const ProductCard = React.memo(function ProductCard({
         ) : null}
 
         <Text style={[styles.price, isRow && styles.priceLarge, textDirStyle]}>
-          {product.price.toLocaleString()} <Text style={styles.priceUnit}>{t.egp}</Text>
+          {Number(product.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')} <Text style={styles.priceUnit}>{t.egp}</Text>
         </Text>
       </View>
     </Pressable>
