@@ -1,6 +1,7 @@
 import { Platform } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import type { Translations } from '@/lib/i18n'
+import { clearApiCache } from '@/lib/api-cache'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 
@@ -310,6 +311,7 @@ export async function authPost<T>(path: string, body: unknown): Promise<T> {
       : (data.message ?? AUTH_ERR.SERVER_ERROR)
     throw new Error(msg)
   }
+  clearApiCache()
   return res.json() as Promise<T>
 }
 
@@ -343,6 +345,7 @@ export async function authPatch<T>(path: string, body: unknown): Promise<T> {
       : (data.message ?? AUTH_ERR.SERVER_ERROR)
     throw new Error(msg)
   }
+  clearApiCache()
   return res.json() as Promise<T>
 }
 
@@ -370,7 +373,9 @@ export async function authDelete(path: string, body?: unknown): Promise<boolean>
     }
     return authDelete(path, body)
   }
-  return res.ok || res.status === 204
+  const ok = res.ok || res.status === 204
+  if (ok) clearApiCache()
+  return ok
 }
 
 // Same as authDelete but returns the parsed JSON body (or null on failure).
@@ -400,6 +405,7 @@ export async function authDeleteJson<T>(path: string, body?: unknown): Promise<T
     return authDeleteJson<T>(path, body)
   }
   if (!res.ok && res.status !== 204) return null
+  clearApiCache()
   if (res.status === 204) return null
   try {
     return (await res.json()) as T

@@ -292,6 +292,12 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+// GET-cache lives in its own module (see lib/api-cache.ts) so that mutation
+// write helpers in lib/auth.ts can invalidate it without creating an import
+// cycle back through this file.
+export { cachedFetch, clearApiCache } from './api-cache'
+import { cachedFetch } from './api-cache'
+
 /** Marker returned by public fetchers when the backend responded with 410 Gone
  *  (resource exists but its owner's subscription is expired). */
 export interface ExpiredResource {
@@ -318,20 +324,22 @@ async function fetchOrExpired<T>(fn: () => Promise<T>): Promise<T | ExpiredResou
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export function getCategories(): Promise<Category[]> {
-  return apiFetch('/categories')
+  return cachedFetch('/categories', () => apiFetch('/categories'))
 }
 
 export function getRateAppEnabled(): Promise<{ enabled: boolean }> {
-  return apiFetch('/user-actions/public/rate-app')
+  return cachedFetch('/user-actions/public/rate-app', () =>
+    apiFetch('/user-actions/public/rate-app'),
+  )
 }
 
 export function getBrands(): Promise<Brand[]> {
-  return apiFetch('/brands')
+  return cachedFetch('/brands', () => apiFetch('/brands'))
 }
 
 export function getLocations(type?: string): Promise<LocationNode[]> {
-  const q = type ? `?type=${encodeURIComponent(type)}` : ''
-  return apiFetch(`/locations${q}`)
+  const path = `/locations${type ? `?type=${encodeURIComponent(type)}` : ''}`
+  return cachedFetch(path, () => apiFetch(path))
 }
 
 export interface GetProductsParams {
@@ -355,7 +363,8 @@ export function getProducts(params?: GetProductsParams): Promise<ProductListResp
       if (v != null) q.set(k, String(v))
     })
   }
-  return apiFetch(`/products?${q}`)
+  const path = `/products?${q}`
+  return cachedFetch(path, () => apiFetch(path))
 }
 
 export function getProduct(id: number): Promise<Product | ExpiredResource> {
@@ -367,11 +376,11 @@ export function getProductRatings(productId: number): Promise<ProductRatingItem[
 }
 
 export function getStores(): Promise<Store[]> {
-  return apiFetch('/stores')
+  return cachedFetch('/stores', () => apiFetch('/stores'))
 }
 
 export function getFeaturedStores(): Promise<Store[]> {
-  return apiFetch('/stores/featured')
+  return cachedFetch('/stores/featured', () => apiFetch('/stores/featured'))
 }
 
 export function getStoreProfile(id: number): Promise<Store | ExpiredResource> {
@@ -388,7 +397,8 @@ export interface Branch {
 }
 
 export function getStoreBranches(storeId: number): Promise<Branch[]> {
-  return apiFetch(`/stores/${storeId}/branches`)
+  const path = `/stores/${storeId}/branches`
+  return cachedFetch(path, () => apiFetch(path))
 }
 
 export function getStoreProducts(
@@ -401,7 +411,8 @@ export function getStoreProducts(
       if (v != null) q.set(k, String(v))
     })
   }
-  return apiFetch(`/stores/${storeId}/products?${q}`)
+  const path = `/stores/${storeId}/products?${q}`
+  return cachedFetch(path, () => apiFetch(path))
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -749,15 +760,15 @@ export interface SiteSettings {
 }
 
 export function getSubscriptionPlans(): Promise<PlanData[]> {
-  return apiFetch('/subscriptions/plans')
+  return cachedFetch('/subscriptions/plans', () => apiFetch('/subscriptions/plans'))
 }
 
 export function getPromotionBundles(): Promise<Bundle[]> {
-  return apiFetch('/promotions/bundles')
+  return cachedFetch('/promotions/bundles', () => apiFetch('/promotions/bundles'))
 }
 
 export function getSiteSettings(): Promise<SiteSettings> {
-  return apiFetch('/site-settings')
+  return cachedFetch('/site-settings', () => apiFetch('/site-settings'))
 }
 
 export interface SiteStats {
@@ -767,5 +778,5 @@ export interface SiteStats {
 }
 
 export function getSiteStats(): Promise<SiteStats> {
-  return apiFetch('/site-stats')
+  return cachedFetch('/site-stats', () => apiFetch('/site-stats'))
 }
