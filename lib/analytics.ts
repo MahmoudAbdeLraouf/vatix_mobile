@@ -1,4 +1,5 @@
 import { Platform } from 'react-native'
+import { visitorIdHeader } from '@/lib/visitor-id'
 
 const API = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 const CLIENT_PLATFORM = Platform.OS
@@ -9,13 +10,16 @@ let visitCounted = false
 // iOS gating for IAP-only payment methods keys off the same header, so it must
 // reflect the actual device OS — not a generic 'mobile' literal.
 function fireAndForget(url: string, init?: RequestInit) {
-  const headers: Record<string, string> = {
-    'X-Client-Platform': CLIENT_PLATFORM,
-    ...((init?.headers as Record<string, string> | undefined) ?? {}),
-  }
-  fetch(url, { ...init, headers }).catch(() => {
-    // analytics failures are non-critical — swallow
-  })
+  void (async () => {
+    const headers: Record<string, string> = {
+      'X-Client-Platform': CLIENT_PLATFORM,
+      ...(await visitorIdHeader()),
+      ...((init?.headers as Record<string, string> | undefined) ?? {}),
+    }
+    fetch(url, { ...init, headers }).catch(() => {
+      // analytics failures are non-critical — swallow
+    })
+  })()
 }
 
 export function trackHomepageView() {

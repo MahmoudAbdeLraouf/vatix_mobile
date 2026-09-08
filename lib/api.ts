@@ -1,5 +1,6 @@
 import { Platform } from 'react-native'
 import { AUTH_ERR } from '@/lib/auth'
+import { visitorIdHeader } from '@/lib/visitor-id'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 const MINIO_PUBLIC = process.env.EXPO_PUBLIC_MINIO_URL ?? 'http://localhost:9000'
@@ -265,6 +266,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       headers: {
         'Content-Type': 'application/json',
         'X-Client-Platform': CLIENT_PLATFORM,
+        ...(await visitorIdHeader()),
         ...(init?.headers as Record<string, string> | undefined),
       },
     })

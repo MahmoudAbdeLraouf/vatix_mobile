@@ -2,6 +2,7 @@ import { Platform } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import type { Translations } from '@/lib/i18n'
 import { clearApiCache } from '@/lib/api-cache'
+import { visitorIdHeader } from '@/lib/visitor-id'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 
@@ -225,7 +226,11 @@ async function _doRefresh(): Promise<boolean> {
   try {
     const res = await fetch(`${BASE}/auth/refresh-token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Client-Platform': CLIENT_PLATFORM },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Client-Platform': CLIENT_PLATFORM,
+        ...(await visitorIdHeader()),
+      },
       body: JSON.stringify({ refreshToken }),
     })
     if (!res.ok) return false
