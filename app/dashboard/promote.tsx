@@ -20,7 +20,6 @@ import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
-  AUTH_ERR,
   authDelete,
   authErrorMessage,
   authFetch,
@@ -198,9 +197,14 @@ export default function PromoteScreen() {
               if (p?.id && p?.displayPrice) map[p.id] = p.displayPrice
             }
             setIosPriceMap(map)
+            if (products.length < PROMOTION_SKUS.length) {
+              const returned = products.map(p => p?.id).join(', ') || '<none>'
+              setError(`IAP in-app: requested=[${PROMOTION_SKUS.join(', ')}] returned=[${returned}]`)
+            }
           }
-        } catch {
-          // StoreKit unreachable (sandbox/network) — fall back to backend price.
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          setError(`IAP in-app threw: ${msg}`)
         }
       }
       await load()
@@ -428,12 +432,12 @@ export default function PromoteScreen() {
     const productCount = bundle.productCount as 1 | 3 | 5
     const sku = promotionSkuForCount(productCount)
     if (!sku) {
-      setError(ar ? 'الباقة غير متاحة عبر Apple' : 'Bundle unavailable via Apple')
+      setError(`Bundle unavailable via Apple: productCount=${productCount}`)
       return
     }
     const product = getIapProduct(sku)
     if (!product) {
-      setError(ar ? 'المنتج غير متاح' : 'Product unavailable')
+      setError(`Product unavailable: sku=${sku}`)
       return
     }
     setError('')
@@ -457,11 +461,7 @@ export default function PromoteScreen() {
             reject(new Error('__CANCELLED__'))
             return
           }
-          if (e.code === 'sku-not-found') {
-            reject(new Error(AUTH_ERR.IAP_PRODUCT_UNAVAILABLE))
-            return
-          }
-          reject(new Error(e.message || 'Purchase failed'))
+          reject(new Error(`StoreKit: code=${e.code} message=${e.message ?? ''} productId=${e.productId ?? sku}`))
         })
         requestIosPurchase(sku, product.type).catch(reject)
       })
@@ -575,6 +575,8 @@ export default function PromoteScreen() {
                     : 'Pick a bundle to promote your listings and boost views'}
                 </Text>
               </View>
+
+              <ErrorBox text={error} />
 
               {!bundlesLoaded ? (
                 <View style={{ paddingVertical: spacing.lg }}>

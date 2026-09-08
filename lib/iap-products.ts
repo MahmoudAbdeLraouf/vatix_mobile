@@ -87,18 +87,18 @@ export function promotionSkuForCount(count: 1 | 3 | 5): string {
   return SKU_PROMOTION_1AD
 }
 
-// Grossed-up EGP prices matching the tiers configured in App Store Connect.
-// Why: Apple takes 30% commission on price-ex-VAT and Egypt adds 14% VAT, so
-// a 200/500/700/600/1000 EGP backend price becomes ~349/849/1199/999/1699 EGP
-// on the storefront. These values are the UI fallback whenever StoreKit is
-// unreachable (Expo Go, dev builds, offline, or before an SKU is Approved) —
-// they prevent sticker-shock later when the App Store price replaces them.
+// EGP prices matching the tiers configured in App Store Connect.
+// Why: Apple takes ~25.4% commission in Egypt (proceeds/customerPrice ≈ 0.7456),
+// so tiers are chosen where proceeds roughly equal the backend price
+// (150/390/500 promo; 450/750 subs). These values are the UI fallback whenever
+// StoreKit is unreachable (Expo Go, dev builds, offline, or before an SKU is
+// Approved) — they prevent sticker-shock later when the App Store price replaces them.
 export const IOS_FALLBACK_PRICE_EGP: Record<string, number> = {
-  [SKU_SUBSCRIPTION_STORE]: 999,
-  [SKU_SUBSCRIPTION_STORE_PLUS]: 1699,
-  [SKU_PROMOTION_1AD]: 349,
-  [SKU_PROMOTION_3ADS]: 849,
-  [SKU_PROMOTION_5ADS]: 1199,
+  [SKU_SUBSCRIPTION_STORE]: 599.99,
+  [SKU_SUBSCRIPTION_STORE_PLUS]: 999.99,
+  [SKU_PROMOTION_1AD]: 199.99,
+  [SKU_PROMOTION_3ADS]: 519.99,
+  [SKU_PROMOTION_5ADS]: 669.99,
 }
 
 export function iosFallbackDisplayPrice(sku: string): string | undefined {

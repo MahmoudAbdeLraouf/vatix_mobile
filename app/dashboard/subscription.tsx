@@ -14,7 +14,13 @@ import {
   SubStatus,
   WalletBalance,
 } from '@/lib/api'
-import { PAID_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
+import { IS_IOS, PAID_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
+import { fetchIosProducts } from '@/lib/iap'
+import {
+  SUBSCRIPTION_SKUS,
+  iosFallbackDisplayPrice,
+  subscriptionSkuForStoreType,
+} from '@/lib/iap-products'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 export default function SubscriptionScreen() {
@@ -49,6 +55,10 @@ export default function SubscriptionScreen() {
   const [walletBal, setWalletBal] = useState<number | null>(null)
   const [subPlans, setSubPlans] = useState<PlanData[]>([])
   const [loading, setLoading] = useState(true)
+  // StoreKit-formatted prices keyed by SKU. iOS-only; empty on Android/web.
+  // Sourced from App Store Connect so Apple's commission gross-up is reflected
+  // without duplicating the pricing table in the client.
+  const [iosPriceMap, setIosPriceMap] = useState<Record<string, string>>({})
 
   const [modal, setModal] = useState<UpgradeMode | null>(null)
   const [walletModal, setWalletModal] = useState(false)
@@ -72,6 +82,32 @@ export default function SubscriptionScreen() {
     loadAll()
   }, [loadAll])
 
+  // Fetch StoreKit prices so the upgrade CTAs show the App-Store price the
+  // user will actually be charged (Apple commission-inclusive), not the raw
+  // backend EGP tier. Runs once; no cleanup needed — setState after unmount is
+  // a no-op warning at worst.
+  useEffect(() => {
+    if (!IS_IOS) return
+    let live = true
+    ;(async () => {
+      try {
+        const products = await fetchIosProducts(SUBSCRIPTION_SKUS, 'subs')
+        if (!live) return
+        const map: Record<string, string> = {}
+        for (const prod of products) {
+          if (prod?.id && prod?.displayPrice) map[prod.id] = prod.displayPrice
+        }
+        setIosPriceMap(map)
+      } catch {
+        // Fall back to iosFallbackDisplayPrice — no user-visible error here;
+        // UpgradeModal will surface StoreKit failures at purchase time.
+      }
+    })()
+    return () => {
+      live = false
+    }
+  }, [])
+
   const refreshAfterUpgrade = useCallback(async () => {
     setModal(null)
     await loadAll()
@@ -92,6 +128,25 @@ export default function SubscriptionScreen() {
     [subPlans],
   )
   const fmt = (n: number) => n.toLocaleString(ar ? 'ar-EG' : 'en-EG')
+
+  // On iOS the CTAs must show the App-Store price (commission-inclusive) —
+  // showing the raw backend EGP would mislead the user about what Apple will
+  // charge them. Falls back to the grossed-up ASC tier when StoreKit is
+  // unreachable (Expo Go, dev, offline, pre-approval).
+  const storeIosPrice = IS_IOS
+    ? (iosPriceMap[subscriptionSkuForStoreType('store')] ??
+      iosFallbackDisplayPrice(subscriptionSkuForStoreType('store')))
+    : undefined
+  const plusIosPrice = IS_IOS
+    ? (iosPriceMap[subscriptionSkuForStoreType('store_plus')] ??
+      iosFallbackDisplayPrice(subscriptionSkuForStoreType('store_plus')))
+    : undefined
+  const storePriceLine = storeIosPrice
+    ? `${storeIosPrice} / ${t.monthlyBilling}`
+    : `${fmt(storeMonthly)} ${ar ? 'ج.م' : 'EGP'} / ${t.monthlyBilling}`
+  const plusPriceLine = plusIosPrice
+    ? `${plusIosPrice} / ${t.monthlyBilling}`
+    : `${fmt(plusMonthly)} ${ar ? 'ج.م' : 'EGP'} / ${t.monthlyBilling}`
 
   const isTrial = subInfo?.subscriptionStatus === 'trial'
   const isActive = subInfo?.subscriptionStatus === 'active'
@@ -140,6 +195,11 @@ export default function SubscriptionScreen() {
         ? 'عميل'
         : 'Client'
   const currentPlanCost = isStorePlus ? plusMonthly : isStore ? storeMonthly : 0
+  const currentPlanPriceLine = isStorePlus
+    ? plusPriceLine
+    : isStore
+      ? storePriceLine
+      : null
 
   return (
     <DashboardLayout title={t.subscription}>
@@ -254,11 +314,11 @@ export default function SubscriptionScreen() {
                 </Text>
               </View>
             )}
-            {currentPlanCost > 0 && (
+            {currentPlanCost > 0 && currentPlanPriceLine && (
               <View style={[styles.planPriceRow, rowDir]}>
                 <Text style={styles.planPriceLabel}>{t.planCost}</Text>
                 <Text style={styles.planPriceValue}>
-                  {fmt(currentPlanCost)} {ar ? 'ج.م' : 'EGP'} / {t.monthlyBilling}
+                  {currentPlanPriceLine}
                 </Text>
               </View>
             )}
@@ -284,7 +344,7 @@ export default function SubscriptionScreen() {
                     {t.standardStorePlan}
                   </Text>
                   <Text style={[styles.actionSub, dirStyle]}>
-                    {fmt(storeMonthly)} {ar ? 'ج.م' : 'EGP'} / {t.monthlyBilling}
+                    {storePriceLine}
                   </Text>
                 </View>
                 <Ionicons
@@ -310,7 +370,7 @@ export default function SubscriptionScreen() {
                     {t.storePlusPlan}
                   </Text>
                   <Text style={[styles.actionSub, dirStyle]}>
-                    {fmt(plusMonthly)} {ar ? 'ج.م' : 'EGP'} / {t.monthlyBilling}
+                    {plusPriceLine}
                   </Text>
                 </View>
                 <Ionicons
@@ -339,7 +399,7 @@ export default function SubscriptionScreen() {
                   {t.upgradeToStorePlus}
                 </Text>
                 <Text style={[styles.actionSub, dirStyle]}>
-                  {fmt(plusMonthly)} {ar ? 'ج.م' : 'EGP'} / {t.monthlyBilling}
+                  {plusPriceLine}
                 </Text>
               </View>
               <Ionicons

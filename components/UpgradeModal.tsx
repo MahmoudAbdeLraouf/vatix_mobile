@@ -18,7 +18,7 @@ import type { EventSubscription, Purchase, PurchaseError } from 'react-native-ia
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
-import { AUTH_ERR, authErrorMessage, authFetch, authPost, updateStoredUser } from '@/lib/auth'
+import { authErrorMessage, authFetch, authPost, updateStoredUser } from '@/lib/auth'
 import {
   getSiteSettings,
   getSubscriptionPlans,
@@ -193,8 +193,13 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
             if (prod?.id && prod?.displayPrice) map[prod.id] = prod.displayPrice
           }
           setIosPriceMap(map)
-        } catch {
-          // StoreKit unreachable (sandbox/network) — fall back to backend price.
+          if (products.length < SUBSCRIPTION_SKUS.length) {
+            const returned = products.map(p => p?.id).join(', ') || '<none>'
+            setErr(`IAP subs: requested=[${SUBSCRIPTION_SKUS.join(', ')}] returned=[${returned}]`)
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          setErr(`IAP subs threw: ${msg}`)
         }
       }
     })()
@@ -361,7 +366,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
     const sku = subscriptionSkuForStoreType(storeType)
     const product = getIapProduct(sku)
     if (!product) {
-      setErr(ar ? 'المنتج غير متاح' : 'Product unavailable')
+      setErr(`Product unavailable: sku=${sku}`)
       return
     }
 
@@ -391,11 +396,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
             reject(new Error('__CANCELLED__'))
             return
           }
-          if (e.code === 'sku-not-found') {
-            reject(new Error(AUTH_ERR.IAP_PRODUCT_UNAVAILABLE))
-            return
-          }
-          reject(new Error(e.message || 'Purchase failed'))
+          reject(new Error(`StoreKit: code=${e.code} message=${e.message ?? ''} productId=${e.productId ?? sku}`))
         })
         requestIosPurchase(sku, product.type).catch(reject)
       })
@@ -795,22 +796,24 @@ function PayMethodPanel(props: {
                 mobileWalletBg
               />
             ) : null}
+            <MethodCard
+              icon="wallet-outline"
+              iconColor={colors.y}
+              title={t.payWithWallet}
+              subtitle={
+                walletBalance != null
+                  ? `${t.walletBalance}: ${walletBalance} ${ar ? 'ج.م' : 'EGP'}`
+                  : t.walletBalance
+              }
+              onPress={props.onPickWallet}
+              disabled={props.busy || walletShort}
+              warn={walletShort ? t.insufficientBalance : undefined}
+            />
           </>
         )}
-        <MethodCard
-          icon="wallet-outline"
-          iconColor={colors.y}
-          title={t.payWithWallet}
-          subtitle={
-            walletBalance != null
-              ? `${t.walletBalance}: ${walletBalance} ${ar ? 'ج.م' : 'EGP'}`
-              : t.walletBalance
-          }
-          onPress={props.onPickWallet}
-          disabled={props.busy || walletShort}
-          warn={walletShort ? t.insufficientBalance : undefined}
-        />
       </View>
+
+      <LegalLinks />
 
       <ErrorBox err={props.err} />
 
@@ -1119,6 +1122,38 @@ function AppleIapPanel({ err }: { err: string }) {
         </Text>
       </View>
       <ErrorBox err={err} />
+      <LegalLinks />
+    </View>
+  )
+}
+
+// App Store §3.1.2(c): the subscription purchase flow must expose functional
+// links to the Terms of Use (EULA) and Privacy Policy. Rendered on the pay-
+// method step and on the Apple IAP confirmation step so a reviewer can reach
+// them from any surface that leads to a subscription purchase.
+function LegalLinks() {
+  const { ar, rowDir } = useDir()
+  const termsLabel = ar ? 'شروط الاستخدام' : 'Terms of Use (EULA)'
+  const privacyLabel = ar ? 'سياسة الخصوصية' : 'Privacy Policy'
+  return (
+    <View style={[styles.legalLinks, rowDir]}>
+      <Pressable
+        onPress={() => router.push('/terms')}
+        hitSlop={8}
+        accessibilityRole="link"
+        accessibilityLabel={termsLabel}
+      >
+        <Text style={styles.legalLink}>{termsLabel}</Text>
+      </Pressable>
+      <Text style={styles.legalDot}> · </Text>
+      <Pressable
+        onPress={() => router.push('/privacy')}
+        hitSlop={8}
+        accessibilityRole="link"
+        accessibilityLabel={privacyLabel}
+      >
+        <Text style={styles.legalLink}>{privacyLabel}</Text>
+      </Pressable>
     </View>
   )
 }
@@ -1411,6 +1446,24 @@ const styles = StyleSheet.create({
     color: colors.g500,
     lineHeight: 18,
     marginBottom: spacing.sm,
+  },
+  legalLinks: {
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  legalLink: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.dk,
+    textDecorationLine: 'underline',
+  },
+  legalDot: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.g500,
   },
   successCircle: {
     width: 72,

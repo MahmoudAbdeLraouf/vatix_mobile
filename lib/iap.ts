@@ -34,7 +34,8 @@ export async function initIap(): Promise<boolean> {
   try {
     await iap.initConnection()
     return true
-  } catch {
+  } catch (e) {
+    console.warn('[IAP] initConnection failed:', e)
     return false
   }
 }
@@ -55,8 +56,31 @@ export async function fetchIosProducts(
 ): Promise<(Product | ProductSubscription)[]> {
   const iap = loadIap()
   if (!iap || skus.length === 0) return []
-  const res = await iap.fetchProducts({ skus, type })
-  return (res ?? []) as (Product | ProductSubscription)[]
+  // initConnection() is idempotent; call it directly (not via initIap) so a
+  // real init failure surfaces here instead of falling through to fetchProducts
+  // and masquerading as a "Connection not initialized" error.
+  try {
+    await iap.initConnection()
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    const wrapped = new Error(`IAP_INIT_FAILED: ${msg}`)
+    ;(wrapped as Error & { code?: string }).code = 'IAP_INIT_FAILED'
+    throw wrapped
+  }
+  try {
+    const res = await iap.fetchProducts({ skus, type })
+    const list = (res ?? []) as (Product | ProductSubscription)[]
+    console.warn(
+      `[IAP] fetchProducts type=${type} requested=${JSON.stringify(skus)} got=${JSON.stringify(list.map(p => p?.id))}`,
+    )
+    return list
+  } catch (e) {
+    console.warn(
+      `[IAP] fetchProducts threw type=${type} skus=${JSON.stringify(skus)}:`,
+      e,
+    )
+    throw e
+  }
 }
 
 // Throws AUTH_ERR.IAP_PRODUCT_UNAVAILABLE if StoreKit is missing any requested
@@ -70,7 +94,14 @@ export async function requireIosProduct(
 ): Promise<Product | ProductSubscription> {
   const products = await fetchIosProducts([sku], type)
   const match = products.find((p) => p.id === sku)
-  if (!match) throw new Error('IAP_PRODUCT_UNAVAILABLE')
+  if (!match) {
+    const returned = products.map((p) => p?.id).join(',') || '<empty>'
+    const err = new Error(
+      `IAP_PRODUCT_UNAVAILABLE sku=${sku} type=${type} returned=[${returned}]`,
+    )
+    ;(err as Error & { code?: string }).code = 'IAP_PRODUCT_UNAVAILABLE'
+    throw err
+  }
   return match
 }
 
