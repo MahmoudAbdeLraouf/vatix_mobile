@@ -18,7 +18,7 @@ import type { EventSubscription, Purchase, PurchaseError } from 'react-native-ia
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
-import { authErrorMessage, authFetch, authPost, updateStoredUser } from '@/lib/auth'
+import { AUTH_ERR, authErrorMessage, authFetch, authPost, updateStoredUser } from '@/lib/auth'
 import {
   getSiteSettings,
   getSubscriptionPlans,
@@ -195,11 +195,14 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
           setIosPriceMap(map)
           if (products.length < SUBSCRIPTION_SKUS.length) {
             const returned = products.map(p => p?.id).join(', ') || '<none>'
-            setErr(`IAP subs: requested=[${SUBSCRIPTION_SKUS.join(', ')}] returned=[${returned}]`)
+            console.warn(
+              `[IAP] subs fetch incomplete requested=[${SUBSCRIPTION_SKUS.join(', ')}] returned=[${returned}]`,
+            )
+            setErr(t.iapProductUnavailable)
           }
         } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e)
-          setErr(`IAP subs threw: ${msg}`)
+          console.warn('[IAP] subs fetch threw:', e)
+          if (live) setErr(t.iapProductUnavailable)
         }
       }
     })()
@@ -366,7 +369,8 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
     const sku = subscriptionSkuForStoreType(storeType)
     const product = getIapProduct(sku)
     if (!product) {
-      setErr(`Product unavailable: sku=${sku}`)
+      console.warn(`[IAP] subscription product not cached for sku=${sku}`)
+      setErr(t.iapProductUnavailable)
       return
     }
 
@@ -396,7 +400,12 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
             reject(new Error('__CANCELLED__'))
             return
           }
-          reject(new Error(`StoreKit: code=${e.code} message=${e.message ?? ''} productId=${e.productId ?? sku}`))
+          console.warn('[IAP] purchase error', e)
+          if (e.code === 'sku-not-found') {
+            reject(new Error(AUTH_ERR.IAP_PRODUCT_UNAVAILABLE))
+            return
+          }
+          reject(new Error(e.message || 'Purchase failed'))
         })
         requestIosPurchase(sku, product.type).catch(reject)
       })

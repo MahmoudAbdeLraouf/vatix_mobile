@@ -20,6 +20,7 @@ import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
+  AUTH_ERR,
   authDelete,
   authErrorMessage,
   authFetch,
@@ -199,12 +200,15 @@ export default function PromoteScreen() {
             setIosPriceMap(map)
             if (products.length < PROMOTION_SKUS.length) {
               const returned = products.map(p => p?.id).join(', ') || '<none>'
-              setError(`IAP in-app: requested=[${PROMOTION_SKUS.join(', ')}] returned=[${returned}]`)
+              console.warn(
+                `[IAP] promo fetch incomplete requested=[${PROMOTION_SKUS.join(', ')}] returned=[${returned}]`,
+              )
+              setError(t.iapProductUnavailable)
             }
           }
         } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e)
-          setError(`IAP in-app threw: ${msg}`)
+          console.warn('[IAP] promo fetch threw:', e)
+          if (!cancelled) setError(t.iapProductUnavailable)
         }
       }
       await load()
@@ -432,12 +436,14 @@ export default function PromoteScreen() {
     const productCount = bundle.productCount as 1 | 3 | 5
     const sku = promotionSkuForCount(productCount)
     if (!sku) {
-      setError(`Bundle unavailable via Apple: productCount=${productCount}`)
+      console.warn(`[IAP] no sku mapped for productCount=${productCount}`)
+      setError(t.iapProductUnavailable)
       return
     }
     const product = getIapProduct(sku)
     if (!product) {
-      setError(`Product unavailable: sku=${sku}`)
+      console.warn(`[IAP] product not cached for sku=${sku}`)
+      setError(t.iapProductUnavailable)
       return
     }
     setError('')
@@ -461,7 +467,12 @@ export default function PromoteScreen() {
             reject(new Error('__CANCELLED__'))
             return
           }
-          reject(new Error(`StoreKit: code=${e.code} message=${e.message ?? ''} productId=${e.productId ?? sku}`))
+          console.warn('[IAP] purchase error', e)
+          if (e.code === 'sku-not-found') {
+            reject(new Error(AUTH_ERR.IAP_PRODUCT_UNAVAILABLE))
+            return
+          }
+          reject(new Error(e.message || 'Purchase failed'))
         })
         requestIosPurchase(sku, product.type).catch(reject)
       })
@@ -1422,6 +1433,7 @@ function InstaRow({
 
 function ErrorBox({ text }: { text: string }) {
   const { rowDir, colDir, dirStyle } = useDir()
+  if (!text) return null
   return (
     <View style={[styles.errorBox, rowDir]}>
       <Ionicons name="alert-circle" size={16} color={colors.red} />
