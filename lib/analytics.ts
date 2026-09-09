@@ -1,5 +1,6 @@
 import { Platform } from 'react-native'
 import { visitorIdHeader } from '@/lib/visitor-id'
+import { getToken } from '@/lib/auth'
 
 const API = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 const CLIENT_PLATFORM = Platform.OS
@@ -56,6 +57,22 @@ export function trackProductPhoneClick(productId: number) {
 export function trackProductWhatsappClick(productId: number) {
   if (!Number.isFinite(productId) || productId <= 0) return
   fireAndForget(`${API}/products/${productId}/whatsapp-click`, { method: 'POST' })
+}
+
+// Pings /analytics/pulse so the backend can count this device as a daily
+// active visitor (Redis HyperLogLog + site_visitors UPSERT). Attaches the
+// bearer token when the user is signed in so the row can be linked to a
+// userId; anonymous devices are counted by X-Visitor-Id alone.
+export function trackPulse() {
+  void (async () => {
+    const headers: Record<string, string> = {
+      'X-Client-Platform': CLIENT_PLATFORM,
+      ...(await visitorIdHeader()),
+    }
+    const token = await getToken()
+    if (token) headers.Authorization = `Bearer ${token}`
+    fetch(`${API}/analytics/pulse`, { method: 'POST', headers }).catch(() => {})
+  })()
 }
 
 export function trackSearch(keyword: string, zeroResults = false) {

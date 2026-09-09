@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { I18nManager } from 'react-native'
+import { AppState, I18nManager } from 'react-native'
 import { router, Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import * as SplashScreen from 'expo-splash-screen'
@@ -21,7 +21,7 @@ import * as Sentry from '@sentry/react-native'
 import { AuthProvider } from '@/contexts/auth'
 import { LocaleProvider, useLocale } from '@/contexts/locale'
 import { LoginGateProvider } from '@/contexts/loginGate'
-import { trackHomepageView } from '@/lib/analytics'
+import { trackHomepageView, trackPulse } from '@/lib/analytics'
 import { attachNotificationTapHandler } from '@/lib/notifications'
 import { getSiteSettings, type SiteSettings } from '@/lib/api'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
@@ -91,6 +91,17 @@ function RootLayout() {
 
   useEffect(() => {
     trackHomepageView()
+  }, [])
+
+  // Daily-active pulse: fire on mount and every time the app returns to the
+  // foreground. Mirrors the website's visibilitychange handler so a device
+  // that stayed open across midnight still gets counted on the new day.
+  useEffect(() => {
+    trackPulse()
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') trackPulse()
+    })
+    return () => sub.remove()
   }, [])
 
   useEffect(() => {
