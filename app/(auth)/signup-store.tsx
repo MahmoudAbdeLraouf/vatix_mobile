@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 import { validatePassword } from '@/lib/password-policy'
+import { IS_IOS } from '@/lib/platform'
 
 type StoreType = 'store' | 'store_plus'
 type PlusPath = 'pay' | 'trial'
@@ -395,7 +396,7 @@ export default function SignupStoreScreen() {
                     })}
                   </View>
 
-                  {plusPath === 'pay' && (
+                  {plusPath === 'pay' && !IS_IOS && (
                     <>
                       <Text style={styles.sectionLabel}>{t.billingCycleLabel}</Text>
                       <View style={styles.typeRow}>

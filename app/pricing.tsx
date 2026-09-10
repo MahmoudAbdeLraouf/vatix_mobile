@@ -18,7 +18,7 @@ import {
   PlanData,
 } from '@/lib/api'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
-import { PAID_UI_ENABLED } from '@/lib/platform'
+import { IS_IOS, PAID_UI_ENABLED } from '@/lib/platform'
 
 type Billing = 'monthly' | 'yearly'
 
@@ -116,32 +116,34 @@ export default function PricingScreen() {
               : 'Start free or launch as a store — no hidden fees'}
           </Text>
 
-          {/* Billing toggle */}
-          <View style={s.toggleWrap}>
-            <Pressable
-              onPress={() => setBilling('monthly')}
-              style={[s.toggleBtn, !isYearly && s.toggleBtnActive]}
-            >
-              <Text style={[s.toggleText, !isYearly && s.toggleTextActive]}>
-                {ar ? 'شهري' : 'Monthly'}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setBilling('yearly')}
-              style={[s.toggleBtn, isYearly && s.toggleBtnActive]}
-            >
-              <View style={s.yearlyLabel}>
-                <Text style={[s.toggleText, isYearly && s.toggleTextActive]}>
-                  {ar ? 'سنوي' : 'Yearly'}
+          {/* Billing toggle — iOS is monthly-only (App Store SKUs) */}
+          {!IS_IOS && (
+            <View style={s.toggleWrap}>
+              <Pressable
+                onPress={() => setBilling('monthly')}
+                style={[s.toggleBtn, !isYearly && s.toggleBtnActive]}
+              >
+                <Text style={[s.toggleText, !isYearly && s.toggleTextActive]}>
+                  {ar ? 'شهري' : 'Monthly'}
                 </Text>
-                <View style={s.savingBadge}>
-                  <Text style={s.savingBadgeText}>
-                    {ar ? 'شهرين مجاناً' : '2 months free'}
+              </Pressable>
+              <Pressable
+                onPress={() => setBilling('yearly')}
+                style={[s.toggleBtn, isYearly && s.toggleBtnActive]}
+              >
+                <View style={s.yearlyLabel}>
+                  <Text style={[s.toggleText, isYearly && s.toggleTextActive]}>
+                    {ar ? 'سنوي' : 'Yearly'}
                   </Text>
+                  <View style={s.savingBadge}>
+                    <Text style={s.savingBadgeText}>
+                      {ar ? 'شهرين مجاناً' : '2 months free'}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            </Pressable>
-          </View>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {/* Plan Cards */}

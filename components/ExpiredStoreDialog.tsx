@@ -31,7 +31,7 @@ import { Input } from '@/components/ui/Input'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
-import { PAID_UI_ENABLED } from '@/lib/platform'
+import { IS_IOS, PAID_UI_ENABLED } from '@/lib/platform'
 
 // Display fallback amounts — the backend is the source of truth at insert time
 // (resolves the SubscriptionPlan row by { storeType, billingCycle }). These
@@ -103,7 +103,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
   const [cycle, setCycle] = useState<BillingCycle>('monthly')
 
   const amount = AMOUNT_BY_TYPE_CYCLE[storeType][cycle]
-  const showCyclePicker = storeType === 'store_plus'
+  const showCyclePicker = storeType === 'store_plus' && !IS_IOS
 
   useEffect(() => {
     if (!visible) return
