@@ -447,10 +447,11 @@ export function expiredPayInstapay(
   password: string,
   screenshotKey: string,
   buyerPhone: string,
+  billingCycle: BillingCycle,
 ): Promise<{ paymentId: number; status: 'pending_verification' }> {
   return apiFetch('/auth/expired/pay-instapay', {
     method: 'POST',
-    body: JSON.stringify({ phone, password, screenshotKey, buyerPhone }),
+    body: JSON.stringify({ phone, password, screenshotKey, buyerPhone, billingCycle }),
   })
 }
 
@@ -463,10 +464,11 @@ export function expiredPayMobileWallet(
   password: string,
   screenshotKey: string,
   buyerPhone: string,
+  billingCycle: BillingCycle,
 ): Promise<{ paymentId: number; status: 'pending_verification' }> {
   return apiFetch('/auth/expired/pay-mobile-wallet', {
     method: 'POST',
-    body: JSON.stringify({ phone, password, screenshotKey, buyerPhone }),
+    body: JSON.stringify({ phone, password, screenshotKey, buyerPhone, billingCycle }),
   })
 }
 
@@ -630,6 +632,7 @@ export function forgotPasswordReset(
 export type SubscriptionStatus = 'trial' | 'active' | 'expired'
 export type PaymentStatus = 'success' | 'pending' | 'failed' | 'pending_verification'
 export type PaymentMethod = 'instapay' | 'wallet' | 'mobile_wallet'
+export type BillingCycle = 'monthly' | 'yearly'
 
 export interface SubStatus {
   type: string
@@ -643,6 +646,7 @@ export interface SubStatus {
 export interface PlanData {
   id: number
   storeType: string
+  billingCycle?: string
   price: string | number
   isActive: boolean
 }

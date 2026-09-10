@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import {
+  BillingCycle,
   expiredConvertToClient,
   expiredPayInstapay,
   expiredPayMobileWallet,
@@ -32,9 +33,12 @@ import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { PAID_UI_ENABLED } from '@/lib/platform'
 
-const AMOUNT_BY_TYPE: Record<'store' | 'store_plus', number> = {
-  store: 300,
-  store_plus: 500,
+// Display fallback amounts — the backend is the source of truth at insert time
+// (resolves the SubscriptionPlan row by { storeType, billingCycle }). These
+// values just prime the QR / wallet cards while the user picks a cycle.
+const AMOUNT_BY_TYPE_CYCLE: Record<'store' | 'store_plus', Record<BillingCycle, number>> = {
+  store: { monthly: 300, yearly: 3000 },
+  store_plus: { monthly: 500, yearly: 5000 },
 }
 
 type Step =
@@ -96,8 +100,10 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
   const [uploading, setUploading] = useState(false)
   const [buyerPhone, setBuyerPhone] = useState('')
   const [paySettings, setPaySettings] = useState<PaySettings>(DEFAULT_PAY_SETTINGS)
+  const [cycle, setCycle] = useState<BillingCycle>('monthly')
 
-  const amount = AMOUNT_BY_TYPE[storeType]
+  const amount = AMOUNT_BY_TYPE_CYCLE[storeType][cycle]
+  const showCyclePicker = storeType === 'store_plus'
 
   useEffect(() => {
     if (!visible) return
@@ -107,6 +113,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
     setScreenshotUrl(null)
     setScreenshotLocal(null)
     setBuyerPhone('')
+    setCycle('monthly')
   }, [visible])
 
   useEffect(() => {
@@ -189,7 +196,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
     setError('')
     setBusy(true)
     try {
-      await expiredPayInstapay(phone, password, screenshotUrl, buyerPhone.trim())
+      await expiredPayInstapay(phone, password, screenshotUrl, buyerPhone.trim(), cycle)
       setStep('instapay-done')
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
@@ -211,7 +218,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
     setError('')
     setBusy(true)
     try {
-      await expiredPayMobileWallet(phone, password, screenshotUrl, buyerPhone.trim())
+      await expiredPayMobileWallet(phone, password, screenshotUrl, buyerPhone.trim(), cycle)
       setStep('mobile-wallet-done')
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
@@ -358,6 +365,16 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
 
               {PAID_UI_ENABLED && step === 'instapay' && (
                 <>
+                  {showCyclePicker && (
+                    <CyclePicker
+                      cycle={cycle}
+                      onChange={setCycle}
+                      disabled={busy || uploading}
+                      t={t}
+                      dirStyle={dirStyle}
+                    />
+                  )}
+
                   <InstapayQrCard amount={amount} />
 
                   <View style={{ marginTop: spacing.sm }}>
@@ -448,6 +465,16 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
 
               {PAID_UI_ENABLED && step === 'mobile-wallet' && (
                 <>
+                  {showCyclePicker && (
+                    <CyclePicker
+                      cycle={cycle}
+                      onChange={setCycle}
+                      disabled={busy || uploading}
+                      t={t}
+                      dirStyle={dirStyle}
+                    />
+                  )}
+
                   <MobileWalletCard
                     amount={amount}
                     walletNumber={paySettings.mobileWalletAccount || '—'}
@@ -544,6 +571,52 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
         </Pressable>
       </Pressable>
     </Modal>
+  )
+}
+
+function CyclePicker({
+  cycle,
+  onChange,
+  disabled,
+  t,
+  dirStyle,
+}: {
+  cycle: BillingCycle
+  onChange: (c: BillingCycle) => void
+  disabled: boolean
+  t: ReturnType<typeof useLocale>['t']
+  dirStyle: { writingDirection: 'rtl' | 'ltr'; textAlign: 'auto' }
+}) {
+  return (
+    <View>
+      <Text style={[styles.fieldLabel, dirStyle]}>{t.billingCycleLabel}</Text>
+      <View style={styles.typeGrid}>
+        <Pressable
+          onPress={() => onChange('monthly')}
+          disabled={disabled}
+          style={[
+            styles.typeCard,
+            cycle === 'monthly' && { borderColor: colors.y, backgroundColor: colors.yl },
+            disabled && { opacity: 0.6 },
+          ]}
+        >
+          <Text style={styles.typeIcon}>🗓️</Text>
+          <Text style={styles.typeLabel}>{t.monthlyBilling}</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => onChange('yearly')}
+          disabled={disabled}
+          style={[
+            styles.typeCard,
+            cycle === 'yearly' && { borderColor: colors.y, backgroundColor: colors.yl },
+            disabled && { opacity: 0.6 },
+          ]}
+        >
+          <Text style={styles.typeIcon}>📅</Text>
+          <Text style={styles.typeLabel}>{t.yearlyBilling}</Text>
+        </Pressable>
+      </View>
+    </View>
   )
 }
 
@@ -770,6 +843,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.dk,
     marginBottom: spacing.xs,
+  },
+  typeGrid: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  typeCard: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: colors.g200,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    gap: 4,
+  },
+  typeIcon: {
+    fontSize: 22,
+  },
+  typeLabel: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.dk,
   },
   uploadBox: {
     borderWidth: 1.5,

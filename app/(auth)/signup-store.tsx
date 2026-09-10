@@ -32,6 +32,8 @@ import { colors, fonts, radius, spacing } from '@/constants/theme'
 import { validatePassword } from '@/lib/password-policy'
 
 type StoreType = 'store' | 'store_plus'
+type PlusPath = 'pay' | 'trial'
+type BillingCycle = 'monthly' | 'yearly'
 
 type Step = 'phone' | 'otp' | 'info'
 
@@ -59,12 +61,19 @@ export default function SignupStoreScreen() {
 
   const [storeName, setStoreName] = useState('')
   const [storeType, setStoreType] = useState<StoreType>('store')
+  const [plusPath, setPlusPath] = useState<PlusPath>('pay')
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
   const [description, setDescription] = useState('')
   const [logoUri, setLogoUri] = useState<string | null>(null)
   const [coverUri, setCoverUri] = useState<string | null>(null)
-  const [planAmounts, setPlanAmounts] = useState<{ store: number; store_plus: number }>({
+  const [planAmounts, setPlanAmounts] = useState<{
+    store: number
+    store_plus_monthly: number
+    store_plus_yearly: number
+  }>({
     store: 0,
-    store_plus: 0,
+    store_plus_monthly: 0,
+    store_plus_yearly: 0,
   })
 
   const [loading, setLoading] = useState(false)
@@ -79,11 +88,14 @@ export default function SignupStoreScreen() {
   useEffect(() => {
     getSubscriptionPlans()
       .then(plans => {
-        const s = plans.find(p => p.storeType === 'store')
-        const sp = plans.find(p => p.storeType === 'store_plus')
+        const active = plans.filter(p => p.isActive !== false)
+        const s = active.find(p => p.storeType === 'store')
+        const spM = active.find(p => p.storeType === 'store_plus' && p.billingCycle === 'monthly')
+        const spY = active.find(p => p.storeType === 'store_plus' && p.billingCycle === 'yearly')
         setPlanAmounts({
           store: s ? Math.round(Number(s.price)) : 0,
-          store_plus: sp ? Math.round(Number(sp.price)) : 0,
+          store_plus_monthly: spM ? Math.round(Number(spM.price)) : 0,
+          store_plus_yearly: spY ? Math.round(Number(spY.price)) : 0,
         })
       })
       .catch(() => {})
@@ -170,14 +182,23 @@ export default function SignupStoreScreen() {
     if (!storeName.trim()) { setError(t.requiredField); return }
     setLoading(true)
     try {
+      // Path B (trial) always creates a normal `store` on the trial track,
+      // even when the user initially picked Store Plus. Path A pays for Plus
+      // immediately after signup on the dashboard/subscription screen.
+      const registerType: StoreType =
+        storeType === 'store' || plusPath === 'trial' ? 'store' : 'store_plus'
       const response = await registerStore({
         phone: phone.trim(),
         password,
-        type: storeType,
+        type: registerType,
         storeName: storeName.trim(),
         description: description.trim() || undefined,
       })
-      await login(response, redirect)
+      const routeAfter =
+        storeType === 'store_plus' && plusPath === 'pay'
+          ? `/dashboard/subscription?upgrade=plus&cycle=${billingCycle}`
+          : undefined
+      await login(response, routeAfter ?? redirect)
       if (logoUri) {
         try {
           const url = await authUploadFile(logoUri)
@@ -314,7 +335,11 @@ export default function SignupStoreScreen() {
                   const active = storeType === opt
                   const label = opt === 'store' ? t.storeTypeStore : t.storeTypeStorePlus
                   const icon = opt === 'store' ? '🏪' : '⭐'
-                  const price = opt === 'store' ? planAmounts.store : planAmounts.store_plus
+                  // Store Plus shows a "from …/mo" hint sourced from the monthly
+                  // plan; the exact selected cycle is chosen in the picker below.
+                  const price =
+                    opt === 'store' ? planAmounts.store : planAmounts.store_plus_monthly
+                  const priceSuffix = opt === 'store' ? t.monthlyBilling : t.perMonthSuffix
                   return (
                     <Pressable
                       key={opt}
@@ -325,16 +350,85 @@ export default function SignupStoreScreen() {
                       <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>{label}</Text>
                       {price > 0 ? (
                         <Text style={[styles.typePrice, active && styles.typePriceActive]}>
-                          {price} {t.monthlyBilling}
+                          {opt === 'store_plus' ? `${t.fromPricePrefix} ` : ''}
+                          {price} {priceSuffix}
                         </Text>
                       ) : null}
-                      <View style={styles.freeMonthBadge}>
-                        <Text style={styles.freeMonthText}>{t.freeMonthFirst}</Text>
-                      </View>
+                      {opt === 'store' ? (
+                        <View style={styles.freeMonthBadge}>
+                          <Text style={styles.freeMonthText}>{t.freeMonthFirst}</Text>
+                        </View>
+                      ) : null}
                     </Pressable>
                   )
                 })}
               </View>
+
+              {storeType === 'store_plus' && (
+                <>
+                  <Text style={styles.sectionLabel}>{t.howWouldYouLikeToStart}</Text>
+                  <View style={styles.pathCol}>
+                    {(['pay', 'trial'] as const).map(opt => {
+                      const active = plusPath === opt
+                      const title = opt === 'pay' ? t.plusPathPay : t.plusPathTrial
+                      const hint = opt === 'pay' ? t.plusPathPayHint : t.plusPathTrialHint
+                      const icon = opt === 'pay' ? 'flash-outline' : 'time-outline'
+                      return (
+                        <Pressable
+                          key={opt}
+                          onPress={() => setPlusPath(opt)}
+                          style={[styles.pathBtn, active && styles.pathBtnActive]}
+                        >
+                          <Ionicons
+                            name={icon as React.ComponentProps<typeof Ionicons>['name']}
+                            size={20}
+                            color={active ? colors.dk : colors.g500}
+                          />
+                          <View style={styles.pathTextWrap}>
+                            <Text style={[styles.pathTitle, active && styles.pathTitleActive]}>
+                              {title}
+                            </Text>
+                            <Text style={styles.pathHint}>{hint}</Text>
+                          </View>
+                        </Pressable>
+                      )
+                    })}
+                  </View>
+
+                  {plusPath === 'pay' && (
+                    <>
+                      <Text style={styles.sectionLabel}>{t.billingCycleLabel}</Text>
+                      <View style={styles.typeRow}>
+                        {(['monthly', 'yearly'] as const).map(cyc => {
+                          const active = billingCycle === cyc
+                          const label = cyc === 'monthly' ? t.monthly : t.yearly
+                          const amount =
+                            cyc === 'monthly'
+                              ? planAmounts.store_plus_monthly
+                              : planAmounts.store_plus_yearly
+                          const suffix = cyc === 'monthly' ? t.perMonthSuffix : t.perYearSuffix
+                          return (
+                            <Pressable
+                              key={cyc}
+                              onPress={() => setBillingCycle(cyc)}
+                              style={[styles.typeBtn, active && styles.typeBtnActive]}
+                            >
+                              <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>
+                                {label}
+                              </Text>
+                              {amount > 0 ? (
+                                <Text style={[styles.typePrice, active && styles.typePriceActive]}>
+                                  {amount} {suffix}
+                                </Text>
+                              ) : null}
+                            </Pressable>
+                          )
+                        })}
+                      </View>
+                    </>
+                  )}
+                </>
+              )}
 
               <Input label={t.storeName} value={storeName} onChangeText={setStoreName} autoCapitalize="words" />
 
@@ -575,6 +669,45 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 10,
     color: colors.dk,
+  },
+
+  pathCol: {
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  pathBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1.5,
+    borderColor: colors.g200,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  pathBtnActive: {
+    borderColor: colors.y,
+    backgroundColor: colors.yl,
+  },
+  pathTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  pathTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 14,
+    color: colors.g700,
+    textAlign: 'auto',
+  },
+  pathTitleActive: {
+    color: colors.dk,
+  },
+  pathHint: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.g500,
+    textAlign: 'auto',
   },
 
   textarea: {

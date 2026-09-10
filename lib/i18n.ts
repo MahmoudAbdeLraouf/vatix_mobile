@@ -428,6 +428,18 @@ export interface Translations {
   storeCover: string
   planCost: string
   monthlyBilling: string
+  yearlyBilling: string
+  plusPathPay: string
+  plusPathPayHint: string
+  plusPathTrial: string
+  plusPathTrialHint: string
+  howWouldYouLikeToStart: string
+  billingCycleLabel: string
+  monthly: string
+  yearly: string
+  perMonthSuffix: string
+  perYearSuffix: string
+  fromPricePrefix: string
   paymentSuccessBody: string
   paymentPendingBody: string
   continueToStore: string
@@ -961,6 +973,18 @@ export const translations: Record<Locale, Translations> = {
     storeCover: 'صورة الغلاف (اختياري)',
     planCost: 'قيمة الخطة',
     monthlyBilling: 'شهرياً',
+    yearlyBilling: 'سنوياً',
+    plusPathPay: 'ادفع الآن',
+    plusPathPayHint: 'فعّل خطة بلَس فوراً بعد إنشاء الحساب.',
+    plusPathTrial: 'ابدأ التجربة كمتجر عادي',
+    plusPathTrialHint: 'جرّب متجراً عادياً مجاناً 14 يوماً وحدّث لبلَس لاحقاً.',
+    howWouldYouLikeToStart: 'كيف تحب تبدأ؟',
+    billingCycleLabel: 'دورة الفوترة',
+    monthly: 'شهري',
+    yearly: 'سنوي',
+    perMonthSuffix: '/شهر',
+    perYearSuffix: '/سنة',
+    fromPricePrefix: 'يبدأ من',
     paymentSuccessBody: 'تم تفعيل اشتراكك بنجاح.',
     paymentPendingBody: 'دفعتك قيد المراجعة، سنُفعّل الخدمة فور التحقق.',
     continueToStore: 'المتابعة إلى المتجر',
@@ -1499,6 +1523,18 @@ export const translations: Record<Locale, Translations> = {
     storeCover: 'Cover image (optional)',
     planCost: 'Plan cost',
     monthlyBilling: 'monthly',
+    yearlyBilling: 'yearly',
+    plusPathPay: 'Pay now',
+    plusPathPayHint: 'Activate Store Plus immediately after signup.',
+    plusPathTrial: 'Start as a regular store trial',
+    plusPathTrialHint: 'Try a regular store free for 14 days and upgrade to Plus later.',
+    howWouldYouLikeToStart: 'How would you like to start?',
+    billingCycleLabel: 'Billing cycle',
+    monthly: 'Monthly',
+    yearly: 'Yearly',
+    perMonthSuffix: '/mo',
+    perYearSuffix: '/yr',
+    fromPricePrefix: 'From',
     paymentSuccessBody: 'Your subscription has been activated.',
     paymentPendingBody: 'Your payment is under review. The service will be activated once verified.',
     continueToStore: 'Continue to store',

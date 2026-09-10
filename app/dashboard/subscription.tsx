@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useLocalSearchParams } from 'expo-router'
 import { DashboardLayout } from '@/components/DashboardLayout'
-import { UpgradeModal, UpgradeMode } from '@/components/UpgradeModal'
+import { BillingCycle, UpgradeModal, UpgradeMode } from '@/components/UpgradeModal'
 import { WalletTopupModal } from '@/components/WalletTopupModal'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
@@ -60,6 +61,16 @@ export default function SubscriptionScreen() {
   // without duplicating the pricing table in the client.
   const [iosPriceMap, setIosPriceMap] = useState<Record<string, string>>({})
 
+  // Deep-link params. Signup/login redirect here with ?upgrade=…&cycle=yearly
+  // when a store_plus purchase is required (e.g. Path A during signup, or the
+  // expired-subscription flow). The cycle only applies to store_plus — the
+  // regular store subscription is monthly-only.
+  const params = useLocalSearchParams<{
+    upgrade?: string
+    cycle?: 'monthly' | 'yearly'
+  }>()
+  const paramCycle: BillingCycle = params.cycle === 'yearly' ? 'yearly' : 'monthly'
+
   const [modal, setModal] = useState<UpgradeMode | null>(null)
   const [walletModal, setWalletModal] = useState(false)
 
@@ -81,6 +92,13 @@ export default function SubscriptionScreen() {
   useEffect(() => {
     loadAll()
   }, [loadAll])
+
+  // Deep-link auto-open: signup/expired flows route here with ?upgrade=plus
+  // (or ?upgrade=store) to drop the user directly into the purchase modal.
+  useEffect(() => {
+    if (params.upgrade === 'plus') setModal('upgrade-to-plus')
+    else if (params.upgrade === 'store') setModal('upgrade-to-store')
+  }, [params.upgrade])
 
   // Fetch StoreKit prices so the upgrade CTAs show the App-Store price the
   // user will actually be charged (Apple commission-inclusive), not the raw
@@ -119,12 +137,36 @@ export default function SubscriptionScreen() {
     if (fresh) setWalletBal(fresh.balance)
   }, [])
 
+  // Plans are keyed by (storeType, billingCycle). Older seed rows omit
+  // billingCycle — treat those as monthly so pre-migration DBs still resolve.
   const storeMonthly = useMemo(
-    () => Number(subPlans.find(p => p.storeType === 'store')?.price ?? 300),
+    () =>
+      Number(
+        subPlans.find(
+          p =>
+            p.storeType === 'store' && (p.billingCycle ?? 'monthly') === 'monthly',
+        )?.price ?? 300,
+      ),
     [subPlans],
   )
   const plusMonthly = useMemo(
-    () => Number(subPlans.find(p => p.storeType === 'store_plus')?.price ?? 500),
+    () =>
+      Number(
+        subPlans.find(
+          p =>
+            p.storeType === 'store_plus' &&
+            (p.billingCycle ?? 'monthly') === 'monthly',
+        )?.price ?? 500,
+      ),
+    [subPlans],
+  )
+  const plusYearly = useMemo(
+    () =>
+      Number(
+        subPlans.find(
+          p => p.storeType === 'store_plus' && p.billingCycle === 'yearly',
+        )?.price ?? 5000,
+      ),
     [subPlans],
   )
   const fmt = (n: number) => n.toLocaleString(ar ? 'ar-EG' : 'en-EG')
@@ -141,12 +183,19 @@ export default function SubscriptionScreen() {
     ? (iosPriceMap[subscriptionSkuForStoreType('store_plus')] ??
       iosFallbackDisplayPrice(subscriptionSkuForStoreType('store_plus')))
     : undefined
+  // iOS ignores paramCycle — App Store Connect only has monthly SKUs, so the
+  // StoreKit-formatted price is always monthly. Android/web honor the deep-link
+  // cycle so upgrade CTAs match the modal's initial selection.
+  const plusCycle: BillingCycle = IS_IOS ? 'monthly' : paramCycle
+  const plusBackendPrice = plusCycle === 'yearly' ? plusYearly : plusMonthly
+  const cycleUnitFor = (c: BillingCycle) =>
+    c === 'yearly' ? t.yearlyBilling : t.monthlyBilling
   const storePriceLine = storeIosPrice
     ? `${storeIosPrice} / ${t.monthlyBilling}`
     : `${fmt(storeMonthly)} ${ar ? 'ج.م' : 'EGP'} / ${t.monthlyBilling}`
   const plusPriceLine = plusIosPrice
     ? `${plusIosPrice} / ${t.monthlyBilling}`
-    : `${fmt(plusMonthly)} ${ar ? 'ج.م' : 'EGP'} / ${t.monthlyBilling}`
+    : `${fmt(plusBackendPrice)} ${ar ? 'ج.م' : 'EGP'} / ${cycleUnitFor(plusCycle)}`
 
   const isTrial = subInfo?.subscriptionStatus === 'trial'
   const isActive = subInfo?.subscriptionStatus === 'active'
@@ -238,10 +287,14 @@ export default function SubscriptionScreen() {
                       : `${fmt(daysLeft)} ${t.daysLeftLabel}`}
                   </Text>
                 </View>
-                {/* Renew — iOS routes through Apple IAP inside the modal */}
+                {/* Renew — iOS routes through Apple IAP inside the modal.
+                    Route to the user's actual tier so a normal-store user does
+                    not accidentally get upgraded to Plus by tapping Renew. */}
                 {SUBSCRIPTION_UI_ENABLED && (
                   <Pressable
-                    onPress={() => setModal('upgrade-to-plus')}
+                    onPress={() =>
+                      setModal(isStorePlus ? 'upgrade-to-plus' : 'upgrade-to-store')
+                    }
                     style={({ pressed }) => [
                       styles.renewBtn,
                       pressed && styles.actionPressed,
@@ -523,6 +576,7 @@ export default function SubscriptionScreen() {
       <UpgradeModal
         visible={!!modal}
         mode={modal ?? 'upgrade-to-store'}
+        cycle={plusCycle}
         onClose={() => setModal(null)}
         onSuccess={refreshAfterUpgrade}
       />
