@@ -83,7 +83,13 @@ export default function DashboardScreen() {
   }, [isAuthenticated])
 
   if (loading) return null
-  if (!isAuthenticated) return <Redirect href="/(auth)/login" />
+  if (!isAuthenticated) {
+    return (
+      <Redirect
+        href={{ pathname: '/(auth)/sign-in-required', params: { redirect: '/(tabs)/dashboard' } }}
+      />
+    )
+  }
 
   const type = normalizeType(user?.type)
   const isClient = type === 'client'

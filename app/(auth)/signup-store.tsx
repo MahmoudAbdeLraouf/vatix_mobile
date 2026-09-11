@@ -33,10 +33,11 @@ import { validatePassword } from '@/lib/password-policy'
 import { IS_IOS } from '@/lib/platform'
 
 type StoreType = 'store' | 'store_plus'
-type PlusPath = 'pay' | 'trial'
 type BillingCycle = 'monthly' | 'yearly'
 
 type Step = 'phone' | 'otp' | 'info'
+
+const TRIAL_DAYS = 14
 
 const STEP_ICONS: Record<Step, React.ComponentProps<typeof Ionicons>['name']> = {
   phone: 'call-outline',
@@ -62,7 +63,6 @@ export default function SignupStoreScreen() {
 
   const [storeName, setStoreName] = useState('')
   const [storeType, setStoreType] = useState<StoreType>('store')
-  const [plusPath, setPlusPath] = useState<PlusPath>('pay')
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
   const [description, setDescription] = useState('')
   const [logoUri, setLogoUri] = useState<string | null>(null)
@@ -183,20 +183,15 @@ export default function SignupStoreScreen() {
     if (!storeName.trim()) { setError(t.requiredField); return }
     setLoading(true)
     try {
-      // Path B (trial) always creates a normal `store` on the trial track,
-      // even when the user initially picked Store Plus. Path A pays for Plus
-      // immediately after signup on the dashboard/subscription screen.
-      const registerType: StoreType =
-        storeType === 'store' || plusPath === 'trial' ? 'store' : 'store_plus'
       const response = await registerStore({
         phone: phone.trim(),
         password,
-        type: registerType,
+        type: 'store',
         storeName: storeName.trim(),
         description: description.trim() || undefined,
       })
       const routeAfter =
-        storeType === 'store_plus' && plusPath === 'pay'
+        storeType === 'store_plus'
           ? `/dashboard/subscription?upgrade=plus&cycle=${billingCycle}`
           : undefined
       await login(response, routeAfter ?? redirect)
@@ -359,75 +354,50 @@ export default function SignupStoreScreen() {
                         <View style={styles.freeMonthBadge}>
                           <Text style={styles.freeMonthText}>{t.freeMonthFirst}</Text>
                         </View>
-                      ) : null}
+                      ) : (
+                        <Text style={styles.tagline}>{t.storePlusFeaturesTagline}</Text>
+                      )}
                     </Pressable>
                   )
                 })}
               </View>
 
-              {storeType === 'store_plus' && (
+              {storeType === 'store_plus' && !IS_IOS && (
                 <>
-                  <Text style={styles.sectionLabel}>{t.howWouldYouLikeToStart}</Text>
-                  <View style={styles.pathCol}>
-                    {(['pay', 'trial'] as const).map(opt => {
-                      const active = plusPath === opt
-                      const title = opt === 'pay' ? t.plusPathPay : t.plusPathTrial
-                      const hint = opt === 'pay' ? t.plusPathPayHint : t.plusPathTrialHint
-                      const icon = opt === 'pay' ? 'flash-outline' : 'time-outline'
+                  <Text style={styles.sectionLabel}>{t.billingCycleLabel}</Text>
+                  <View style={styles.typeRow}>
+                    {(['monthly', 'yearly'] as const).map(cyc => {
+                      const active = billingCycle === cyc
+                      const label = cyc === 'monthly' ? t.monthly : t.yearly
+                      const amount =
+                        cyc === 'monthly'
+                          ? planAmounts.store_plus_monthly
+                          : planAmounts.store_plus_yearly
+                      const suffix = cyc === 'monthly' ? t.perMonthSuffix : t.perYearSuffix
                       return (
                         <Pressable
-                          key={opt}
-                          onPress={() => setPlusPath(opt)}
-                          style={[styles.pathBtn, active && styles.pathBtnActive]}
+                          key={cyc}
+                          onPress={() => setBillingCycle(cyc)}
+                          style={[styles.typeBtn, active && styles.typeBtnActive]}
                         >
-                          <Ionicons
-                            name={icon as React.ComponentProps<typeof Ionicons>['name']}
-                            size={20}
-                            color={active ? colors.dk : colors.g500}
-                          />
-                          <View style={styles.pathTextWrap}>
-                            <Text style={[styles.pathTitle, active && styles.pathTitleActive]}>
-                              {title}
+                          <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>
+                            {label}
+                          </Text>
+                          {amount > 0 ? (
+                            <Text style={[styles.typePrice, active && styles.typePriceActive]}>
+                              {amount} {suffix}
                             </Text>
-                            <Text style={styles.pathHint}>{hint}</Text>
-                          </View>
+                          ) : null}
                         </Pressable>
                       )
                     })}
                   </View>
 
-                  {plusPath === 'pay' && !IS_IOS && (
-                    <>
-                      <Text style={styles.sectionLabel}>{t.billingCycleLabel}</Text>
-                      <View style={styles.typeRow}>
-                        {(['monthly', 'yearly'] as const).map(cyc => {
-                          const active = billingCycle === cyc
-                          const label = cyc === 'monthly' ? t.monthly : t.yearly
-                          const amount =
-                            cyc === 'monthly'
-                              ? planAmounts.store_plus_monthly
-                              : planAmounts.store_plus_yearly
-                          const suffix = cyc === 'monthly' ? t.perMonthSuffix : t.perYearSuffix
-                          return (
-                            <Pressable
-                              key={cyc}
-                              onPress={() => setBillingCycle(cyc)}
-                              style={[styles.typeBtn, active && styles.typeBtnActive]}
-                            >
-                              <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>
-                                {label}
-                              </Text>
-                              {amount > 0 ? (
-                                <Text style={[styles.typePrice, active && styles.typePriceActive]}>
-                                  {amount} {suffix}
-                                </Text>
-                              ) : null}
-                            </Pressable>
-                          )
-                        })}
-                      </View>
-                    </>
-                  )}
+                  <View style={styles.infoBanner}>
+                    <Text style={styles.infoBannerText}>
+                      ⭐ {t.storePlusTrialThenActivate(TRIAL_DAYS)}
+                    </Text>
+                  </View>
                 </>
               )}
 
@@ -671,43 +641,29 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.dk,
   },
-
-  pathCol: {
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  pathBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderWidth: 1.5,
-    borderColor: colors.g200,
-    borderRadius: radius.md,
-    backgroundColor: colors.white,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-  },
-  pathBtnActive: {
-    borderColor: colors.y,
-    backgroundColor: colors.yl,
-  },
-  pathTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  pathTitle: {
-    fontFamily: fonts.bold,
-    fontSize: 14,
-    color: colors.g700,
-    textAlign: 'auto',
-  },
-  pathTitleActive: {
-    color: colors.dk,
-  },
-  pathHint: {
-    fontFamily: fonts.regular,
-    fontSize: 12,
+  tagline: {
+    marginTop: 4,
+    fontFamily: fonts.semiBold,
+    fontSize: 10,
     color: colors.g500,
+    textAlign: 'center',
+  },
+
+  infoBanner: {
+    marginTop: 2,
+    marginBottom: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.yl,
+    borderWidth: 1,
+    borderColor: colors.y,
+  },
+  infoBannerText: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: colors.dk,
+    lineHeight: 20,
     textAlign: 'auto',
   },
 

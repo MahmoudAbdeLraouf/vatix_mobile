@@ -429,11 +429,8 @@ export interface Translations {
   planCost: string
   monthlyBilling: string
   yearlyBilling: string
-  plusPathPay: string
-  plusPathPayHint: string
-  plusPathTrial: string
-  plusPathTrialHint: string
-  howWouldYouLikeToStart: string
+  storePlusFeaturesTagline: string
+  storePlusTrialThenActivate: (days: number) => string
   billingCycleLabel: string
   monthly: string
   yearly: string
@@ -974,11 +971,9 @@ export const translations: Record<Locale, Translations> = {
     planCost: 'قيمة الخطة',
     monthlyBilling: 'شهرياً',
     yearlyBilling: 'سنوياً',
-    plusPathPay: 'ادفع الآن',
-    plusPathPayHint: 'فعّل خطة بلَس فوراً بعد إنشاء الحساب.',
-    plusPathTrial: 'ابدأ التجربة كمتجر عادي',
-    plusPathTrialHint: 'جرّب متجراً عادياً مجاناً 14 يوماً وحدّث لبلَس لاحقاً.',
-    howWouldYouLikeToStart: 'كيف تحب تبدأ؟',
+    storePlusFeaturesTagline: 'كامل المميزات + ظهور عالي',
+    storePlusTrialThenActivate: (days: number) =>
+      `تبدأ بتجربة مجانية ${days} يوم كمتجر عادي — يُفعَّل Store Plus تلقائياً بعد اعتماد الدفع من الإدارة`,
     billingCycleLabel: 'دورة الفوترة',
     monthly: 'شهري',
     yearly: 'سنوي',
@@ -1524,11 +1519,9 @@ export const translations: Record<Locale, Translations> = {
     planCost: 'Plan cost',
     monthlyBilling: 'monthly',
     yearlyBilling: 'yearly',
-    plusPathPay: 'Pay now',
-    plusPathPayHint: 'Activate Store Plus immediately after signup.',
-    plusPathTrial: 'Start as a regular store trial',
-    plusPathTrialHint: 'Try a regular store free for 14 days and upgrade to Plus later.',
-    howWouldYouLikeToStart: 'How would you like to start?',
+    storePlusFeaturesTagline: 'Full features + High visibility',
+    storePlusTrialThenActivate: (days: number) =>
+      `You'll start with a ${days}-day free trial as a standard store — Store Plus activates automatically once admin approves your payment`,
     billingCycleLabel: 'Billing cycle',
     monthly: 'Monthly',
     yearly: 'Yearly',

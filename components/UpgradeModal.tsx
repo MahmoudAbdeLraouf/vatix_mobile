@@ -103,6 +103,11 @@ const PLAN_META: Record<
   },
 }
 
+// Trial length shown on the yellow banner when Store Plus is selected.
+// Website sources this from NEXT_PUBLIC_TRIAL_DAYS; mobile hardcodes it since
+// only one call site consumes it.
+const TRIAL_DAYS = 14
+
 // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
 // RTL, `textAlign: 'right'` and `flexDirection: 'row-reverse'` resolve visually
 // BACKWARDS (double-flip). `rowDir` forces LTR + reversed row so the first
@@ -159,9 +164,15 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
   // reflected without duplicating the pricing table in the client.
   const [iosPriceMap, setIosPriceMap] = useState<Record<string, string>>({})
 
-  // Store-info form — storeType is fully determined by mode (which CTA was tapped);
-  // no in-modal selector.
-  const storeType: 'store' | 'store_plus' = mode === 'upgrade-to-plus' ? 'store_plus' : 'store'
+  // Store-info form — the account-type grid (mirrors website's signup-store)
+  // lets the user pick Standard vs Plus in the same step. Initial value is
+  // driven by which CTA opened the modal; user can flip either way from inside.
+  // For 'store_plus' the modal transitions to pay-method after handleTrialSignup
+  // materializes the standard-store profile (deferred Plus activation happens
+  // on payment approval).
+  const [storeType, setStoreType] = useState<'store' | 'store_plus'>(
+    mode === 'upgrade-to-plus' ? 'store_plus' : 'store',
+  )
   const [storeName, setStoreName] = useState('')
   const [description, setDescription] = useState('')
   const [logo, setLogo] = useState('')
@@ -174,13 +185,6 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
   const initialCycle: BillingCycle =
     IS_IOS || mode !== 'upgrade-to-plus' ? 'monthly' : (cycle ?? 'monthly')
   const [effectiveCycle, setEffectiveCycle] = useState<BillingCycle>(initialCycle)
-
-  // Path A vs B for Store Plus signup (mirrors vatix_website/components/upgrade-modal.tsx):
-  //   'pay'   — Path A: pay upfront, get Store Plus instantly (no trial).
-  //   'trial' — Path B: skip payment, create a standard-store profile on the
-  //             14-day trial; user can pay to upgrade to Plus later from the
-  //             dashboard. Only meaningful when needsStoreCreation && upgrade-to-plus.
-  const [plusPath, setPlusPath] = useState<'pay' | 'trial'>('pay')
 
   // InstaPay form
   const [screenshotKey, setScreenshotKey] = useState('')
@@ -201,7 +205,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
     setEffectiveCycle(
       IS_IOS || mode !== 'upgrade-to-plus' ? 'monthly' : (cycle ?? 'monthly'),
     )
-    setPlusPath('pay')
+    setStoreType(mode === 'upgrade-to-plus' ? 'store_plus' : 'store')
   }, [visible, mode, needsStoreCreation, cycle])
 
   // Load plans + settings + wallet on open
@@ -264,6 +268,19 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
     }
   }, [plans, selectedType, effectiveCycle])
 
+  // Fetches the display amount for a given store type at the current cycle.
+  // Used by the store-info account-type grid to surface each tier's price
+  // side-by-side so the user can compare Standard vs Plus at a glance.
+  function priceFor(type: 'store' | 'store_plus'): number {
+    const meta = PLAN_META[type]
+    const fallback = meta.fallbackPrice[effectiveCycle]
+    const priceStr = plans.find(
+      p => p.storeType === type && (p.billingCycle ?? 'monthly') === effectiveCycle,
+    )?.price
+    const priceNum = priceStr != null ? Number(priceStr) : fallback
+    return Number.isFinite(priceNum) ? priceNum : fallback
+  }
+
   const walletBalance = wallet?.balance ?? null
 
   // On iOS, prefer the StoreKit-formatted price for the selected plan. Falls
@@ -314,9 +331,17 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
       })
       await updateStoredUser((res as { user?: Parameters<typeof updateStoredUser>[0] })?.user ?? null)
       await refetchUser()
-      onSuccess?.()
-      onClose()
-      router.replace('/dashboard')
+      if (storeType === 'store_plus') {
+        // Website mirror: standard-store profile is now materialized on the
+        // 14-day trial. Transition into the pay-method step so the user can
+        // upgrade to Plus. Mobile keeps this in-modal instead of redirecting
+        // to /dashboard/subscription like the website does.
+        setStep('pay-method')
+      } else {
+        onSuccess?.()
+        onClose()
+        router.replace('/dashboard')
+      }
     } catch (e: unknown) {
       setErr(authErrorMessage(e, t))
     } finally {
@@ -579,24 +604,18 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
                   onLogoChange={setLogo}
                   cover={cover}
                   onCoverChange={setCover}
-                  price={selectedPlan.amount}
+                  storeType={storeType}
+                  onStoreTypeChange={setStoreType}
+                  storeAmount={priceFor('store')}
+                  plusAmount={priceFor('store_plus')}
                   iosDisplayPrice={iosDisplayPrice}
                   cycle={effectiveCycle}
-                  mode={mode}
-                  plusPath={plusPath}
-                  onPlusPathChange={setPlusPath}
-                  onTrialStart={handleTrialSignup}
+                  onCycleChange={setEffectiveCycle}
+                  showCyclePicker={storeType === 'store_plus' && !IS_IOS}
                   err={err}
                   busy={busy}
                   onBack={onClose}
-                  onNext={() => {
-                    if (!storeName.trim()) {
-                      setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
-                      return
-                    }
-                    setErr('')
-                    setStep('pay-method')
-                  }}
+                  onSubmit={handleTrialSignup}
                 />
               ) : step === 'pay-method' ? (
                 <PayMethodPanel
@@ -739,27 +758,108 @@ function StoreInfoPanel(props: {
   onLogoChange: (v: string) => void
   cover: string
   onCoverChange: (v: string) => void
-  price: number
+  storeType: 'store' | 'store_plus'
+  onStoreTypeChange: (t: 'store' | 'store_plus') => void
+  storeAmount: number
+  plusAmount: number
   iosDisplayPrice?: string
   cycle: BillingCycle
-  mode: UpgradeMode
-  plusPath: 'pay' | 'trial'
-  onPlusPathChange: (p: 'pay' | 'trial') => void
-  onTrialStart: () => void
+  onCycleChange: (c: BillingCycle) => void
+  showCyclePicker: boolean
   err: string
   busy: boolean
   onBack: () => void
-  onNext: () => void
+  onSubmit: () => void
 }) {
-  const { storeName, onStoreNameChange, mode, plusPath, onPlusPathChange } = props
+  const {
+    storeName,
+    onStoreNameChange,
+    storeType,
+    onStoreTypeChange,
+    storeAmount,
+    plusAmount,
+    iosDisplayPrice,
+    cycle,
+    onCycleChange,
+    showCyclePicker,
+  } = props
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
-  const cycleUnit = props.cycle === 'yearly' ? t.yearlyBilling : t.monthlyBilling
-  const showPlusPathPicker = mode === 'upgrade-to-plus'
-  const isTrialPath = showPlusPathPicker && plusPath === 'trial'
+  const cycleUnit = cycle === 'yearly' ? t.yearlyBilling : t.monthlyBilling
+  const currency = ar ? 'ج.م' : 'EGP'
+  const isPlus = storeType === 'store_plus'
+  const plusPriceLabel = iosDisplayPrice ?? `${plusAmount} ${currency}`
 
   return (
     <View>
+      <View style={colDir}>
+        <Text style={[styles.sectionLabel, dirStyle]}>
+          {ar ? 'نوع الحساب *' : 'Account type *'}
+        </Text>
+        <View style={styles.typeGrid}>
+          <Pressable
+            onPress={() => onStoreTypeChange('store')}
+            style={[
+              styles.typeCard,
+              storeType === 'store' && { borderColor: colors.y, backgroundColor: colors.yl },
+            ]}
+            disabled={props.busy}
+          >
+            <Text style={styles.typeIcon}>🏪</Text>
+            <Text style={styles.typeLabel}>{ar ? 'متجر عادي' : 'Standard Store'}</Text>
+            <Text style={styles.typeSub}>{`${storeAmount} ${currency}`}</Text>
+            <Text style={[styles.typeBadge, { color: '#16a34a' }]}>
+              {ar ? `تجربة ${TRIAL_DAYS} يوم مجاناً 🎁` : `${TRIAL_DAYS}-day free trial 🎁`}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => onStoreTypeChange('store_plus')}
+            style={[
+              styles.typeCard,
+              storeType === 'store_plus' && { borderColor: colors.y, backgroundColor: colors.yl },
+            ]}
+            disabled={props.busy}
+          >
+            <Text style={styles.typeIcon}>⭐</Text>
+            <Text style={styles.typeLabel}>Store Plus</Text>
+            <Text style={styles.typeSub}>{plusPriceLabel}</Text>
+            <Text style={[styles.typeBadge, { color: colors.g500 }]}>
+              {ar ? 'كامل المميزات + ظهور عالي' : 'Full features + High visibility'}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {showCyclePicker ? (
+        <View style={colDir}>
+          <Text style={[styles.sectionLabel, dirStyle]}>{t.billingCycleLabel}</Text>
+          <View style={styles.typeGrid}>
+            <Pressable
+              onPress={() => onCycleChange('monthly')}
+              style={[
+                styles.typeCard,
+                cycle === 'monthly' && { borderColor: colors.y, backgroundColor: colors.yl },
+              ]}
+              disabled={props.busy}
+            >
+              <Text style={styles.typeIcon}>🗓️</Text>
+              <Text style={styles.typeLabel}>{t.monthlyBilling}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => onCycleChange('yearly')}
+              style={[
+                styles.typeCard,
+                cycle === 'yearly' && { borderColor: colors.y, backgroundColor: colors.yl },
+              ]}
+              disabled={props.busy}
+            >
+              <Text style={styles.typeIcon}>📅</Text>
+              <Text style={styles.typeLabel}>{t.yearlyBilling}</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
       <Input
         label={ar ? 'اسم المتجر *' : 'Store name *'}
         value={storeName}
@@ -789,71 +889,13 @@ function StoreInfoPanel(props: {
         aspect="wide"
       />
 
-      {showPlusPathPicker ? (
-        <View style={colDir}>
-          <Text style={[styles.sectionLabel, dirStyle]}>
-            {ar ? 'كيف تريد البدء؟ *' : 'How would you like to start? *'}
-          </Text>
-          <View style={styles.plusPathList}>
-            <Pressable
-              onPress={() => onPlusPathChange('pay')}
-              style={[
-                styles.plusPathCard,
-                plusPath === 'pay' && { borderColor: colors.y, backgroundColor: colors.yl },
-              ]}
-              disabled={props.busy}
-            >
-              <View style={[styles.plusPathHeader, rowDir]}>
-                <Text style={styles.plusPathIcon}>💳</Text>
-                <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-                  <Text style={[styles.plusPathTitle, dirStyle]}>
-                    {ar
-                      ? 'ادفع الآن واحصل على Store Plus فوراً'
-                      : 'Pay now, get Store Plus instantly'}
-                  </Text>
-                  <Text style={[styles.plusPathHint, dirStyle]}>
-                    {ar
-                      ? '⭐ صفحة متجر مخصصة + مميزات كاملة — بدون فترة تجربة'
-                      : '⭐ Dedicated storefront + full features — no trial'}
-                  </Text>
-                </View>
-              </View>
-            </Pressable>
-            <Pressable
-              onPress={() => onPlusPathChange('trial')}
-              style={[
-                styles.plusPathCard,
-                plusPath === 'trial' && { borderColor: colors.y, backgroundColor: colors.yl },
-              ]}
-              disabled={props.busy}
-            >
-              <View style={[styles.plusPathHeader, rowDir]}>
-                <Text style={styles.plusPathIcon}>🎁</Text>
-                <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-                  <Text style={[styles.plusPathTitle, dirStyle]}>
-                    {ar
-                      ? 'ابدأ بتجربة 14 يوم كمتجر عادي'
-                      : 'Start 14-day trial as standard store'}
-                  </Text>
-                  <Text style={[styles.plusPathHint, dirStyle]}>
-                    {ar
-                      ? '⚠️ لن تحصل على مميزات Store Plus حتى تدفع لاحقاً من لوحة التحكم'
-                      : '⚠️ You will not get Store Plus features until you upgrade later from your dashboard'}
-                  </Text>
-                </View>
-              </View>
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
-
-      {!isTrialPath ? (
+      {isPlus ? (
         <View style={[styles.priceRow, rowDir]}>
           <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
             <Text style={[styles.priceLabel, dirStyle]}>{t.planCost}</Text>
           </View>
           <Text style={styles.priceValue}>
-            {props.iosDisplayPrice ?? `${props.price} ${ar ? 'ج.م' : 'EGP'}`}{' '}
+            {plusPriceLabel}{' '}
             <Text style={styles.priceUnit}>/{cycleUnit}</Text>
           </Text>
         </View>
@@ -873,18 +915,10 @@ function StoreInfoPanel(props: {
         </View>
         <View style={{ flex: 2 }}>
           <Button
-            label={
-              isTrialPath
-                ? ar
-                  ? 'ابدأ التجربة'
-                  : 'Start Trial'
-                : ar
-                  ? 'التالي'
-                  : 'Next'
-            }
+            label={ar ? 'ابدأ التجربة ←' : 'Start Trial →'}
             variant="y"
             size="md"
-            onPress={isTrialPath ? props.onTrialStart : props.onNext}
+            onPress={props.onSubmit}
             disabled={props.busy}
           />
         </View>
@@ -1522,37 +1556,11 @@ const styles = StyleSheet.create({
     color: colors.g500,
     textAlign: 'center',
   },
-  plusPathList: {
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  plusPathCard: {
-    borderWidth: 2,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    padding: spacing.md,
-  },
-  plusPathHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  plusPathIcon: {
-    fontSize: 22,
-    lineHeight: 26,
-  },
-  plusPathTitle: {
+  typeBadge: {
     fontFamily: fonts.bold,
-    fontSize: 13,
-    color: colors.dk,
-    marginBottom: 2,
-  },
-  plusPathHint: {
-    fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g600,
-    lineHeight: 16,
+    textAlign: 'center',
+    marginTop: 2,
   },
   priceRow: {
     flexDirection: 'row',

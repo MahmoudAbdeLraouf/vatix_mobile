@@ -40,8 +40,8 @@ export function InstapayQrCard({ amount }: Props) {
       <View style={styles.instructions}>
         <Text style={[styles.instructionsText, ar ? styles.textRtl : styles.textLtr]}>
           {ar
-            ? '١. افتح الكاميرا وامسح الكود\n٢. سيفتح تطبيق InstaPay تلقائيًا، أدخل المبلغ\n٣. أكمل الدفع، ثم ارفع صورة الإيصال بالأسفل'
-            : '1. Open your camera and scan the QR\n2. InstaPay will open automatically — enter the amount\n3. Complete payment, then upload the receipt below'}
+            ? '١. اضغط على زر "فتح تطبيق إنستا باي" بالأعلى\n٢. سيفتح تطبيق InstaPay تلقائيًا، أدخل المبلغ\n٣. أكمل الدفع، ثم ارفع صورة الإيصال بالأسفل'
+            : '1. Tap the "Open InstaPay app" button above\n2. InstaPay will open automatically — enter the amount\n3. Complete payment, then upload the receipt below'}
         </Text>
       </View>
     </View>

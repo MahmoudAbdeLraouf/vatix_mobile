@@ -42,6 +42,15 @@ export function LoginGateProvider({ children }: { children: React.ReactNode }) {
     router.push(safe as never)
   }, [pathname])
 
+  const goToRegister = useCallback(() => {
+    setVisible(false)
+    const safe =
+      pathname && pathname.startsWith('/') && !pathname.startsWith('/(auth)')
+        ? { pathname: '/(auth)/register' as const, params: { redirect: pathname } }
+        : ('/(auth)/register' as const)
+    router.push(safe as never)
+  }, [pathname])
+
   return (
     <LoginGateContext.Provider value={{ requireLogin }}>
       {children}
@@ -74,6 +83,19 @@ export function LoginGateProvider({ children }: { children: React.ReactNode }) {
               >
                 <Ionicons name="log-in-outline" size={18} color={colors.dk} />
                 <Text style={styles.primaryLabel}>{t.login}</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={goToRegister}
+                style={({ pressed }) => [
+                  styles.registerBtn,
+                  pressed && { opacity: 0.92, transform: [{ scale: 0.995 }] },
+                ]}
+              >
+                <View style={styles.registerIconWrap}>
+                  <Ionicons name="person-add" size={15} color={colors.y} />
+                </View>
+                <Text style={styles.registerLabel}>{t.register}</Text>
               </Pressable>
 
               <Pressable
@@ -159,6 +181,30 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 15,
     color: colors.dk,
+  },
+  registerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.dk,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    ...shadow.sm,
+  },
+  registerIconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(245,184,0,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  registerLabel: {
+    fontFamily: fonts.bold,
+    fontSize: 15,
+    color: colors.white,
+    letterSpacing: 0.2,
   },
   secondaryBtn: {
     alignItems: 'center',
