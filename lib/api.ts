@@ -163,7 +163,9 @@ export interface UserActionFlags {
   showSubscriptionExpiredIcon: boolean
   showSubscriptionExpiringDialog?: boolean
   showRateAppDialog?: boolean
+  showUsePromoCreditsDialog?: boolean
   subscriptionEndsAt?: string | null
+  promoCreditsBalance?: number
 }
 
 export interface UserProfile {

@@ -501,6 +501,13 @@ export interface Translations {
     topUpCta: string
     laterCta: string
   }
+  usePromoCreditsDialog: {
+    title: string
+    body: string
+    creditsLabel: string
+    cta: string
+    dismiss: string
+  }
   rateApp: {
     title: string
     body: string
@@ -1051,6 +1058,13 @@ export const translations: Record<Locale, Translations> = {
       topUpCta: 'شحن المحفظة الآن',
       laterCta: 'لاحقاً',
     },
+    usePromoCreditsDialog: {
+      title: 'عندك أرصدة إعلانات لم تُستخدم',
+      body: 'استخدم أرصدة الترويج لرفع منتجاتك إلى أعلى نتائج البحث لمدة 7 أيام.',
+      creditsLabel: 'أرصدتك المتاحة',
+      cta: 'رَوِّج إعلاناً الآن',
+      dismiss: 'لاحقاً',
+    },
     rateApp: {
       title: 'تستمتع بفاتيكس؟',
       body: 'رأيك يهمنا. لو التجربة عجبتك، قيّمنا في المتجر — لو عندك ملاحظة، احكيلنا مباشرة.',
@@ -1598,6 +1612,13 @@ export const translations: Record<Locale, Translations> = {
       walletBalance: 'Current wallet balance',
       topUpCta: 'Top up wallet now',
       laterCta: 'Later',
+    },
+    usePromoCreditsDialog: {
+      title: 'You have unused promotion credits',
+      body: 'Use your promotion credits to push a listing to the top of search results for 7 days.',
+      creditsLabel: 'Credits available',
+      cta: 'Promote a listing now',
+      dismiss: 'Later',
     },
     rateApp: {
       title: 'Enjoying Vatix?',

@@ -26,6 +26,7 @@ import { attachNotificationTapHandler } from '@/lib/notifications'
 import { getSiteSettings, type SiteSettings } from '@/lib/api'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
 import { StoreShareDialogTrigger } from '@/components/StoreShareDialogTrigger'
+import { UsePromoCreditsDialogTrigger } from '@/components/UsePromoCreditsDialogTrigger'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { installGlobalErrorHandler } from '@/lib/globalErrorHandler'
 import { beforeSend } from '@/lib/sentryScrub'
@@ -127,6 +128,7 @@ function RootLayout() {
             <RootStack />
             <UpdatePrompt settings={siteSettings} />
             <StoreShareDialogTrigger />
+            <UsePromoCreditsDialogTrigger />
           </LoginGateProvider>
         </AuthProvider>
       </LocaleProvider>
