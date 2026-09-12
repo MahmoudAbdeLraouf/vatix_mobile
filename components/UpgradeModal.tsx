@@ -292,6 +292,19 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
       iosFallbackDisplayPrice(subscriptionSkuForStoreType(storeType)))
     : undefined
 
+  // Per-type prices for the side-by-side account-type grid. Using the
+  // selected-type `iosDisplayPrice` on both cards would mislabel one of them
+  // (e.g. showing the Store tier's 599 EGP on the Store Plus card while Store
+  // is selected).
+  const storeIosDisplayPrice = IS_IOS
+    ? (iosPriceMap[subscriptionSkuForStoreType('store')] ??
+      iosFallbackDisplayPrice(subscriptionSkuForStoreType('store')))
+    : undefined
+  const plusIosDisplayPrice = IS_IOS
+    ? (iosPriceMap[subscriptionSkuForStoreType('store_plus')] ??
+      iosFallbackDisplayPrice(subscriptionSkuForStoreType('store_plus')))
+    : undefined
+
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
   async function handleCancelStore() {
@@ -487,7 +500,14 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
 
     try {
       await initIap()
-      await requireIosProduct(sku, product.type)
+      // Capture StoreKit's price so we can echo the exact amount the buyer was
+      // charged (999 EGP tier) back to the backend; otherwise Payment.amount is
+      // recorded from SubscriptionPlan.price (750 EGP net-proceeds) and history
+      // shows a lower figure than what appeared at Apple's confirmation sheet.
+      const skProduct = await requireIosProduct(sku, product.type)
+      const customerPrice =
+        typeof skProduct.price === 'number' ? skProduct.price : undefined
+      const customerCurrency = skProduct.currency || 'EGP'
 
       const purchase = await new Promise<Purchase>((resolve, reject) => {
         subs.updated = addPurchaseUpdatedListener(p => {
@@ -516,7 +536,12 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
 
       await verifyIapPurchase({
         signedTransaction: jws,
-        metadata: { ...buildStoreMetadata(), billingCycle: effectiveCycle },
+        metadata: {
+          ...buildStoreMetadata(),
+          billingCycle: effectiveCycle,
+          ...(customerPrice !== undefined && { customerPrice }),
+          customerCurrency,
+        },
       })
 
       await finishIosPurchase(purchase, product.isConsumable)
@@ -608,7 +633,8 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
                   onStoreTypeChange={setStoreType}
                   storeAmount={priceFor('store')}
                   plusAmount={priceFor('store_plus')}
-                  iosDisplayPrice={iosDisplayPrice}
+                  storeIosDisplayPrice={storeIosDisplayPrice}
+                  plusIosDisplayPrice={plusIosDisplayPrice}
                   cycle={effectiveCycle}
                   onCycleChange={setEffectiveCycle}
                   showCyclePicker={storeType === 'store_plus' && !IS_IOS}
@@ -762,7 +788,8 @@ function StoreInfoPanel(props: {
   onStoreTypeChange: (t: 'store' | 'store_plus') => void
   storeAmount: number
   plusAmount: number
-  iosDisplayPrice?: string
+  storeIosDisplayPrice?: string
+  plusIosDisplayPrice?: string
   cycle: BillingCycle
   onCycleChange: (c: BillingCycle) => void
   showCyclePicker: boolean
@@ -778,7 +805,8 @@ function StoreInfoPanel(props: {
     onStoreTypeChange,
     storeAmount,
     plusAmount,
-    iosDisplayPrice,
+    storeIosDisplayPrice,
+    plusIosDisplayPrice,
     cycle,
     onCycleChange,
     showCyclePicker,
@@ -788,7 +816,8 @@ function StoreInfoPanel(props: {
   const cycleUnit = cycle === 'yearly' ? t.yearlyBilling : t.monthlyBilling
   const currency = ar ? 'ج.م' : 'EGP'
   const isPlus = storeType === 'store_plus'
-  const plusPriceLabel = iosDisplayPrice ?? `${plusAmount} ${currency}`
+  const storePriceLabel = storeIosDisplayPrice ?? `${storeAmount} ${currency}`
+  const plusPriceLabel = plusIosDisplayPrice ?? `${plusAmount} ${currency}`
 
   return (
     <View>
@@ -807,7 +836,7 @@ function StoreInfoPanel(props: {
           >
             <Text style={styles.typeIcon}>🏪</Text>
             <Text style={styles.typeLabel}>{ar ? 'متجر عادي' : 'Standard Store'}</Text>
-            <Text style={styles.typeSub}>{`${storeAmount} ${currency}`}</Text>
+            <Text style={styles.typeSub}>{storePriceLabel}</Text>
             <Text style={[styles.typeBadge, { color: '#16a34a' }]}>
               {ar ? `تجربة ${TRIAL_DAYS} يوم مجاناً 🎁` : `${TRIAL_DAYS}-day free trial 🎁`}
             </Text>

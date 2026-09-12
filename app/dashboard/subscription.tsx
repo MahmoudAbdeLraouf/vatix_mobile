@@ -554,7 +554,8 @@ export default function SubscriptionScreen() {
                       </View>
                       <View style={[styles.historyTrail, trailAlign, colDir]}>
                         <Text style={[styles.historyAmount, dirStyle]}>
-                          {fmt(Number(p.amount ?? 0))} {ar ? 'ج.م' : 'EGP'}
+                          {fmt(Number(p.metadata?.customerPrice ?? p.amount ?? 0))}{' '}
+                          {ar ? 'ج.م' : (p.metadata?.customerCurrency ?? 'EGP')}
                         </Text>
                         <View
                           style={[styles.statusChip, { backgroundColor: status.bg }]}

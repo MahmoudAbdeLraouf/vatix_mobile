@@ -660,6 +660,15 @@ export interface PaymentRecord {
   status: PaymentStatus | string
   method: PaymentMethod | string | null
   createdAt: string
+  // metadata.customerPrice: the exact amount the buyer was charged on the
+  // channel that took the payment (e.g. Apple's App Store tier in EGP). We
+  // display this in history rather than `amount`, which is the net-proceeds
+  // figure the backend books against SubscriptionPlan.price and doesn't match
+  // what the user saw at checkout on iOS.
+  metadata?: ({
+    customerPrice?: number
+    customerCurrency?: string
+  } & Record<string, unknown>) | null
 }
 
 export interface WalletBalance {

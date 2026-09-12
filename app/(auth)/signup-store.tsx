@@ -271,7 +271,16 @@ export default function SignupStoreScreen() {
         >
           {step === 'phone' && (
             <>
-              <Input label={t.phone} value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="01xxxxxxxxx" />
+              <Input
+                label={t.phone}
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+                placeholder="01xxxxxxxxx"
+                // Phone numbers render LTR regardless of UI locale.
+                style={{ textAlign: 'left', writingDirection: 'ltr' }}
+              />
               <Input
                 label={t.password}
                 value={password}

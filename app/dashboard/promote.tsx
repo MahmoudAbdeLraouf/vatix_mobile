@@ -456,7 +456,13 @@ export default function PromoteScreen() {
     let cancelled = false
     try {
       await initIap()
-      await requireIosProduct(sku, product.type)
+      // See UpgradeModal.tsx: echo the App Store tier price back to the backend
+      // so payment history shows what Apple actually charged, not the
+      // Bundle.price row (which is net-proceeds after Apple's cut).
+      const skProduct = await requireIosProduct(sku, product.type)
+      const customerPrice =
+        typeof skProduct.price === 'number' ? skProduct.price : undefined
+      const customerCurrency = skProduct.currency || 'EGP'
       const purchase = await new Promise<Purchase>((resolve, reject) => {
         subs.updated = addPurchaseUpdatedListener(p => {
           if (p.productId === sku) resolve(p)
@@ -487,6 +493,8 @@ export default function PromoteScreen() {
         metadata: {
           bundleId: bundle.id,
           ...(resumeProductId && { productId: Number(resumeProductId) }),
+          ...(customerPrice !== undefined && { customerPrice }),
+          customerCurrency,
         },
       })
       await finishIosPurchase(purchase, product.isConsumable)

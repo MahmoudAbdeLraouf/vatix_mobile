@@ -83,11 +83,17 @@ export default function InvoicesScreen() {
     return method
   }
 
+  // Prefer metadata.customerPrice (what the buyer was actually charged on-channel,
+  // e.g. Apple's App Store tier) over Payment.amount (net-proceeds recorded from
+  // SubscriptionPlan.price) so the invoice total matches receipts the user has.
   const totalPaid = useMemo(
     () =>
       (history ?? [])
         .filter(p => p.status === 'success')
-        .reduce((s, p) => s + Number(p.amount ?? 0), 0),
+        .reduce(
+          (s, p) => s + Number(p.metadata?.customerPrice ?? p.amount ?? 0),
+          0,
+        ),
     [history],
   )
 
@@ -155,8 +161,10 @@ export default function InvoicesScreen() {
                       </View>
                       <View style={[styles.rowTrail, trailAlign, colDir]}>
                         <Text style={[styles.rowAmount, dirStyle]}>
-                          {fmt(Number(p.amount ?? 0))}{' '}
-                          <Text style={styles.rowAmountCurrency}>{currency}</Text>
+                          {fmt(Number(p.metadata?.customerPrice ?? p.amount ?? 0))}{' '}
+                          <Text style={styles.rowAmountCurrency}>
+                            {ar ? currency : (p.metadata?.customerCurrency ?? currency)}
+                          </Text>
                         </Text>
                         <View style={[styles.statusChip, { backgroundColor: status.bg }]}>
                           <Text style={[styles.statusText, { color: status.color }]}>
