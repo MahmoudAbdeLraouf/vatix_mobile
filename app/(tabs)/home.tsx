@@ -43,6 +43,7 @@ import {
 } from '@/lib/rate-app-engagement'
 import { getBrandIcon } from '@/lib/brand-icons'
 import { getCategoryIcon, type IoniconName as SharedIoniconName } from '@/lib/category-icons'
+import { IS_IOS } from '@/lib/platform'
 import { ProductCard } from '@/components/ProductCard'
 import { StoreCard } from '@/components/StoreCard'
 import { MessagesBell } from '@/components/MessagesBell'
@@ -422,7 +423,7 @@ export default function HomeScreen() {
     Promise.all([
       getFeaturedStores().catch(() => [] as Store[]),
       getCategories().catch(() => [] as Category[]),
-      getBrands().catch(() => [] as Brand[]),
+      IS_IOS ? Promise.resolve([] as Brand[]) : getBrands().catch(() => [] as Brand[]),
       getProducts({ limit: 8, promoted: true }).catch(() => ({
         items: [] as Product[],
         meta: { total: 0, page: 1, limit: 8, pages: 0 },
@@ -630,8 +631,7 @@ export default function HomeScreen() {
           </Section>
         )}
 
-        {/* Brands */}
-        {brands.length > 0 && (
+        {!IS_IOS && brands.length > 0 && (
           <Section title={t.brands}>
             <View style={styles.brandsGrid}>
               {brands.map(b => (
