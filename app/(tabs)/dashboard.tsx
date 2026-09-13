@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
 import { PAID_UI_ENABLED, PROMOTION_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
-import type { Analytics, FavoriteProduct, Product, PromoInfo, UserProfile, WalletBalance } from '@/lib/api'
+import type { Analytics, FavoriteProduct, PendingUpgradeRequest, Product, PromoInfo, UserProfile, WalletBalance } from '@/lib/api'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -39,6 +39,7 @@ export default function DashboardScreen() {
   const [showAddProductDialog, setShowAddProductDialog] = useState(false)
   const [showExpiringDialog, setShowExpiringDialog] = useState(false)
   const [expiringEndsAt, setExpiringEndsAt] = useState<string | null>(null)
+  const [pendingUpgrade, setPendingUpgrade] = useState<PendingUpgradeRequest | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -66,6 +67,7 @@ export default function DashboardScreen() {
       )
       setShowLogoDialog(!!profile?.flags?.showStoreLogoDialog)
       setShowAddProductDialog(!!profile?.flags?.showAddProductDialog)
+      setPendingUpgrade(profile?.pendingUpgrade ?? null)
       if (profile?.flags?.showSubscriptionExpiringDialog && profile?.flags?.subscriptionEndsAt) {
         setExpiringEndsAt(profile.flags.subscriptionEndsAt)
         setShowExpiringDialog(true)
@@ -180,6 +182,19 @@ export default function DashboardScreen() {
         </View>
       )}
 
+      {/* Pending upgrade request — payment awaiting admin approval */}
+      {pendingUpgrade && SUBSCRIPTION_UI_ENABLED && (
+        <View style={styles.pendingUpgradeCard}>
+          <View style={styles.pendingUpgradeIconWrap}>
+            <Text style={styles.pendingUpgradeIcon}>⏳</Text>
+          </View>
+          <View style={styles.pendingUpgradeBody}>
+            <Text style={styles.pendingUpgradeTitle}>{t.pendingUpgradeTitle}</Text>
+            <Text style={styles.pendingUpgradeSub}>{t.pendingUpgradeSubtitle}</Text>
+          </View>
+        </View>
+      )}
+
       {/* Client → Store upgrade — iOS pays via Apple IAP, Android/web via InstaPay */}
       {isClient && SUBSCRIPTION_UI_ENABLED && (
         <UpgradeBanner
@@ -196,6 +211,7 @@ export default function DashboardScreen() {
           ctaLabel={ar ? 'ترقية إلى متجر' : 'Upgrade to Store'}
           onPress={() => router.push('/dashboard/subscription')}
           ar={ar}
+          disabled={!!pendingUpgrade}
         />
       )}
 
@@ -215,6 +231,7 @@ export default function DashboardScreen() {
           ctaLabel={ar ? 'ترقية الآن' : 'Upgrade Now'}
           onPress={() => router.push('/dashboard/subscription')}
           ar={ar}
+          disabled={!!pendingUpgrade}
         />
       )}
 
@@ -342,6 +359,7 @@ function UpgradeBanner({
   ctaLabel,
   onPress,
   ar,
+  disabled = false,
 }: {
   variant: 'store' | 'plus'
   icon: React.ComponentProps<typeof Ionicons>['name']
@@ -352,6 +370,7 @@ function UpgradeBanner({
   ctaLabel: string
   onPress: () => void
   ar: boolean
+  disabled?: boolean
 }) {
   const isPlus = variant === 'plus'
   const dirStyle = { textAlign: 'auto' as const, writingDirection: ar ? ('rtl' as const) : ('ltr' as const) }
@@ -397,8 +416,14 @@ function UpgradeBanner({
       {/* CTA */}
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => [styles.upgCta, pressed && { opacity: 0.9 }]}
+        disabled={disabled}
+        style={({ pressed }) => [
+          styles.upgCta,
+          pressed && !disabled && { opacity: 0.9 },
+          disabled && { opacity: 0.5 },
+        ]}
         accessibilityRole="button"
+        accessibilityState={{ disabled }}
       >
         <Text style={[styles.upgCtaText, dirStyle]} numberOfLines={1}>
           {ctaLabel}
@@ -543,6 +568,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.78)',
     lineHeight: 18,
+  },
+
+  // Pending upgrade request
+  pendingUpgradeCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    backgroundColor: colors.yl,
+    borderWidth: 1.5,
+    borderColor: colors.y,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  pendingUpgradeIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(245,184,0,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingUpgradeIcon: {
+    fontSize: 18,
+  },
+  pendingUpgradeBody: {
+    flex: 1,
+    gap: 4,
+  },
+  pendingUpgradeTitle: {
+    fontFamily: fonts.black,
+    fontSize: 14,
+    color: colors.dk,
+  },
+  pendingUpgradeSub: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.dk,
+    lineHeight: 18,
+    opacity: 0.8,
   },
 
   // Upgrade banner

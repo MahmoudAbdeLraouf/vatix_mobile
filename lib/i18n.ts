@@ -271,6 +271,8 @@ export interface Translations {
   quickStats: string
   instapayPendingTitle: string
   instapayPendingSubtitle: string
+  pendingUpgradeTitle: string
+  pendingUpgradeSubtitle: string
   upgClientToStoreTitle: string
   upgClientToStoreSubtitle: string
   upgStoreToPlusTitle: string
@@ -820,6 +822,8 @@ export const translations: Record<Locale, Translations> = {
     quickStats: 'نظرة سريعة',
     instapayPendingTitle: 'دفعتك قيد المراجعة',
     instapayPendingSubtitle: 'لديك دفعة InstaPay في انتظار التأكيد. سنقوم بتفعيل خدمتك فور التحقق.',
+    pendingUpgradeTitle: 'طلب الترقية قيد المراجعة',
+    pendingUpgradeSubtitle: 'سيتم تفعيل الترقية فور موافقة الإدارة على الدفعة.',
     upgClientToStoreTitle: 'افتح متجرك على ڤاتيكس',
     upgClientToStoreSubtitle: 'أضف منتجاتك دون قيود، وتواصل مع آلاف العملاء يومياً.',
     upgStoreToPlusTitle: 'ارتقِ إلى متجر بلَس',
@@ -1375,6 +1379,8 @@ export const translations: Record<Locale, Translations> = {
     quickStats: 'Quick Stats',
     instapayPendingTitle: 'Payment Under Review',
     instapayPendingSubtitle: 'Your InstaPay payment is awaiting confirmation. Your service will activate once verified.',
+    pendingUpgradeTitle: 'Upgrade request under review',
+    pendingUpgradeSubtitle: 'Your upgrade will activate as soon as an admin approves the payment.',
     upgClientToStoreTitle: 'Open Your Store on Vatix',
     upgClientToStoreSubtitle: 'List unlimited products and reach thousands of daily buyers.',
     upgStoreToPlusTitle: 'Upgrade to Store Plus',

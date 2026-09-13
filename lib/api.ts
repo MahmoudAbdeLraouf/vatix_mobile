@@ -185,6 +185,15 @@ export interface UserProfile {
   storeShareDialogSeenAt?: string | null
   storeShareCount?: number
   flags?: UserActionFlags
+  pendingUpgrade?: PendingUpgradeRequest | null
+}
+
+export interface PendingUpgradeRequest {
+  id: number
+  targetType: 'store' | 'store_plus'
+  paymentId: number | null
+  billingCycle: 'monthly' | 'yearly'
+  requestedAt: string
 }
 
 export interface FavoriteProduct {
