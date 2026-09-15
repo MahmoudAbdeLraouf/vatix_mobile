@@ -66,8 +66,8 @@ const DEFAULT_SETTINGS: SiteSettings = {
   androidMinVersion: null,
   androidLatestVersion: null,
   androidStoreUrl: null,
-  maxProductsPerClient: 5,
-  maxActiveProductsPerStore: 20,
+  maxProductsPerClient: 10,
+  maxActiveProductsPerStore: 50,
 }
 
 const PLAN_META: Record<SubscriptionType, { fallbackPrice: number; storeType: string }> = {

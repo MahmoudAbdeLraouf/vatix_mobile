@@ -21,25 +21,21 @@ import { MultiImageUpload, ImageItem } from '@/components/MultiImageUpload'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import {
   Brand,
   Category,
   CreateProductInput,
   LocationNode,
-  Product,
   getBrands,
   getCategories,
   getLocations,
   localeName,
 } from '@/lib/api'
-import { authErrorMessage, authFetch, authPost } from '@/lib/auth'
+import { authErrorMessage, authPost } from '@/lib/auth'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 const DRAFT_KEY = 'vatix_product_draft'
-const STORE_LIMIT = 20
-const CLIENT_LIMIT = 5
 
 interface Draft {
   title: string
@@ -56,7 +52,6 @@ interface Draft {
 type IonName = React.ComponentProps<typeof Ionicons>['name']
 
 export default function AddProductScreen() {
-  const { user } = useAuth()
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
   const dirStyle = {
@@ -93,8 +88,6 @@ export default function AddProductScreen() {
   const hydrated = useRef(false)
   const scrollRef = useRef<ScrollView>(null)
   const scrollOffsetRef = useRef(0)
-
-  const limit = user?.isStore ? STORE_LIMIT : CLIENT_LIMIT
 
   useEffect(() => {
     Promise.all([getCategories(), getBrands(), getLocations()]).then(([cats, brs, locs]) => {
@@ -261,13 +254,6 @@ export default function AddProductScreen() {
 
     setSubmitting(true)
     try {
-      const mine = await authFetch<Product[]>('/products/mine')
-      if ((mine?.length ?? 0) >= limit) {
-        setError(t.maxAdsReached(limit))
-        setSubmitting(false)
-        return
-      }
-
       const payload: CreateProductInput = {
         title: title.trim(),
         description: description.trim() || undefined,
@@ -290,7 +276,7 @@ export default function AddProductScreen() {
     } finally {
       setSubmitting(false)
     }
-  }, [brandId, categoryId, condition, description, images, limit, locationId, price, showPhone, t, title, uploading])
+  }, [brandId, categoryId, condition, description, images, locationId, price, showPhone, t, title, uploading])
 
   const goPromote = useCallback(() => {
     const id = publishedId

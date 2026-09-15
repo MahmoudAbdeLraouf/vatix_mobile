@@ -69,8 +69,8 @@ export default function MyAdsScreen() {
   }, [])
 
   const limit = isStore
-    ? settings?.maxActiveProductsPerStore ?? 20
-    : settings?.maxProductsPerClient ?? 5
+    ? settings?.maxActiveProductsPerStore ?? 50
+    : settings?.maxProductsPerClient ?? 10
   const fmt = (n: number | string) =>
     Number(n ?? 0).toLocaleString(ar ? 'ar-EG' : 'en-EG')
 
@@ -103,7 +103,7 @@ export default function MyAdsScreen() {
     }
   }, [products])
 
-  const usedForLimit = isStore ? stats.active : stats.total
+  const usedForLimit = stats.active
   const usagePct = isStorePlus
     ? 0
     : Math.min(100, Math.round((usedForLimit / limit) * 100))
