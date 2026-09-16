@@ -733,10 +733,12 @@ function ProductRow({
         </Pressable>
         <Pressable
           onPress={onEdit}
+          disabled={isPromoted}
           style={({ pressed }) => [
             styles.actionBtn,
             styles.viewBtn,
             pressed && { opacity: 0.85 },
+            isPromoted && { opacity: 0.5 },
           ]}
         >
           <Ionicons name="pencil-outline" size={13} color={colors.dk} />
