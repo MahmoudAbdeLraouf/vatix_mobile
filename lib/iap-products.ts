@@ -98,7 +98,7 @@ export const IOS_FALLBACK_PRICE_EGP: Record<string, number> = {
   [SKU_SUBSCRIPTION_STORE_PLUS]: 999.99,
   [SKU_PROMOTION_1AD]: 199.99,
   [SKU_PROMOTION_3ADS]: 519.99,
-  [SKU_PROMOTION_5ADS]: 669.99,
+  [SKU_PROMOTION_5ADS]: 699.99,
 }
 
 export function iosFallbackDisplayPrice(sku: string): string | undefined {
