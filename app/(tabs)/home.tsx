@@ -26,12 +26,10 @@ import {
   getBrands,
   getProducts,
   getRateAppEnabled,
-  getSiteStats,
   getStores,
   imgUrl,
   localeName,
   Product,
-  SiteStats,
   Store,
 } from '@/lib/api'
 import { markActionSeen } from '@/lib/auth'
@@ -412,7 +410,6 @@ export default function HomeScreen() {
   const [brands, setBrands] = useState<Brand[]>([])
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
   const [latestProducts, setLatestProducts] = useState<Product[]>([])
-  const [stats, setStats] = useState<SiteStats>({ users: 0, stores: 0, products: 0 })
 
   const [loading, setLoading] = useState(true)
   const [activePromo, setActivePromo] = useState(0)
@@ -428,13 +425,12 @@ export default function HomeScreen() {
         items: [] as Product[],
         meta: { total: 0, page: 1, limit: 8, pages: 0 },
       })),
-      getProducts({ limit: 12, sort: 'newest' }).catch(() => ({
+      getProducts({ limit: 12, sort: 'newest_pure' }).catch(() => ({
         items: [] as Product[],
         meta: { total: 0, page: 1, limit: 12, pages: 0 },
       })),
       getStores().catch(() => [] as Store[]),
-      getSiteStats().catch(() => ({ users: 0, stores: 0, products: 0 } as SiteStats)),
-    ]).then(([s, c, b, fp, lp, allS, st]) => {
+    ]).then(([s, c, b, fp, lp, allS]) => {
       setStores(s)
       setAllStores(allS)
       setCategories([
@@ -453,7 +449,6 @@ export default function HomeScreen() {
       const featuredSource = fp.items.length > 0 ? fp.items : lp.items.slice(0, 8)
       setFeaturedProducts(dedupeById(featuredSource))
       setLatestProducts(dedupeById(lp.items))
-      setStats(st)
       setLoading(false)
     })
   }, [])
@@ -706,28 +701,6 @@ export default function HomeScreen() {
                   <Ionicons name="search" size={22} color={colors.dk} />
                 </TouchableOpacity>
               </View>
-              <View style={styles.statsRow}>
-                <View style={styles.statCol}>
-                  <Text style={styles.statNum}>
-                    {stats.users.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}
-                  </Text>
-                  <Text style={styles.statLbl}>{t.usersLabel}</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statCol}>
-                  <Text style={styles.statNum}>
-                    {stats.stores.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}
-                  </Text>
-                  <Text style={styles.statLbl}>{t.verifiedStoresLabel}</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statCol}>
-                  <Text style={styles.statNum}>
-                    {stats.products.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}
-                  </Text>
-                  <Text style={styles.statLbl}>{t.activeAds}</Text>
-                </View>
-              </View>
             </View>
             <View style={styles.content}>
               <FlatList
@@ -786,38 +759,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.white,
     marginTop: spacing.xs,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.sm,
-  },
-  statCol: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  statNum: {
-    fontFamily: fonts.black,
-    fontSize: 15,
-    color: colors.y,
-    lineHeight: 20,
-  },
-  statLbl: {
-    fontFamily: fonts.regular,
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.7)',
-    textAlign: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   heroSearchRow: {
     flexDirection: 'row',
