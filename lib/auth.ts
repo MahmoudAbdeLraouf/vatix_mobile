@@ -43,20 +43,35 @@ const KEY_TOKEN = 'vatix_token'
 const KEY_REFRESH = 'vatix_refresh'
 const KEY_USER = 'vatix_user'
 
+// AFTER_FIRST_UNLOCK lets background reads succeed once the user has unlocked
+// the phone since boot. Without it, reads during background push wake or the
+// 12-min silent refresh throw errSecInteractionNotAllowed on locked devices.
+const SECURE_WRITE_OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+}
+
 // ─── Token storage ────────────────────────────────────────────────────────────
 
 export async function getToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(KEY_TOKEN)
+  try {
+    return await SecureStore.getItemAsync(KEY_TOKEN)
+  } catch {
+    return null
+  }
 }
 
 export async function getRefreshToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(KEY_REFRESH)
+  try {
+    return await SecureStore.getItemAsync(KEY_REFRESH)
+  } catch {
+    return null
+  }
 }
 
 export async function saveTokens(accessToken: string, refreshToken: string): Promise<void> {
   await Promise.all([
-    SecureStore.setItemAsync(KEY_TOKEN, accessToken),
-    SecureStore.setItemAsync(KEY_REFRESH, refreshToken),
+    SecureStore.setItemAsync(KEY_TOKEN, accessToken, SECURE_WRITE_OPTIONS),
+    SecureStore.setItemAsync(KEY_REFRESH, refreshToken, SECURE_WRITE_OPTIONS),
   ])
 }
 
@@ -116,7 +131,7 @@ export async function saveSession(
       user.type === 'STORE_PLUS' ||
       user.type === 'store_plus',
   }
-  await SecureStore.setItemAsync(KEY_USER, JSON.stringify(stored))
+  await SecureStore.setItemAsync(KEY_USER, JSON.stringify(stored), SECURE_WRITE_OPTIONS)
 }
 
 // Normalize a raw SecureStore blob to the current StoredUser shape. Older app
@@ -173,7 +188,11 @@ export async function getStoredUser(): Promise<StoredUser | null> {
 export async function updateStoredDisplayName(displayName: string): Promise<void> {
   const stored = await getStoredUser()
   if (!stored) return
-  await SecureStore.setItemAsync(KEY_USER, JSON.stringify({ ...stored, displayName }))
+  await SecureStore.setItemAsync(
+    KEY_USER,
+    JSON.stringify({ ...stored, displayName }),
+    SECURE_WRITE_OPTIONS,
+  )
 }
 
 export async function updateStoredUser(user: {
@@ -205,7 +224,7 @@ export async function updateStoredUser(user: {
       user.type === 'STORE_PLUS' ||
       user.type === 'store_plus',
   }
-  await SecureStore.setItemAsync(KEY_USER, JSON.stringify(stored))
+  await SecureStore.setItemAsync(KEY_USER, JSON.stringify(stored), SECURE_WRITE_OPTIONS)
 }
 
 // ─── Silent token refresh ─────────────────────────────────────────────────────
