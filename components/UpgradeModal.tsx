@@ -332,6 +332,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
       return
     }
+    if (!logo) {
+      setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
+      return
+    }
     setBusy(true)
     setErr('')
     try {
@@ -383,6 +387,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
       return
     }
+    if (needsStoreCreation && !logo) {
+      setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
+      return
+    }
     if (!screenshotKey) {
       setErr(ar ? 'صورة التحويل مطلوبة' : 'Screenshot required')
       return
@@ -412,6 +420,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
   async function handleMobileWalletSubmit() {
     if (needsStoreCreation && !storeName.trim()) {
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
+      return
+    }
+    if (needsStoreCreation && !logo) {
+      setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
       return
     }
     if (!screenshotKey) {
@@ -445,6 +457,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
       return
     }
+    if (needsStoreCreation && !logo) {
+      setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
+      return
+    }
     setBusy(true)
     setErr('')
     try {
@@ -476,6 +492,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
   async function handleAppleIapPurchase() {
     if (needsStoreCreation && !storeName.trim()) {
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
+      return
+    }
+    if (needsStoreCreation && !logo) {
+      setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
       return
     }
     const sku = subscriptionSkuForStoreType(storeType)
@@ -906,7 +926,7 @@ function StoreInfoPanel(props: {
       />
 
       <FileUpload
-        label={t.storeLogo}
+        label={`${t.storeLogo} *`}
         value={props.logo}
         onChange={props.onLogoChange}
         aspect="square"

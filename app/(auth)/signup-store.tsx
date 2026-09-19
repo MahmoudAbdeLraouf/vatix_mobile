@@ -181,6 +181,7 @@ export default function SignupStoreScreen() {
   async function handleSubmit() {
     setError('')
     if (!storeName.trim()) { setError(t.requiredField); return }
+    if (!logoUri) { setError(isRtl ? 'يرجى اختيار شعار المتجر' : 'Please choose a store logo'); return }
     setLoading(true)
     try {
       const response = await registerStore({
@@ -195,13 +196,11 @@ export default function SignupStoreScreen() {
           ? `/dashboard/subscription?upgrade=plus&cycle=${billingCycle}`
           : undefined
       await login(response, routeAfter ?? redirect)
-      if (logoUri) {
-        try {
-          const url = await authUploadFile(logoUri)
-          if (url) await authPatch('/stores/me', { logo: url })
-        } catch {
-          // logo upload failure is non-fatal — user can edit later in dashboard
-        }
+      try {
+        const url = await authUploadFile(logoUri)
+        if (url) await authPatch('/stores/me', { logo: url })
+      } catch {
+        // Session is already active; logo can be edited from the dashboard.
       }
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
@@ -422,7 +421,7 @@ export default function SignupStoreScreen() {
                 style={styles.textarea}
               />
 
-              <Text style={styles.sectionLabel}>{t.storeLogo}</Text>
+              <Text style={styles.sectionLabel}>{t.storeLogo} *</Text>
               <View style={styles.logoRow}>
                 <Pressable style={styles.logoPreview} onPress={pickLogo}>
                   {logoUri ? (
