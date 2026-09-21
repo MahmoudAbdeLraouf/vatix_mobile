@@ -19,28 +19,6 @@ import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 
-const PLUS_RATIO = 0.2
-
-function isPlus(s: { type?: string | null }): boolean {
-  const t = (s.type ?? '').toLowerCase()
-  return t === 'store_plus'
-}
-
-function interleavePlus<T extends { type?: string | null }>(stores: T[]): T[] {
-  const plus = stores.filter(isPlus)
-  const rest = stores.filter(s => !isPlus(s))
-  const out: T[] = []
-  let pi = 0, ri = 0
-  while (pi < plus.length || ri < rest.length) {
-    const placed = out.length
-    const takePlus =
-      ri >= rest.length ||
-      (pi < plus.length && pi / (placed + 1) < PLUS_RATIO)
-    if (takePlus) { out.push(plus[pi++]) } else { out.push(rest[ri++]) }
-  }
-  return out
-}
-
 export default function StoresScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
   const [stores, setStores] = useState<Store[]>([])
@@ -52,7 +30,7 @@ export default function StoresScreen() {
     setLoading(true)
     setError(null)
     getStores()
-      .then(list => setStores(interleavePlus(list)))
+      .then(setStores)
       .catch(e => setError(e as Error))
       .finally(() => setLoading(false))
   }, [])
