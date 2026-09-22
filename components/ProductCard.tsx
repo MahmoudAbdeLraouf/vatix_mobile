@@ -63,7 +63,7 @@ export const ProductCard = React.memo(function ProductCard({
           <Image
             source={{ uri: thumb }}
             style={styles.image}
-            contentFit="cover"
+            contentFit="contain"
             cachePolicy="memory-disk"
             transition={150}
             recyclingKey={String(product.id)}
@@ -144,7 +144,8 @@ const styles = StyleSheet.create({
   },
   imageWrap: {
     position: 'relative',
-    backgroundColor: colors.g100,
+    backgroundColor: colors.white,
+    padding: 12,
   },
   imageWrapRow: {
     width: 128,
@@ -152,7 +153,6 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: colors.g200,
   },
   // Category-icon fallback: neutral g100 bg + soft g400 glyph — reads as a clean
   // monochrome placeholder rather than competing with the yellow price/tag accents.
