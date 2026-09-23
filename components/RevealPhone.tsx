@@ -9,7 +9,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
-import { trackProductPhoneClick, trackProductWhatsappClick } from '@/lib/analytics'
+import { track, trackProductPhoneClick, trackProductWhatsappClick } from '@/lib/analytics'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 const WA_GREEN = '#25D366'
@@ -37,6 +37,10 @@ export function RevealPhone({ productId, phone, waLink, showPhone, style }: Reve
     if (!revealed) {
       setRevealed(true)
       trackProductPhoneClick(productId)
+      void track({
+        name: 'contact_seller',
+        params: { product_id: productId, channel: 'phone' },
+      })
       return
     }
     if (phone) Linking.openURL(`tel:${phone}`).catch(() => {})
@@ -46,6 +50,10 @@ export function RevealPhone({ productId, phone, waLink, showPhone, style }: Reve
     if (!revealed) {
       setRevealed(true)
       trackProductWhatsappClick(productId)
+      void track({
+        name: 'contact_seller',
+        params: { product_id: productId, channel: 'whatsapp' },
+      })
       return
     }
     if (waLink) Linking.openURL(waLink).catch(() => {})

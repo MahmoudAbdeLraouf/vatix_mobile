@@ -33,6 +33,7 @@ import {
   localeName,
 } from '@/lib/api'
 import { authErrorMessage, authPost } from '@/lib/auth'
+import { track } from '@/lib/analytics'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 const DRAFT_KEY = 'vatix_product_draft'
@@ -270,6 +271,14 @@ export default function AddProductScreen() {
 
       const created = await authPost<{ id?: number | string }>('/products', payload)
       await SecureStore.deleteItemAsync(DRAFT_KEY).catch(() => {})
+      void track({
+        name: 'post_listing',
+        params: {
+          product_id: created?.id ?? '',
+          category_id: categoryId,
+          price: numPrice,
+        },
+      })
       setPublishedId(created?.id ?? '')
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))

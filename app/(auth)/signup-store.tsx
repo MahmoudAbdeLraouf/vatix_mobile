@@ -25,6 +25,7 @@ import {
   sendOtp,
 } from '@/lib/api'
 import { authErrorMessage, authPatch, authUploadFile } from '@/lib/auth'
+import { track } from '@/lib/analytics'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -196,6 +197,7 @@ export default function SignupStoreScreen() {
           ? `/dashboard/subscription?upgrade=plus&cycle=${billingCycle}`
           : undefined
       await login(response, routeAfter ?? redirect)
+      void track({ name: 'sign_up', params: { method: 'phone', user_type: storeType } })
       try {
         const url = await authUploadFile(logoUri)
         if (url) await authPatch('/stores/me', { logo: url })

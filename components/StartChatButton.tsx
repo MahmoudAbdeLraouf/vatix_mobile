@@ -13,6 +13,7 @@ import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
 import { authErrorMessage, authPost } from '@/lib/auth'
 import { ConversationListItem } from '@/lib/api'
+import { track } from '@/lib/analytics'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 interface StartChatButtonProps {
@@ -43,6 +44,12 @@ export function StartChatButton({
         recipientId,
         productId,
       })
+      if (productId) {
+        void track({
+          name: 'contact_seller',
+          params: { product_id: productId, channel: 'chat' },
+        })
+      }
       router.push(`/dashboard/messages/${conv.id}`)
     } catch (e: unknown) {
       Alert.alert(t.startChat, authErrorMessage(e, t))

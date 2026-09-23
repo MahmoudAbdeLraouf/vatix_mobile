@@ -1,4 +1,5 @@
 import { Platform } from 'react-native'
+import { getAnalytics, logEvent } from '@react-native-firebase/analytics'
 import { visitorIdHeader } from '@/lib/visitor-id'
 import { getToken } from '@/lib/auth'
 
@@ -83,4 +84,19 @@ export function trackSearch(keyword: string, zeroResults = false) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ keyword: trimmed, zeroResults }),
   })
+}
+
+export type AnalyticsEvent =
+  | { name: 'sign_up'; params: { method: 'phone'; user_type: 'client' | 'store' | 'store_plus' } }
+  | { name: 'post_listing'; params: { product_id: string | number; category_id?: string | number; price?: number } }
+  | { name: 'contact_seller'; params: { product_id: string | number; channel: 'phone' | 'whatsapp' | 'chat' } }
+
+export async function track(event: AnalyticsEvent) {
+  try {
+    // Firebase's typed overload for reserved names like 'sign_up' constrains the
+    // params shape; we route everything through the generic string overload.
+    await logEvent(getAnalytics(), event.name as string, event.params as Record<string, unknown>)
+  } catch {
+    // analytics failures must never break a user flow
+  }
 }

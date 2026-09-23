@@ -10,6 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vatix.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "Vatix needs access to your photo library so you can select images of your products (for example, a phone or laptop you want to sell) to upload when creating a listing or updating your store profile.",
@@ -65,7 +66,17 @@
           "project": "vatix-mobile"
         }
       ],
-      "react-native-iap"
+      "react-native-iap",
+      "@react-native-firebase/app",
+      "@react-native-firebase/analytics",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
     ],
     "extra": {
       "router": {},

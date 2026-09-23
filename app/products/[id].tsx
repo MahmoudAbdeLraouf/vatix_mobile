@@ -29,7 +29,7 @@ import {
   ProductImage,
 } from '@/lib/api'
 import { logShare } from '@/lib/auth'
-import { trackProductView, trackProductWhatsappClick } from '@/lib/analytics'
+import { track, trackProductView, trackProductWhatsappClick } from '@/lib/analytics'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { MessagesBell } from '@/components/MessagesBell'
@@ -619,6 +619,10 @@ export default function ProductDetailScreen() {
             <Pressable
               onPress={() => {
                 trackProductWhatsappClick(product.id)
+                void track({
+                  name: 'contact_seller',
+                  params: { product_id: product.id, channel: 'whatsapp' },
+                })
                 Linking.openURL(waLink).catch(() => {})
               }}
               style={({ pressed }) => [

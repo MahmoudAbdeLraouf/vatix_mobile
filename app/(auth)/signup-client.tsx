@@ -21,6 +21,7 @@ import {
   sendOtp,
 } from '@/lib/api'
 import { authErrorMessage } from '@/lib/auth'
+import { track } from '@/lib/analytics'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -71,6 +72,7 @@ export default function SignupClientScreen() {
       lastName: lastName.trim() || undefined,
     })
     await login(response, redirect)
+    void track({ name: 'sign_up', params: { method: 'phone', user_type: 'client' } })
   }
 
   async function handleNext() {
