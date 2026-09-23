@@ -942,7 +942,7 @@ function ProductRow({
           >
             <Ionicons name="checkmark-circle-outline" size={13} color={colors.green} />
             <Text style={[styles.actionText, { color: colors.green }]}>
-              {ar ? 'تم البيع' : 'Mark sold'}
+              {ar ? 'بعت جهازك؟' : 'Sold it?'}
             </Text>
           </Pressable>
         )}
