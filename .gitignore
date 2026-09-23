@@ -19,7 +19,9 @@ expo-env.d.ts
 *.mobileprovision
 
 # Firebase / FCM
-GoogleService-Info.plist
+# GoogleService-Info.plist and google-services.json are committed so EAS cloud
+# builds can read them. Firebase iOS/Android client keys ship inside the app
+# binary anyway — they aren't secrets. Service accounts (server-side) stay out.
 *service-account*.json
 *firebase-adminsdk*.json
 
