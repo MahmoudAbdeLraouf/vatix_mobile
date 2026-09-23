@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Dimensions,
+  FlatList,
   Linking,
   Pressable,
   ScrollView,
@@ -9,6 +10,7 @@ import {
   StyleSheet,
   Text,
   View,
+  ViewToken,
 } from 'react-native'
 import { Image } from 'expo-image'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -93,7 +95,23 @@ export default function ProductDetailScreen() {
   const [product, setProduct] = useState<Product | ExpiredResource | null>(null)
   const [loading, setLoading] = useState(true)
   const [imgIndex, setImgIndex] = useState(0)
-  const galleryRef = useRef<ScrollView>(null)
+  const galleryRef = useRef<FlatList<ProductImage>>(null)
+  const isRtlRef = useRef(isRtl)
+  const imagesLenRef = useRef(0)
+  useEffect(() => {
+    isRtlRef.current = isRtl
+  }, [isRtl])
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const first = viewableItems[0]
+      if (first?.index == null) return
+      const len = imagesLenRef.current
+      const dataIdx =
+        isRtlRef.current && len > 0 ? len - 1 - first.index : first.index
+      setImgIndex(dataIdx)
+    },
+  ).current
 
   // Direction-aware text styling — applied to every Text node so Arabic text
   // reads right-to-left and English left-to-right regardless of the native
@@ -139,6 +157,9 @@ export default function ProductDetailScreen() {
     () => (isRtl ? [...rawImages].reverse() : rawImages),
     [rawImages, isRtl],
   )
+  useEffect(() => {
+    imagesLenRef.current = rawImages.length
+  }, [rawImages.length])
 
   if (loading) {
     return (
@@ -231,35 +252,20 @@ export default function ProductDetailScreen() {
           <View style={styles.circle2} />
 
           {images.length > 0 ? (
-            // ScrollView (not FlatList) because on iOS a FlatList with a
-            // non-zero `initialScrollIndex` doesn't paint the initial item
-            // until the first swipe. Mounting every image up front avoids the
-            // virtualization/viewability race that leaves the hero blank.
-            <ScrollView
+            <FlatList
               ref={galleryRef}
+              data={displayImages}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
-              contentOffset={
-                isRtl && displayImages.length > 1
-                  ? { x: SCREEN_W * (displayImages.length - 1), y: 0 }
-                  : undefined
-              }
-              onMomentumScrollEnd={(e) => {
-                const visualIdx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W)
-                const len = rawImages.length
-                const dataIdx = isRtl && len > 0 ? Math.max(0, len - 1 - visualIdx) : visualIdx
-                setImgIndex(dataIdx)
-              }}
-            >
-              {displayImages.map((item) => {
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => {
                 const u = imgUrl(item.url, { w: HERO_TARGET_W })
                 // ProductCard cached this same asset at w:400 — reuse it as an
                 // instant placeholder while the higher-res hero streams in.
                 const placeholder = imgUrl(item.url, { w: 400 })
                 return u ? (
                   <Image
-                    key={String(item.id)}
                     source={{ uri: u }}
                     placeholder={placeholder ? { uri: placeholder } : undefined}
                     placeholderContentFit="cover"
@@ -270,10 +276,25 @@ export default function ProductDetailScreen() {
                     recyclingKey={String(item.id)}
                   />
                 ) : (
-                  <View key={String(item.id)} style={styles.heroPlaceholder} />
+                  <View style={styles.heroPlaceholder} />
                 )
+              }}
+              viewabilityConfig={viewabilityConfig}
+              onViewableItemsChanged={onViewableItemsChanged}
+              getItemLayout={(_, i) => ({
+                length: SCREEN_W,
+                offset: SCREEN_W * i,
+                index: i,
               })}
-            </ScrollView>
+              initialScrollIndex={isRtl ? Math.max(0, images.length - 1) : 0}
+              // Disable virtualization: on iOS FlatList with a non-zero
+              // initialScrollIndex leaves the first item unpainted until the
+              // first swipe. Mounting all pages up front sidesteps that.
+              initialNumToRender={Math.max(displayImages.length, 1)}
+              maxToRenderPerBatch={Math.max(displayImages.length, 1)}
+              windowSize={Math.max(displayImages.length * 2, 3)}
+              removeClippedSubviews={false}
+            />
           ) : (
             <View style={styles.heroPlaceholder} />
           )}
