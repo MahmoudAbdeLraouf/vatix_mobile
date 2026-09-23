@@ -22,8 +22,9 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Firebase / FCM (google-services.json IS committed and needed — see .gitignore override)
-GoogleService-Info.plist
+# Firebase / FCM (google-services.json AND GoogleService-Info.plist are
+# committed and required at build time — Firebase client keys ship in the
+# app binary anyway. Only server-side service accounts stay excluded.)
 *service-account*.json
 *firebase-adminsdk*.json
 
