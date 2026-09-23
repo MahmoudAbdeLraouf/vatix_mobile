@@ -40,7 +40,7 @@ import { RatingSection } from '@/components/RatingSection'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 const { width: SCREEN_W } = Dimensions.get('window')
-const HERO_H = 340
+const HERO_H = 420
 // Hero targets the device pixel width (capped) so we don't ship a 3000-px
 // original when the screen is 390 pt wide. The list card already caches a
 // 400-px thumbnail — we pass it as `placeholder` for instant paint.
@@ -963,7 +963,7 @@ const styles = StyleSheet.create({
   },
   floatingHeader: {
     position: 'absolute',
-    top: spacing.md,
+    top: spacing.lg,
     start: spacing.md,
     end: spacing.md,
     flexDirection: 'row',
