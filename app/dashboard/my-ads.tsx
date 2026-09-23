@@ -22,7 +22,7 @@ import {
   type Product,
   type SiteSettings,
 } from '@/lib/api'
-import { authDelete, authErrorMessage, authFetch, authPost } from '@/lib/auth'
+import { authDelete, authErrorMessage, authFetch, authPatch, authPost } from '@/lib/auth'
 import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED } from '@/lib/platform'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
@@ -62,6 +62,10 @@ export default function MyAdsScreen() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [paySuccess, setPaySuccess] = useState(false)
+
+  // Mark-as-sold 3-option modal state
+  const [soldFor, setSoldFor] = useState<Product | null>(null)
+  const [markingSold, setMarkingSold] = useState(false)
 
   useEffect(() => {
     getSiteSettings().then(setSettings).catch(() => {})
@@ -209,6 +213,29 @@ export default function MyAdsScreen() {
     }
   }
 
+  async function submitMarkSold(channel: 'vatix' | 'offline') {
+    if (!soldFor || markingSold) return
+    setMarkingSold(true)
+    try {
+      await authPatch(`/products/${soldFor.id}/mark-sold`, { sold: true, channel })
+      setSoldFor(null)
+      load()
+    } catch (e) {
+      Alert.alert(ar ? 'خطأ' : 'Error', authErrorMessage(e, t))
+    } finally {
+      setMarkingSold(false)
+    }
+  }
+
+  async function handleRepost(product: Product) {
+    try {
+      await authPatch(`/products/${product.id}/mark-sold`, { sold: false })
+      load()
+    } catch (e) {
+      Alert.alert(ar ? 'خطأ' : 'Error', authErrorMessage(e, t))
+    }
+  }
+
   const hasData = products !== null && !error
   const showList = hasData && products!.length > 0
 
@@ -324,6 +351,8 @@ export default function MyAdsScreen() {
                 onView={() => router.push(`/products/${p.id}`)}
                 onEdit={() => router.push(`/products/edit/${p.id}`)}
                 onDelete={() => confirmDelete(p.id)}
+                onMarkSold={() => setSoldFor(p)}
+                onRepost={() => handleRepost(p)}
               />
             ))}
           </View>
@@ -590,6 +619,128 @@ export default function MyAdsScreen() {
         </Pressable>
       </Modal>
       )}
+
+      {/* Mark-as-sold 3-option modal — NOT paid, always available */}
+      <Modal
+        visible={!!soldFor}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !markingSold && setSoldFor(null)}
+      >
+        <Pressable
+          style={styles.backdrop}
+          onPress={() => !markingSold && setSoldFor(null)}
+        >
+          <Pressable
+            style={[styles.popover, dirContainer]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={[styles.popHeader, dirContainer]}>
+              <View style={[styles.popIconWrap, { backgroundColor: colors.gl }]}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.green} />
+              </View>
+              <View style={styles.popHeaderText}>
+                <Text style={[styles.popTitle, dirStyle]} numberOfLines={2}>
+                  {ar ? 'هل قمت ببيع هذا المنتج؟' : 'Did you sell this item?'}
+                </Text>
+                <Text style={[styles.popSub, dirStyle]} numberOfLines={3}>
+                  {ar
+                    ? 'يساعدنا ردّك في تحسين تجربتك وتحديث حالة إعلانك.'
+                    : 'Your answer helps us improve your experience and update your listing status.'}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => !markingSold && setSoldFor(null)}
+                hitSlop={12}
+                style={styles.popClose}
+                disabled={markingSold}
+              >
+                <Ionicons name="close" size={18} color={colors.g500} />
+              </Pressable>
+            </View>
+
+            <View style={styles.optionList}>
+              <Pressable
+                onPress={() => submitMarkSold('vatix')}
+                disabled={markingSold}
+                style={({ pressed }) => [
+                  styles.optionBtn,
+                  styles.optionVatix,
+                  dirContainer,
+                  pressed && { opacity: 0.9 },
+                  markingSold && { opacity: 0.6 },
+                ]}
+              >
+                <View style={[styles.optionIcon, { backgroundColor: colors.green }]}>
+                  <Ionicons name="checkmark" size={16} color={colors.white} />
+                </View>
+                <View style={styles.optionTextWrap}>
+                  <Text style={[styles.optionTitle, dirStyle]} numberOfLines={2}>
+                    {ar ? 'نعم، بِعتُه عبر فاتكس' : 'Yes, sold through Vatix'}
+                  </Text>
+                  <Text style={[styles.optionSub, dirStyle]} numberOfLines={2}>
+                    {ar
+                      ? 'وجدت المشتري من خلال المنصة'
+                      : 'I found the buyer through the platform'}
+                  </Text>
+                </View>
+              </Pressable>
+
+              <Pressable
+                onPress={() => submitMarkSold('offline')}
+                disabled={markingSold}
+                style={({ pressed }) => [
+                  styles.optionBtn,
+                  styles.optionOffline,
+                  dirContainer,
+                  pressed && { opacity: 0.9 },
+                  markingSold && { opacity: 0.6 },
+                ]}
+              >
+                <View style={[styles.optionIcon, { backgroundColor: colors.dk }]}>
+                  <Ionicons name="storefront-outline" size={16} color={colors.white} />
+                </View>
+                <View style={styles.optionTextWrap}>
+                  <Text style={[styles.optionTitle, dirStyle]} numberOfLines={2}>
+                    {ar ? 'بِعتُه خارج فاتكس أو عبر منصة أخرى' : 'Sold offline or on another platform'}
+                  </Text>
+                  <Text style={[styles.optionSub, dirStyle]} numberOfLines={2}>
+                    {ar
+                      ? 'تم البيع دون استخدام فاتكس'
+                      : 'The sale happened without Vatix'}
+                  </Text>
+                </View>
+              </Pressable>
+
+              <Pressable
+                onPress={() => !markingSold && setSoldFor(null)}
+                disabled={markingSold}
+                style={({ pressed }) => [
+                  styles.optionBtn,
+                  styles.optionKeep,
+                  dirContainer,
+                  pressed && { opacity: 0.9 },
+                  markingSold && { opacity: 0.6 },
+                ]}
+              >
+                <View style={[styles.optionIcon, { backgroundColor: colors.y }]}>
+                  <Ionicons name="time-outline" size={16} color={colors.dk} />
+                </View>
+                <View style={styles.optionTextWrap}>
+                  <Text style={[styles.optionTitle, dirStyle]} numberOfLines={2}>
+                    {ar ? 'لن أبيعه الآن، احتفظ بإعلاني' : 'Not selling right now, keep my listing'}
+                  </Text>
+                  <Text style={[styles.optionSub, dirStyle]} numberOfLines={2}>
+                    {ar
+                      ? 'سيظل الإعلان مفعّلاً كما هو'
+                      : 'Your listing will remain active'}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </DashboardLayout>
   )
 }
@@ -628,6 +779,8 @@ function ProductRow({
   onView,
   onEdit,
   onDelete,
+  onMarkSold,
+  onRepost,
 }: {
   product: Product
   ar: boolean
@@ -638,10 +791,14 @@ function ProductRow({
   onView: () => void
   onEdit: () => void
   onDelete: () => void
+  onMarkSold: () => void
+  onRepost: () => void
 }) {
   const thumb = imgUrl(product.images?.[0]?.url)
   const isPromoted =
     !!product.promotedUntil && new Date(product.promotedUntil) > new Date()
+  const isSold = !!product.soldAt
+  const soldChannel = product.soldChannel
   const priceStr = `${Number(product.price).toLocaleString(ar ? 'ar-EG' : 'en-EG')} ${
     ar ? 'ج.م' : 'EGP'
   }`
@@ -692,6 +849,20 @@ function ProductRow({
                 <Ionicons name="rocket" size={10} color={colors.dk} />
                 <Text style={styles.promotedPillText}>
                   {ar ? 'مروّج' : 'Featured'}
+                </Text>
+              </View>
+            )}
+            {isSold && (
+              <View style={styles.soldPill}>
+                <Ionicons name="checkmark-circle" size={10} color={colors.white} />
+                <Text style={styles.soldPillText}>
+                  {soldChannel === 'vatix'
+                    ? ar
+                      ? 'تم البيع عبر فاتكس'
+                      : 'Sold on Vatix'
+                    : ar
+                      ? 'تم البيع (خارج فاتكس)'
+                      : 'Sold (offline)'}
                 </Text>
               </View>
             )}
@@ -746,6 +917,35 @@ function ProductRow({
             {ar ? 'تعديل' : 'Edit'}
           </Text>
         </Pressable>
+        {isSold ? (
+          <Pressable
+            onPress={onRepost}
+            style={({ pressed }) => [
+              styles.actionBtn,
+              styles.repostBtn,
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Ionicons name="refresh-outline" size={13} color={colors.dk} />
+            <Text style={[styles.actionText, { color: colors.dk }]}>
+              {ar ? 'إعادة نشر' : 'Repost'}
+            </Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={onMarkSold}
+            style={({ pressed }) => [
+              styles.actionBtn,
+              styles.soldBtn,
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <Ionicons name="checkmark-circle-outline" size={13} color={colors.green} />
+            <Text style={[styles.actionText, { color: colors.green }]}>
+              {ar ? 'تم البيع' : 'Mark sold'}
+            </Text>
+          </Pressable>
+        )}
         <Pressable
           onPress={onDelete}
           style={({ pressed }) => [
@@ -964,6 +1164,20 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.dk,
   },
+  soldPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.green,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+  },
+  soldPillText: {
+    fontFamily: fonts.bold,
+    fontSize: 10,
+    color: colors.white,
+  },
 
   actions: {
     flexDirection: 'row',
@@ -997,6 +1211,14 @@ const styles = StyleSheet.create({
   deleteBtn: {
     backgroundColor: colors.rl,
     borderColor: colors.red,
+  },
+  soldBtn: {
+    backgroundColor: colors.gl,
+    borderColor: colors.green,
+  },
+  repostBtn: {
+    backgroundColor: colors.yl,
+    borderColor: colors.y,
   },
 
   // Popover modal
@@ -1117,6 +1339,54 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 12,
     color: colors.yd,
+  },
+
+  // Mark-as-sold option list
+  optionList: {
+    gap: spacing.sm,
+  },
+  optionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+  },
+  optionVatix: {
+    backgroundColor: colors.gl,
+    borderColor: colors.green,
+  },
+  optionOffline: {
+    backgroundColor: colors.white,
+    borderColor: colors.g300,
+  },
+  optionKeep: {
+    backgroundColor: colors.yl,
+    borderColor: colors.y,
+  },
+  optionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  optionTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.dk,
+  },
+  optionSub: {
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    color: colors.g600,
+    lineHeight: 16,
   },
 
   // Inline bundle-buy payment modal

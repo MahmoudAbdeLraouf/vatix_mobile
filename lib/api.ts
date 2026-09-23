@@ -63,6 +63,8 @@ export interface Product {
   isActive: boolean
   showPhone: boolean
   promotedUntil: string | null
+  soldAt: string | null
+  soldChannel: 'vatix' | 'offline' | null
   averageRating?: number
   ratingsCount?: number
   images: ProductImage[]
