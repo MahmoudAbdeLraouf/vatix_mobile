@@ -1,5 +1,4 @@
 import { Platform } from 'react-native'
-import { getAnalytics, logEvent } from '@react-native-firebase/analytics'
 import { visitorIdHeader } from '@/lib/visitor-id'
 import { getToken } from '@/lib/auth'
 
@@ -91,12 +90,7 @@ export type AnalyticsEvent =
   | { name: 'post_listing'; params: { product_id: string | number; category_id?: string | number; price?: number } }
   | { name: 'contact_seller'; params: { product_id: string | number; channel: 'phone' | 'whatsapp' | 'chat' } }
 
-export async function track(event: AnalyticsEvent) {
-  try {
-    // Firebase's typed overload for reserved names like 'sign_up' constrains the
-    // params shape; we route everything through the generic string overload.
-    await logEvent(getAnalytics(), event.name as string, event.params as Record<string, unknown>)
-  } catch {
-    // analytics failures must never break a user flow
-  }
-}
+// Firebase native SDK removed — funnel events currently no-op so we can ship
+// JS-only updates via `eas update` without a new native binary. Reintroduce a
+// backend or GA4 transport before relying on these events again.
+export async function track(_event: AnalyticsEvent) {}
