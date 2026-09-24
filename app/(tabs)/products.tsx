@@ -49,7 +49,7 @@ export default function ProductsScreen() {
     params.brandId ? Number(params.brandId) : undefined,
   )
   const [locationId, setLocationId] = useState<number | undefined>()
-  const [sort, setSort] = useState<SortValue>('newest')
+  const [sort, setSort] = useState<SortValue | undefined>(undefined)
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [page, setPage] = useState(1)
@@ -159,7 +159,7 @@ export default function ProductsScreen() {
   function resetFilters() {
     setBrandId(undefined)
     setLocationId(undefined)
-    setSort('newest')
+    setSort(undefined)
     setMinPrice('')
     setMaxPrice('')
   }

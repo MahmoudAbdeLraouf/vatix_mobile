@@ -1,6 +1,6 @@
 import { Platform } from 'react-native'
 import { AUTH_ERR } from '@/lib/auth'
-import { visitorIdHeader } from '@/lib/visitor-id'
+import { getOrCreateVisitorId, visitorIdHeader } from '@/lib/visitor-id'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 const MINIO_PUBLIC = process.env.EXPO_PUBLIC_MINIO_URL ?? 'http://localhost:9000'
@@ -369,14 +369,23 @@ export interface GetProductsParams {
   condition?: string
   sort?: string
   promoted?: boolean
+  seed?: string
 }
 
-export function getProducts(params?: GetProductsParams): Promise<ProductListResponse> {
+export async function getProducts(params?: GetProductsParams): Promise<ProductListResponse> {
   const q = new URLSearchParams()
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       if (v != null) q.set(k, String(v))
     })
+  }
+  if (!q.has('seed')) {
+    try {
+      q.set('seed', await getOrCreateVisitorId())
+    } catch {
+      // SecureStore unavailable — proceed without seed; interleave still runs
+      // in the search path, just without a per-install shuffle.
+    }
   }
   const path = `/products?${q}`
   return cachedFetch(path, () => apiFetch(path))
@@ -482,6 +491,23 @@ export function expiredPayMobileWallet(
   return apiFetch('/auth/expired/pay-mobile-wallet', {
     method: 'POST',
     body: JSON.stringify({ phone, password, screenshotKey, buyerPhone, billingCycle }),
+  })
+}
+
+/**
+ * Expired store recovery: renew via Apple IAP. Unlike InstaPay/Mobile Wallet,
+ * IAP is instantly final, so the backend returns a full AuthResponse and the
+ * user is logged straight in.
+ */
+export function expiredPayIap(
+  phone: string,
+  password: string,
+  signedTransaction: string,
+  metadata?: Record<string, unknown>,
+): Promise<AuthResponse> {
+  return apiFetch('/auth/expired/pay-iap', {
+    method: 'POST',
+    body: JSON.stringify({ phone, password, signedTransaction, metadata }),
   })
 }
 
