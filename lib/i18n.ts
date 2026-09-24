@@ -551,6 +551,11 @@ export interface Translations {
     submitMobileWallet: string
     mobileWalletDoneTitle: string
     mobileWalletDoneBody: string
+    optionAppleTitle: string
+    optionAppleDesc: string
+    appleProcessing: string
+    appleDoneTitle: string
+    appleDoneBody: string
   }
 }
 
@@ -1110,6 +1115,11 @@ export const translations: Record<Locale, Translations> = {
       submitMobileWallet: 'إرسال للمراجعة',
       mobileWalletDoneTitle: 'تم الاستلام',
       mobileWalletDoneBody: 'سنراجع تحويلك ونفعّل اشتراكك قريباً. يمكنك تسجيل الدخول بعد التأكيد.',
+      optionAppleTitle: 'الدفع عبر Apple',
+      optionAppleDesc: 'ادفع من خلال App Store وسيتم تفعيل اشتراكك فوراً',
+      appleProcessing: 'جاري إتمام الدفع...',
+      appleDoneTitle: 'تم تفعيل اشتراكك',
+      appleDoneBody: 'تم تجديد اشتراكك بنجاح. يتم تسجيل دخولك الآن.',
     },
   },
   en: {
@@ -1667,6 +1677,11 @@ export const translations: Record<Locale, Translations> = {
       submitMobileWallet: 'Submit for review',
       mobileWalletDoneTitle: 'Received',
       mobileWalletDoneBody: 'We will review your transfer and activate your subscription soon. You can log in once it is confirmed.',
+      optionAppleTitle: 'Pay with Apple',
+      appleProcessing: 'Processing payment…',
+      optionAppleDesc: 'Renew instantly through the App Store',
+      appleDoneTitle: 'Subscription activated',
+      appleDoneBody: 'Your subscription has been renewed. Signing you in now.',
     },
   },
 }

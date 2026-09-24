@@ -17,15 +17,32 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
+import type { EventSubscription, Purchase, PurchaseError } from 'react-native-iap'
 import {
   BillingCycle,
   expiredConvertToClient,
+  expiredPayIap,
   expiredPayInstapay,
   expiredPayMobileWallet,
   getSiteSettings,
   uploadPublic,
 } from '@/lib/api'
-import { authErrorMessage } from '@/lib/auth'
+import { AUTH_ERR, authErrorMessage } from '@/lib/auth'
+import {
+  addPurchaseErrorListener,
+  addPurchaseUpdatedListener,
+  endIap,
+  finishIosPurchase,
+  getIosJws,
+  initIap,
+  requestIosPurchase,
+  requireIosProduct,
+} from '@/lib/iap'
+import {
+  getIapProduct,
+  iosFallbackDisplayPrice,
+  subscriptionSkuForStoreType,
+} from '@/lib/iap-products'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
@@ -48,6 +65,8 @@ type Step =
   | 'instapay-done'
   | 'mobile-wallet'
   | 'mobile-wallet-done'
+  | 'apple-iap'
+  | 'apple-iap-done'
 
 interface PaySettings {
   instapayEnabled: boolean
@@ -101,6 +120,9 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
   const [buyerPhone, setBuyerPhone] = useState('')
   const [paySettings, setPaySettings] = useState<PaySettings>(DEFAULT_PAY_SETTINGS)
   const [cycle, setCycle] = useState<BillingCycle>('monthly')
+  const [iosPriceMap, setIosPriceMap] = useState<
+    Record<string, { price: number; currency: string } | undefined>
+  >({})
 
   const amount = AMOUNT_BY_TYPE_CYCLE[storeType][cycle]
   const showCyclePicker = storeType === 'store_plus' && !IS_IOS
@@ -136,6 +158,31 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
       cancelled = true
     }
   }, [visible])
+
+  useEffect(() => {
+    if (!IS_IOS || !visible) return
+    let cancelled = false
+    const sku = subscriptionSkuForStoreType(storeType)
+    const product = getIapProduct(sku)
+    if (!product) return
+    ;(async () => {
+      try {
+        await initIap()
+        const sk = await requireIosProduct(sku, product.type)
+        if (cancelled) return
+        const price = typeof sk.price === 'number' ? sk.price : undefined
+        const currency = sk.currency || 'EGP'
+        if (price !== undefined) {
+          setIosPriceMap((m) => ({ ...m, [sku]: { price, currency } }))
+        }
+      } catch {
+        /* fall back to iosFallbackDisplayPrice(sku) at render time */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [visible, storeType])
 
   function handleClose() {
     if (busy || uploading) return
@@ -227,6 +274,71 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
     }
   }
 
+  async function handleAppleIapPurchase() {
+    if (busy) return
+    setError('')
+    setBusy(true)
+    const sku = subscriptionSkuForStoreType(storeType)
+    const product = getIapProduct(sku)
+    if (!product) {
+      setError(authErrorMessage(new Error(AUTH_ERR.IAP_PRODUCT_UNAVAILABLE), t))
+      setBusy(false)
+      return
+    }
+    const subs: { updated: EventSubscription | null; error: EventSubscription | null } = {
+      updated: null,
+      error: null,
+    }
+    let cancelled = false
+    try {
+      await initIap()
+      const sk = await requireIosProduct(sku, product.type)
+      const customerPrice = typeof sk.price === 'number' ? sk.price : undefined
+      const customerCurrency = sk.currency || 'EGP'
+      const purchase = await new Promise<Purchase>((resolve, reject) => {
+        subs.updated = addPurchaseUpdatedListener((p) => {
+          if (p.productId === sku) resolve(p)
+        })
+        subs.error = addPurchaseErrorListener((e: PurchaseError) => {
+          if (e.code === 'user-cancelled' || /cancel/i.test(e.message ?? '')) {
+            cancelled = true
+            reject(new Error('__CANCELLED__'))
+            return
+          }
+          if (e.code === 'sku-not-found') {
+            reject(new Error(AUTH_ERR.IAP_PRODUCT_UNAVAILABLE))
+            return
+          }
+          reject(new Error(e.message || 'Purchase failed'))
+        })
+        requestIosPurchase(sku, product.type).catch(reject)
+      })
+      setStep('apple-iap')
+      const jws = await getIosJws(purchase)
+      if (!jws) throw new Error('Could not verify transaction')
+      const res = await expiredPayIap(phone, password, jws, {
+        billingCycle: 'monthly',
+        ...(customerPrice !== undefined && { customerPrice }),
+        customerCurrency,
+      })
+      await finishIosPurchase(purchase, product.isConsumable)
+      setStep('apple-iap-done')
+      await auth.login(res, undefined)
+    } catch (e: unknown) {
+      if (cancelled) {
+        setStep('choice')
+      } else {
+        setError(authErrorMessage(e, t))
+        setStep('choice')
+      }
+    } finally {
+      subs.updated?.remove()
+      subs.error?.remove()
+      await endIap()
+      setBusy(false)
+    }
+  }
+
   function confirmConvert() {
     Alert.alert(
       t.expiredRecovery.convertConfirmTitle,
@@ -257,7 +369,11 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                       ? t.expiredRecovery.mobileWalletTitle
                       : step === 'mobile-wallet-done'
                         ? t.expiredRecovery.mobileWalletDoneTitle
-                        : t.expiredRecovery.title}
+                        : step === 'apple-iap'
+                          ? t.expiredRecovery.appleProcessing
+                          : step === 'apple-iap-done'
+                            ? t.expiredRecovery.appleDoneTitle
+                            : t.expiredRecovery.title}
             </Text>
             <Pressable onPress={handleClose} hitSlop={8}>
               <Ionicons name="close" size={22} color={colors.white} />
@@ -313,17 +429,24 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                     />
                   )}
 
-                  {false && (
-                  <MethodCard
-                    icon="person-outline"
-                    iconColor={colors.dk}
-                    title={t.expiredRecovery.optionConvertTitle}
-                    subtitle={t.expiredRecovery.optionConvertDesc}
-                    onPress={() => setStep('convert-confirm')}
-                    rowDir={rowDir}
-                    dirStyle={dirStyle}
-                  />
-                  )}
+                  {IS_IOS && (() => {
+                    const sku = subscriptionSkuForStoreType(storeType)
+                    const priced = iosPriceMap[sku]
+                    const priceLabel = priced
+                      ? `${priced.price.toFixed(2)} ${priced.currency}`
+                      : iosFallbackDisplayPrice(sku)
+                    return (
+                      <MethodCard
+                        icon="logo-apple"
+                        iconColor={colors.dk}
+                        title={t.expiredRecovery.optionAppleTitle}
+                        subtitle={`${t.expiredRecovery.optionAppleDesc} · ${priceLabel}`}
+                        onPress={handleAppleIapPurchase}
+                        rowDir={rowDir}
+                        dirStyle={dirStyle}
+                      />
+                    )
+                  })()}
                 </>
               )}
 
@@ -557,6 +680,37 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                   </Text>
                   <Text style={[styles.doneBody, { marginTop: spacing.sm }, dirStyle]}>
                     {t.expiredRecovery.mobileWalletDoneBody}
+                  </Text>
+                  <View style={{ marginTop: spacing.lg, alignSelf: 'stretch' }}>
+                    <Button
+                      label={t.expiredRecovery.close}
+                      variant="y"
+                      size="lg"
+                      onPress={onClose}
+                    />
+                  </View>
+                </View>
+              )}
+
+              {step === 'apple-iap' && (
+                <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
+                  <ActivityIndicator size="large" color={colors.dk} />
+                  <Text style={[styles.doneBody, { marginTop: spacing.md }, dirStyle]}>
+                    {t.expiredRecovery.appleProcessing}
+                  </Text>
+                </View>
+              )}
+
+              {step === 'apple-iap-done' && (
+                <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
+                  <View style={styles.successCircle}>
+                    <Ionicons name="checkmark" size={40} color={colors.white} />
+                  </View>
+                  <Text style={[styles.doneTitle, { marginTop: spacing.md }, dirStyle]}>
+                    {t.expiredRecovery.appleDoneTitle}
+                  </Text>
+                  <Text style={[styles.doneBody, { marginTop: spacing.sm }, dirStyle]}>
+                    {t.expiredRecovery.appleDoneBody}
                   </Text>
                   <View style={{ marginTop: spacing.lg, alignSelf: 'stretch' }}>
                     <Button
