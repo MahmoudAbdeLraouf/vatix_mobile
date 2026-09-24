@@ -313,6 +313,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                     />
                   )}
 
+                  {false && (
                   <MethodCard
                     icon="person-outline"
                     iconColor={colors.dk}
@@ -322,6 +323,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                     rowDir={rowDir}
                     dirStyle={dirStyle}
                   />
+                  )}
                 </>
               )}
 
