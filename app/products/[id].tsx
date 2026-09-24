@@ -221,9 +221,8 @@ export default function ProductDetailScreen() {
       ? { label: locale === 'ar' ? 'متجر 🏪' : 'Store 🏪', bg: colors.g100, fg: colors.g700 }
       : { label: locale === 'ar' ? 'فرد 👤' : 'Individual 👤', bg: colors.g100, fg: colors.g700 }
 
-  // Parity with website: WA link is gated by showPhone and falls back to phone
-  // when the seller hasn't provided a dedicated contact number.
-  const waSource = product.showPhone ? owner?.contactPhone || owner?.phone : null
+  const ownerContact = owner?.contactPhone ?? null
+  const waSource = product.showPhone ? ownerContact : null
   const waLink = buildWaLink(
     waSource,
     product.title,
@@ -231,7 +230,7 @@ export default function ProductDetailScreen() {
     product.slug ?? product.id,
     locale === 'ar',
   )
-  const hasPhoneReveal = product.showPhone && !!owner?.phone
+  const hasPhoneReveal = product.showPhone && !!ownerContact
   const hasActions = !!owner?.id || !!waLink || hasPhoneReveal
   const bottomBarH =
     Math.max(insets.bottom, spacing.md) + 56 + spacing.md + spacing.lg + spacing.md
@@ -649,7 +648,7 @@ export default function ProductDetailScreen() {
             <View style={styles.actionFlex}>
               <RevealPhone
                 productId={product.id}
-                phone={owner?.phone ?? null}
+                phone={ownerContact}
                 waLink={null}
                 showPhone={product.showPhone}
               />

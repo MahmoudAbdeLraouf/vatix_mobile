@@ -225,9 +225,10 @@ export default function StoreDetailScreen() {
 
   // Consolidated phone list drives both the "Call" bottom sheet and the About
   // tab list. Main phone leads, then labeled general lines, then branch lines.
+  const storeContactPhone = store.contactPhone ?? null
   const phoneEntries: PhoneEntry[] = []
-  if (store.phone) {
-    phoneEntries.push({ key: 'main', label: t.mainPhone, phone: store.phone })
+  if (storeContactPhone) {
+    phoneEntries.push({ key: 'main', label: t.mainPhone, phone: storeContactPhone })
   }
   generals.forEach(g => {
     if (g.phone) phoneEntries.push({ key: `g-${g.id}`, label: g.name ?? t.phone, phone: g.phone })
@@ -236,7 +237,7 @@ export default function StoreDetailScreen() {
     if (b.phone) phoneEntries.push({ key: `b-${b.id}`, label: b.name ?? t.branches, phone: b.phone })
   })
 
-  const rawPhone = store.phone?.replace(/\s+/g, '') ?? null
+  const rawPhone = storeContactPhone?.replace(/\s+/g, '') ?? null
   const waPhone = rawPhone
     ? rawPhone.startsWith('+')
       ? rawPhone.slice(1)
