@@ -273,9 +273,9 @@ export default function ProductDetailScreen() {
                   <Image
                     source={{ uri: u }}
                     placeholder={placeholder ? { uri: placeholder } : undefined}
-                    placeholderContentFit="cover"
+                    placeholderContentFit="contain"
                     style={styles.heroImage}
-                    contentFit="cover"
+                    contentFit="contain"
                     cachePolicy="memory-disk"
                     transition={150}
                     recyclingKey={String(item.id)}
