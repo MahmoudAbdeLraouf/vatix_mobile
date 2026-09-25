@@ -210,27 +210,19 @@ export default function ProductsScreen() {
               </Text>
             </Pressable>
           </View>
-          <FlatList
-            data={isRtl ? [...spotlightStores].reverse() : spotlightStores}
+          <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(store) => String(store.id)}
             contentContainerStyle={styles.railList}
-            initialScrollIndex={
-              isRtl ? Math.max(0, spotlightStores.length - 1) : 0
-            }
-            getItemLayout={(_, i) => ({
-              length: 170 + spacing.sm,
-              offset: (170 + spacing.sm) * i,
-              index: i,
-            })}
-            renderItem={({ item: store }) => {
+          >
+            {spotlightStores.map((store) => {
               const cover = imgUrl(store.storeProfile?.cover, { w: 340 })
               const logo = imgUrl(store.storeProfile?.logo, { w: 68 })
               const name = store.storeProfile?.name ?? ''
               const isPlus = store.type === 'store_plus'
               return (
                 <Pressable
+                  key={store.id}
                   onPress={() => router.push(`/store/${store.id}`)}
                   style={({ pressed }) => [
                     styles.spotCard,
@@ -294,8 +286,8 @@ export default function ProductsScreen() {
                   </View>
                 </Pressable>
               )
-            }}
-          />
+            })}
+          </ScrollView>
         </View>
       )}
 

@@ -102,20 +102,12 @@ export default function ProductDetailScreen() {
   const [similarItems, setSimilarItems] = useState<Product[]>([])
   const [spotlightStores, setSpotlightStores] = useState<Store[]>([])
   const galleryRef = useRef<FlatList<ProductImage>>(null)
-  const isRtlRef = useRef(isRtl)
-  const imagesLenRef = useRef(0)
-  useEffect(() => {
-    isRtlRef.current = isRtl
-  }, [isRtl])
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       const first = viewableItems[0]
       if (first?.index == null) return
-      const len = imagesLenRef.current
-      const dataIdx =
-        isRtlRef.current && len > 0 ? len - 1 - first.index : first.index
-      setImgIndex(dataIdx)
+      setImgIndex(first.index)
     },
   ).current
 
@@ -172,18 +164,6 @@ export default function ProductDetailScreen() {
       setSpotlightStores(spot)
     })
   }, [product])
-
-  // Derived image lists — placed before early returns so `useMemo`/`useEffect`
-  // hook order is stable across renders regardless of load/expired state.
-  const rawImages: ProductImage[] =
-    product && !isExpiredResource(product) ? product.images : []
-  const displayImages = useMemo(
-    () => (isRtl ? [...rawImages].reverse() : rawImages),
-    [rawImages, isRtl],
-  )
-  useEffect(() => {
-    imagesLenRef.current = rawImages.length
-  }, [rawImages.length])
 
   if (loading) {
     return (
@@ -281,15 +261,13 @@ export default function ProductDetailScreen() {
           {images.length > 0 ? (
             <FlatList
               ref={galleryRef}
-              data={displayImages}
+              data={images}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               keyExtractor={(item) => String(item.id)}
               renderItem={({ item }) => {
                 const u = imgUrl(item.url, { w: HERO_TARGET_W })
-                // ProductCard cached this same asset at w:400 — reuse it as an
-                // instant placeholder while the higher-res hero streams in.
                 const placeholder = imgUrl(item.url, { w: 400 })
                 return u ? (
                   <Image
@@ -308,18 +286,9 @@ export default function ProductDetailScreen() {
               }}
               viewabilityConfig={viewabilityConfig}
               onViewableItemsChanged={onViewableItemsChanged}
-              getItemLayout={(_, i) => ({
-                length: SCREEN_W,
-                offset: SCREEN_W * i,
-                index: i,
-              })}
-              initialScrollIndex={isRtl ? Math.max(0, images.length - 1) : 0}
-              // Disable virtualization: on iOS FlatList with a non-zero
-              // initialScrollIndex leaves the first item unpainted until the
-              // first swipe. Mounting all pages up front sidesteps that.
-              initialNumToRender={Math.max(displayImages.length, 1)}
-              maxToRenderPerBatch={Math.max(displayImages.length, 1)}
-              windowSize={Math.max(displayImages.length * 2, 3)}
+              initialNumToRender={Math.max(images.length, 1)}
+              maxToRenderPerBatch={Math.max(images.length, 1)}
+              windowSize={Math.max(images.length * 2, 3)}
               removeClippedSubviews={false}
             />
           ) : (
@@ -638,27 +607,19 @@ export default function ProductDetailScreen() {
                   </Text>
                 </Pressable>
               </View>
-              <FlatList
-                data={isRtl ? [...spotlightStores].reverse() : spotlightStores}
+              <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                keyExtractor={(store) => String(store.id)}
                 contentContainerStyle={styles.railList}
-                initialScrollIndex={
-                  isRtl ? Math.max(0, spotlightStores.length - 1) : 0
-                }
-                getItemLayout={(_, i) => ({
-                  length: 170 + spacing.sm,
-                  offset: (170 + spacing.sm) * i,
-                  index: i,
-                })}
-                renderItem={({ item: store }) => {
+              >
+                {spotlightStores.map((store) => {
                   const cover = imgUrl(store.storeProfile?.cover, { w: 340 })
                   const logo = imgUrl(store.storeProfile?.logo, { w: 68 })
                   const name = store.storeProfile?.name ?? ''
                   const isPlus = store.type === 'store_plus'
                   return (
                     <Pressable
+                      key={store.id}
                       onPress={() => router.push(`/store/${store.id}`)}
                       style={({ pressed }) => [
                         styles.spotCard,
@@ -724,8 +685,8 @@ export default function ProductDetailScreen() {
                       </View>
                     </Pressable>
                   )
-                }}
-              />
+                })}
+              </ScrollView>
             </View>
           )}
 
@@ -750,24 +711,19 @@ export default function ProductDetailScreen() {
                   </Text>
                 </Pressable>
               </View>
-              <FlatList
-                data={isRtl ? [...similarItems].reverse() : similarItems}
+              <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                keyExtractor={(p) => String(p.id)}
                 contentContainerStyle={styles.railList}
-                initialScrollIndex={
-                  isRtl ? Math.max(0, similarItems.length - 1) : 0
-                }
-                getItemLayout={(_, i) => ({
-                  length: 180 + spacing.sm,
-                  offset: (180 + spacing.sm) * i,
-                  index: i,
-                })}
-                renderItem={({ item }) => (
-                  <ProductCard product={item} style={styles.similarCard} />
-                )}
-              />
+              >
+                {similarItems.map((item) => (
+                  <ProductCard
+                    key={item.id}
+                    product={item}
+                    style={styles.similarCard}
+                  />
+                ))}
+              </ScrollView>
             </View>
           )}
         </View>
