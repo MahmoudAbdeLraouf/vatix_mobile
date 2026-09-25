@@ -295,9 +295,13 @@ export default function ProductDetailScreen() {
             <View style={styles.heroPlaceholder} />
           )}
 
-          {/* Page dots */}
+          {/* Page dots — force row-reverse in RTL so dot[0] visually aligns
+              with image[0] (which native RTL FlatList renders at the right). */}
           {images.length > 1 && (
-            <View pointerEvents="none" style={styles.dotsRow}>
+            <View
+              pointerEvents="none"
+              style={[styles.dotsRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}
+            >
               {images.map((img, i) => (
                 <View
                   key={img.id}
