@@ -65,6 +65,7 @@ export default function MyAdsScreen() {
 
   // Mark-as-sold 3-option modal state
   const [soldFor, setSoldFor] = useState<Product | null>(null)
+  const [soldDialogMode, setSoldDialogMode] = useState<'sell' | 'delete'>('sell')
   const [markingSold, setMarkingSold] = useState(false)
 
   useEffect(() => {
@@ -350,8 +351,18 @@ export default function MyAdsScreen() {
                 onBoost={() => handleBoost(p)}
                 onView={() => router.push(`/products/${p.id}`)}
                 onEdit={() => router.push(`/products/edit/${p.id}`)}
-                onDelete={() => confirmDelete(p.id)}
-                onMarkSold={() => setSoldFor(p)}
+                onDelete={() => {
+                  if (p.soldAt) {
+                    confirmDelete(p.id)
+                  } else {
+                    setSoldDialogMode('delete')
+                    setSoldFor(p)
+                  }
+                }}
+                onMarkSold={() => {
+                  setSoldDialogMode('sell')
+                  setSoldFor(p)
+                }}
                 onRepost={() => handleRepost(p)}
               />
             ))}
@@ -637,16 +648,30 @@ export default function MyAdsScreen() {
           >
             <View style={[styles.popHeader, dirContainer]}>
               <View style={[styles.popIconWrap, { backgroundColor: colors.gl }]}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.green} />
+                <Ionicons
+                  name={soldDialogMode === 'delete' ? 'trash-outline' : 'checkmark-circle'}
+                  size={20}
+                  color={soldDialogMode === 'delete' ? colors.red : colors.green}
+                />
               </View>
               <View style={styles.popHeaderText}>
                 <Text style={[styles.popTitle, dirStyle]} numberOfLines={2}>
-                  {ar ? 'هل قمت ببيع هذا المنتج؟' : 'Did you sell this item?'}
+                  {soldDialogMode === 'delete'
+                    ? ar
+                      ? 'قبل الحذف — هل بِعتَ هذا المنتج؟'
+                      : 'Before deleting — did you sell this item?'
+                    : ar
+                      ? 'هل قمت ببيع هذا المنتج؟'
+                      : 'Did you sell this item?'}
                 </Text>
                 <Text style={[styles.popSub, dirStyle]} numberOfLines={3}>
-                  {ar
-                    ? 'يساعدنا ردّك في تحسين تجربتك وتحديث حالة إعلانك.'
-                    : 'Your answer helps us improve your experience and update your listing status.'}
+                  {soldDialogMode === 'delete'
+                    ? ar
+                      ? 'إذا كنت قد بِعتَه، سنسجّله كمباع بدل الحذف — يساعدنا هذا على تحسين تجربتك.'
+                      : "If you sold it, we'll mark it as sold instead of deleting — this helps us improve your experience."
+                    : ar
+                      ? 'يساعدنا ردّك في تحسين تجربتك وتحديث حالة إعلانك.'
+                      : 'Your answer helps us improve your experience and update your listing status.'}
                 </Text>
               </View>
               <Pressable
@@ -712,31 +737,71 @@ export default function MyAdsScreen() {
                 </View>
               </Pressable>
 
-              <Pressable
-                onPress={() => !markingSold && setSoldFor(null)}
-                disabled={markingSold}
-                style={({ pressed }) => [
-                  styles.optionBtn,
-                  styles.optionKeep,
-                  dirContainer,
-                  pressed && { opacity: 0.9 },
-                  markingSold && { opacity: 0.6 },
-                ]}
-              >
-                <View style={[styles.optionIcon, { backgroundColor: colors.y }]}>
-                  <Ionicons name="time-outline" size={16} color={colors.dk} />
-                </View>
-                <View style={styles.optionTextWrap}>
-                  <Text style={[styles.optionTitle, dirStyle]} numberOfLines={2}>
-                    {ar ? 'لن أبيعه الآن، احتفظ بإعلاني' : 'Not selling right now, keep my listing'}
-                  </Text>
-                  <Text style={[styles.optionSub, dirStyle]} numberOfLines={2}>
-                    {ar
-                      ? 'سيظل الإعلان مفعّلاً كما هو'
-                      : 'Your listing will remain active'}
-                  </Text>
-                </View>
-              </Pressable>
+              {soldDialogMode === 'delete' ? (
+                <Pressable
+                  onPress={async () => {
+                    if (!soldFor || markingSold) return
+                    setMarkingSold(true)
+                    try {
+                      await authDelete(`/products/${soldFor.id}`)
+                      setSoldFor(null)
+                      load()
+                    } catch (e) {
+                      Alert.alert(ar ? 'خطأ' : 'Error', authErrorMessage(e, t))
+                    } finally {
+                      setMarkingSold(false)
+                    }
+                  }}
+                  disabled={markingSold}
+                  style={({ pressed }) => [
+                    styles.optionBtn,
+                    styles.optionDelete,
+                    dirContainer,
+                    pressed && { opacity: 0.9 },
+                    markingSold && { opacity: 0.6 },
+                  ]}
+                >
+                  <View style={[styles.optionIcon, { backgroundColor: colors.red }]}>
+                    <Ionicons name="trash-outline" size={16} color={colors.white} />
+                  </View>
+                  <View style={styles.optionTextWrap}>
+                    <Text style={[styles.optionTitle, dirStyle]} numberOfLines={2}>
+                      {ar ? 'لا، احذف الإعلان' : 'No, delete the listing'}
+                    </Text>
+                    <Text style={[styles.optionSub, dirStyle]} numberOfLines={2}>
+                      {ar
+                        ? 'سيتم حذف الإعلان نهائيًا'
+                        : 'The listing will be permanently removed'}
+                    </Text>
+                  </View>
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={() => !markingSold && setSoldFor(null)}
+                  disabled={markingSold}
+                  style={({ pressed }) => [
+                    styles.optionBtn,
+                    styles.optionKeep,
+                    dirContainer,
+                    pressed && { opacity: 0.9 },
+                    markingSold && { opacity: 0.6 },
+                  ]}
+                >
+                  <View style={[styles.optionIcon, { backgroundColor: colors.y }]}>
+                    <Ionicons name="time-outline" size={16} color={colors.dk} />
+                  </View>
+                  <View style={styles.optionTextWrap}>
+                    <Text style={[styles.optionTitle, dirStyle]} numberOfLines={2}>
+                      {ar ? 'لن أبيعه الآن، احتفظ بإعلاني' : 'Not selling right now, keep my listing'}
+                    </Text>
+                    <Text style={[styles.optionSub, dirStyle]} numberOfLines={2}>
+                      {ar
+                        ? 'سيظل الإعلان مفعّلاً كما هو'
+                        : 'Your listing will remain active'}
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
             </View>
           </Pressable>
         </Pressable>
@@ -1365,6 +1430,10 @@ const styles = StyleSheet.create({
   optionKeep: {
     backgroundColor: colors.yl,
     borderColor: colors.y,
+  },
+  optionDelete: {
+    backgroundColor: colors.white,
+    borderColor: colors.red,
   },
   optionIcon: {
     width: 32,
