@@ -22,12 +22,16 @@ import { useLoginGate } from '@/contexts/loginGate'
 import {
   ExpiredResource,
   getProduct,
+  getProducts,
+  getSpotlightStores,
   imgUrl,
   isExpiredResource,
   localeName,
   Product,
   ProductImage,
+  Store,
 } from '@/lib/api'
+import { ProductCard } from '@/components/ProductCard'
 import { logShare } from '@/lib/auth'
 import { track, trackProductView, trackProductWhatsappClick } from '@/lib/analytics'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
@@ -95,6 +99,8 @@ export default function ProductDetailScreen() {
   const [product, setProduct] = useState<Product | ExpiredResource | null>(null)
   const [loading, setLoading] = useState(true)
   const [imgIndex, setImgIndex] = useState(0)
+  const [similarItems, setSimilarItems] = useState<Product[]>([])
+  const [spotlightStores, setSpotlightStores] = useState<Store[]>([])
   const galleryRef = useRef<FlatList<ProductImage>>(null)
   const isRtlRef = useRef(isRtl)
   const imagesLenRef = useRef(0)
@@ -148,6 +154,24 @@ export default function ProductDetailScreen() {
       void bumpEngagement('product_view')
     }
   }, [id])
+
+  // Similar-products query mirrors website: soft-rank store listings first so
+  // spotlight stores' items surface before individual sellers'. Fetch 7 to
+  // guarantee 6 after excluding the current product.
+  useEffect(() => {
+    if (!product || isExpiredResource(product) || !product.category) return
+    const categoryId = product.category.id
+    const currentId = product.id
+    void Promise.all([
+      getProducts({ categoryId, limit: 7, storeFirst: true })
+        .then((r) => r.items.filter((p) => p.id !== currentId).slice(0, 6))
+        .catch(() => [] as Product[]),
+      getSpotlightStores(10).catch(() => [] as Store[]),
+    ]).then(([sim, spot]) => {
+      setSimilarItems(sim)
+      setSpotlightStores(spot)
+    })
+  }, [product])
 
   // Derived image lists — placed before early returns so `useMemo`/`useEffect`
   // hook order is stable across renders regardless of load/expired state.
@@ -221,8 +245,12 @@ export default function ProductDetailScreen() {
       ? { label: locale === 'ar' ? 'متجر 🏪' : 'Store 🏪', bg: colors.g100, fg: colors.g700 }
       : { label: locale === 'ar' ? 'فرد 👤' : 'Individual 👤', bg: colors.g100, fg: colors.g700 }
 
-  const ownerContact = owner?.contactPhone ?? null
-  const waSource = product.showPhone ? ownerContact : null
+  // Expired store owners keep their listings visible, but phone/WhatsApp CTAs are
+  // hidden so buyers are routed exclusively through in-app chat (which forces
+  // login → paywall). Chat still fires a notification via the existing pipeline.
+  const isOwnerExpired = isStore && !!owner?.subscriptionExpired
+  const ownerContact = isOwnerExpired ? null : (owner?.contactPhone ?? null)
+  const waSource = product.showPhone && !isOwnerExpired ? ownerContact : null
   const waLink = buildWaLink(
     waSource,
     product.title,
@@ -230,7 +258,7 @@ export default function ProductDetailScreen() {
     product.slug ?? product.id,
     locale === 'ar',
   )
-  const hasPhoneReveal = product.showPhone && !!ownerContact
+  const hasPhoneReveal = product.showPhone && !isOwnerExpired && !!ownerContact
   const hasActions = !!owner?.id || !!waLink || hasPhoneReveal
   const bottomBarH =
     Math.max(insets.bottom, spacing.md) + 56 + spacing.md + spacing.lg + spacing.md
@@ -594,6 +622,154 @@ export default function ProductDetailScreen() {
             initialCount={ratingsCount}
             ownerId={owner?.id}
           />
+
+          {/* Featured stores — spotlight rail (mirrors website product page).
+              Guarded so the header/rail collapse cleanly when the endpoint
+              returns nothing. */}
+          {spotlightStores.length > 0 && (
+            <View style={styles.railSection}>
+              <View style={styles.railHeader}>
+                <Text style={[styles.railTitle, dir]}>
+                  {locale === 'ar' ? '⭐ متاجر مميّزة' : '⭐ Featured Stores'}
+                </Text>
+                <Pressable onPress={() => router.push('/(tabs)/stores')} hitSlop={8}>
+                  <Text style={[styles.railLink, dir]}>
+                    {locale === 'ar' ? 'عرض الكل' : 'View all'}
+                  </Text>
+                </Pressable>
+              </View>
+              <FlatList
+                data={isRtl ? [...spotlightStores].reverse() : spotlightStores}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(store) => String(store.id)}
+                contentContainerStyle={styles.railList}
+                initialScrollIndex={
+                  isRtl ? Math.max(0, spotlightStores.length - 1) : 0
+                }
+                getItemLayout={(_, i) => ({
+                  length: 170 + spacing.sm,
+                  offset: (170 + spacing.sm) * i,
+                  index: i,
+                })}
+                renderItem={({ item: store }) => {
+                  const cover = imgUrl(store.storeProfile?.cover, { w: 340 })
+                  const logo = imgUrl(store.storeProfile?.logo, { w: 68 })
+                  const name = store.storeProfile?.name ?? ''
+                  const isPlus = store.type === 'store_plus'
+                  return (
+                    <Pressable
+                      onPress={() => router.push(`/store/${store.id}`)}
+                      style={({ pressed }) => [
+                        styles.spotCard,
+                        pressed && { opacity: 0.92 },
+                      ]}
+                    >
+                      <View style={styles.spotCover}>
+                        {cover ? (
+                          <Image
+                            source={{ uri: cover }}
+                            style={styles.spotCoverImg}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                            transition={120}
+                            recyclingKey={`spot-cover-${store.id}`}
+                          />
+                        ) : null}
+                        <View
+                          style={[
+                            styles.spotBadge,
+                            isPlus ? styles.spotBadgePlus : styles.spotBadgeStd,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.spotBadgeText,
+                              isPlus
+                                ? styles.spotBadgeTextPlus
+                                : styles.spotBadgeTextStd,
+                            ]}
+                          >
+                            {isPlus
+                              ? locale === 'ar'
+                                ? '⭐ Plus'
+                                : '⭐ Plus'
+                              : locale === 'ar'
+                              ? '🏪 متجر'
+                              : '🏪 Store'}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.spotBody}>
+                        <View style={styles.spotLogo}>
+                          {logo ? (
+                            <Image
+                              source={{ uri: logo }}
+                              style={styles.spotLogoImg}
+                              contentFit="contain"
+                              cachePolicy="memory-disk"
+                              transition={120}
+                              recyclingKey={`spot-logo-${store.id}`}
+                            />
+                          ) : (
+                            <Text style={styles.spotLogoFallback}>🏪</Text>
+                          )}
+                        </View>
+                        <Text
+                          style={[styles.spotName, dir]}
+                          numberOfLines={2}
+                        >
+                          {name}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  )
+                }}
+              />
+            </View>
+          )}
+
+          {/* Similar products — soft-ranked store-first via `storeFirst: true`
+              so buyers see verified store listings before individual sellers. */}
+          {similarItems.length > 0 && product.category && (
+            <View style={styles.railSection}>
+              <View style={styles.railHeader}>
+                <Text style={[styles.railTitle, dir]}>
+                  {locale === 'ar' ? 'إعلانات مشابهة' : 'Similar Listings'}
+                </Text>
+                <Pressable
+                  onPress={() =>
+                    router.push(
+                      `/(tabs)/products?categoryId=${product.category!.id}`,
+                    )
+                  }
+                  hitSlop={8}
+                >
+                  <Text style={[styles.railLink, dir]}>
+                    {locale === 'ar' ? 'عرض الكل ←' : 'View all →'}
+                  </Text>
+                </Pressable>
+              </View>
+              <FlatList
+                data={isRtl ? [...similarItems].reverse() : similarItems}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(p) => String(p.id)}
+                contentContainerStyle={styles.railList}
+                initialScrollIndex={
+                  isRtl ? Math.max(0, similarItems.length - 1) : 0
+                }
+                getItemLayout={(_, i) => ({
+                  length: 180 + spacing.sm,
+                  offset: (180 + spacing.sm) * i,
+                  index: i,
+                })}
+                renderItem={({ item }) => (
+                  <ProductCard product={item} style={styles.similarCard} />
+                )}
+              />
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -1356,5 +1532,120 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 15,
     color: colors.white,
+  },
+
+  // ── Horizontal rails (spotlight stores + similar products) ──
+  railSection: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
+    // Break out of the card's horizontal padding so the rail can bleed to
+    // the screen edges while headers stay flush with the rest of the card.
+    marginHorizontal: -spacing.lg,
+  },
+  railHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm + 2,
+    gap: spacing.sm,
+  },
+  railTitle: {
+    flex: 1,
+    fontFamily: fonts.extraBold,
+    fontSize: 15,
+    color: colors.g900,
+    letterSpacing: 0.1,
+  },
+  railLink: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.dk,
+  },
+  railList: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+
+  // Spotlight store card
+  spotCard: {
+    width: 170,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.g200,
+    backgroundColor: colors.white,
+    overflow: 'hidden',
+    ...shadow.ss,
+  },
+  spotCover: {
+    position: 'relative',
+    height: 90,
+    backgroundColor: colors.g100,
+  },
+  spotCoverImg: {
+    width: '100%',
+    height: '100%',
+  },
+  spotBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    end: spacing.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  spotBadgePlus: {
+    backgroundColor: colors.y,
+  },
+  spotBadgeStd: {
+    backgroundColor: 'rgba(255,255,255,0.95)',
+  },
+  spotBadgeText: {
+    fontFamily: fonts.extraBold,
+    fontSize: 10,
+    letterSpacing: 0.2,
+  },
+  spotBadgeTextPlus: {
+    color: colors.dk,
+  },
+  spotBadgeTextStd: {
+    color: colors.dk,
+  },
+  spotBody: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  spotLogo: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.sm,
+    borderWidth: 1.5,
+    borderColor: colors.g200,
+    padding: 2,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  spotLogoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  spotLogoFallback: {
+    fontSize: 18,
+  },
+  spotName: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    lineHeight: 15,
+    color: colors.dk,
+    minHeight: 30,
+  },
+
+  // ProductCard sizing when used inside the similar-products rail — the card
+  // itself defers width to the parent (see ProductCard.tsx comment).
+  similarCard: {
+    width: 180,
   },
 })

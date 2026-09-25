@@ -77,6 +77,7 @@ export interface Product {
     type: string
     phone: string | null
     contactPhone?: string | null
+    subscriptionExpired?: boolean
     storeProfile?: { id: number; name: string; slug: string | null; logo: string | null } | null
     clientProfile?: { id: number; firstName: string; lastName?: string } | null
   }
@@ -369,6 +370,7 @@ export interface GetProductsParams {
   condition?: string
   sort?: string
   promoted?: boolean
+  storeFirst?: boolean
   seed?: string
 }
 
@@ -405,6 +407,11 @@ export function getStores(): Promise<Store[]> {
 
 export function getFeaturedStores(): Promise<Store[]> {
   return cachedFetch('/stores/featured', () => apiFetch('/stores/featured'))
+}
+
+export function getSpotlightStores(limit = 10): Promise<Store[]> {
+  const path = `/stores/spotlight?limit=${limit}`
+  return cachedFetch(path, () => apiFetch(path))
 }
 
 export function getStoreProfile(id: number): Promise<Store | ExpiredResource> {
