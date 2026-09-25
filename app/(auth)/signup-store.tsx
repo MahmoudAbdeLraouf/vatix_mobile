@@ -24,7 +24,7 @@ import {
   registerStore,
   sendOtp,
 } from '@/lib/api'
-import { authErrorMessage, authPatch, authUploadFile } from '@/lib/auth'
+import { authErrorMessage } from '@/lib/auth'
 import { track } from '@/lib/analytics'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -191,6 +191,8 @@ export default function SignupStoreScreen() {
         type: 'store',
         storeName: storeName.trim(),
         description: description.trim() || undefined,
+        logo: { uri: logoUri, name: 'logo.jpg', type: 'image/jpeg' },
+        ...(coverUri ? { cover: { uri: coverUri, name: 'cover.jpg', type: 'image/jpeg' } } : {}),
       })
       const routeAfter =
         storeType === 'store_plus'
@@ -198,12 +200,6 @@ export default function SignupStoreScreen() {
           : undefined
       await login(response, routeAfter ?? redirect)
       void track({ name: 'sign_up', params: { method: 'phone', user_type: storeType } })
-      try {
-        const url = await authUploadFile(logoUri)
-        if (url) await authPatch('/stores/me', { logo: url })
-      } catch {
-        // Session is already active; logo can be edited from the dashboard.
-      }
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
     } finally {

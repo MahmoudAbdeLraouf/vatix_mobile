@@ -552,15 +552,61 @@ export function registerClient(data: {
   return apiFetch('/auth/register/client', { method: 'POST', body: JSON.stringify(data) })
 }
 
-export function registerStore(data: {
+export async function registerStore(data: {
   phone: string
   password: string
   type: 'store' | 'store_plus'
   storeName: string
   description?: string
   locationId?: number
+  logo: { uri: string; name?: string; type?: string }
+  cover?: { uri: string; name?: string; type?: string }
 }): Promise<AuthResponse> {
-  return apiFetch('/auth/register/store', { method: 'POST', body: JSON.stringify(data) })
+  // Multipart in one shot — backend requires `logo` on /auth/register/store and
+  // throws a bilingual BadRequest when it's missing. Sending logo alongside
+  // registration avoids the pre-refactor "register then silently upload" pattern
+  // that produced logo-less StoreProfile rows when the upload leg failed.
+  // NB: do NOT go through apiFetch — it forces Content-Type: application/json,
+  // which breaks React Native's multipart boundary auto-generation.
+  const fd = new FormData()
+  fd.append('phone', data.phone)
+  fd.append('password', data.password)
+  fd.append('type', data.type)
+  fd.append('storeName', data.storeName)
+  if (data.description) fd.append('description', data.description)
+  if (data.locationId != null) fd.append('locationId', String(data.locationId))
+  fd.append('logo', {
+    uri: data.logo.uri,
+    name: data.logo.name ?? 'logo.jpg',
+    type: data.logo.type ?? 'image/jpeg',
+  } as unknown as Blob)
+  if (data.cover) {
+    fd.append('cover', {
+      uri: data.cover.uri,
+      name: data.cover.name ?? 'cover.jpg',
+      type: data.cover.type ?? 'image/jpeg',
+    } as unknown as Blob)
+  }
+  const res = await fetch(`${BASE}/auth/register/store`, {
+    method: 'POST',
+    body: fd,
+    headers: {
+      'X-Client-Platform': CLIENT_PLATFORM,
+      ...(await visitorIdHeader()),
+    },
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    const backendMsg = Array.isArray(body.message) ? body.message.join(', ') : body.message
+    const msg =
+      res.status === 401
+        ? AUTH_ERR.UNAUTHORIZED
+        : res.status >= 500
+          ? AUTH_ERR.SERVER_ERROR
+          : (backendMsg ?? AUTH_ERR.SERVER_ERROR)
+    throw new ApiError(res.status, msg, body)
+  }
+  return res.json() as Promise<AuthResponse>
 }
 
 // ─── Authenticated product creation ──────────────────────────────────────────
