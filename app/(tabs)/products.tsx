@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +11,7 @@ import {
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { Image } from 'expo-image'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useLocale } from '@/contexts/locale'
@@ -18,11 +20,14 @@ import {
   getCategories,
   getLocations,
   getProducts,
+  getSpotlightStores,
+  imgUrl,
   localeName,
   Brand,
   Category,
   LocationNode,
   Product,
+  Store,
 } from '@/lib/api'
 import { ProductCard } from '@/components/ProductCard'
 import { MessagesBell } from '@/components/MessagesBell'
@@ -61,6 +66,7 @@ export default function ProductsScreen() {
   const [categories, setCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
   const [locations, setLocations] = useState<LocationNode[]>([])
+  const [spotlightStores, setSpotlightStores] = useState<Store[]>([])
 
   useEffect(() => {
     getCategories()
@@ -71,6 +77,9 @@ export default function ProductsScreen() {
       .catch(() => {})
     getLocations('governorate')
       .then(locs => setLocations(locs.filter(l => l.isActive)))
+      .catch(() => {})
+    getSpotlightStores(10)
+      .then(setSpotlightStores)
       .catch(() => {})
   }, [])
 
@@ -105,6 +114,7 @@ export default function ProductsScreen() {
           sort: s,
           minPrice: minP ? parseFloat(minP) : undefined,
           maxPrice: maxP ? parseFloat(maxP) : undefined,
+          storeFirst: true,
         })
         setProducts(prev => (p === 1 ? res.items : [...prev, ...res.items]))
         setTotalPages(res.meta.pages)
@@ -177,8 +187,118 @@ export default function ProductsScreen() {
   // Memoize the list header so unrelated re-renders (products loading, pagination,
   // errors) don't rebuild the header JSX — which would otherwise force the FlatList
   // to reconcile & re-measure it, producing the "items scroll up and down" jitter.
-  const listHeader = useMemo(() => (
+  const listHeader = useMemo(() => {
+    const dir = {
+      writingDirection: isRtl ? ('rtl' as const) : ('ltr' as const),
+      textAlign: 'auto' as const,
+    }
+    return (
     <View style={styles.listHeader}>
+      {/* ─── Spotlight stores rail ─────────────────────────────────
+          Mirrors website /products placement: directly below the sticky
+          category strip, above the hero block. Bleeds to the screen edges
+          by cancelling out `list`'s horizontal padding. */}
+      {spotlightStores.length > 0 && (
+        <View style={styles.railSection}>
+          <View style={styles.railHeader}>
+            <Text style={[styles.railTitle, dir]}>
+              {locale === 'ar' ? '⭐ متاجر مميّزة' : '⭐ Featured Stores'}
+            </Text>
+            <Pressable onPress={() => router.push('/(tabs)/stores')} hitSlop={8}>
+              <Text style={[styles.railLink, dir]}>
+                {locale === 'ar' ? 'عرض الكل' : 'View all'}
+              </Text>
+            </Pressable>
+          </View>
+          <FlatList
+            data={isRtl ? [...spotlightStores].reverse() : spotlightStores}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(store) => String(store.id)}
+            contentContainerStyle={styles.railList}
+            initialScrollIndex={
+              isRtl ? Math.max(0, spotlightStores.length - 1) : 0
+            }
+            getItemLayout={(_, i) => ({
+              length: 170 + spacing.sm,
+              offset: (170 + spacing.sm) * i,
+              index: i,
+            })}
+            renderItem={({ item: store }) => {
+              const cover = imgUrl(store.storeProfile?.cover, { w: 340 })
+              const logo = imgUrl(store.storeProfile?.logo, { w: 68 })
+              const name = store.storeProfile?.name ?? ''
+              const isPlus = store.type === 'store_plus'
+              return (
+                <Pressable
+                  onPress={() => router.push(`/store/${store.id}`)}
+                  style={({ pressed }) => [
+                    styles.spotCard,
+                    pressed && { opacity: 0.92 },
+                  ]}
+                >
+                  <View style={styles.spotCover}>
+                    {cover ? (
+                      <Image
+                        source={{ uri: cover }}
+                        style={styles.spotCoverImg}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        transition={120}
+                        recyclingKey={`spot-cover-${store.id}`}
+                      />
+                    ) : null}
+                    <View
+                      style={[
+                        styles.spotBadge,
+                        isPlus ? styles.spotBadgePlus : styles.spotBadgeStd,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.spotBadgeText,
+                          isPlus
+                            ? styles.spotBadgeTextPlus
+                            : styles.spotBadgeTextStd,
+                        ]}
+                      >
+                        {isPlus
+                          ? '⭐ Plus'
+                          : locale === 'ar'
+                          ? '🏪 متجر'
+                          : '🏪 Store'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.spotBody}>
+                    <View style={styles.spotLogo}>
+                      {logo ? (
+                        <Image
+                          source={{ uri: logo }}
+                          style={styles.spotLogoImg}
+                          contentFit="contain"
+                          cachePolicy="memory-disk"
+                          transition={120}
+                          recyclingKey={`spot-logo-${store.id}`}
+                        />
+                      ) : (
+                        <Text style={styles.spotLogoFallback}>🏪</Text>
+                      )}
+                    </View>
+                    <Text
+                      style={[styles.spotName, dir]}
+                      numberOfLines={2}
+                    >
+                      {name}
+                    </Text>
+                  </View>
+                </Pressable>
+              )
+            }}
+          />
+        </View>
+      )}
+
       {/* ─── Hero block ────────────────────────────────────────────── */}
       <View style={styles.hero}>
         {heroTitle ? (
@@ -326,7 +446,8 @@ export default function ProductsScreen() {
         </View>
       </View>
     </View>
-  ), [
+    )
+  }, [
     heroTitle,
     t,
     activeFilterCount,
@@ -344,6 +465,8 @@ export default function ProductsScreen() {
     brandPlaceholder,
     locationPlaceholder,
     locale,
+    spotlightStores,
+    isRtl,
   ])
 
   return (
@@ -646,5 +769,113 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.g900,
     paddingHorizontal: spacing.sm,
+  },
+
+  // ── Spotlight stores rail ──────────────────────────────────────────
+  // Sits at the very top of the FlatList header. Cancels out the parent
+  // `list` horizontal padding (marginHorizontal: -spacing.lg) so the rail
+  // bleeds flush with the screen edges — cards can scroll past the safe
+  // zone while the header row + link stay inset via railHeader padding.
+  railSection: {
+    marginHorizontal: -spacing.lg,
+    marginTop: -spacing.sm,
+  },
+  railHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm + 2,
+    gap: spacing.sm,
+  },
+  railTitle: {
+    flex: 1,
+    fontFamily: fonts.extraBold,
+    fontSize: 15,
+    color: colors.g900,
+    letterSpacing: 0.1,
+  },
+  railLink: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.dk,
+  },
+  railList: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+  spotCard: {
+    width: 170,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.g200,
+    backgroundColor: colors.white,
+    overflow: 'hidden',
+    ...shadow.ss,
+  },
+  spotCover: {
+    position: 'relative',
+    height: 90,
+    backgroundColor: colors.g100,
+  },
+  spotCoverImg: {
+    width: '100%',
+    height: '100%',
+  },
+  spotBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    end: spacing.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  spotBadgePlus: {
+    backgroundColor: colors.y,
+  },
+  spotBadgeStd: {
+    backgroundColor: 'rgba(255,255,255,0.95)',
+  },
+  spotBadgeText: {
+    fontFamily: fonts.extraBold,
+    fontSize: 10,
+    letterSpacing: 0.2,
+  },
+  spotBadgeTextPlus: {
+    color: colors.dk,
+  },
+  spotBadgeTextStd: {
+    color: colors.dk,
+  },
+  spotBody: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  spotLogo: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.sm,
+    borderWidth: 1.5,
+    borderColor: colors.g200,
+    padding: 2,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  spotLogoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  spotLogoFallback: {
+    fontSize: 18,
+  },
+  spotName: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    lineHeight: 15,
+    color: colors.dk,
+    minHeight: 30,
   },
 })
