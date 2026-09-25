@@ -239,7 +239,11 @@ export default function ProductsScreen() {
                         transition={120}
                         recyclingKey={`spot-cover-${store.id}`}
                       />
-                    ) : null}
+                    ) : (
+                      <View style={styles.spotCoverPlaceholder}>
+                        <Ionicons name="image-outline" size={22} color="rgba(255,255,255,0.25)" />
+                      </View>
+                    )}
                     <View
                       style={[
                         styles.spotBadge,
@@ -813,6 +817,12 @@ const styles = StyleSheet.create({
   spotCoverImg: {
     width: '100%',
     height: '100%',
+  },
+  spotCoverPlaceholder: {
+    flex: 1,
+    backgroundColor: colors.dk2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   spotBadge: {
     position: 'absolute',
