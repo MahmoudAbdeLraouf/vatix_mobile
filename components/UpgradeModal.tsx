@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -64,6 +63,13 @@ import { finalizePaymentSuccess, verifyIapPurchase } from '@/lib/payment'
 // (InstaPay / mobile-wallet) or immediately (wallet).
 
 export type UpgradeMode = 'upgrade-to-store' | 'upgrade-to-plus' | 'cancel-store'
+export type CancelReason =
+  | 'expensive'
+  | 'no_lead'
+  | 'wrong_account'
+  | 'no_need'
+  | 'need_feature'
+  | 'other'
 type Step =
   | 'store-info'
   | 'pay-method'
@@ -155,6 +161,13 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
+  // Cancellation reason capture (mirrors website upgrade-modal).
+  // Two-step in-modal flow: pick reason → confirm. Native Alert would push it
+  // to three taps and put the confirm outside the sheet, so we keep it inline.
+  const [cancelSubStep, setCancelSubStep] = useState<'reason' | 'confirm'>('reason')
+  const [cancelReason, setCancelReason] = useState<CancelReason | ''>('')
+  const [cancelDetail, setCancelDetail] = useState('')
+
   // Mount-time data
   const [plans, setPlans] = useState<PlanData[]>([])
   const [settings, setSettings] = useState<SiteSettings | null>(null)
@@ -206,6 +219,9 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
       IS_IOS || mode !== 'upgrade-to-plus' ? 'monthly' : (cycle ?? 'monthly'),
     )
     setStoreType(mode === 'upgrade-to-plus' ? 'store_plus' : 'store')
+    setCancelSubStep('reason')
+    setCancelReason('')
+    setCancelDetail('')
   }, [visible, mode, needsStoreCreation, cycle])
 
   // Load plans + settings + wallet on open
@@ -308,10 +324,28 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
   async function handleCancelStore() {
+    // Mirror website contract: reason is mandatory; `need_feature`/`other`
+    // require a ≥2-char explanation. Backend re-validates via class-validator,
+    // but blocking here avoids a round-trip and keeps the sheet stable.
+    if (!cancelReason) {
+      setErr(t.cancelReasonRequired)
+      setCancelSubStep('reason')
+      return
+    }
+    const detailTrimmed = cancelDetail.trim()
+    const needsDetail = cancelReason === 'need_feature' || cancelReason === 'other'
+    if (needsDetail && detailTrimmed.length < 2) {
+      setErr(t.cancelReasonDetailRequired)
+      setCancelSubStep('reason')
+      return
+    }
     setBusy(true)
     setErr('')
     try {
-      const res = await authPost<{ user?: unknown }>('/user/cancel-store', {})
+      const res = await authPost<{ user?: unknown }>('/user/cancel-store', {
+        reason: cancelReason,
+        detail: needsDetail ? detailTrimmed : (detailTrimmed || undefined),
+      })
       await updateStoredUser((res as { user?: Parameters<typeof updateStoredUser>[0] })?.user ?? null)
       await refetchUser()
       onSuccess?.()
@@ -638,6 +672,12 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
                   onCancel={onClose}
                   onConfirm={handleCancelStore}
                   confirmText={t.cancelStoreConfirm}
+                  subStep={cancelSubStep}
+                  onSubStepChange={setCancelSubStep}
+                  reason={cancelReason}
+                  onReasonChange={setCancelReason}
+                  detail={cancelDetail}
+                  onDetailChange={setCancelDetail}
                 />
               ) : step === 'store-info' ? (
                 <StoreInfoPanel
@@ -1473,31 +1513,137 @@ function DonePanel({
   )
 }
 
+// Two-step cancellation flow mirroring `vatix_website/components/upgrade-modal.tsx`.
+// Step 1 (`reason`) forces the user to name a churn cause before the friction
+// warning; step 2 (`confirm`) is the existing red warning + destructive CTA.
+// We used to show a native `Alert.alert` for confirmation, but that pushed the
+// flow to three taps and hid the sheet — inline sub-steps keep both the reason
+// summary and the warning visible on the same surface.
 function CancelStorePanel({
   err,
   busy,
   confirmText,
   onCancel,
   onConfirm,
+  subStep,
+  onSubStepChange,
+  reason,
+  onReasonChange,
+  detail,
+  onDetailChange,
 }: {
   err: string
   busy: boolean
   confirmText: string
   onCancel: () => void
   onConfirm: () => void
+  subStep: 'reason' | 'confirm'
+  onSubStepChange: (v: 'reason' | 'confirm') => void
+  reason: CancelReason | ''
+  onReasonChange: (v: CancelReason) => void
+  detail: string
+  onDetailChange: (v: string) => void
 }) {
   const { ar, rowDir, colDir, dirStyle } = useDir()
-  function ask() {
-    Alert.alert(
-      ar ? 'تأكيد الإلغاء' : 'Confirm cancellation',
-      confirmText,
-      [
-        { text: ar ? 'رجوع' : 'Back', style: 'cancel' },
-        { text: ar ? 'تأكيد' : 'Confirm', style: 'destructive', onPress: onConfirm },
-      ],
-      { cancelable: true },
+  const { t } = useLocale()
+
+  // Match the website contract: only `need_feature` and `other` require the
+  // free-text field. Backend re-validates via class-validator `@ValidateIf`.
+  const needsDetail = reason === 'need_feature' || reason === 'other'
+  const detailTrimmed = detail.trim()
+  const reasonValid = !!reason && (!needsDetail || detailTrimmed.length >= 2)
+
+  const reasonOptions: { key: CancelReason; label: string; icon: string }[] = [
+    { key: 'expensive', label: t.cancelReasonExpensive, icon: '💸' },
+    { key: 'no_lead', label: t.cancelReasonNoLead, icon: '📉' },
+    { key: 'wrong_account', label: t.cancelReasonWrongAccount, icon: '🔀' },
+    { key: 'no_need', label: t.cancelReasonNoNeed, icon: '⏸️' },
+    { key: 'need_feature', label: t.cancelReasonNeedFeature, icon: '✨' },
+    { key: 'other', label: t.cancelReasonOther, icon: '📝' },
+  ]
+
+  if (subStep === 'reason') {
+    return (
+      <View>
+        <View style={colDir}>
+          <Text style={[styles.stepHeading, dirStyle]}>{t.cancelReasonPrompt}</Text>
+        </View>
+        <View style={colDir}>
+          <View style={styles.reasonGrid}>
+            {reasonOptions.map(opt => {
+              const active = reason === opt.key
+              return (
+                <Pressable
+                  key={opt.key}
+                  onPress={() => onReasonChange(opt.key)}
+                  style={[
+                    styles.typeCard,
+                    styles.reasonCard,
+                    active && { borderColor: colors.y, backgroundColor: colors.yl },
+                  ]}
+                  disabled={busy}
+                >
+                  <Text style={styles.typeIcon}>{opt.icon}</Text>
+                  <Text style={styles.typeLabel}>{opt.label}</Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        </View>
+
+        {needsDetail ? (
+          <Input
+            label={
+              reason === 'need_feature'
+                ? t.cancelReasonNeedFeatureDetail
+                : t.cancelReasonOtherDetail
+            }
+            value={detail}
+            onChangeText={onDetailChange}
+            placeholder={
+              reason === 'need_feature'
+                ? t.cancelReasonNeedFeatureDetail
+                : t.cancelReasonOtherDetail
+            }
+            multiline
+            numberOfLines={3}
+            maxLength={500}
+            style={{ height: 84, textAlignVertical: 'top', paddingTop: 12 }}
+          />
+        ) : null}
+
+        <ErrorBox err={err} />
+
+        <View style={[styles.actions, rowDir]}>
+          <View style={{ flex: 1 }}>
+            <Button
+              label={ar ? 'رجوع' : 'Back'}
+              variant="outline"
+              size="md"
+              onPress={onCancel}
+              disabled={busy}
+            />
+          </View>
+          <View style={{ flex: 2 }}>
+            <Button
+              label={t.cancelReasonNext}
+              variant="y"
+              size="md"
+              onPress={() => onSubStepChange('confirm')}
+              disabled={busy || !reasonValid}
+            />
+          </View>
+        </View>
+      </View>
     )
   }
+
+  // Confirm sub-step: reuse the existing red warning and add a compact summary
+  // card so the user can see (and mentally re-confirm) the reason they picked
+  // before the destructive tap. Back returns to the reason picker rather than
+  // closing the sheet — matches the website's Back-to-reason behavior.
+  const selectedReasonLabel =
+    reasonOptions.find(o => o.key === reason)?.label ?? ''
   return (
     <View>
       <View style={[styles.warningBox, rowDir]}>
@@ -1506,14 +1652,26 @@ function CancelStorePanel({
           <Text style={[styles.warningText, dirStyle]}>{confirmText}</Text>
         </View>
       </View>
+
+      <View style={[styles.reasonSummary, colDir]}>
+        <Text style={[styles.reasonSummaryLabel, dirStyle]}>
+          {t.cancelReasonSummaryLabel}
+        </Text>
+        <Text style={[styles.reasonSummaryValue, dirStyle]}>{selectedReasonLabel}</Text>
+        {needsDetail && detailTrimmed ? (
+          <Text style={[styles.reasonSummaryDetail, dirStyle]}>{detailTrimmed}</Text>
+        ) : null}
+      </View>
+
       <ErrorBox err={err} />
+
       <View style={[styles.actions, rowDir]}>
         <View style={{ flex: 1 }}>
           <Button
             label={ar ? 'رجوع' : 'Back'}
             variant="outline"
             size="md"
-            onPress={onCancel}
+            onPress={() => onSubStepChange('reason')}
             disabled={busy}
           />
         </View>
@@ -1522,7 +1680,7 @@ function CancelStorePanel({
             label={ar ? 'تأكيد الإلغاء' : 'Confirm cancel'}
             variant="red"
             size="md"
-            onPress={ask}
+            onPress={onConfirm}
             loading={busy}
           />
         </View>
@@ -1589,6 +1747,45 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     alignItems: 'center',
     gap: 4,
+  },
+  // 2-column wrap grid for the 6 cancellation reasons. `typeGrid` is a strict
+  // row and would squeeze the 6 cards into unreadable slivers, so this variant
+  // wraps at `flexBasis: 48%` (leaves room for the `spacing.sm` gap).
+  reasonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  reasonCard: {
+    flexBasis: '48%',
+    flexGrow: 0,
+    flexShrink: 1,
+    minHeight: 76,
+    justifyContent: 'center',
+  },
+  reasonSummary: {
+    backgroundColor: colors.g100,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  reasonSummaryLabel: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.g600,
+    marginBottom: 4,
+  },
+  reasonSummaryValue: {
+    fontFamily: fonts.bold,
+    fontSize: 14,
+    color: colors.dk,
+  },
+  reasonSummaryDetail: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.g600,
+    marginTop: 4,
   },
   typeIcon: {
     fontSize: 22,

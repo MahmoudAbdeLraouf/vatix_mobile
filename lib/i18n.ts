@@ -323,6 +323,19 @@ export interface Translations {
   cancelSubscription: string
   cancelStore: string
   cancelStoreConfirm: string
+  cancelReasonPrompt: string
+  cancelReasonRequired: string
+  cancelReasonDetailRequired: string
+  cancelReasonNext: string
+  cancelReasonSummaryLabel: string
+  cancelReasonExpensive: string
+  cancelReasonNoLead: string
+  cancelReasonWrongAccount: string
+  cancelReasonNoNeed: string
+  cancelReasonNeedFeature: string
+  cancelReasonOther: string
+  cancelReasonNeedFeatureDetail: string
+  cancelReasonOtherDetail: string
   renewNow: string
   freeTrialBadge: string
   freeMonthFirst: string
@@ -879,6 +892,19 @@ export const translations: Record<Locale, Translations> = {
     cancelSubscription: 'إلغاء الاشتراك',
     cancelStore: 'إلغاء المتجر',
     cancelStoreConfirm: 'هل أنت متأكد من إلغاء المتجر؟ سيتم تحويل حسابك إلى عميل.',
+    cancelReasonPrompt: 'قبل الإلغاء، ساعدنا نفهم السبب',
+    cancelReasonRequired: 'برجاء اختيار سبب الإلغاء',
+    cancelReasonDetailRequired: 'برجاء توضيح السبب (حرفين على الأقل)',
+    cancelReasonNext: 'التالي',
+    cancelReasonSummaryLabel: 'سبب الإلغاء',
+    cancelReasonExpensive: 'غالي السعر',
+    cancelReasonNoLead: 'لا يوجد عملاء محتملين',
+    cancelReasonWrongAccount: 'أنشأت الحساب بالخطأ',
+    cancelReasonNoNeed: 'لا أحتاجه الآن',
+    cancelReasonNeedFeature: 'أحتاج ميزة إضافية',
+    cancelReasonOther: 'سبب آخر',
+    cancelReasonNeedFeatureDetail: 'ما هي الميزة التي تحتاجها؟',
+    cancelReasonOtherDetail: 'من فضلك وضّح السبب',
     renewNow: 'تجديد الآن',
     freeTrialBadge: 'تجربة مجانية',
     freeMonthFirst: 'أول شهر مجاناً 🎁',
@@ -1441,6 +1467,19 @@ export const translations: Record<Locale, Translations> = {
     cancelSubscription: 'Cancel Subscription',
     cancelStore: 'Cancel Store',
     cancelStoreConfirm: 'Are you sure you want to cancel your store? Your account will revert to a client account.',
+    cancelReasonPrompt: 'Before you cancel, help us understand why',
+    cancelReasonRequired: 'Please choose a reason for cancelling',
+    cancelReasonDetailRequired: 'Please add a short explanation (at least 2 characters)',
+    cancelReasonNext: 'Next',
+    cancelReasonSummaryLabel: 'Cancellation reason',
+    cancelReasonExpensive: 'Too expensive',
+    cancelReasonNoLead: 'No leads / customers',
+    cancelReasonWrongAccount: 'Wrong account',
+    cancelReasonNoNeed: "Don't need it now",
+    cancelReasonNeedFeature: 'Need a missing feature',
+    cancelReasonOther: 'Other reason',
+    cancelReasonNeedFeatureDetail: 'Which feature do you need?',
+    cancelReasonOtherDetail: 'Please specify the reason',
     renewNow: 'Renew Now',
     freeTrialBadge: 'Free Trial',
     freeMonthFirst: 'First month free 🎁',
