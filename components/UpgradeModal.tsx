@@ -232,7 +232,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
       const [p, s, w] = await Promise.all([
         getSubscriptionPlans().catch(() => [] as PlanData[]),
         getSiteSettings().catch(() => null),
-        authFetch<WalletBalance>('/payments/wallet/balance'),
+        // Wallet balance is peripheral: user can still pick InstaPay / mobile
+        // wallet / IAP if this fails. Failing loudly here would take down the
+        // whole modal.
+        authFetch<WalletBalance>('/payments/wallet/balance').catch(() => null),
       ])
       if (!live) return
       setPlans(p)
@@ -505,8 +508,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
       })
       await updateStoredUser((res as { user?: Parameters<typeof updateStoredUser>[0] })?.user ?? null)
       await refetchUser()
-      const fresh = await authFetch<WalletBalance>('/payments/wallet/balance')
-      setWallet(fresh)
+      // Post-pay balance refresh is best-effort — the payment already
+      // succeeded, so surfacing a fetch error here would mislead the user.
+      const fresh = await authFetch<WalletBalance>('/payments/wallet/balance').catch(() => null)
+      if (fresh) setWallet(fresh)
       setStep('wallet-done')
     } catch (e: unknown) {
       setErr(authErrorMessage(e, t))

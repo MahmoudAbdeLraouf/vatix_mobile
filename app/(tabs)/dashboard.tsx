@@ -34,6 +34,12 @@ export default function DashboardScreen() {
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [promoCredits, setPromoCredits] = useState<number | null>(null)
   const [analyticsViews, setAnalyticsViews] = useState<number | null>(null)
+  const [adsError, setAdsError] = useState(false)
+  const [favsError, setFavsError] = useState(false)
+  const [msgError, setMsgError] = useState(false)
+  const [walletError, setWalletError] = useState(false)
+  const [promoError, setPromoError] = useState(false)
+  const [analyticsError, setAnalyticsError] = useState(false)
   const [pendingInstapay, setPendingInstapay] = useState(false)
   const [showLogoDialog, setShowLogoDialog] = useState(false)
   const [showAddProductDialog, setShowAddProductDialog] = useState(false)
@@ -45,7 +51,9 @@ export default function DashboardScreen() {
     if (!isAuthenticated) return
     let cancelled = false
     const load = async () => {
-      const [ads, favs, payments, profile, unread, wallet, promo, analytics] = await Promise.all([
+      // Promise.allSettled — one failed sub-fetch must not zero-out unrelated tiles.
+      // See feedback: silent `?? 0` fallbacks previously made real ads look deleted.
+      const results = await Promise.allSettled([
         authFetch<Product[]>('/products/mine'),
         authFetch<FavoriteProduct[]>('/products/favorites'),
         authFetch<{ status: string; method: string }[]>('/payments/history'),
@@ -56,21 +64,54 @@ export default function DashboardScreen() {
         authFetch<Analytics>('/user/analytics'),
       ])
       if (cancelled) return
-      setAdsCount(ads?.length ?? 0)
-      setFavsCount(favs?.length ?? 0)
-      setMsgUnread(unread?.count ?? 0)
-      setWalletBalance(wallet ? Number(wallet.balance) : null)
-      setPromoCredits(promo ? Number(promo.total) : null)
-      setAnalyticsViews(analytics?.totalViews ?? 0)
-      setPendingInstapay(
-        !!payments?.some((p) => p.method === 'instapay' && p.status === 'pending_verification'),
-      )
-      setShowLogoDialog(!!profile?.flags?.showStoreLogoDialog)
-      setShowAddProductDialog(!!profile?.flags?.showAddProductDialog)
-      setPendingUpgrade(profile?.pendingUpgrade ?? null)
-      if (profile?.flags?.showSubscriptionExpiringDialog && profile?.flags?.subscriptionEndsAt) {
-        setExpiringEndsAt(profile.flags.subscriptionEndsAt)
-        setShowExpiringDialog(true)
+
+      const [adsR, favsR, paymentsR, profileR, unreadR, walletR, promoR, analyticsR] = results
+
+      if (adsR.status === 'fulfilled') setAdsCount((adsR.value as Product[] | null)?.length ?? 0)
+      else setAdsError(true)
+
+      if (favsR.status === 'fulfilled') setFavsCount((favsR.value as FavoriteProduct[] | null)?.length ?? 0)
+      else setFavsError(true)
+
+      if (unreadR.status === 'fulfilled') setMsgUnread((unreadR.value as { count: number } | null)?.count ?? 0)
+      else setMsgError(true)
+
+      if (walletR.status === 'fulfilled') {
+        const w = walletR.value as WalletBalance | null
+        setWalletBalance(w ? Number(w.balance) : null)
+      } else if (PAID_UI_ENABLED) {
+        setWalletError(true)
+      }
+
+      if (promoR.status === 'fulfilled') {
+        const p = promoR.value as PromoInfo | null
+        setPromoCredits(p ? Number(p.total) : null)
+      } else if (PROMOTION_UI_ENABLED) {
+        setPromoError(true)
+      }
+
+      if (analyticsR.status === 'fulfilled') {
+        setAnalyticsViews((analyticsR.value as Analytics | null)?.totalViews ?? 0)
+      } else {
+        setAnalyticsError(true)
+      }
+
+      if (paymentsR.status === 'fulfilled') {
+        const payments = paymentsR.value as { status: string; method: string }[] | null
+        setPendingInstapay(
+          !!payments?.some((p) => p.method === 'instapay' && p.status === 'pending_verification'),
+        )
+      }
+
+      if (profileR.status === 'fulfilled') {
+        const profile = profileR.value as UserProfile | null
+        setShowLogoDialog(!!profile?.flags?.showStoreLogoDialog)
+        setShowAddProductDialog(!!profile?.flags?.showAddProductDialog)
+        setPendingUpgrade(profile?.pendingUpgrade ?? null)
+        if (profile?.flags?.showSubscriptionExpiringDialog && profile?.flags?.subscriptionEndsAt) {
+          setExpiringEndsAt(profile.flags.subscriptionEndsAt)
+          setShowExpiringDialog(true)
+        }
       }
     }
     load()
@@ -127,18 +168,21 @@ export default function DashboardScreen() {
       <View style={styles.statsGrid}>
         <StatTile
           value={adsCount}
+          error={adsError}
           label={t.myAds}
           icon="list-outline"
           onPress={() => router.push('/dashboard/my-ads')}
         />
         <StatTile
           value={favsCount}
+          error={favsError}
           label={t.favorites}
           icon="heart-outline"
           onPress={() => router.push('/dashboard/favorites')}
         />
         <StatTile
           value={msgUnread}
+          error={msgError}
           label={t.messages}
           icon="chatbubble-outline"
           badge={msgUnread && msgUnread > 0 ? msgUnread : null}
@@ -147,6 +191,7 @@ export default function DashboardScreen() {
         {PAID_UI_ENABLED && (
           <StatTile
             value={walletBalance}
+            error={walletError}
             label={t.wallet}
             icon="wallet-outline"
             onPress={() => router.push('/dashboard/wallet')}
@@ -155,6 +200,7 @@ export default function DashboardScreen() {
         {PROMOTION_UI_ENABLED && (
           <StatTile
             value={promoCredits}
+            error={promoError}
             label={t.promote}
             icon="star-outline"
             onPress={() => router.push('/dashboard/promote')}
@@ -162,6 +208,7 @@ export default function DashboardScreen() {
         )}
         <StatTile
           value={analyticsViews}
+          error={analyticsError}
           label={t.analytics}
           icon="stats-chart-outline"
           onPress={() => router.push('/dashboard/analytics')}
@@ -299,17 +346,22 @@ function SeeMoreTile({ label }: { label: string }) {
 
 function StatTile({
   value,
+  error,
   label,
   icon,
   onPress,
   badge,
 }: {
   value: number | null
+  error?: boolean
   label: string
   icon?: React.ComponentProps<typeof Ionicons>['name']
   onPress?: () => void
   badge?: number | null
 }) {
+  // '—' (em-dash) on error keeps the tile visibly broken instead of a fake `0`,
+  // so users don't mistake a transient fetch failure for missing data.
+  const display = error ? '—' : value === null ? '...' : String(value)
   const content = (
     <>
       {icon && (
@@ -325,7 +377,7 @@ function StatTile({
         </View>
       )}
       <Text style={styles.statValue} numberOfLines={1}>
-        {value === null ? '...' : String(value)}
+        {display}
       </Text>
       <Text style={styles.statLabel} numberOfLines={1}>
         {label}

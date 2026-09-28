@@ -124,7 +124,11 @@ export default function MyAdsScreen() {
           text: ar ? 'حذف' : 'Delete',
           style: 'destructive',
           onPress: async () => {
-            await authDelete(`/products/${id}`)
+            const ok = await authDelete(`/products/${id}`)
+            if (!ok) {
+              Alert.alert(t.error, t.errorRetryHint)
+              return
+            }
             load()
           },
         },

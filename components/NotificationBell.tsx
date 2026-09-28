@@ -23,7 +23,9 @@ export function NotificationBell() {
     }
     let cancelled = false
     const load = async () => {
-      const data = await authFetch<Notification[]>('/notifications')
+      // Peripheral badge: silently swallow transient failures so a flaky poll
+      // doesn't crash the topbar or spam the console every 30s.
+      const data = await authFetch<Notification[]>('/notifications').catch(() => null)
       if (cancelled || !data) return
       setUnread(data.filter((n) => !n.isRead).length)
     }

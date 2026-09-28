@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { authErrorMessage, authFetch } from '@/lib/auth'
@@ -99,6 +100,7 @@ export default function CheckoutScreen() {
   const [wallet, setWallet] = useState<number | null>(null)
   const [plans, setPlans] = useState<PlanData[]>([])
   const [pageLoading, setPageLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [panel, setPanel] = useState<Panel>('pick')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -107,6 +109,7 @@ export default function CheckoutScreen() {
 
   const load = useCallback(async () => {
     setPageLoading(true)
+    setLoadError(false)
     try {
       const [s, w, p] = await Promise.all([
         getSiteSettings().catch(() => DEFAULT_SETTINGS),
@@ -116,6 +119,8 @@ export default function CheckoutScreen() {
       setSettings(s ?? DEFAULT_SETTINGS)
       setWallet(w ? Number(w.balance ?? 0) : 0)
       setPlans(p ?? [])
+    } catch {
+      setLoadError(true)
     } finally {
       setPageLoading(false)
     }
@@ -279,6 +284,8 @@ export default function CheckoutScreen() {
         <View style={styles.loader}>
           <ActivityIndicator color={colors.dk} />
         </View>
+      ) : loadError ? (
+        <ErrorState kind="network" onRetry={load} style={styles.loader} />
       ) : (
         <ScrollView
           contentContainerStyle={styles.scroll}

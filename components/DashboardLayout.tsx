@@ -121,7 +121,9 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
     }
     let cancelled = false
     const fetchUnread = async () => {
-      const res = await authFetch<{ count: number }>('/conversations/unread-count')
+      // Peripheral drawer badge: silently swallow transient failures so a
+      // flaky poll doesn't crash the dashboard chrome every 30s.
+      const res = await authFetch<{ count: number }>('/conversations/unread-count').catch(() => null)
       if (!cancelled && res) setUnread(res.count ?? 0)
     }
     fetchUnread()

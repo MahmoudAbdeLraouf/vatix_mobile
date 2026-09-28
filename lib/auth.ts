@@ -273,14 +273,48 @@ async function getValidToken(): Promise<string | null> {
 
 // ─── Authenticated fetch helpers ─────────────────────────────────────────────
 
+// Thrown by authFetch on any non-2xx response, network failure, or session
+// loss. Callers MUST handle rejections — a silent `?? []` fallback masks real
+// backend/subscription problems as "you have no data" and is the exact
+// anti-pattern that caused the intermittent "my ads disappeared" bug.
+export class AuthFetchError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'AuthFetchError'
+    this.status = status
+  }
+}
+
+const AUTH_FETCH_RETRY_DELAY_MS = 500
+
+function isIdempotentMethod(init?: RequestInit): boolean {
+  const method = (init?.method ?? 'GET').toUpperCase()
+  return method === 'GET'
+}
+
+function delayMs(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
 export async function authFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
+  return _authFetchImpl<T>(path, init, { networkRetried: false, refreshed: false })
+}
+
+async function _authFetchImpl<T>(
+  path: string,
+  init: RequestInit | undefined,
+  state: { networkRetried: boolean; refreshed: boolean },
+): Promise<T | null> {
   const token = await getValidToken()
   if (!token) {
     await clearSession()
-    return null
+    throw new AuthFetchError(AUTH_ERR.SESSION_EXPIRED, 401)
   }
+
+  let res: Response
   try {
-    const res = await fetch(`${BASE}${path}`, {
+    res = await fetch(`${BASE}${path}`, {
       ...init,
       headers: {
         'Content-Type': 'application/json',
@@ -289,20 +323,53 @@ export async function authFetch<T>(path: string, init?: RequestInit): Promise<T 
         ...(init?.headers as Record<string, string> | undefined),
       },
     })
-    if (res.status === 204) return null
-    if (res.status === 401) {
-      const refreshed = await refreshAccessToken()
-      if (!refreshed) {
-        await clearSession()
-        return null
-      }
-      return authFetch<T>(path, init)
+  } catch (err) {
+    // Network / DNS / offline. Retry once for GET after a short backoff — most
+    // transient wifi hiccups clear inside 500ms. Never auto-retry mutations:
+    // a POST/PATCH/DELETE that "failed" may actually have committed.
+    if (!state.networkRetried && isIdempotentMethod(init)) {
+      await delayMs(AUTH_FETCH_RETRY_DELAY_MS)
+      return _authFetchImpl<T>(path, init, { ...state, networkRetried: true })
     }
-    if (!res.ok) return null
-    return res.json() as Promise<T>
-  } catch {
-    return null
+    throw new AuthFetchError((err as Error)?.message ?? 'Network error', 0)
   }
+
+  if (res.status === 204) return null
+
+  if (res.status === 401) {
+    // Refresh only once per request to avoid loops on server-side revocation.
+    if (state.refreshed) {
+      await clearSession()
+      throw new AuthFetchError(AUTH_ERR.SESSION_EXPIRED, 401)
+    }
+    const refreshed = await refreshAccessToken()
+    if (!refreshed) {
+      await clearSession()
+      throw new AuthFetchError(AUTH_ERR.SESSION_EXPIRED, 401)
+    }
+    return _authFetchImpl<T>(path, init, { ...state, refreshed: true })
+  }
+
+  if (res.status >= 500) {
+    if (!state.networkRetried && isIdempotentMethod(init)) {
+      await delayMs(AUTH_FETCH_RETRY_DELAY_MS)
+      return _authFetchImpl<T>(path, init, { ...state, networkRetried: true })
+    }
+    throw new AuthFetchError(AUTH_ERR.SERVER_ERROR, res.status)
+  }
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}) as Record<string, unknown>)
+    const rawMessage = (data as { message?: unknown }).message
+    const msg = Array.isArray(rawMessage)
+      ? rawMessage.join('، ')
+      : typeof rawMessage === 'string'
+        ? rawMessage
+        : `Request failed with ${res.status}`
+    throw new AuthFetchError(msg, res.status)
+  }
+
+  return res.json() as Promise<T>
 }
 
 export async function authPost<T>(path: string, body: unknown): Promise<T> {

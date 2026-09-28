@@ -7,6 +7,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import type { UserProfile } from '@/lib/api'
@@ -30,6 +31,7 @@ export default function ProfileScreen() {
   const dirContainer = ar ? { direction: 'rtl' as const } : null
 
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<Msg>(null)
 
@@ -39,21 +41,32 @@ export default function ProfileScreen() {
   const [contactPhone, setContactPhone] = useState('')
 
   async function loadProfile() {
-    const data = await authFetch<UserProfile>('/user/profile')
-    if (data) {
-      setContactPhone(data.contactPhone ?? '')
-      if (isStore) {
-        setStoreName(data.storeProfile?.name ?? '')
-      } else {
-        setFirstName(data.clientProfile?.firstName ?? '')
-        setLastName(data.clientProfile?.lastName ?? '')
+    setLoadError(false)
+    try {
+      const data = await authFetch<UserProfile>('/user/profile')
+      if (data) {
+        setContactPhone(data.contactPhone ?? '')
+        if (isStore) {
+          setStoreName(data.storeProfile?.name ?? '')
+        } else {
+          setFirstName(data.clientProfile?.firstName ?? '')
+          setLastName(data.clientProfile?.lastName ?? '')
+        }
       }
+    } catch {
+      setLoadError(true)
     }
   }
 
   useEffect(() => {
+    setLoading(true)
     loadProfile().finally(() => setLoading(false))
   }, [isStore])
+
+  const retryLoad = () => {
+    setLoading(true)
+    loadProfile().finally(() => setLoading(false))
+  }
 
   async function handleSave() {
     setMsg(null)
@@ -98,6 +111,8 @@ export default function ProfileScreen() {
           <View style={styles.center}>
             <ActivityIndicator color={colors.y} size="large" />
           </View>
+        ) : loadError ? (
+          <ErrorState kind="network" onRetry={retryLoad} />
         ) : (
           <View style={[styles.container, dirContainer]}>
             {/* Hero card */}

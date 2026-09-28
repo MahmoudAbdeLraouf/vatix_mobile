@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
@@ -75,13 +76,20 @@ export default function AnalyticsScreen() {
 
   const [data, setData] = useState<Analytics | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [range, setRange] = useState<7 | 14 | 30>(30)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const d = await authFetch<Analytics>('/user/analytics')
-    setData(d ?? null)
-    setLoading(false)
+    setLoadError(false)
+    try {
+      const d = await authFetch<Analytics>('/user/analytics')
+      setData(d ?? null)
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -191,6 +199,8 @@ export default function AnalyticsScreen() {
         <View style={styles.loader}>
           <ActivityIndicator color={colors.dk} />
         </View>
+      ) : loadError ? (
+        <ErrorState kind="network" onRetry={load} />
       ) : (
         <View style={{ gap: spacing.md }}>
           {/* Summary grid */}

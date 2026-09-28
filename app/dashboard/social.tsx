@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   ScrollView,
@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { Button } from '@/components/ui/Button'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { Input } from '@/components/ui/Input'
 import { useLocale } from '@/contexts/locale'
 import { authErrorMessage, authFetch, authPatch } from '@/lib/auth'
@@ -48,6 +49,7 @@ export default function SocialScreen() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<Msg>(null)
 
@@ -60,25 +62,34 @@ export default function SocialScreen() {
     linkedin: '',
   })
 
-  useEffect(() => {
-    authFetch<UserProfile>('/user/profile')
-      .then(data => {
-        if (!data) return
-        setProfile(data)
-        const sp = data.storeProfile
-        if (sp) {
-          setValues({
-            instagram: sp.instagram ?? '',
-            facebook: sp.facebook ?? '',
-            twitter: sp.twitter ?? '',
-            tiktok: sp.tiktok ?? '',
-            youtube: sp.youtube ?? '',
-            linkedin: sp.linkedin ?? '',
-          })
-        }
-      })
-      .finally(() => setLoading(false))
+  const load = useCallback(async () => {
+    setLoading(true)
+    setLoadError(false)
+    try {
+      const data = await authFetch<UserProfile>('/user/profile')
+      if (!data) return
+      setProfile(data)
+      const sp = data.storeProfile
+      if (sp) {
+        setValues({
+          instagram: sp.instagram ?? '',
+          facebook: sp.facebook ?? '',
+          twitter: sp.twitter ?? '',
+          tiktok: sp.tiktok ?? '',
+          youtube: sp.youtube ?? '',
+          linkedin: sp.linkedin ?? '',
+        })
+      }
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   async function handleSave() {
     setSaving(true)
@@ -116,6 +127,8 @@ export default function SocialScreen() {
             <View style={styles.center}>
               <ActivityIndicator color={colors.y} size="large" />
             </View>
+          ) : loadError ? (
+            <ErrorState kind="network" onRetry={load} style={styles.center} />
           ) : !profile?.storeProfile ? (
             <View style={[styles.card, dirContainer]}>
               <View style={styles.emptyBox}>

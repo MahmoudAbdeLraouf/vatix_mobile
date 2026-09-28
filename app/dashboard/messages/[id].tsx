@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   AppState,
   AppStateStatus,
   FlatList,
@@ -16,6 +17,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { ConversationDetail, ConversationListItem, imgUrl, Message } from '@/lib/api'
@@ -84,6 +86,7 @@ export default function ConversationScreen() {
   const [messages, setMessages] = useState<Message[]>([])
   const [other, setOther] = useState<ConversationListItem['otherUser'] | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const listRef = useRef<FlatList>(null)
@@ -97,12 +100,17 @@ export default function ConversationScreen() {
   }, [id])
 
   const load = useCallback(async () => {
-    const data = await authFetch<ConversationDetail>(`/conversations/${id}/messages`)
-    if (data) {
-      setDetail(data)
-      const msgs = data.messages ?? []
-      setMessages(msgs)
-      lastIdRef.current = msgs.length > 0 ? msgs[msgs.length - 1].id : 0
+    setLoadError(false)
+    try {
+      const data = await authFetch<ConversationDetail>(`/conversations/${id}/messages`)
+      if (data) {
+        setDetail(data)
+        const msgs = data.messages ?? []
+        setMessages(msgs)
+        lastIdRef.current = msgs.length > 0 ? msgs[msgs.length - 1].id : 0
+      }
+    } catch {
+      setLoadError(true)
     }
   }, [id])
 
@@ -136,11 +144,20 @@ export default function ConversationScreen() {
   }, [id, markAsRead])
 
   useEffect(() => {
+    setLoading(true)
+    load().finally(() => setLoading(false))
+  }, [load])
+
+  const retryLoad = useCallback(() => {
+    setLoading(true)
     load().finally(() => setLoading(false))
   }, [load])
 
   useEffect(() => {
     if (!detail || !user) return
+    // Peripheral header enrichment: pulls the counterparty for the title bar
+    // only. If /conversations is flaky we keep the messages screen usable
+    // rather than blocking the whole thread on a header field.
     authFetch<ConversationListItem[]>('/conversations')
       .then((list) => {
         const found = list?.find((c) => c.id === Number(id))
@@ -187,6 +204,7 @@ export default function ConversationScreen() {
       scrollToBottom()
     } catch {
       setText(content)
+      Alert.alert(t.error, t.errorRetryHint)
     } finally {
       setSending(false)
     }
@@ -321,6 +339,8 @@ export default function ConversationScreen() {
           <View style={styles.center}>
             <ActivityIndicator color={colors.y} size="large" />
           </View>
+        ) : loadError ? (
+          <ErrorState kind="network" onRetry={retryLoad} style={styles.flex} />
         ) : (
           <FlatList
             ref={listRef}

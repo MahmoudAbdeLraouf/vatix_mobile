@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { Button } from '@/components/ui/Button'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { Input } from '@/components/ui/Input'
 import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect'
 import { useLocale } from '@/contexts/locale'
@@ -58,6 +59,7 @@ export default function BranchesScreen() {
   const [branches, setBranches] = useState<Branch[]>([])
   const [locations, setLocations] = useState<LocationNode[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [msg, setMsg] = useState<Msg>(null)
@@ -68,26 +70,37 @@ export default function BranchesScreen() {
 
   const isStorePlus = (profile?.type ?? '').toString().toUpperCase() === 'STORE_PLUS'
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [prof, list, locs] = await Promise.all([
-          authFetch<UserProfile>('/user/profile'),
-          authFetch<Branch[]>('/user/branches'),
-          getLocations().catch(() => [] as LocationNode[]),
-        ])
-        if (prof) setProfile(prof)
-        if (list) setBranches(list)
-        setLocations((locs ?? []).filter(l => l.isActive))
-      } finally {
-        setLoading(false)
-      }
-    })()
+  const load = useCallback(async () => {
+    setLoading(true)
+    setLoadError(false)
+    try {
+      const [prof, list, locs] = await Promise.all([
+        authFetch<UserProfile>('/user/profile'),
+        authFetch<Branch[]>('/user/branches'),
+        getLocations().catch(() => [] as LocationNode[]),
+      ])
+      if (prof) setProfile(prof)
+      if (list) setBranches(list)
+      setLocations((locs ?? []).filter(l => l.isActive))
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
+  useEffect(() => {
+    load()
+  }, [load])
+
   async function reloadBranches() {
-    const list = await authFetch<Branch[]>('/user/branches')
-    if (list) setBranches(list)
+    try {
+      const list = await authFetch<Branch[]>('/user/branches')
+      if (list) setBranches(list)
+    } catch {
+      // Reload after mutation — leave prior state; the surrounding mutation
+      // handler already surfaces its own success/error message.
+    }
   }
 
   function openCreate() {
@@ -206,6 +219,8 @@ export default function BranchesScreen() {
             <View style={styles.center}>
               <ActivityIndicator color={colors.y} size="large" />
             </View>
+          ) : loadError ? (
+            <ErrorState kind="network" onRetry={load} style={styles.center} />
           ) : !profile?.storeProfile || !isStorePlus ? (
             <View style={styles.card}>
               <View style={styles.emptyBox}>

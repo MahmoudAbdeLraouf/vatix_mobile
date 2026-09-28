@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams } from 'expo-router'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { BillingCycle, UpgradeModal, UpgradeMode } from '@/components/UpgradeModal'
 import { WalletTopupModal } from '@/components/WalletTopupModal'
 import { useAuth } from '@/contexts/auth'
@@ -56,6 +57,7 @@ export default function SubscriptionScreen() {
   const [walletBal, setWalletBal] = useState<number | null>(null)
   const [subPlans, setSubPlans] = useState<PlanData[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   // StoreKit-formatted prices keyed by SKU. iOS-only; empty on Android/web.
   // Sourced from App Store Connect so Apple's commission gross-up is reflected
   // without duplicating the pricing table in the client.
@@ -76,17 +78,23 @@ export default function SubscriptionScreen() {
 
   const loadAll = useCallback(async () => {
     setLoading(true)
-    const [sub, hist, wal, plans] = await Promise.all([
-      authFetch<SubStatus>('/payments/subscription-status'),
-      authFetch<PaymentRecord[]>('/payments/history'),
-      authFetch<WalletBalance>('/payments/wallet/balance'),
-      getSubscriptionPlans().catch(() => [] as PlanData[]),
-    ])
-    setSubInfo(sub)
-    setHistory(hist ?? [])
-    setWalletBal(wal?.balance ?? 0)
-    setSubPlans(plans)
-    setLoading(false)
+    setLoadError(false)
+    try {
+      const [sub, hist, wal, plans] = await Promise.all([
+        authFetch<SubStatus>('/payments/subscription-status'),
+        authFetch<PaymentRecord[]>('/payments/history'),
+        authFetch<WalletBalance>('/payments/wallet/balance'),
+        getSubscriptionPlans().catch(() => [] as PlanData[]),
+      ])
+      setSubInfo(sub)
+      setHistory(hist ?? [])
+      setWalletBal(wal?.balance ?? 0)
+      setSubPlans(plans)
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -133,9 +141,13 @@ export default function SubscriptionScreen() {
 
   const refreshWallet = useCallback(async () => {
     setWalletModal(false)
-    const fresh = await authFetch<WalletBalance>('/payments/wallet/balance')
-    if (fresh) setWalletBal(fresh.balance)
-  }, [])
+    try {
+      const fresh = await authFetch<WalletBalance>('/payments/wallet/balance')
+      if (fresh) setWalletBal(fresh.balance)
+    } catch {
+      Alert.alert(t.error, t.errorRetryHint)
+    }
+  }, [t])
 
   // Plans are keyed by (storeType, billingCycle). Older seed rows omit
   // billingCycle — treat those as monthly so pre-migration DBs still resolve.
@@ -256,6 +268,8 @@ export default function SubscriptionScreen() {
         <View style={styles.loader}>
           <ActivityIndicator color={colors.dk} />
         </View>
+      ) : loadError ? (
+        <ErrorState kind="network" onRetry={loadAll} />
       ) : (
         <View style={{ gap: spacing.md }}>
           {/* Trial banner — stores only; clients don't have a subscription */}

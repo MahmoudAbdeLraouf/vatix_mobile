@@ -32,7 +32,9 @@ export function MessagesBell({
     }
     let cancelled = false
     const load = async () => {
-      const res = await authFetch<{ count: number }>('/conversations/unread-count')
+      // Peripheral badge: silently swallow transient failures so a flaky poll
+      // doesn't crash the topbar or spam the console every 30s.
+      const res = await authFetch<{ count: number }>('/conversations/unread-count').catch(() => null)
       if (cancelled || !res) return
       setUnread(res.count ?? 0)
     }

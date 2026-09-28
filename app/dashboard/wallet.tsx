@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { WalletTopupModal } from '@/components/WalletTopupModal'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
@@ -33,17 +34,24 @@ export default function WalletScreen() {
   const [balance, setBalance] = useState<number | null>(null)
   const [history, setHistory] = useState<PaymentRecord[] | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [topupModal, setTopupModal] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [wal, hist] = await Promise.all([
-      authFetch<WalletBalance>('/payments/wallet/balance'),
-      authFetch<PaymentRecord[]>('/payments/history'),
-    ])
-    setBalance(wal?.balance ?? 0)
-    setHistory(hist ?? [])
-    setLoading(false)
+    setLoadError(false)
+    try {
+      const [wal, hist] = await Promise.all([
+        authFetch<WalletBalance>('/payments/wallet/balance'),
+        authFetch<PaymentRecord[]>('/payments/history'),
+      ])
+      setBalance(wal?.balance ?? 0)
+      setHistory(hist ?? [])
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -104,6 +112,8 @@ export default function WalletScreen() {
         <View style={styles.loader}>
           <ActivityIndicator color={colors.dk} />
         </View>
+      ) : loadError ? (
+        <ErrorState kind="network" onRetry={load} />
       ) : (
         <View style={{ gap: spacing.md }}>
           {/* Balance card (primary) */}

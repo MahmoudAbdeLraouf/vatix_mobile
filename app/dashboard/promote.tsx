@@ -13,6 +13,7 @@ import { useLocalSearchParams, router } from 'expo-router'
 import type { EventSubscription, Purchase, PurchaseError } from 'react-native-iap'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { Button } from '@/components/ui/Button'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
@@ -159,18 +160,25 @@ export default function PromoteScreen() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [pageLoading, setPageLoading] = useState(true)
+  const [pageError, setPageError] = useState(false)
 
   const load = useCallback(async () => {
-    const [c, w, pp, ph] = await Promise.all([
-      authFetch<PromoInfo>('/payments/promo-credits'),
-      authFetch<WalletBalance>('/payments/wallet/balance'),
-      authFetch<PromotedProductItem[]>('/payments/promoted-products'),
-      authFetch<PromotionHistoryRow[]>('/payments/promotions/history'),
-    ])
-    setCredits(c ?? { total: 0 })
-    setWallet(w?.balance ?? 0)
-    setPromoted(pp ?? [])
-    setPromotionHistory(ph ?? [])
+    try {
+      const [c, w, pp, ph] = await Promise.all([
+        authFetch<PromoInfo>('/payments/promo-credits'),
+        authFetch<WalletBalance>('/payments/wallet/balance'),
+        authFetch<PromotedProductItem[]>('/payments/promoted-products'),
+        authFetch<PromotionHistoryRow[]>('/payments/promotions/history'),
+      ])
+      setCredits(c ?? { total: 0 })
+      setWallet(w?.balance ?? 0)
+      setPromoted(pp ?? [])
+      setPromotionHistory(ph ?? [])
+      setPageError(false)
+    } catch {
+      setPageError(true)
+      throw new Error('load failed')
+    }
   }, [])
 
   useEffect(() => {
@@ -211,7 +219,11 @@ export default function PromoteScreen() {
           if (!cancelled) setError(t.iapProductUnavailable)
         }
       }
-      await load()
+      try {
+        await load()
+      } catch {
+        // pageError is already set inside load()
+      }
       if (!cancelled) setPageLoading(false)
     })()
     return () => {
@@ -326,8 +338,12 @@ export default function PromoteScreen() {
           text: ar ? 'حذف' : 'Delete',
           style: 'destructive',
           onPress: async () => {
-            await authDelete(`/products/${productId}`)
-            load()
+            try {
+              await authDelete(`/products/${productId}`)
+              load().catch(() => {})
+            } catch {
+              Alert.alert(t.error, t.errorRetryHint)
+            }
           },
         },
       ],
@@ -525,6 +541,16 @@ export default function PromoteScreen() {
         <View style={styles.loader}>
           <ActivityIndicator color={colors.dk} />
         </View>
+      ) : pageError ? (
+        <ErrorState
+          kind="network"
+          onRetry={() => {
+            setPageLoading(true)
+            load()
+              .catch(() => {})
+              .finally(() => setPageLoading(false))
+          }}
+        />
       ) : (
         <View style={{ gap: spacing.md }}>
           {/* Summary cards */}

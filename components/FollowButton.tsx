@@ -42,9 +42,11 @@ export function FollowButton({
     }
     let cancelled = false
     ;(async () => {
+      // Peripheral follow-state check: on failure, leave the button in its
+      // initial state so a flaky endpoint doesn't crash every store card.
       const res = await authFetch<{ following: boolean }>(
         `/user/follows/stores/${storeId}/check`,
-      )
+      ).catch(() => null)
       if (cancelled) return
       if (res) setFollowing(res.following)
     })()

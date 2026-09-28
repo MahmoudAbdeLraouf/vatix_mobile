@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { Button } from '@/components/ui/Button'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { Input } from '@/components/ui/Input'
 import { FileUpload } from '@/components/ui/FileUpload'
 import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect'
@@ -43,6 +44,7 @@ export default function StoreInfoScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [locations, setLocations] = useState<LocationNode[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<Msg>(null)
 
@@ -55,31 +57,37 @@ export default function StoreInfoScreen() {
 
   const isStorePlus = profile?.type?.toUpperCase() === 'STORE_PLUS'
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [prof, locs] = await Promise.all([
-          authFetch<UserProfile>('/user/profile'),
-          getLocations().catch(() => [] as LocationNode[]),
-        ])
-        if (prof) {
-          setProfile(prof)
-          const sp = prof.storeProfile
-          if (sp) {
-            setName(sp.name ?? '')
-            setDescription(sp.description ?? '')
-            setLogo(sp.logo ?? '')
-            setCover(sp.cover ?? '')
-            setWebsiteUrl(sp.websiteUrl ?? '')
-            setLocationId(sp.locationId != null ? String(sp.locationId) : '')
-          }
+  const load = useCallback(async () => {
+    setLoading(true)
+    setLoadError(false)
+    try {
+      const [prof, locs] = await Promise.all([
+        authFetch<UserProfile>('/user/profile'),
+        getLocations().catch(() => [] as LocationNode[]),
+      ])
+      if (prof) {
+        setProfile(prof)
+        const sp = prof.storeProfile
+        if (sp) {
+          setName(sp.name ?? '')
+          setDescription(sp.description ?? '')
+          setLogo(sp.logo ?? '')
+          setCover(sp.cover ?? '')
+          setWebsiteUrl(sp.websiteUrl ?? '')
+          setLocationId(sp.locationId != null ? String(sp.locationId) : '')
         }
-        setLocations((locs ?? []).filter(l => l.isActive))
-      } finally {
-        setLoading(false)
       }
-    })()
+      setLocations((locs ?? []).filter(l => l.isActive))
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   const locationOptions: SelectOption[] = useMemo(
     () =>
@@ -127,6 +135,8 @@ export default function StoreInfoScreen() {
           <View style={styles.center}>
             <ActivityIndicator color={colors.y} size="large" />
           </View>
+        ) : loadError ? (
+          <ErrorState kind="network" onRetry={load} style={styles.center} />
         ) : !profile?.storeProfile ? (
           <View style={styles.card}>
             <View style={styles.emptyState}>

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import {
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -52,10 +53,19 @@ export default function NotificationsScreen() {
   }, [load])
 
   async function markRead(id: number) {
-    await authPatch(`/notifications/${id}/read`, {})
+    // Optimistic update — revert + alert if the mutation actually fails so the
+    // dot doesn't lie about the read state.
     setNotifications(prev =>
       prev ? prev.map(n => (n.id === id ? { ...n, isRead: true } : n)) : prev,
     )
+    try {
+      await authPatch(`/notifications/${id}/read`, {})
+    } catch {
+      setNotifications(prev =>
+        prev ? prev.map(n => (n.id === id ? { ...n, isRead: false } : n)) : prev,
+      )
+      Alert.alert(t.error, t.errorRetryHint)
+    }
   }
 
   return (

@@ -45,7 +45,10 @@ export function FavoriteButton({
     }
     let cancelled = false
     ;(async () => {
-      const list = await authFetch<FavoriteProduct[]>('/products/favorites')
+      // Peripheral heart icon: if the favorites list can't be fetched, leave
+      // the icon in its initial state rather than surfacing an error on every
+      // product card.
+      const list = await authFetch<FavoriteProduct[]>('/products/favorites').catch(() => null)
       if (cancelled) return
       if (Array.isArray(list)) {
         setFaved(list.some((f) => f.productId === productId))
