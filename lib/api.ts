@@ -167,6 +167,7 @@ export interface UserActionFlags {
   showSubscriptionExpiringDialog?: boolean
   showRateAppDialog?: boolean
   showUsePromoCreditsDialog?: boolean
+  showStoreCategoriesBrandsDialog?: boolean
   subscriptionEndsAt?: string | null
   promoCreditsBalance?: number
 }

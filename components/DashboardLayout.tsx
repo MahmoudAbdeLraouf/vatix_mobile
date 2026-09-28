@@ -43,6 +43,7 @@ const NAV: NavItem[] = [
   { href: '/dashboard/profile',      labelKey: 'profile',       icon: 'person-outline',          emoji: '👤', kind: 'all' },
   { href: '/dashboard/store',        labelKey: 'storeInfo',     icon: 'storefront-outline',      emoji: '🏪', kind: 'storeAnyOnly' },
   { href: '/dashboard/social',       labelKey: 'socialMedia',   icon: 'logo-instagram',          emoji: '📱', kind: 'storeAnyOnly' },
+  { href: '/dashboard/categories-brands', labelKey: 'categoriesBrands', icon: 'pricetags-outline', emoji: '🏷️', kind: 'storeAnyOnly' },
   { href: '/dashboard/branches',     labelKey: 'branches',      icon: 'business-outline',        emoji: '🏢', kind: 'storePlusOnly' },
   { href: '/dashboard/messages',     labelKey: 'messages',      icon: 'chatbubble-outline',      emoji: '💬', kind: 'all', badgeKey: 'unread' },
   { href: '/dashboard/my-ads',       labelKey: 'myAds',         icon: 'list-outline',            emoji: '📋', kind: 'all' },

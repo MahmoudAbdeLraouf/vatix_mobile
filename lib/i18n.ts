@@ -288,6 +288,7 @@ export interface Translations {
   mainPhone: string
   share: string
   socialMedia: string
+  categoriesBrands: string
   promote: string
   menu: string
   close: string
@@ -522,6 +523,27 @@ export interface Translations {
     creditsLabel: string
     cta: string
     dismiss: string
+  }
+  storeCategoriesBrandsDialog: {
+    title: string
+    hookLine: string
+    body: string
+    cta: string
+    dismiss: string
+  }
+  categoriesBrandsPage: {
+    headline: string
+    description: string
+    loading: string
+    categoriesLabel: string
+    brandsLabel: string
+    selectedLabel: string
+    noCategories: string
+    noBrands: string
+    saveButton: string
+    saving: string
+    savedSuccess: string
+    saveError: string
   }
   rateApp: {
     title: string
@@ -857,6 +879,7 @@ export const translations: Record<Locale, Translations> = {
     mainPhone: 'الرقم الرئيسي',
     share: 'مشاركة',
     socialMedia: 'التواصل الاجتماعي',
+    categoriesBrands: 'الفئات والماركات',
     promote: 'إعلانات مروّجة',
     menu: 'القائمة',
     close: 'إغلاق',
@@ -1099,6 +1122,27 @@ export const translations: Record<Locale, Translations> = {
       creditsLabel: 'أرصدتك المتاحة',
       cta: 'رَوِّج إعلاناً الآن',
       dismiss: 'لاحقاً',
+    },
+    storeCategoriesBrandsDialog: {
+      title: '🏷️ حسّن ظهور متجرك',
+      hookLine: 'متجرك لم يُصنَّف بعد بأي فئات أو ماركات',
+      body: 'اختر الفئات والماركات التي يعمل بها متجرك لنساعدك على الظهور للعملاء المهتمين وزيادة فرص التواصل معك.',
+      cta: '✨ اختر الفئات والماركات',
+      dismiss: 'لاحقاً',
+    },
+    categoriesBrandsPage: {
+      headline: 'الفئات والماركات',
+      description: 'اختر الفئات والماركات التي يعمل بها متجرك حتى نساعد العملاء المهتمين في الوصول إليك بسهولة.',
+      loading: 'جاري التحميل...',
+      categoriesLabel: 'الفئات',
+      brandsLabel: 'الماركات',
+      selectedLabel: 'مختارة',
+      noCategories: 'لا توجد فئات متاحة حالياً',
+      noBrands: 'لا توجد ماركات متاحة حالياً',
+      saveButton: 'حفظ التغييرات',
+      saving: '⏳ جاري الحفظ...',
+      savedSuccess: 'تم حفظ التفضيلات بنجاح ✓',
+      saveError: 'حدث خطأ أثناء الحفظ',
     },
     rateApp: {
       title: 'تستمتع بفاتيكس؟',
@@ -1432,6 +1476,7 @@ export const translations: Record<Locale, Translations> = {
     mainPhone: 'Main line',
     share: 'Share',
     socialMedia: 'Social Media',
+    categoriesBrands: 'Categories & Brands',
     promote: 'Promoted Ads',
     menu: 'Menu',
     close: 'Close',
@@ -1674,6 +1719,27 @@ export const translations: Record<Locale, Translations> = {
       creditsLabel: 'Credits available',
       cta: 'Promote a listing now',
       dismiss: 'Later',
+    },
+    storeCategoriesBrandsDialog: {
+      title: "🏷️ Enhance your store's visibility",
+      hookLine: "Your store isn't tagged with any categories or brands yet",
+      body: 'Pick the categories and brands your store deals with so we can surface it to interested customers and boost your visibility.',
+      cta: '✨ Select categories & brands',
+      dismiss: 'Later',
+    },
+    categoriesBrandsPage: {
+      headline: 'Categories & Brands',
+      description: 'Choose the categories and brands your store carries so we can help interested customers discover you.',
+      loading: 'Loading...',
+      categoriesLabel: 'Categories',
+      brandsLabel: 'Brands',
+      selectedLabel: 'selected',
+      noCategories: 'No categories available right now',
+      noBrands: 'No brands available right now',
+      saveButton: 'Save Changes',
+      saving: '⏳ Saving...',
+      savedSuccess: 'Preferences saved successfully ✓',
+      saveError: 'Save failed',
     },
     rateApp: {
       title: 'Enjoying Vatix?',
