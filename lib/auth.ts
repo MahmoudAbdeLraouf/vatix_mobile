@@ -16,12 +16,21 @@ export const AUTH_ERR = {
   UNAUTHORIZED: 'AUTH_UNAUTHORIZED',
   SESSION_EXPIRED: 'AUTH_SESSION_EXPIRED',
   SERVER_ERROR: 'AUTH_SERVER_ERROR',
+  NETWORK_ERROR: 'AUTH_NETWORK_ERROR',
   ACCOUNT_DELETE_FAILED: 'AUTH_ACCOUNT_DELETE_FAILED',
   IAP_PRODUCT_UNAVAILABLE: 'IAP_PRODUCT_UNAVAILABLE',
 } as const
 
+// React Native fetch throws `TypeError: Network request failed` on offline/DNS/
+// TLS failures. Match on the raw message too so the untranslated string never
+// reaches the UI even if a call site forgets to rewrap.
+const RN_NETWORK_ERROR_MESSAGES = new Set(['Network request failed', 'Network error'])
+
 export function authErrorMessage(err: unknown, t: Translations): string {
   if (!(err instanceof Error)) return t.serverError
+  if (RN_NETWORK_ERROR_MESSAGES.has(err.message)) {
+    return `${t.networkError} ${t.errorRetryHint}`
+  }
   switch (err.message) {
     case AUTH_ERR.UNAUTHORIZED:
       return t.unauthorizedError
@@ -29,6 +38,8 @@ export function authErrorMessage(err: unknown, t: Translations): string {
       return t.sessionExpiredError
     case AUTH_ERR.SERVER_ERROR:
       return t.serverError
+    case AUTH_ERR.NETWORK_ERROR:
+      return `${t.networkError} ${t.errorRetryHint}`
     case AUTH_ERR.ACCOUNT_DELETE_FAILED:
       return t.accountDeletionError
     case AUTH_ERR.IAP_PRODUCT_UNAVAILABLE:
@@ -331,7 +342,7 @@ async function _authFetchImpl<T>(
       await delayMs(AUTH_FETCH_RETRY_DELAY_MS)
       return _authFetchImpl<T>(path, init, { ...state, networkRetried: true })
     }
-    throw new AuthFetchError((err as Error)?.message ?? 'Network error', 0)
+    throw new AuthFetchError(AUTH_ERR.NETWORK_ERROR, 0)
   }
 
   if (res.status === 204) return null

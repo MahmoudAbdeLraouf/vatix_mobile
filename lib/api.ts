@@ -1,4 +1,5 @@
 import { Platform } from 'react-native'
+import * as Sentry from '@sentry/react-native'
 import { AUTH_ERR } from '@/lib/auth'
 import { getOrCreateVisitorId, visitorIdHeader } from '@/lib/visitor-id'
 
@@ -286,9 +287,35 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       },
     })
   } catch (e) {
+    const method = (init?.method ?? 'GET').toUpperCase()
+    const errObj = e as Error & { cause?: unknown }
+    // Collecting native error details (name/message/cause) so a Sentry event
+    // surfaces the actual iOS/Android transport reason — e.g.
+    // `kCFURLErrorSecureConnectionFailed`, `NSURLErrorCancelled`, HSTS mismatch
+    // — instead of the generic RN "Network request failed" string. Needed to
+    // diagnose the "works only after reinstall" case where persistent sandbox
+    // state (cookies / HSTS / URLCache) blocks fetch before any HTTP response.
+    const details = {
+      url,
+      method,
+      name: errObj?.name ?? 'Error',
+      message: errObj?.message ?? String(e),
+      cause: errObj?.cause == null ? undefined : String(errObj.cause),
+      ownProps: e && typeof e === 'object' ? Object.getOwnPropertyNames(e) : undefined,
+    }
     // eslint-disable-next-line no-console
-    console.log('[api] NETWORK FAIL', url, String(e))
-    throw e
+    console.log('[api] NETWORK FAIL', details)
+    // No-op if Sentry.init wasn't called (DSN unset for this build).
+    // `beforeSend` in lib/sentryScrub.ts scrubs `extra` for JWTs/phones/tokens.
+    Sentry.captureMessage('[api] NETWORK FAIL', {
+      level: 'warning',
+      tags: { kind: 'network-fail', method },
+      extra: details,
+    })
+    // React Native fetch throws `TypeError: Network request failed` on offline/
+    // DNS/TLS failures. Rewrap so authErrorMessage(err, t) shows the Arabic
+    // "تعذّر الاتصال بالإنترنت" instead of the raw English string.
+    throw new ApiError(0, AUTH_ERR.NETWORK_ERROR)
   }
   if (!res.ok) {
     // eslint-disable-next-line no-console
