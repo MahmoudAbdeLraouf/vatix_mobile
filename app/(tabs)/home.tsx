@@ -6,6 +6,7 @@ import {
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,11 +17,11 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { SvgXml } from 'react-native-svg'
+import * as Sentry from '@sentry/react-native'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import {
   Brand,
-  Category,
   getFeaturedStores,
   getCategories,
   getBrands,
@@ -46,6 +47,7 @@ import { ProductCard } from '@/components/ProductCard'
 import { StoreCard } from '@/components/StoreCard'
 import { MessagesBell } from '@/components/MessagesBell'
 import { RateAppDialog } from '@/components/RateAppDialog'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { Logo } from '@/components/ui/Logo'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -412,25 +414,65 @@ export default function HomeScreen() {
   const [latestProducts, setLatestProducts] = useState<Product[]>([])
 
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
   const [activePromo, setActivePromo] = useState(0)
   const [search, setSearch] = useState('')
   const [showRateAppDialog, setShowRateAppDialog] = useState(false)
 
-  useEffect(() => {
-    Promise.all([
-      getFeaturedStores().catch(() => [] as Store[]),
-      getCategories().catch(() => [] as Category[]),
-      IS_IOS ? Promise.resolve([] as Brand[]) : getBrands().catch(() => [] as Brand[]),
-      getProducts({ limit: 8, promoted: true }).catch(() => ({
-        items: [] as Product[],
-        meta: { total: 0, page: 1, limit: 8, pages: 0 },
-      })),
-      getProducts({ limit: 12, sort: 'newest_pure' }).catch(() => ({
-        items: [] as Product[],
-        meta: { total: 0, page: 1, limit: 12, pages: 0 },
-      })),
-      getStores().catch(() => [] as Store[]),
-    ]).then(([s, c, b, fp, lp, allS]) => {
+  const loadHome = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      // Only categories + latest products are load-bearing. Everything else
+      // degrades gracefully — a single flaky endpoint (featured stores, brands,
+      // promoted products, all stores) must not nuke the whole home screen.
+      // Each secondary rejection is logged to Sentry so we can see what's
+      // actually failing on user devices.
+      const [cRes, lpRes, sRes, bRes, fpRes, allSRes] = await Promise.allSettled([
+        getCategories(),
+        getProducts({ limit: 12, sort: 'newest_pure' }),
+        getFeaturedStores(),
+        IS_IOS ? Promise.resolve([] as Brand[]) : getBrands(),
+        getProducts({ limit: 8, promoted: true }),
+        getStores(),
+      ])
+
+      if (cRes.status === 'rejected') throw cRes.reason
+      if (lpRes.status === 'rejected') throw lpRes.reason
+      const c = cRes.value
+      const lp = lpRes.value
+
+      const pick = <T,>(r: PromiseSettledResult<T>, label: string, fallback: T): T => {
+        if (r.status === 'fulfilled') return r.value
+        Sentry.captureException(r.reason, {
+          tags: { source: 'home.loadHome', endpoint: label, degraded: 'true' },
+        })
+        return fallback
+      }
+      const s = pick(sRes, 'featuredStores', [] as Store[])
+      const b = pick(bRes, 'brands', [] as Brand[])
+      const fp = pick(fpRes, 'featuredProducts', { items: [] as Product[] } as Awaited<ReturnType<typeof getProducts>>)
+      const allS = pick(allSRes, 'allStores', [] as Store[])
+
+      // Categories is a curated list that is never empty in production. If BOTH
+      // categories AND latest products came back 200-OK-but-empty, something is
+      // wrong upstream (bad CDN cache, stale edge) and a blank home would look
+      // broken — surface it as an error the user can retry.
+      if (c.length === 0 && lp.items.length === 0) {
+        Sentry.captureMessage('[home] primary fetches returned empty', {
+          level: 'warning',
+          extra: {
+            featuredStores: s.length,
+            categories: c.length,
+            brands: b.length,
+            featuredProducts: fp.items.length,
+            latestProducts: lp.items.length,
+            allStores: allS.length,
+          },
+        })
+        setError(new Error('EMPTY_HOME'))
+        return
+      }
       setStores(s)
       setAllStores(allS)
       setCategories([
@@ -449,9 +491,17 @@ export default function HomeScreen() {
       const featuredSource = fp.items.length > 0 ? fp.items : lp.items.slice(0, 8)
       setFeaturedProducts(dedupeById(featuredSource))
       setLatestProducts(dedupeById(lp.items))
+    } catch (e) {
+      Sentry.captureException(e, { tags: { source: 'home.loadHome' } })
+      setError(e as Error)
+    } finally {
       setLoading(false)
-    })
-  }, [])
+    }
+  }, [t, locale])
+
+  useEffect(() => {
+    loadHome()
+  }, [loadHome])
 
   useEffect(() => {
     let cancelled = false
@@ -493,43 +543,44 @@ export default function HomeScreen() {
     [],
   )
   const productKey = useCallback((p: Product) => String(p.id), [])
-  const renderPromo = useCallback(({ item }: { item: PromoBanner }) => <PromoCard item={item} />, [])
-  const promoKey = useCallback((p: PromoBanner) => String(p.id), [])
-  const renderStore = useCallback(
-    ({ item }: { item: Store }) => <StoreCard store={item} style={styles.storeCardWide} />,
-    [],
-  )
-  const storeKey = useCallback((s: Store) => String(s.id), [])
 
   const listHeader = useMemo(
     () => (
       <>
-        {/* Promo Carousel */}
+        {/* Promo Carousel — ScrollView + map instead of FlatList to avoid
+            Android RTL ANR: horizontal FlatList's batched item mount fires
+            repeated onContentSizeChange, and each one recurses through
+            ReactHorizontalScrollView.adjustPositionForContentChangeRTL →
+            scrollTo → new layout → another content-size change. See
+            Sentry VATIX-MOBILE-33. */}
         <View style={styles.promoSection}>
-          <FlatList
+          <ScrollView
             horizontal
-            data={PROMO_BANNERS}
-            keyExtractor={promoKey}
-            renderItem={renderPromo}
             contentContainerStyle={styles.promoList}
             showsHorizontalScrollIndicator={false}
             snapToInterval={PROMO_W + spacing.md}
             decelerationRate="fast"
             onScroll={handlePromoScroll}
             scrollEventThrottle={16}
-          />
+          >
+            {PROMO_BANNERS.map(item => (
+              <PromoCard key={item.id} item={item} />
+            ))}
+          </ScrollView>
           <PromoDots count={PROMO_BANNERS.length} active={activePromo} />
         </View>
 
         {/* Category Icons */}
         {categories.length > 1 && (
           <Section title={t.categories} onMore={() => router.push('/(tabs)/products')}>
-            <FlatList
+            <ScrollView
               horizontal
-              data={categories}
-              keyExtractor={c => String(c.id)}
-              renderItem={({ item }) => (
+              contentContainerStyle={styles.categoriesList}
+              showsHorizontalScrollIndicator={false}
+            >
+              {categories.map(item => (
                 <TouchableOpacity
+                  key={String(item.id)}
                   style={styles.categoryItem}
                   onPress={() =>
                     item.id === null
@@ -548,24 +599,23 @@ export default function HomeScreen() {
                     {item.name}
                   </Text>
                 </TouchableOpacity>
-              )}
-              contentContainerStyle={styles.categoriesList}
-              showsHorizontalScrollIndicator={false}
-            />
+              ))}
+            </ScrollView>
           </Section>
         )}
 
         {/* Featured Stores */}
         {stores.length > 0 && (
           <Section title={t.featuredStores} onMore={() => router.push('/(tabs)/stores')}>
-            <FlatList
+            <ScrollView
               horizontal
-              data={stores}
-              keyExtractor={storeKey}
-              renderItem={renderStore}
               contentContainerStyle={styles.hList}
               showsHorizontalScrollIndicator={false}
-            />
+            >
+              {stores.map(item => (
+                <StoreCard key={item.id} store={item} style={styles.storeCardWide} />
+              ))}
+            </ScrollView>
           </Section>
         )}
 
@@ -602,10 +652,6 @@ export default function HomeScreen() {
       featuredProducts,
       latestProducts.length,
       handlePromoScroll,
-      renderPromo,
-      promoKey,
-      renderStore,
-      storeKey,
     ],
   )
 
@@ -615,14 +661,15 @@ export default function HomeScreen() {
         {/* All Stores */}
         {allStores.length > 0 && (
           <Section title={t.allStores} onMore={() => router.push('/(tabs)/stores')}>
-            <FlatList
+            <ScrollView
               horizontal
-              data={allStores}
-              keyExtractor={storeKey}
-              renderItem={renderStore}
               contentContainerStyle={styles.hList}
               showsHorizontalScrollIndicator={false}
-            />
+            >
+              {allStores.map(item => (
+                <StoreCard key={item.id} store={item} style={styles.storeCardWide} />
+              ))}
+            </ScrollView>
           </Section>
         )}
 
@@ -637,7 +684,7 @@ export default function HomeScreen() {
         )}
       </>
     ),
-    [t, allStores, brands, locale, renderStore, storeKey],
+    [t, allStores, brands, locale],
   )
 
   return (
@@ -703,22 +750,30 @@ export default function HomeScreen() {
               </View>
             </View>
             <View style={styles.content}>
-              <FlatList
-                data={latestProducts}
-                keyExtractor={productKey}
-                renderItem={renderProduct}
-                numColumns={2}
-                columnWrapperStyle={styles.productRow}
-                ItemSeparatorComponent={ProductRowSeparator}
-                ListHeaderComponent={listHeader}
-                ListFooterComponent={listFooter}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-                removeClippedSubviews
-                initialNumToRender={6}
-                maxToRenderPerBatch={8}
-                windowSize={9}
-              />
+              {error ? (
+                <ErrorState
+                  kind={error.message === 'EMPTY_HOME' ? 'generic' : 'network'}
+                  onRetry={loadHome}
+                  style={styles.errorState}
+                />
+              ) : (
+                <FlatList
+                  data={latestProducts}
+                  keyExtractor={productKey}
+                  renderItem={renderProduct}
+                  numColumns={2}
+                  columnWrapperStyle={styles.productRow}
+                  ItemSeparatorComponent={ProductRowSeparator}
+                  ListHeaderComponent={listHeader}
+                  ListFooterComponent={listFooter}
+                  contentContainerStyle={styles.scrollContent}
+                  showsVerticalScrollIndicator={false}
+                  removeClippedSubviews
+                  initialNumToRender={6}
+                  maxToRenderPerBatch={8}
+                  windowSize={9}
+                />
+              )}
             </View>
           </>
         )}
@@ -922,5 +977,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
+  },
+  errorState: {
+    flex: 1,
+    justifyContent: 'center',
   },
 })

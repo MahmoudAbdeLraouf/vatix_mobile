@@ -336,6 +336,41 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+// Multipart-safe variant of the try/catch wrap in apiFetch. Multipart callers
+// (uploadPublic, registerStore) can't go through apiFetch because it forces
+// application/json — but they still need the same Sentry breadcrumb +
+// AUTH_ERR.NETWORK_ERROR translation on offline/DNS/TLS transport failures.
+// Otherwise the raw `TypeError: Network request failed` leaks up as an
+// `onunhandledrejection` Sentry event and reaches the UI as an untranslated
+// English string.
+async function fetchOrThrowNetworkApi(
+  url: string,
+  init: RequestInit,
+  method: string,
+): Promise<Response> {
+  try {
+    return await fetch(url, init)
+  } catch (e) {
+    const errObj = e as Error & { cause?: unknown }
+    const details = {
+      url,
+      method,
+      name: errObj?.name ?? 'Error',
+      message: errObj?.message ?? String(e),
+      cause: errObj?.cause == null ? undefined : String(errObj.cause),
+      ownProps: e && typeof e === 'object' ? Object.getOwnPropertyNames(e) : undefined,
+    }
+    // eslint-disable-next-line no-console
+    console.log('[api] NETWORK FAIL', details)
+    Sentry.captureMessage('[api] NETWORK FAIL', {
+      level: 'warning',
+      tags: { kind: 'network-fail', method },
+      extra: details,
+    })
+    throw new ApiError(0, AUTH_ERR.NETWORK_ERROR)
+  }
+}
+
 // GET-cache lives in its own module (see lib/api-cache.ts) so that mutation
 // write helpers in lib/auth.ts can invalidate it without creating an import
 // cycle back through this file.
@@ -563,11 +598,15 @@ export async function uploadPublic(
     name: filename,
     type: mimeType,
   } as unknown as Blob)
-  const res = await fetch(`${BASE}/uploads/public`, {
-    method: 'POST',
-    body: form,
-    headers: { 'X-Client-Platform': CLIENT_PLATFORM },
-  })
+  const res = await fetchOrThrowNetworkApi(
+    `${BASE}/uploads/public`,
+    {
+      method: 'POST',
+      body: form,
+      headers: { 'X-Client-Platform': CLIENT_PLATFORM },
+    },
+    'POST',
+  )
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
     const msg = Array.isArray(data.message) ? data.message.join(', ') : (data.message ?? 'Upload failed')
@@ -622,14 +661,18 @@ export async function registerStore(data: {
       type: data.cover.type ?? 'image/jpeg',
     } as unknown as Blob)
   }
-  const res = await fetch(`${BASE}/auth/register/store`, {
-    method: 'POST',
-    body: fd,
-    headers: {
-      'X-Client-Platform': CLIENT_PLATFORM,
-      ...(await visitorIdHeader()),
+  const res = await fetchOrThrowNetworkApi(
+    `${BASE}/auth/register/store`,
+    {
+      method: 'POST',
+      body: fd,
+      headers: {
+        'X-Client-Platform': CLIENT_PLATFORM,
+        ...(await visitorIdHeader()),
+      },
     },
-  })
+    'POST',
+  )
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     const backendMsg = Array.isArray(body.message) ? body.message.join(', ') : body.message

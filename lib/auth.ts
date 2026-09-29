@@ -1,10 +1,44 @@
 import { Platform } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
+import * as Sentry from '@sentry/react-native'
 import type { Translations } from '@/lib/i18n'
 import { clearApiCache } from '@/lib/api-cache'
 import { visitorIdHeader } from '@/lib/visitor-id'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
+
+// Wraps `fetch()` so that native transport failures (offline / DNS / TLS) get
+// captured as a Sentry breadcrumb with the iOS/Android-native reason attached,
+// then rethrown as an AuthFetchError with our sentinel code so the UI can
+// localize instead of leaking `TypeError: Network request failed`. Mirrors
+// `apiFetch` in lib/api.ts so both entry points produce comparable telemetry.
+async function fetchOrThrowNetwork(
+  url: string,
+  init: RequestInit,
+  method: string,
+): Promise<Response> {
+  try {
+    return await fetch(url, init)
+  } catch (e) {
+    const errObj = e as Error & { cause?: unknown }
+    const details = {
+      url,
+      method,
+      name: errObj?.name ?? 'Error',
+      message: errObj?.message ?? String(e),
+      cause: errObj?.cause == null ? undefined : String(errObj.cause),
+      ownProps: e && typeof e === 'object' ? Object.getOwnPropertyNames(e) : undefined,
+    }
+    // eslint-disable-next-line no-console
+    console.log('[auth] NETWORK FAIL', details)
+    Sentry.captureMessage('[auth] NETWORK FAIL', {
+      level: 'warning',
+      tags: { kind: 'network-fail', method },
+      extra: details,
+    })
+    throw new AuthFetchError(AUTH_ERR.NETWORK_ERROR, 0)
+  }
+}
 
 // Backend `RequestPlatformHeader` decorator expects `ios | android | web | unknown`.
 // Platform.OS returns `ios` or `android` on device, so it maps directly.
@@ -389,7 +423,7 @@ export async function authPost<T>(path: string, body: unknown): Promise<T> {
     await clearSession()
     throw new Error(AUTH_ERR.UNAUTHORIZED)
   }
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetchOrThrowNetwork(`${BASE}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -397,7 +431,7 @@ export async function authPost<T>(path: string, body: unknown): Promise<T> {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(body),
-  })
+  }, 'POST')
   if (res.status === 401) {
     const refreshed = await refreshAccessToken()
     if (!refreshed) {
@@ -423,7 +457,7 @@ export async function authPatch<T>(path: string, body: unknown): Promise<T> {
     await clearSession()
     throw new Error(AUTH_ERR.UNAUTHORIZED)
   }
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetchOrThrowNetwork(`${BASE}${path}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -431,7 +465,7 @@ export async function authPatch<T>(path: string, body: unknown): Promise<T> {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(body),
-  })
+  }, 'PATCH')
   if (res.status === 401) {
     const refreshed = await refreshAccessToken()
     if (!refreshed) {
@@ -466,7 +500,7 @@ export async function authDelete(path: string, body?: unknown): Promise<boolean>
     headers['Content-Type'] = 'application/json'
     init.body = JSON.stringify(body)
   }
-  const res = await fetch(`${BASE}${path}`, init)
+  const res = await fetchOrThrowNetwork(`${BASE}${path}`, init, 'DELETE')
   if (res.status === 401) {
     const refreshed = await refreshAccessToken()
     if (!refreshed) {
@@ -497,7 +531,7 @@ export async function authDeleteJson<T>(path: string, body?: unknown): Promise<T
     headers['Content-Type'] = 'application/json'
     init.body = JSON.stringify(body)
   }
-  const res = await fetch(`${BASE}${path}`, init)
+  const res = await fetchOrThrowNetwork(`${BASE}${path}`, init, 'DELETE')
   if (res.status === 401) {
     const refreshed = await refreshAccessToken()
     if (!refreshed) {
@@ -524,7 +558,7 @@ export async function deleteAccount(password: string): Promise<void> {
     await clearSession()
     throw new Error(AUTH_ERR.SESSION_EXPIRED)
   }
-  const res = await fetch(`${BASE}/user/account`, {
+  const res = await fetchOrThrowNetwork(`${BASE}/user/account`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -532,7 +566,7 @@ export async function deleteAccount(password: string): Promise<void> {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ password }),
-  })
+  }, 'DELETE')
   if (res.status === 204) {
     await clearSession()
     return

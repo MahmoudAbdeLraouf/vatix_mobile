@@ -20,7 +20,10 @@
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.vatix.store",
-        "EXPO_PUBLIC_MINIO_URL": "https://cdn.vatix.store"
+        "EXPO_PUBLIC_MINIO_URL": "https://cdn.vatix.store",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://a9d0c2f0235e64a85c5a3dafcac98a4b@o4511917074153472.ingest.us.sentry.io/4511943532740608",
+        "EXPO_PUBLIC_SENTRY_ENV": "production",
+        "EXPO_PUBLIC_SENTRY_TRACES_SAMPLE_RATE": "0.1"
       },
       "channel": "production"
     },
@@ -32,7 +35,10 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.vatix.store",
-        "EXPO_PUBLIC_MINIO_URL": "https://cdn.vatix.store"
+        "EXPO_PUBLIC_MINIO_URL": "https://cdn.vatix.store",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://a9d0c2f0235e64a85c5a3dafcac98a4b@o4511917074153472.ingest.us.sentry.io/4511943532740608",
+        "EXPO_PUBLIC_SENTRY_ENV": "production",
+        "EXPO_PUBLIC_SENTRY_TRACES_SAMPLE_RATE": "0.1"
       },
       "channel": "production-apk"
     }
