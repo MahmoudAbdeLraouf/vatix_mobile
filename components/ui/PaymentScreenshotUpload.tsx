@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
+import * as Sentry from '@sentry/react-native'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 import { useLocale } from '@/contexts/locale'
 import { authErrorMessage, getToken } from '@/lib/auth'
@@ -32,9 +33,12 @@ interface Props {
   hint?: string
   aspect?: 'square' | 'wide'
   style?: ViewStyle
+  // Breadcrumb tag so we can tell wallet-topup vs promotion vs subscription
+  // failures apart in Sentry without diffing screen names.
+  context?: string
 }
 
-export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect = 'wide', style }: Props) {
+export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect = 'wide', style, context }: Props) {
   const { locale, t } = useLocale()
   const ar = locale === 'ar'
   const [uploading, setUploading] = useState(false)
@@ -67,6 +71,27 @@ export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect =
     const mimeType = asset.mimeType ?? 'image/jpeg'
     setUploading(true)
     setError('')
+
+    // Diagnostic: wallet-topup + promotion uploads fail on Android with
+    // `TypeError: Network request failed` while the store-subscription flow
+    // (same component, same props, same endpoint) succeeds. Raw fetch()
+    // otherwise produces zero Sentry breadcrumbs, leaving us blind to the
+    // native reason. Remove once the Android delta is identified.
+    const assetShape = {
+      uriScheme: asset.uri?.split(':')[0] ?? null,
+      hasFileName: !!asset.fileName,
+      mimeType,
+      width: asset.width,
+      height: asset.height,
+      fileSize: (asset as { fileSize?: number }).fileSize ?? null,
+    }
+    Sentry.addBreadcrumb({
+      category: 'upload',
+      level: 'info',
+      message: '[screenshot-upload] picked',
+      data: { context: context ?? null, platform: CLIENT_PLATFORM, ...assetShape },
+    })
+
     try {
       const token = await getToken()
       if (!token) {
@@ -80,14 +105,45 @@ export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect =
         name: asset.fileName ?? 'screenshot.jpg',
       } as unknown as Blob)
 
-      const res = await fetch(`${BASE}/user/upload/payment-screenshot`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'X-Client-Platform': CLIENT_PLATFORM },
-        body: formData,
-      })
+      const startedAt = Date.now()
+      let res: Response
+      try {
+        res = await fetch(`${BASE}/user/upload/payment-screenshot`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'X-Client-Platform': CLIENT_PLATFORM },
+          body: formData,
+        })
+      } catch (e) {
+        const errObj = e as Error & { cause?: unknown }
+        const details = {
+          context: context ?? null,
+          platform: CLIENT_PLATFORM,
+          url: `${BASE}/user/upload/payment-screenshot`,
+          elapsedMs: Date.now() - startedAt,
+          name: errObj?.name ?? 'Error',
+          message: errObj?.message ?? String(e),
+          cause: errObj?.cause == null ? undefined : String(errObj.cause),
+          ownProps: e && typeof e === 'object' ? Object.getOwnPropertyNames(e) : undefined,
+          ...assetShape,
+        }
+        // eslint-disable-next-line no-console
+        console.log('[screenshot-upload] NETWORK FAIL', details)
+        Sentry.captureMessage('[screenshot-upload] NETWORK FAIL', {
+          level: 'warning',
+          tags: { kind: 'network-fail', method: 'POST', context: context ?? 'unknown', uploadKind: 'payment-screenshot' },
+          extra: details,
+        })
+        throw e
+      }
+
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         const msg = Array.isArray(data.message) ? data.message.join('، ') : data.message
+        Sentry.captureMessage('[screenshot-upload] HTTP FAIL', {
+          level: 'warning',
+          tags: { kind: 'http-fail', context: context ?? 'unknown', uploadKind: 'payment-screenshot' },
+          extra: { context: context ?? null, platform: CLIENT_PLATFORM, status: res.status, body: data, ...assetShape },
+        })
         throw new Error(msg ?? t.uploadFailed)
       }
       const { key } = (await res.json()) as { key: string }

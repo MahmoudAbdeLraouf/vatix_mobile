@@ -902,6 +902,7 @@ export default function PromoteScreen() {
                   hint={
                     ar ? 'JPG أو PNG، حد أقصى ٥ ميجا' : 'JPG or PNG, max 5 MB'
                   }
+                  context="promotion-instapay"
                 />
                 <Button
                   label={ar ? 'إرسال الإيصال' : 'Send Receipt'}
@@ -956,6 +957,7 @@ export default function PromoteScreen() {
                   hint={
                     ar ? 'JPG أو PNG، حد أقصى ٥ ميجا' : 'JPG or PNG, max 5 MB'
                   }
+                  context="promotion-mobile-wallet"
                 />
                 <Button
                   label={ar ? 'إرسال الإيصال' : 'Send Receipt'}

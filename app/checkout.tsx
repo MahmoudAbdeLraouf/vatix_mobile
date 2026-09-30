@@ -428,6 +428,7 @@ export default function CheckoutScreen() {
                   onChange={setScreenshot}
                   aspect="wide"
                   hint={ar ? 'JPG أو PNG، حد أقصى ٥ ميجا' : 'JPG or PNG, max 5 MB'}
+                  context="checkout-instapay"
                 />
                 <Button
                   label={t.submitPayment}
@@ -464,6 +465,7 @@ export default function CheckoutScreen() {
                   onChange={setScreenshot}
                   aspect="wide"
                   hint={ar ? 'JPG أو PNG، حد أقصى ٥ ميجا' : 'JPG or PNG, max 5 MB'}
+                  context="checkout-mobile-wallet"
                 />
                 <Button
                   label={t.submitPayment}

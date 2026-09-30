@@ -607,6 +607,7 @@ export default function MyAdsScreen() {
                         ? 'ارفع صورة واضحة من تأكيد التحويل'
                         : 'Upload a clear image of the transfer confirmation'
                     }
+                    context={payMethod === 'instapay' ? 'ad-promotion-instapay' : 'ad-promotion-mobile-wallet'}
                   />
 
                   {submitError ? (

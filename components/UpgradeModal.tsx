@@ -1248,6 +1248,7 @@ function InstapayPanel(props: {
           onChange={props.onScreenshotChange}
           aspect="wide"
           hint={t.screenshotRequired}
+          context="subscription-instapay"
         />
       </View>
 
@@ -1325,6 +1326,7 @@ function MobileWalletPanel(props: {
           onChange={props.onScreenshotChange}
           aspect="wide"
           hint={t.screenshotRequired}
+          context="subscription-mobile-wallet"
         />
       </View>
 

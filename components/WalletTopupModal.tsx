@@ -497,6 +497,7 @@ function InstapayPanel(props: {
           onChange={props.onScreenshotChange}
           aspect="wide"
           hint={t.screenshotRequired}
+          context="wallet-topup-instapay"
         />
       </View>
 
@@ -574,6 +575,7 @@ function MobileWalletPanel(props: {
           onChange={props.onScreenshotChange}
           aspect="wide"
           hint={t.screenshotRequired}
+          context="wallet-topup-mobile-wallet"
         />
       </View>
 
