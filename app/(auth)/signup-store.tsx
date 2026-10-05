@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +15,7 @@ import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as Sentry from '@sentry/react-native'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
@@ -23,6 +25,7 @@ import {
   getSubscriptionPlans,
   registerStore,
   sendOtp,
+  uploadPublic,
 } from '@/lib/api'
 import { authErrorMessage } from '@/lib/auth'
 import { track } from '@/lib/analytics'
@@ -66,8 +69,15 @@ export default function SignupStoreScreen() {
   const [storeType, setStoreType] = useState<StoreType>('store')
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
   const [description, setDescription] = useState('')
+  // Pick-time URI is kept for the preview thumbnail only. The authoritative
+  // value is the uploaded MinIO URL — picker-cache URIs get evicted between
+  // pick and submit, which produced intermittent "logo is required" errors.
   const [logoUri, setLogoUri] = useState<string | null>(null)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [logoUploading, setLogoUploading] = useState(false)
   const [coverUri, setCoverUri] = useState<string | null>(null)
+  const [coverUrl, setCoverUrl] = useState<string | null>(null)
+  const [coverUploading, setCoverUploading] = useState(false)
   const [planAmounts, setPlanAmounts] = useState<{
     store: number
     store_plus_monthly: number
@@ -117,7 +127,36 @@ export default function SignupStoreScreen() {
       quality: 0.85,
     })
     if (result.canceled || !result.assets?.length) return
-    setLogoUri(result.assets[0].uri)
+    const asset = result.assets[0]
+    const mimeType = asset.mimeType ?? 'image/jpeg'
+    setLogoUri(asset.uri)
+    setLogoUrl(null)
+    setLogoUploading(true)
+    setError('')
+    Sentry.addBreadcrumb({
+      category: 'upload',
+      level: 'info',
+      message: '[signup-store] logo picked',
+      data: {
+        uriScheme: asset.uri?.split(':')[0] ?? null,
+        mimeType,
+        width: asset.width,
+        height: asset.height,
+      },
+    })
+    try {
+      const url = await uploadPublic(asset.uri, mimeType)
+      setLogoUrl(url)
+    } catch (e: unknown) {
+      Sentry.captureMessage('[signup-store] logo upload failed', {
+        level: 'warning',
+        extra: { message: (e as Error)?.message ?? String(e) },
+      })
+      setLogoUri(null)
+      setError(authErrorMessage(e, t))
+    } finally {
+      setLogoUploading(false)
+    }
   }
 
   async function pickCover() {
@@ -134,7 +173,25 @@ export default function SignupStoreScreen() {
       quality: 0.85,
     })
     if (result.canceled || !result.assets?.length) return
-    setCoverUri(result.assets[0].uri)
+    const asset = result.assets[0]
+    const mimeType = asset.mimeType ?? 'image/jpeg'
+    setCoverUri(asset.uri)
+    setCoverUrl(null)
+    setCoverUploading(true)
+    setError('')
+    try {
+      const url = await uploadPublic(asset.uri, mimeType)
+      setCoverUrl(url)
+    } catch (e: unknown) {
+      Sentry.captureMessage('[signup-store] cover upload failed', {
+        level: 'warning',
+        extra: { message: (e as Error)?.message ?? String(e) },
+      })
+      setCoverUri(null)
+      setError(authErrorMessage(e, t))
+    } finally {
+      setCoverUploading(false)
+    }
   }
 
   const STEPS: Step[] = otpEnabled ? ['phone', 'otp', 'info'] : ['phone', 'info']
@@ -182,7 +239,11 @@ export default function SignupStoreScreen() {
   async function handleSubmit() {
     setError('')
     if (!storeName.trim()) { setError(t.requiredField); return }
-    if (!logoUri) { setError(isRtl ? 'يرجى اختيار شعار المتجر' : 'Please choose a store logo'); return }
+    if (logoUploading || coverUploading) {
+      setError(isRtl ? 'جاري رفع الصورة، يرجى الانتظار' : 'Image upload in progress, please wait')
+      return
+    }
+    if (!logoUrl) { setError(isRtl ? 'يرجى اختيار شعار المتجر' : 'Please choose a store logo'); return }
     setLoading(true)
     try {
       const response = await registerStore({
@@ -191,8 +252,8 @@ export default function SignupStoreScreen() {
         type: 'store',
         storeName: storeName.trim(),
         description: description.trim() || undefined,
-        logo: { uri: logoUri, name: 'logo.jpg', type: 'image/jpeg' },
-        ...(coverUri ? { cover: { uri: coverUri, name: 'cover.jpg', type: 'image/jpeg' } } : {}),
+        logo: logoUrl,
+        ...(coverUrl ? { cover: coverUrl } : {}),
       })
       const routeAfter =
         storeType === 'store_plus'
@@ -421,23 +482,43 @@ export default function SignupStoreScreen() {
 
               <Text style={styles.sectionLabel}>{t.storeLogo} *</Text>
               <View style={styles.logoRow}>
-                <Pressable style={styles.logoPreview} onPress={pickLogo}>
+                <Pressable
+                  style={styles.logoPreview}
+                  onPress={pickLogo}
+                  disabled={logoUploading}
+                >
                   {logoUri ? (
                     <Image source={{ uri: logoUri }} style={styles.logoImage} contentFit="cover" />
                   ) : (
                     <Ionicons name="image-outline" size={26} color={colors.g400} />
                   )}
+                  {logoUploading ? (
+                    <View style={styles.logoOverlay}>
+                      <ActivityIndicator color={colors.dk} />
+                    </View>
+                  ) : null}
                 </Pressable>
                 <View style={styles.logoControls}>
                   <Button
-                    label={logoUri ? (isRtl ? 'تغيير الصورة' : 'Change') : (isRtl ? '+ اختر صورة' : '+ Choose image')}
+                    label={
+                      logoUploading
+                        ? (isRtl ? 'جاري الرفع...' : 'Uploading...')
+                        : logoUrl
+                          ? (isRtl ? 'تغيير الصورة' : 'Change')
+                          : (isRtl ? '+ اختر صورة' : '+ Choose image')
+                    }
                     variant="outline"
                     size="sm"
                     fullWidth={false}
+                    loading={logoUploading}
+                    disabled={logoUploading}
                     onPress={pickLogo}
                   />
-                  {logoUri ? (
-                    <Pressable onPress={() => setLogoUri(null)} hitSlop={6}>
+                  {logoUrl && !logoUploading ? (
+                    <Pressable
+                      onPress={() => { setLogoUri(null); setLogoUrl(null) }}
+                      hitSlop={6}
+                    >
                       <Text style={styles.removeText}>{isRtl ? 'حذف الصورة' : 'Remove image'}</Text>
                     </Pressable>
                   ) : null}
@@ -704,10 +785,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   logoImage: {
     width: '100%',
     height: '100%',
+  },
+  logoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoControls: {
     flex: 1,
