@@ -233,7 +233,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
 
   return (
     <SafeAreaView style={[styles.safe, dirContainer]} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.dk} />
 
       {/* TOPBAR */}
       <View style={[styles.topbar, dirContainer]}>
@@ -244,7 +244,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
           accessibilityLabel={t.menu}
           style={styles.iconBtn}
         >
-          <Ionicons name="menu" size={24} color={colors.dk} />
+          <Ionicons name="menu" size={24} color={colors.white} />
         </Pressable>
 
         <Pressable onPress={() => router.push('/(tabs)/home')} style={styles.brand}>
@@ -256,7 +256,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
         </Pressable>
 
         <View style={styles.topRight}>
-          <MessagesBell />
+          <MessagesBell color={colors.white} />
           <Pressable
             onPress={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
             hitSlop={8}
@@ -264,10 +264,10 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
             accessibilityLabel={t.language}
             style={styles.topIconBtn}
           >
-            <Ionicons name="globe-outline" size={22} color={colors.dk} />
+            <Ionicons name="globe-outline" size={22} color={colors.white} />
             <Text style={styles.langCode}>{locale === 'ar' ? 'EN' : 'ع'}</Text>
           </Pressable>
-          <NotificationBell />
+          <NotificationBell color={colors.white} />
           <Pressable
             onPress={() => router.push('/dashboard/profile')}
             hitSlop={6}
@@ -468,7 +468,7 @@ function AvatarCircle({ name, size, uri }: { name: string; size: number; uri?: s
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.dk,
   },
   topbar: {
     flexDirection: 'row',
@@ -476,9 +476,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     gap: spacing.sm,
-    backgroundColor: colors.white,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.g200,
+    backgroundColor: colors.dk,
     ...Platform.select({
       ios: shadow.ss,
       android: { ...shadow.ss, elevation: 2 },
@@ -501,13 +499,13 @@ const styles = StyleSheet.create({
   divider: {
     width: StyleSheet.hairlineWidth,
     height: 20,
-    backgroundColor: colors.g300,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   brandTitle: {
     flexShrink: 1,
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.white,
   },
   topRight: {
     flexDirection: 'row',
@@ -540,6 +538,7 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
+    backgroundColor: colors.g100,
   },
   bodyPadding: {
     padding: spacing.md,

@@ -10,7 +10,11 @@ import { authFetch } from '@/lib/auth'
 import type { Notification } from '@/lib/api'
 import { colors, fonts, radius } from '@/constants/theme'
 
-export function NotificationBell() {
+interface NotificationBellProps {
+  color?: string
+}
+
+export function NotificationBell({ color = colors.dk }: NotificationBellProps = {}) {
   const { isAuthenticated } = useAuth()
   const { t } = useLocale()
   const { requireLogin } = useLoginGate()
@@ -56,7 +60,7 @@ export function NotificationBell() {
       style={styles.btn}
     >
       <View style={styles.iconWrap}>
-        <Ionicons name="notifications-outline" size={22} color={colors.dk} />
+        <Ionicons name="notifications-outline" size={22} color={color} />
         {unread > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText} numberOfLines={1}>
