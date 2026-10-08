@@ -18,6 +18,8 @@ import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { SvgXml } from 'react-native-svg'
 import * as Sentry from '@sentry/react-native'
+import * as Application from 'expo-application'
+import Constants from 'expo-constants'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import {
@@ -55,6 +57,9 @@ const { width: SCREEN_W } = Dimensions.get('window')
 const CARD_W = Math.floor((SCREEN_W - spacing.lg * 2 - spacing.md) / 2)
 const BRAND_W = Math.floor((SCREEN_W - spacing.lg * 2 - spacing.md * 2) / 3)
 const PROMO_W = SCREEN_W - spacing.lg * 2
+
+const APP_VERSION = Constants.expoConfig?.version ?? '—'
+const APP_BUILD = Application.nativeBuildVersion ?? '—'
 
 type IoniconName = SharedIoniconName
 
@@ -682,6 +687,10 @@ export default function HomeScreen() {
             </View>
           </Section>
         )}
+
+        <Text style={styles.versionText}>
+          v{APP_VERSION} ({APP_BUILD})
+        </Text>
       </>
     ),
     [t, allStores, brands, locale],
@@ -981,5 +990,12 @@ const styles = StyleSheet.create({
   errorState: {
     flex: 1,
     justifyContent: 'center',
+  },
+  versionText: {
+    textAlign: 'center',
+    color: colors.g400,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    paddingVertical: spacing.lg,
   },
 })
