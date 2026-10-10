@@ -191,6 +191,8 @@ export interface UserProfile {
   storeShareCount?: number
   flags?: UserActionFlags
   pendingUpgrade?: PendingUpgradeRequest | null
+  extraProductSlots?: number
+  walletBalance?: number
 }
 
 export interface PendingUpgradeRequest {
@@ -902,6 +904,30 @@ export function getSubscriptionPlans(): Promise<PlanData[]> {
 
 export function getPromotionBundles(): Promise<Bundle[]> {
   return cachedFetch('/promotions/bundles', () => apiFetch('/promotions/bundles'))
+}
+
+export interface ClientSlotBundleTranslation {
+  id: number
+  locale: string
+  name: string
+  description: string | null
+}
+
+export interface ClientSlotBundle {
+  id: number
+  name: string
+  slotCount: number
+  price: number | string
+  description: string | null
+  appleBundleId: string | null
+  isActive: boolean
+  translations: ClientSlotBundleTranslation[]
+  createdAt?: string
+  updatedAt?: string
+}
+
+export function getClientSlotBundles(): Promise<ClientSlotBundle[]> {
+  return cachedFetch('/client-slot-bundles', () => apiFetch('/client-slot-bundles'))
 }
 
 export function getSiteSettings(): Promise<SiteSettings> {

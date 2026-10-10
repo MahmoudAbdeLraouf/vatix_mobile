@@ -7,6 +7,8 @@ export const SKU_SUBSCRIPTION_STORE_PLUS = 'com.vatix.app.subscription.store_plu
 export const SKU_PROMOTION_1AD = 'com.vatix.app.promo.1ad'
 export const SKU_PROMOTION_3ADS = 'com.vatix.app.promo.3ads'
 export const SKU_PROMOTION_5ADS = 'com.vatix.app.promo.5ads'
+export const SKU_SLOTS_5 = 'com.vatix.slots.5'
+export const SKU_SLOTS_10 = 'com.vatix.slots.10'
 
 // Backend PaymentType values (mirrors PaymentType in vatix_backend
 // src/payments/entities/payment.entity.ts). The verify endpoint keys off these
@@ -17,6 +19,7 @@ export type BackendPaymentType =
   | 'promotion_1ad'
   | 'promotion_3ads'
   | 'promotion_5ads'
+  | 'client_slot_bundle'
 
 export type IapProduct = {
   sku: string
@@ -58,6 +61,18 @@ export const IAP_PRODUCTS: Record<string, IapProduct> = {
     paymentType: 'promotion_5ads',
     isConsumable: true,
   },
+  [SKU_SLOTS_5]: {
+    sku: SKU_SLOTS_5,
+    type: 'in-app',
+    paymentType: 'client_slot_bundle',
+    isConsumable: true,
+  },
+  [SKU_SLOTS_10]: {
+    sku: SKU_SLOTS_10,
+    type: 'in-app',
+    paymentType: 'client_slot_bundle',
+    isConsumable: true,
+  },
 }
 
 export const SUBSCRIPTION_SKUS: string[] = [
@@ -69,6 +84,11 @@ export const PROMOTION_SKUS: string[] = [
   SKU_PROMOTION_1AD,
   SKU_PROMOTION_3ADS,
   SKU_PROMOTION_5ADS,
+]
+
+export const SLOT_SKUS: string[] = [
+  SKU_SLOTS_5,
+  SKU_SLOTS_10,
 ]
 
 export function getIapProduct(sku: string): IapProduct | undefined {
@@ -87,6 +107,10 @@ export function promotionSkuForCount(count: 1 | 3 | 5): string {
   return SKU_PROMOTION_1AD
 }
 
+export function slotSkuForCount(count: 5 | 10): string {
+  return count === 10 ? SKU_SLOTS_10 : SKU_SLOTS_5
+}
+
 // EGP prices matching the tiers configured in App Store Connect.
 // Why: Apple takes ~25.4% commission in Egypt (proceeds/customerPrice ≈ 0.7456),
 // so tiers are chosen where proceeds roughly equal the backend price
@@ -99,6 +123,8 @@ export const IOS_FALLBACK_PRICE_EGP: Record<string, number> = {
   [SKU_PROMOTION_1AD]: 199.99,
   [SKU_PROMOTION_3ADS]: 519.99,
   [SKU_PROMOTION_5ADS]: 699.99,
+  [SKU_SLOTS_5]: 199.99,
+  [SKU_SLOTS_10]: 329.99,
 }
 
 export function iosFallbackDisplayPrice(sku: string): string | undefined {

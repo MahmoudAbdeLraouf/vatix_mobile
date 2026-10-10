@@ -47,6 +47,7 @@ const NAV: NavItem[] = [
   { href: '/dashboard/branches',     labelKey: 'branches',      icon: 'business-outline',        emoji: '🏢', kind: 'storePlusOnly' },
   { href: '/dashboard/messages',     labelKey: 'messages',      icon: 'chatbubble-outline',      emoji: '💬', kind: 'all', badgeKey: 'unread' },
   { href: '/dashboard/my-ads',       labelKey: 'myAds',         icon: 'list-outline',            emoji: '📋', kind: 'all' },
+  { href: '/dashboard/buy-slots',    labelKey: 'buySlotsNav',   icon: 'ticket-outline',          emoji: '🎟️', kind: 'clientOnly' },
   { href: '/dashboard/favorites',    labelKey: 'favorites',     icon: 'heart-outline',           emoji: '❤️', kind: 'all' },
   { href: '/dashboard/following',    labelKey: 'following',     icon: 'people-outline',          emoji: '🏬', kind: 'all' },
   { href: '/dashboard/promote',      labelKey: 'promote',       icon: 'star-outline',            emoji: '⭐', kind: 'all' },

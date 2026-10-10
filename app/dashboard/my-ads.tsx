@@ -53,6 +53,7 @@ export default function MyAdsScreen() {
   const [noCreditsProduct, setNoCreditsProduct] = useState<Product | null>(null)
   const [bundles, setBundles] = useState<Bundle[]>([])
   const [settings, setSettings] = useState<SiteSettings | null>(null)
+  const [extraSlots, setExtraSlots] = useState(0)
 
   // Inline bundle-buy payment modal state (mirrors website's instapayFor popover)
   const [payFor, setPayFor] = useState<{ product: Product; bundle: Bundle } | null>(null)
@@ -75,7 +76,7 @@ export default function MyAdsScreen() {
 
   const limit = isStore
     ? settings?.maxActiveProductsPerStore ?? 50
-    : settings?.maxProductsPerClient ?? 10
+    : (settings?.maxProductsPerClient ?? 10) + extraSlots
   const fmt = (n: number | string) =>
     Number(n ?? 0).toLocaleString(ar ? 'ar-EG' : 'en-EG')
 
@@ -87,6 +88,12 @@ export default function MyAdsScreen() {
     } catch (e) {
       setError(e as Error)
       setProducts([])
+    }
+    try {
+      const profile = await authFetch<{ extraProductSlots?: number }>('/user/profile')
+      setExtraSlots(Number(profile?.extraProductSlots ?? 0))
+    } catch {
+      // non-critical
     }
   }, [])
 
@@ -264,31 +271,70 @@ export default function MyAdsScreen() {
                     ? `${fmt(usedForLimit)} من ${fmt(limit)}${isStore ? ' (نشط)' : ''}`
                     : `${fmt(usedForLimit)} of ${fmt(limit)}${isStore ? ' (active)' : ''}`}
               </Text>
+              {!isStore && extraSlots > 0 && (
+                <View style={styles.extraChip}>
+                  <Ionicons name="ticket" size={12} color={colors.dk} />
+                  <Text style={styles.extraChipText}>
+                    {ar ? `+${fmt(extraSlots)} إضافي` : `+${fmt(extraSlots)} extra`}
+                  </Text>
+                </View>
+              )}
             </View>
-            <Pressable
-              onPress={() => !isAtLimit && router.push('/products/add')}
-              disabled={isAtLimit}
-              style={({ pressed }) => [
-                styles.postCta,
-                isAtLimit && styles.postCtaDisabled,
-                pressed && !isAtLimit && { opacity: 0.85 },
-              ]}
-              accessibilityRole="button"
-            >
-              <Ionicons
-                name={isAtLimit ? 'lock-closed' : 'add'}
-                size={16}
-                color={isAtLimit ? colors.g500 : colors.dk}
-              />
-              <Text
-                style={[
-                  styles.postCtaText,
-                  isAtLimit && { color: colors.g500 },
-                ]}
-              >
-                {ar ? 'إضافة إعلان' : 'Post Ad'}
-              </Text>
-            </Pressable>
+            {(() => {
+              const iosClientAtLimit = !isStore && IS_IOS && isAtLimit
+              // Non-iOS clients hit a hard cap; iOS clients can top up slots via IAP.
+              const postCtaDisabled = isAtLimit && !iosClientAtLimit
+              return (
+                <View style={styles.ctaGroup}>
+                  {iosClientAtLimit && (
+                    <Pressable
+                      onPress={() => router.push('/dashboard/buy-slots?resumeTo=add')}
+                      style={({ pressed }) => [
+                        styles.buySlotsChip,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                      accessibilityRole="button"
+                    >
+                      <Ionicons name="ticket" size={14} color={colors.dk} />
+                      <Text style={styles.buySlotsChipText}>
+                        {ar ? 'شراء خانات' : 'Buy slots'}
+                      </Text>
+                    </Pressable>
+                  )}
+                  <Pressable
+                    onPress={() => {
+                      if (iosClientAtLimit) {
+                        router.push('/dashboard/buy-slots?resumeTo=add')
+                        return
+                      }
+                      if (isAtLimit) return
+                      router.push('/products/add')
+                    }}
+                    disabled={postCtaDisabled}
+                    style={({ pressed }) => [
+                      styles.postCta,
+                      postCtaDisabled && styles.postCtaDisabled,
+                      pressed && !postCtaDisabled && { opacity: 0.85 },
+                    ]}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons
+                      name={postCtaDisabled ? 'lock-closed' : 'add'}
+                      size={16}
+                      color={postCtaDisabled ? colors.g500 : colors.dk}
+                    />
+                    <Text
+                      style={[
+                        styles.postCtaText,
+                        postCtaDisabled && { color: colors.g500 },
+                      ]}
+                    >
+                      {ar ? 'إضافة إعلان' : 'Post Ad'}
+                    </Text>
+                  </Pressable>
+                </View>
+              )
+            })()}
           </View>
 
           {/* Progress bar */}
@@ -1070,6 +1116,44 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semiBold,
     fontSize: 12,
     color: colors.g500,
+  },
+  extraChip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+    backgroundColor: colors.yl,
+  },
+  extraChipText: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.dk,
+  },
+  ctaGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+  },
+  buySlotsChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.yl,
+    borderWidth: 1,
+    borderColor: colors.y,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+  },
+  buySlotsChipText: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.dk,
   },
   postCta: {
     flexDirection: 'row',

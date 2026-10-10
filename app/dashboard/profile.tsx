@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   StyleSheet,
@@ -6,11 +6,12 @@ import {
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { router, useFocusEffect } from 'expo-router'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
-import type { UserProfile } from '@/lib/api'
+import { getSiteSettings, type Product, type SiteSettings, type UserProfile } from '@/lib/api'
 import { authFetch, authPost } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -40,12 +41,17 @@ export default function ProfileScreen() {
   const [storeName, setStoreName] = useState('')
   const [contactPhone, setContactPhone] = useState('')
 
+  const [extraSlots, setExtraSlots] = useState(0)
+  const [settings, setSettings] = useState<SiteSettings | null>(null)
+  const [activeCount, setActiveCount] = useState(0)
+
   async function loadProfile() {
     setLoadError(false)
     try {
       const data = await authFetch<UserProfile>('/user/profile')
       if (data) {
         setContactPhone(data.contactPhone ?? '')
+        setExtraSlots(Number(data.extraProductSlots ?? 0))
         if (isStore) {
           setStoreName(data.storeProfile?.name ?? '')
         } else {
@@ -62,6 +68,43 @@ export default function ProfileScreen() {
     setLoading(true)
     loadProfile().finally(() => setLoading(false))
   }, [isStore])
+
+  useEffect(() => {
+    getSiteSettings().then(setSettings).catch(() => {})
+  }, [])
+
+  // Why: /user/profile is also reloaded here (as part of refreshCapacity)
+  // so that an iOS Apple-IAP slot purchase in /dashboard/buy-slots is
+  // reflected the moment the user returns to this screen — without
+  // clobbering any in-progress edits in the form fields below.
+  const refreshCapacity = useCallback(async () => {
+    if (isStore) return
+    try {
+      const list = await authFetch<Product[]>('/products/mine')
+      setActiveCount((list ?? []).filter((p) => p.isActive).length)
+    } catch {
+      // non-critical for the capacity card
+    }
+    try {
+      const data = await authFetch<UserProfile>('/user/profile')
+      setExtraSlots(Number(data?.extraProductSlots ?? 0))
+    } catch {
+      // non-critical for the capacity card
+    }
+  }, [isStore])
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshCapacity()
+    }, [refreshCapacity]),
+  )
+
+  const maxClient = settings?.maxProductsPerClient ?? 10
+  const capLimit = maxClient + extraSlots
+  const capPct = capLimit > 0 ? Math.min(100, Math.round((activeCount / capLimit) * 100)) : 0
+  const capAtLimit = activeCount >= capLimit
+  const capFillColor = capAtLimit ? colors.red : capPct >= 80 ? colors.orange : colors.y
+  const fmtNum = (n: number) => Number(n ?? 0).toLocaleString(ar ? 'ar-EG' : 'en-EG')
 
   const retryLoad = () => {
     setLoading(true)
@@ -152,6 +195,55 @@ export default function ProfileScreen() {
                 </View>
               </View>
             </View>
+
+            {/* Listing capacity — client only */}
+            {!isStore && (
+              <View style={[styles.card, dirContainer]}>
+                <SectionHeader
+                  icon="layers-outline"
+                  title={ar ? 'سعة الإعلانات' : 'Listing capacity'}
+                  dirStyle={dirStyle}
+                />
+                <View style={[styles.capRow, dirContainer]}>
+                  <Text style={[styles.capUsed, dirStyle]}>
+                    {fmtNum(activeCount)}
+                    <Text style={styles.capSep}> / </Text>
+                    <Text style={styles.capLimit}>{fmtNum(capLimit)}</Text>
+                  </Text>
+                  {extraSlots > 0 && (
+                    <View style={styles.extraChip}>
+                      <Ionicons name="ticket" size={12} color={colors.dk} />
+                      <Text style={styles.extraChipText}>
+                        {ar ? `+${fmtNum(extraSlots)} إضافي` : `+${fmtNum(extraSlots)} extra`}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.capTrack}>
+                  <View
+                    style={[styles.capFill, { width: `${capPct}%`, backgroundColor: capFillColor }]}
+                  />
+                </View>
+                <Text style={[styles.capHint, dirStyle]}>
+                  {capAtLimit
+                    ? ar
+                      ? 'لقد وصلت إلى الحد الأقصى. اشترِ خانات إضافية لنشر المزيد.'
+                      : "You've reached your limit. Buy more slots to keep posting."
+                    : ar
+                      ? 'يمكنك شراء خانات إضافية لنشر المزيد من الإعلانات.'
+                      : 'Buy more slots to post more listings.'}
+                </Text>
+                <View style={styles.capCtaWrap}>
+                  <Button
+                    label={ar ? 'شراء خانات إضافية' : 'Buy more slots'}
+                    onPress={() => router.push('/dashboard/buy-slots')}
+                    variant="primary"
+                    size="md"
+                    leftIcon={<Ionicons name="ticket-outline" size={16} color={colors.dk} />}
+                  />
+                </View>
+              </View>
+            )}
 
             {/* Personal Info */}
             <View style={[styles.card, dirContainer]}>
@@ -518,6 +610,65 @@ const styles = StyleSheet.create({
   },
   waEmoji: {
     fontSize: 16,
+  },
+
+  // Capacity card
+  capRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  capUsed: {
+    fontFamily: fonts.black,
+    fontSize: 22,
+    color: colors.dk,
+  },
+  capSep: {
+    fontFamily: fonts.semiBold,
+    fontSize: 18,
+    color: colors.g400,
+  },
+  capLimit: {
+    fontFamily: fonts.semiBold,
+    fontSize: 18,
+    color: colors.g500,
+  },
+  extraChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.yl,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: colors.y,
+  },
+  extraChipText: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.dk,
+  },
+  capTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.g100,
+    overflow: 'hidden',
+  },
+  capFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  capHint: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.g500,
+    marginTop: spacing.sm,
+  },
+  capCtaWrap: {
+    marginTop: spacing.md,
   },
 
   // Message

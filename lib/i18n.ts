@@ -122,6 +122,7 @@ export interface Translations {
   branches: string
   promotions: string
   invoices: string
+  buySlotsNav: string
   sectionActivity: string
   sectionAccount: string
   sectionGeneral: string
@@ -551,6 +552,52 @@ export interface Translations {
     positiveCta: string
     negativeCta: string
   }
+  buySlots: {
+    navLabel: string
+    heading: string
+    description: string
+    extraSlotsOwned: string
+    permanentSlot: string
+    walletBalance: string
+    loading: string
+    noBundles: string
+    perSlotPermanent: string
+    buyArrow: string
+    extraSlotsPermanentSuffix: string
+    capReachedTitle: string
+    capReachedBody: string
+    capReachedCta: string
+    choosePaymentMethod: string
+    payWithWallet: string
+    payWithWalletNote: string
+    insufficientWallet: string
+    instantTransfer: string
+    mobileWallet: string
+    walletsListed: string
+    applePayCta: string
+    applePayProcessing: string
+    cancelPayment: string
+    yourPhone: string
+    phonePlaceholder: string
+    transferReceiptPhoto: string
+    imageHint: string
+    sendReceipt: string
+    submitting: string
+    missingScreenshot: string
+    missingPhone: string
+    requestReceivedTitle: string
+    withinHours: string
+    finishAfterApproval: string
+    addListing: string
+    buyAnotherPack: string
+    paymentSuccessTitle: string
+    walletDeductedBody: string
+    appleSuccessBody: string
+    extraSlotsOwnedLabel: string
+    remainingWalletBalance: string
+    redirectingToListing: string
+    paymentFailed: string
+  }
   expiredRecovery: {
     title: string
     subtitle: string
@@ -713,6 +760,7 @@ export const translations: Record<Locale, Translations> = {
     branches: 'الفروع',
     promotions: 'الترقيات',
     invoices: 'الفواتير',
+    buySlotsNav: 'شراء خانات',
     sectionActivity: 'نشاطي',
     sectionAccount: 'حسابي',
     sectionGeneral: 'عام',
@@ -1150,6 +1198,52 @@ export const translations: Record<Locale, Translations> = {
       positiveCta: 'نعم، أُقيّم',
       negativeCta: 'أرسل ملاحظة',
     },
+    buySlots: {
+      navLabel: 'إعلانات إضافية',
+      heading: 'اشتري إعلانات إضافية 🎟',
+      description: 'كل إعلان إضافي يرفع الحد الأقصى لإعلاناتك بشكل دائم ولا ينتهي.',
+      extraSlotsOwned: 'إعلانات إضافية مُلكك',
+      permanentSlot: 'إعلان دائم',
+      walletBalance: 'رصيد المحفظة',
+      loading: 'جاري التحميل...',
+      noBundles: 'لا توجد باقات متاحة حالياً.',
+      perSlotPermanent: 'ج.م / إعلان · دائم',
+      buyArrow: 'اشترِ ←',
+      extraSlotsPermanentSuffix: ' إعلان إضافي · دائم',
+      capReachedTitle: 'وصلت للحد الأقصى من الإعلانات',
+      capReachedBody: 'استخدمت كل الإعلانات المتاحة. اشترِ إعلانات إضافية لإكمال نشر إعلانك.',
+      capReachedCta: 'اشترِ إعلانات إضافية',
+      choosePaymentMethod: 'اختر طريقة الدفع:',
+      payWithWallet: 'الدفع من المحفظة',
+      payWithWalletNote: 'سيتم خصم المبلغ من رصيد محفظتك فوراً.',
+      insufficientWallet: 'رصيد المحفظة غير كافٍ',
+      instantTransfer: 'تحويل فوري',
+      mobileWallet: 'محفظة موبايل',
+      walletsListed: 'فودافون · اتصالات · وي',
+      applePayCta: 'ادفع عبر Apple',
+      applePayProcessing: 'جاري إتمام الدفع...',
+      cancelPayment: 'إلغاء',
+      yourPhone: 'رقمك *',
+      phonePlaceholder: '01xxxxxxxxx',
+      transferReceiptPhoto: 'صورة إيصال التحويل *',
+      imageHint: 'JPG · PNG · صورة واضحة',
+      sendReceipt: 'إرسال الإيصال',
+      submitting: 'جاري الإرسال...',
+      missingScreenshot: 'يرجى رفع صورة الإيصال',
+      missingPhone: 'يرجى إدخال رقم الهاتف',
+      requestReceivedTitle: 'تم استلام طلبك!',
+      withinHours: 'سيقوم فريق Vatix بمراجعة التحويل وإضافة الإعلانات الإضافية خلال 24 ساعة.',
+      finishAfterApproval: 'يمكنك إكمال نشر إعلانك بعد الموافقة.',
+      addListing: 'أضف إعلان',
+      buyAnotherPack: 'اشترِ باقة أخرى ←',
+      paymentSuccessTitle: 'تم الدفع بنجاح!',
+      walletDeductedBody: 'تم خصم المبلغ من محفظتك وإضافة الإعلانات الإضافية فوراً.',
+      appleSuccessBody: 'تم تأكيد الدفع عبر App Store وإضافة الإعلانات الإضافية فوراً.',
+      extraSlotsOwnedLabel: 'الإعلانات الإضافية المُلكك:',
+      remainingWalletBalance: 'رصيد المحفظة المتبقي:',
+      redirectingToListing: 'جاري توجيهك لإكمال الإعلان...',
+      paymentFailed: 'فشل الدفع، حاول مرة أخرى',
+    },
     expiredRecovery: {
       title: 'انتهى اشتراكك',
       subtitle: 'اختر كيف تريد المتابعة',
@@ -1310,6 +1404,7 @@ export const translations: Record<Locale, Translations> = {
     branches: 'Branches',
     promotions: 'Promotions',
     invoices: 'Invoices',
+    buySlotsNav: 'Buy Slots',
     sectionActivity: 'My Activity',
     sectionAccount: 'My Account',
     sectionGeneral: 'General',
@@ -1746,6 +1841,52 @@ export const translations: Record<Locale, Translations> = {
       body: 'Your feedback matters. If you love the experience, rate us on the store — if not, tell us what could be better.',
       positiveCta: 'Yes, rate it',
       negativeCta: 'Send feedback',
+    },
+    buySlots: {
+      navLabel: 'Extra Ad Slots',
+      heading: 'Buy Extra Ad Slots 🎟',
+      description: 'Each extra slot permanently raises your listing cap — it never expires.',
+      extraSlotsOwned: 'Extra Ad Slots Owned',
+      permanentSlot: 'permanent slot',
+      walletBalance: 'Wallet Balance',
+      loading: 'Loading...',
+      noBundles: 'No bundles available right now.',
+      perSlotPermanent: 'EGP / slot · permanent',
+      buyArrow: 'Buy →',
+      extraSlotsPermanentSuffix: ' extra slots · permanent',
+      capReachedTitle: 'Listing cap reached',
+      capReachedBody: "You've used all your available ad slots. Buy extra slots to finish posting your listing.",
+      capReachedCta: 'Buy extra slots',
+      choosePaymentMethod: 'Choose payment method:',
+      payWithWallet: 'Pay from Wallet',
+      payWithWalletNote: 'Amount is deducted from your wallet balance instantly.',
+      insufficientWallet: 'Insufficient wallet balance',
+      instantTransfer: 'Instant Transfer',
+      mobileWallet: 'Mobile Wallet',
+      walletsListed: 'Vodafone · Etisalat · WE',
+      applePayCta: 'Pay with Apple',
+      applePayProcessing: 'Processing payment…',
+      cancelPayment: 'Cancel',
+      yourPhone: 'Your Phone *',
+      phonePlaceholder: '01xxxxxxxxx',
+      transferReceiptPhoto: 'Transfer Receipt Photo *',
+      imageHint: 'JPG · PNG · clear image',
+      sendReceipt: 'Send Receipt',
+      submitting: 'Submitting…',
+      missingScreenshot: 'Please upload the receipt photo',
+      missingPhone: 'Please enter your phone number',
+      requestReceivedTitle: 'Request Received!',
+      withinHours: 'Vatix team will review the transfer and add your extra slots within 24 hours.',
+      finishAfterApproval: 'You can finish posting your ad after approval.',
+      addListing: 'Add Listing',
+      buyAnotherPack: 'Buy Another Pack →',
+      paymentSuccessTitle: 'Payment Successful!',
+      walletDeductedBody: 'Amount deducted from your wallet and extra slots added instantly.',
+      appleSuccessBody: 'Apple Pay confirmed and extra slots added instantly.',
+      extraSlotsOwnedLabel: 'Extra slots owned:',
+      remainingWalletBalance: 'Remaining wallet balance:',
+      redirectingToListing: 'Redirecting to continue your listing…',
+      paymentFailed: 'Payment failed, please try again',
     },
     expiredRecovery: {
       title: 'Your subscription has expired',

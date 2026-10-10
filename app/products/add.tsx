@@ -281,6 +281,11 @@ export default function AddProductScreen() {
       })
       setPublishedId(created?.id ?? '')
     } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : ''
+      if (msg.includes('CLIENT_PRODUCT_CAP_REACHED') || msg.includes('وصلت للحد الأقصى')) {
+        router.push('/dashboard/buy-slots?resumeTo=add')
+        return
+      }
       setError(authErrorMessage(e, t))
     } finally {
       setSubmitting(false)
