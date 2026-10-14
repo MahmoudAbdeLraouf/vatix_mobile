@@ -25,6 +25,8 @@ import {
   expiredPayInstapay,
   expiredPayMobileWallet,
   getSiteSettings,
+  getSubscriptionPlans,
+  type PlanData,
   uploadPublic,
 } from '@/lib/api'
 import { AUTH_ERR, authErrorMessage } from '@/lib/auth'
@@ -50,11 +52,12 @@ import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { IS_IOS, PAID_UI_ENABLED } from '@/lib/platform'
 
-// Display fallback amounts — the backend is the source of truth at insert time
-// (resolves the SubscriptionPlan row by { storeType, billingCycle }). These
-// values just prime the QR / wallet cards while the user picks a cycle.
+// Last-resort fallback used only if the plans fetch fails or no matching plan
+// is active. Normally the dialog resolves the price from `/subscriptions/plans`
+// so admin updates to SubscriptionPlan.price are reflected in the QR / wallet
+// cards without a mobile release.
 const AMOUNT_BY_TYPE_CYCLE: Record<'store' | 'store_plus', Record<BillingCycle, number>> = {
-  store: { monthly: 300, yearly: 3000 },
+  store: { monthly: 450, yearly: 4500 },
   store_plus: { monthly: 500, yearly: 5000 },
 }
 
@@ -123,8 +126,18 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
   const [iosPriceMap, setIosPriceMap] = useState<
     Record<string, { price: number; currency: string } | undefined>
   >({})
+  const [plans, setPlans] = useState<PlanData[] | null>(null)
 
-  const amount = AMOUNT_BY_TYPE_CYCLE[storeType][cycle]
+  const planPrice = (() => {
+    if (!plans) return null
+    const match = plans.find(
+      (p) => p.isActive && p.storeType === storeType && (p.billingCycle ?? 'monthly') === cycle,
+    )
+    if (!match) return null
+    const n = typeof match.price === 'string' ? Number(match.price) : match.price
+    return Number.isFinite(n) ? n : null
+  })()
+  const amount = planPrice ?? AMOUNT_BY_TYPE_CYCLE[storeType][cycle]
   const showCyclePicker = storeType === 'store_plus' && !IS_IOS
 
   useEffect(() => {
@@ -153,6 +166,14 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
       })
       .catch(() => {
         /* keep defaults on failure — instapay remains enabled */
+      })
+    getSubscriptionPlans()
+      .then((list) => {
+        if (cancelled) return
+        setPlans(list)
+      })
+      .catch(() => {
+        /* fall back to AMOUNT_BY_TYPE_CYCLE at render time */
       })
     return () => {
       cancelled = true

@@ -63,7 +63,7 @@ export default function PricingScreen() {
   }, [])
 
   const storeMonthly = useMemo(
-    () => Number(plans.find((p) => p.storeType === 'store')?.price ?? 300),
+    () => Number(plans.find((p) => p.storeType === 'store')?.price ?? 450),
     [plans],
   )
   const plusMonthly = useMemo(

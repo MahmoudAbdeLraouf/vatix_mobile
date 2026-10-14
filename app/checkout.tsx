@@ -72,7 +72,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
 }
 
 const PLAN_META: Record<SubscriptionType, { fallbackPrice: number; storeType: string }> = {
-  subscription_store: { fallbackPrice: 300, storeType: 'store' },
+  subscription_store: { fallbackPrice: 450, storeType: 'store' },
   subscription_store_plus: { fallbackPrice: 500, storeType: 'store_plus' },
 }
 

@@ -157,7 +157,7 @@ export default function SubscriptionScreen() {
         subPlans.find(
           p =>
             p.storeType === 'store' && (p.billingCycle ?? 'monthly') === 'monthly',
-        )?.price ?? 300,
+        )?.price ?? 450,
       ),
     [subPlans],
   )

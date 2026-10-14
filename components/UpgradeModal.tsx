@@ -101,7 +101,7 @@ const PLAN_META: Record<
 > = {
   store: {
     code: 'subscription_store',
-    fallbackPrice: { monthly: 300, yearly: 3000 },
+    fallbackPrice: { monthly: 450, yearly: 4500 },
   },
   store_plus: {
     code: 'subscription_store_plus',
