@@ -511,6 +511,99 @@ export interface Translations {
     dismiss: string
     cta: string
   }
+  importProducts: {
+    chooserTitle: string
+    chooserSubtitle: string
+    optManual: string
+    optShopify: string
+    optEasyOrders: string
+    optExcel: string
+    backToOptions: string
+    shopifyTitle: string
+    easyOrdersTitle: string
+    excelTitle: string
+    loading: string
+    connectedSince: string
+    disconnect: string
+    disconnectConfirmTitle: string
+    disconnectConfirmBody: string
+    cancel: string
+    defaultCategory: string
+    defaultBrand: string
+    defaultsHint: string
+    category: string
+    brand: string
+    selectCategory: string
+    selectBrand: string
+    removeRow: string
+    rowLabel: string
+    noTitle: string
+    currency: string
+    rowsCount: string
+    noRows: string
+    errorsHeading: string
+    loadMore: string
+    confirmBtn: string
+    saving: string
+    importedTitle: string
+    importedBody: string
+    pickCategoryForEachRow: string
+    pickBrandForEachRow: string
+    fixErrors: string
+    loadFailed: string
+    saveFailed: string
+    rateLimited: string
+    categoryNotFound: string
+    brandNotFound: string
+    capReached: string
+    ok: string
+    shopLabel: string
+    shopPlaceholder: string
+    shopHint: string
+    shopInvalid: string
+    shopConnectBtn: string
+    shopConnectedTo: string
+    shopLoadBtn: string
+    shopReconnectNeeded: string
+    shopFirstBatchHint: string
+    eoConnectLabel: string
+    eoApiKeyLabel: string
+    eoApiKeyPlaceholder: string
+    eoApiKeyRequired: string
+    eoConnectBtn: string
+    eoConnected: string
+    eoLoadBtn: string
+    eoReconnectNeeded: string
+    eoInvalidKey: string
+    eoMissingPermission: string
+    eoUpstreamError: string
+    eoStepsTitle: string
+    eoStep1: string
+    eoStep2: string
+    eoStep3: string
+    eoStep4: string
+    eoStep5: string
+    eoOpenDashboard: string
+    excelSubtitle: string
+    excelPickBtn: string
+    excelChangeFile: string
+    excelTemplate: string
+    excelTemplateHint: string
+    excelXlsUnsupported: string
+    excelUnsupported: string
+    excelReadFailed: string
+    excelEmpty: string
+    mapHeading: string
+    mapTitle: string
+    mapDescription: string
+    mapPrice: string
+    mapImages: string
+    mapNone: string
+    mapPlaceholder: string
+    mapRequiredHint: string
+    previewBtn: string
+    uploadFailed: string
+  }
   subscriptionExpiring: {
     title: string
     body: string
@@ -1157,6 +1250,99 @@ export const translations: Record<Locale, Translations> = {
       dismiss: 'لاحقاً',
       cta: 'إضافة إعلان',
     },
+    importProducts: {
+      chooserTitle: 'منتجاتك موجودة فين دلوقتي؟',
+      chooserSubtitle: 'اختار الطريقة الأنسب ليك لإضافة منتجاتك.',
+      optManual: 'مش موجودة في أي حتة، هضيفها بنفسي',
+      optShopify: 'عندي متجر على Shopify',
+      optEasyOrders: 'عندي متجر على EasyOrders',
+      optExcel: 'عندي شيت Excel بالمنتجات',
+      backToOptions: 'رجوع لاختيار طريقة الإضافة',
+      shopifyTitle: 'استيراد من Shopify',
+      easyOrdersTitle: 'استيراد من Easy Orders',
+      excelTitle: 'استيراد من Excel / CSV',
+      loading: 'جارٍ التحميل…',
+      connectedSince: 'متصل منذ {date}',
+      disconnect: 'فصل',
+      disconnectConfirmTitle: 'فصل الحساب؟',
+      disconnectConfirmBody: 'لن تُحذف المنتجات التي استوردتها. يمكنك الربط مرة أخرى في أي وقت.',
+      cancel: 'إلغاء',
+      defaultCategory: 'التصنيف الافتراضي',
+      defaultBrand: 'الماركة الافتراضية',
+      defaultsHint: 'يُطبَّق على كل المنتجات، ويمكنك تغييره لكل منتج.',
+      category: 'التصنيف',
+      brand: 'الماركة',
+      selectCategory: 'اختر التصنيف',
+      selectBrand: 'اختر الماركة',
+      removeRow: 'حذف من الاستيراد',
+      rowLabel: 'الصف {row}',
+      noTitle: '(بدون عنوان)',
+      currency: 'ج.م',
+      rowsCount: '{count} منتج جاهز للاستيراد',
+      noRows: 'لا توجد منتجات للاستيراد.',
+      errorsHeading: 'أخطاء',
+      loadMore: 'تحميل المزيد',
+      confirmBtn: 'تأكيد واستيراد {count} منتج',
+      saving: 'جارٍ الحفظ…',
+      importedTitle: 'تم الاستيراد',
+      importedBody: 'تم استيراد {count} منتج بنجاح.',
+      pickCategoryForEachRow: 'يرجى اختيار تصنيف لكل منتج للمتابعة.',
+      pickBrandForEachRow: 'يرجى اختيار ماركة لكل منتج للمتابعة.',
+      fixErrors: 'يرجى إصلاح الأخطاء في الملف وإعادة الرفع.',
+      loadFailed: 'تعذر تحميل المنتجات. حاول مرة أخرى.',
+      saveFailed: 'فشل حفظ المنتجات',
+      rateLimited: 'تم تجاوز حد الطلبات. حاول مرة أخرى بعد {seconds} ثانية.',
+      categoryNotFound: 'التصنيف غير موجود في الصف {row}.',
+      brandNotFound: 'الماركة غير موجودة في الصف {row}.',
+      capReached: 'وصلت للحد الأقصى من الإعلانات. اشترِ مساحات إضافية للمتابعة.',
+      ok: 'حسناً',
+      shopLabel: 'نطاق متجر Shopify',
+      shopPlaceholder: 'my-store',
+      shopHint: 'اكتب اسم متجرك كما يظهر في رابط myshopify.com.',
+      shopInvalid: 'اسم المتجر غير صالح.',
+      shopConnectBtn: 'ربط Shopify',
+      shopConnectedTo: 'متصل بـ {shop}',
+      shopLoadBtn: 'تحميل المنتجات من Shopify',
+      shopReconnectNeeded: 'انتهت صلاحية الاتصال بـ Shopify. أعد الاتصال للمتابعة.',
+      shopFirstBatchHint: 'يتم عرض أول 50 منتج. استورد ثم حمّل مرة أخرى لاستيراد الباقي.',
+      eoConnectLabel: 'ربط حساب Easy Orders',
+      eoApiKeyLabel: 'مفتاح واجهة البرمجة (Api-Key)',
+      eoApiKeyPlaceholder: 'ألصق مفتاح Api-Key الخاص بك',
+      eoApiKeyRequired: 'يرجى إدخال مفتاح Api-Key صحيح.',
+      eoConnectBtn: 'ربط Easy Orders',
+      eoConnected: 'متصل بـ Easy Orders',
+      eoLoadBtn: 'تحميل المنتجات من Easy Orders',
+      eoReconnectNeeded: 'انتهت صلاحية الاتصال بـ Easy Orders. أعد الاتصال للمتابعة.',
+      eoInvalidKey: 'مفتاح Easy Orders غير صالح. راجع لوحة التحكم ثم حاول مرة أخرى.',
+      eoMissingPermission: 'المفتاح لا يملك صلاحية قراءة المنتجات. فعّل صلاحية المنتجات للمفتاح في Easy Orders ثم حاول مرة أخرى.',
+      eoUpstreamError: 'تعذّر الاتصال بـ Easy Orders حالياً. حاول مرة أخرى لاحقاً.',
+      eoStepsTitle: 'كيفية الحصول على مفتاح Api-Key',
+      eoStep1: 'من لوحة تحكم Easy Orders افتح "الإعدادات".',
+      eoStep2: 'اختر "Public API" من القائمة.',
+      eoStep3: 'اضغط "إنشاء" لإنشاء مفتاح API جديد.',
+      eoStep4: 'فعّل صلاحية "عرض جميع المنتجات" (list all products) واحفظ.',
+      eoStep5: 'انسخ المفتاح وألصقه هنا، ثم اضغط ربط Easy Orders.',
+      eoOpenDashboard: 'فتح لوحة تحكم Easy Orders',
+      excelSubtitle: 'ارفع ملف Excel (.xlsx) أو CSV يحتوي على المنتجات لمعاينة البيانات قبل الحفظ.',
+      excelPickBtn: 'اختر ملف Excel أو CSV',
+      excelChangeFile: 'تغيير الملف',
+      excelTemplate: 'تحميل قالب CSV',
+      excelTemplateHint: 'عمود الصور يحتوي روابط مفصولة بـ |، أما التصنيف والماركة فيتم اختيارهما بعد الرفع.',
+      excelXlsUnsupported: 'صيغة .xls القديمة غير مدعومة. احفظ الملف بصيغة .xlsx أو CSV.',
+      excelUnsupported: 'يرجى اختيار ملف .xlsx أو .csv.',
+      excelReadFailed: 'تعذّرت قراءة الملف.',
+      excelEmpty: 'الملف فارغ.',
+      mapHeading: 'ربط الأعمدة',
+      mapTitle: 'العنوان',
+      mapDescription: 'الوصف',
+      mapPrice: 'السعر',
+      mapImages: 'الصور',
+      mapNone: '— بدون —',
+      mapPlaceholder: '— اختر العمود —',
+      mapRequiredHint: 'اربط الأعمدة المطلوبة (العنوان، السعر) للمتابعة.',
+      previewBtn: 'معاينة',
+      uploadFailed: 'فشل رفع الملف',
+    },
     subscriptionExpiring: {
       title: 'اشتراكك على وشك الانتهاء',
       body: 'ينتهي اشتراك متجرك في {date}. للتجديد التلقائي، تأكد من وجود رصيد كافٍ في محفظتك قبل هذا التاريخ.',
@@ -1800,6 +1986,99 @@ export const translations: Record<Locale, Translations> = {
       body: 'Every new listing opens the door to a new customer. Add your product now — it only takes a few minutes and goes live on Vatix instantly.',
       dismiss: 'Later',
       cta: 'Add product',
+    },
+    importProducts: {
+      chooserTitle: 'Where are your products right now?',
+      chooserSubtitle: 'Pick the easiest way to add your products.',
+      optManual: 'They\'re not anywhere yet, I\'ll add them myself',
+      optShopify: 'I have a Shopify store',
+      optEasyOrders: 'I have an EasyOrders store',
+      optExcel: 'I have an Excel sheet with my products',
+      backToOptions: 'Back to add options',
+      shopifyTitle: 'Import from Shopify',
+      easyOrdersTitle: 'Import from Easy Orders',
+      excelTitle: 'Import from Excel / CSV',
+      loading: 'Loading…',
+      connectedSince: 'Connected since {date}',
+      disconnect: 'Disconnect',
+      disconnectConfirmTitle: 'Disconnect account?',
+      disconnectConfirmBody: 'Products you already imported won\'t be deleted. You can reconnect any time.',
+      cancel: 'Cancel',
+      defaultCategory: 'Default category',
+      defaultBrand: 'Default brand',
+      defaultsHint: 'Applied to every product — you can change it per product.',
+      category: 'Category',
+      brand: 'Brand',
+      selectCategory: 'Select category',
+      selectBrand: 'Select brand',
+      removeRow: 'Remove from import',
+      rowLabel: 'Row {row}',
+      noTitle: '(untitled)',
+      currency: 'EGP',
+      rowsCount: '{count} products ready to import',
+      noRows: 'No products to import.',
+      errorsHeading: 'Errors',
+      loadMore: 'Load more',
+      confirmBtn: 'Confirm & import {count} products',
+      saving: 'Saving…',
+      importedTitle: 'Imported',
+      importedBody: 'Imported {count} products successfully.',
+      pickCategoryForEachRow: 'Pick a category for every product to continue.',
+      pickBrandForEachRow: 'Pick a brand for every product to continue.',
+      fixErrors: 'Please fix the errors in your file and re-upload.',
+      loadFailed: 'Could not load products. Please try again.',
+      saveFailed: 'Save failed',
+      rateLimited: 'Rate limit exceeded. Try again in {seconds} seconds.',
+      categoryNotFound: 'Category not found on row {row}.',
+      brandNotFound: 'Brand not found on row {row}.',
+      capReached: 'You\'ve reached your listing limit. Buy extra slots to continue.',
+      ok: 'OK',
+      shopLabel: 'Shopify store domain',
+      shopPlaceholder: 'my-store',
+      shopHint: 'Type your store name as it appears in your myshopify.com link.',
+      shopInvalid: 'Invalid store name.',
+      shopConnectBtn: 'Connect Shopify',
+      shopConnectedTo: 'Connected to {shop}',
+      shopLoadBtn: 'Load products from Shopify',
+      shopReconnectNeeded: 'Your Shopify connection has expired. Please reconnect to continue.',
+      shopFirstBatchHint: 'Showing the first 50 products. Import, then load again to import the rest.',
+      eoConnectLabel: 'Connect your Easy Orders account',
+      eoApiKeyLabel: 'Api-Key',
+      eoApiKeyPlaceholder: 'Paste your Easy Orders Api-Key',
+      eoApiKeyRequired: 'Please enter a valid Api-Key.',
+      eoConnectBtn: 'Connect Easy Orders',
+      eoConnected: 'Connected to Easy Orders',
+      eoLoadBtn: 'Load products from Easy Orders',
+      eoReconnectNeeded: 'Your Easy Orders connection has expired. Please reconnect to continue.',
+      eoInvalidKey: 'Invalid Easy Orders Api-Key. Check your dashboard and try again.',
+      eoMissingPermission: 'This Api-Key lacks permission to read products. Enable the products permission for the key in Easy Orders and try again.',
+      eoUpstreamError: 'Can\'t reach Easy Orders right now. Please try again later.',
+      eoStepsTitle: 'How to get your Api-Key',
+      eoStep1: 'In your Easy Orders dashboard, open Settings.',
+      eoStep2: 'Choose Public API from the menu.',
+      eoStep3: 'Tap Create (إنشاء) to create a new API key.',
+      eoStep4: 'Check the "list all products" permission, then save.',
+      eoStep5: 'Copy the key, paste it here, and press Connect Easy Orders.',
+      eoOpenDashboard: 'Open Easy Orders dashboard',
+      excelSubtitle: 'Upload an Excel (.xlsx) or CSV file with your products to preview before saving.',
+      excelPickBtn: 'Choose an Excel or CSV file',
+      excelChangeFile: 'Change file',
+      excelTemplate: 'Download CSV template',
+      excelTemplateHint: 'The images column holds pipe-separated (|) URLs; category and brand are picked after upload.',
+      excelXlsUnsupported: 'Legacy .xls files are not supported. Save the file as .xlsx or CSV.',
+      excelUnsupported: 'Please choose a .xlsx or .csv file.',
+      excelReadFailed: 'Could not read the file.',
+      excelEmpty: 'The file is empty.',
+      mapHeading: 'Map your columns',
+      mapTitle: 'Title',
+      mapDescription: 'Description',
+      mapPrice: 'Price',
+      mapImages: 'Images',
+      mapNone: '— None —',
+      mapPlaceholder: '— Select column —',
+      mapRequiredHint: 'Map the required columns (title, price) to continue.',
+      previewBtn: 'Preview',
+      uploadFailed: 'Upload failed',
     },
     subscriptionExpiring: {
       title: 'Your subscription is expiring soon',

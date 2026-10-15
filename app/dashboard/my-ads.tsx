@@ -308,7 +308,7 @@ export default function MyAdsScreen() {
                         return
                       }
                       if (isAtLimit) return
-                      router.push('/products/add')
+                      router.push('/products/new')
                     }}
                     disabled={postCtaDisabled}
                     style={({ pressed }) => [
@@ -385,7 +385,7 @@ export default function MyAdsScreen() {
         <EmptyState
           title={ar ? 'لم تضف إعلانات بعد.' : 'No ads posted yet.'}
           actionLabel={ar ? 'أضف إعلانك الأول' : 'Post your first ad'}
-          onAction={() => router.push('/products/add')}
+          onAction={() => router.push('/products/new')}
         />
       ) : (
         showList && (

@@ -41,6 +41,12 @@ app/
     stores.tsx          Stores grid
     dashboard.tsx       User profile + menu tiles
   products/[id].tsx     Product detail
+  products/new.tsx      "Where are your products?" chooser — manual / Shopify / EasyOrders / Excel
+  products/add.tsx      Manual add-product form (buy-slots resumes here directly, skipping the chooser)
+  products/import/
+    easyorders.tsx      Connect EasyOrders Api-Key → preview → confirm
+    shopify.tsx         Shopify OAuth (expo-web-browser) → preview → confirm
+    excel.tsx           CSV/.xlsx pick (expo-document-picker + SheetJS) → column mapping → preview → confirm
   stores/[id].tsx       Store profile + products
 
 contexts/
@@ -53,11 +59,17 @@ components/
   ui/Logo.tsx           Vatix wordmark + yellow dot
   ProductCard.tsx       Card for product grid/lists
   StoreCard.tsx         Avatar card for store lists
+  import/               Shared import UI: ImportBackLink, DefaultCategoryBrand, ImportRowCard, ImportErrors
+
+hooks/
+  useImportOptions.ts   Category/brand select options for import screens
+  useImportConfirm.ts   Confirm runner (busy/error, cap → buy-slots redirect) + describeImportError
 
 constants/theme.ts      Colors, fonts, spacing, radius, shadow
 lib/auth.ts             Token storage, silent refresh, authFetch/authPost/authPatch/authDelete
 lib/api.ts              All types + public API calls (no auth header)
 lib/i18n.ts             Full ar/en translation strings
+lib/import.ts           Import API calls (Shopify, EasyOrders, CSV) + CSV parse/normalize helpers
 ```
 
 ## Routing Conventions

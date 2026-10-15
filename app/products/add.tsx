@@ -321,6 +321,15 @@ export default function AddProductScreen() {
         onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.y }}
         scrollEventThrottle={16}
       >
+          <Pressable
+            onPress={() => router.replace('/products/new')}
+            style={[styles.backLink, rowDir]}
+            accessibilityRole="link"
+          >
+            <Ionicons name={ar ? 'arrow-forward' : 'arrow-back'} size={16} color={colors.g600} />
+            <Text style={[styles.backLinkText, dirStyle]}>{t.importProducts.backToOptions}</Text>
+          </Pressable>
+
           {/* Hero card */}
           <View style={styles.hero}>
             <View style={styles.heroAccent} />
@@ -680,6 +689,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
     gap: spacing.md,
   },
+  backLink: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'stretch' },
+  backLinkText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.g600 },
 
   /* HERO */
   hero: {

@@ -155,7 +155,7 @@ export default function DashboardScreen() {
           {welcome}
         </Text>
         <Pressable
-          onPress={() => router.push('/products/add')}
+          onPress={() => router.push('/products/new')}
           style={({ pressed }) => [styles.newBtn, pressed && { opacity: 0.85 }]}
           accessibilityRole="button"
         >

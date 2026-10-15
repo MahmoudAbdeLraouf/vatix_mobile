@@ -61,7 +61,7 @@ export function BottomTabBar() {
   const pathname = usePathname() ?? ''
 
   const onAddPress = () => {
-    if (pathname !== '/products/add') router.push('/products/add')
+    if (pathname !== '/products/new' && pathname !== '/products/add') router.push('/products/new')
   }
 
   const go = (href: string) => {

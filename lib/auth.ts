@@ -605,6 +605,71 @@ export async function authUploadFile(localUri: string, mimeType = 'image/jpeg'):
   }
 }
 
+// ─── Raw request (status + body) ─────────────────────────────────────────────
+
+export interface AuthRawResponse {
+  status: number
+  body: any
+}
+
+// Like authFetch but never throws on non-2xx: returns the status and parsed
+// body so callers can read structured error payloads (`code`, `retryAfter`,
+// `rowNumber`). Used by the product import flows. Content-Type is only set by
+// the caller, so FormData bodies get their multipart boundary from fetch.
+// A 401 whose body.code ends in `_RECONNECT_REQUIRED` is a third-party
+// (Shopify/EasyOrders) credential failure, not our JWT — return it as-is
+// instead of refreshing or clearing the session.
+export async function authRawRequest(
+  path: string,
+  init: RequestInit = {},
+  refreshed = false,
+): Promise<AuthRawResponse> {
+  const token = await getValidToken()
+  if (!token) {
+    await clearSession()
+    throw new AuthFetchError(AUTH_ERR.SESSION_EXPIRED, 401)
+  }
+  const method = (init.method ?? 'GET').toUpperCase()
+  const res = await fetchOrThrowNetwork(`${BASE}${path}`, {
+    ...init,
+    headers: {
+      'X-Client-Platform': CLIENT_PLATFORM,
+      Authorization: `Bearer ${token}`,
+      ...(init.headers as Record<string, string> | undefined),
+    },
+  }, method)
+
+  const text = await res.text().catch(() => '')
+  let body: any = null
+  if (text) {
+    try {
+      body = JSON.parse(text)
+    } catch {
+      body = { message: text }
+    }
+  }
+
+  if (res.status === 401) {
+    const code = typeof body?.code === 'string' ? body.code : body?.message?.code
+    if (typeof code === 'string' && code.endsWith('_RECONNECT_REQUIRED')) {
+      return { status: res.status, body }
+    }
+    if (refreshed || !(await refreshAccessToken())) {
+      await clearSession()
+      throw new AuthFetchError(AUTH_ERR.SESSION_EXPIRED, 401)
+    }
+    return authRawRequest(path, init, true)
+  }
+
+  if (res.ok && method !== 'GET') clearApiCache()
+  return { status: res.status, body }
+}
+
+// Multipart upload to an arbitrary authenticated endpoint.
+export function authUploadForm(path: string, formData: FormData): Promise<AuthRawResponse> {
+  return authRawRequest(path, { method: 'POST', body: formData })
+}
+
 // ─── Share tracking ──────────────────────────────────────────────────────────
 
 export type ShareChannel = 'native' | 'clipboard' | 'qr' | 'social' | 'unknown'

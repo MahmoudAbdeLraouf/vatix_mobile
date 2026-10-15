@@ -99,7 +99,7 @@ const PROMO_BANNERS: PromoBanner[] = [
     titleKey: 'promoAddTitle',
     subKey: 'promoAddSubtitle',
     btnKey: 'promoAddCta',
-    onPress: () => router.push('/products/add'),
+    onPress: () => router.push('/products/new'),
   },
   {
     id: 2,

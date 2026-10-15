@@ -74,7 +74,7 @@ export default function TabsLayout() {
                 accessibilityLabel={t.postFreeAd}
                 onPress={() => {
                   if (!requireLogin()) return
-                  router.push('/products/add')
+                  router.push('/products/new')
                 }}
                 style={({ pressed }) => [
                   styles.fab,
@@ -93,7 +93,7 @@ export default function TabsLayout() {
           tabPress: e => {
             e.preventDefault()
             if (!requireLogin()) return
-            router.push('/products/add')
+            router.push('/products/new')
           },
         }}
       />

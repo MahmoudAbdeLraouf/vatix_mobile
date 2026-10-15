@@ -10,23 +10,19 @@ export function StoreShareDialogTrigger() {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    console.log('[ShareDialog] effect fired', { loading, isStore: user?.isStore, userType: user?.type })
     if (loading) return
     if (!user?.isStore) return
 
     let cancelled = false
     authFetch<UserProfile>('/user/profile').then(p => {
-      console.log('[ShareDialog] profile response', {
-        hasProfile: !!p,
-        hasStoreProfile: !!p?.storeProfile,
-        seenAt: p?.storeShareDialogSeenAt,
-      })
       if (cancelled) return
-      if (p && p.storeProfile && p.storeShareDialogSeenAt == null) {
+      // The backend tracks "seen" in user_actions and exposes it via flags;
+      // the old storeShareDialogSeenAt column no longer exists.
+      if (p?.storeProfile && p.flags?.showStoreShareDialog) {
         setProfile(p)
         setOpen(true)
       }
-    }).catch((e) => { console.log('[ShareDialog] fetch error', e) })
+    }).catch(() => {})
 
     return () => { cancelled = true }
   }, [loading, user?.isStore])
