@@ -4,6 +4,7 @@ import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { Store, imgUrl } from '@/lib/api'
+import { useLocale } from '@/contexts/locale'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 const COVER_H = 80
@@ -16,6 +17,7 @@ interface StoreCardProps {
 }
 
 function StoreCardImpl({ store, style }: StoreCardProps) {
+  const { t } = useLocale()
   if (!store.storeProfile) return null
   // Logo is 44px, cover is 80px tall in a full-width card — request modest
   // widths so the resize endpoint returns thumbnails, not originals.
@@ -46,6 +48,11 @@ function StoreCardImpl({ store, style }: StoreCardProps) {
         )}
         {/* Subtle bottom fade */}
         <View style={styles.coverFade} />
+        {store.isPromoted === true ? (
+          <View style={styles.featuredBadge}>
+            <Text style={styles.featuredBadgeText}>{t.featured}</Text>
+          </View>
+        ) : null}
       </View>
 
       {/* Logo overlapping cover */}
@@ -112,6 +119,21 @@ const styles = StyleSheet.create({
     right: 0,
     height: 28,
     backgroundColor: 'rgba(0,0,0,0.18)',
+  },
+
+  featuredBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    end: spacing.sm,
+    backgroundColor: colors.y,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  featuredBadgeText: {
+    fontFamily: fonts.bold,
+    fontSize: 10,
+    color: colors.dk,
   },
 
   logoRow: {

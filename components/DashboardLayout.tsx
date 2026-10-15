@@ -51,6 +51,7 @@ const NAV: NavItem[] = [
   { href: '/dashboard/favorites',    labelKey: 'favorites',     icon: 'heart-outline',           emoji: '❤️', kind: 'all' },
   { href: '/dashboard/following',    labelKey: 'following',     icon: 'people-outline',          emoji: '🏬', kind: 'all' },
   { href: '/dashboard/promote',      labelKey: 'promote',       icon: 'star-outline',            emoji: '⭐', kind: 'all' },
+  { href: '/dashboard/promote-store', labelKey: 'promoteStoreNav', icon: 'megaphone-outline',   emoji: '📣', kind: 'storeOnly' },
   { href: '/dashboard/subscription', labelKey: 'subscription',  icon: 'diamond-outline',         emoji: '💎', kind: 'all' },
   { href: '/dashboard/wallet',       labelKey: 'wallet',        icon: 'wallet-outline',          emoji: '💰', kind: 'all' },
   { href: '/dashboard/invoices',     labelKey: 'invoices',      icon: 'receipt-outline',         emoji: '🧾', kind: 'all' },

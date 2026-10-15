@@ -123,6 +123,7 @@ export interface Translations {
   promotions: string
   invoices: string
   buySlotsNav: string
+  promoteStoreNav: string
   sectionActivity: string
   sectionAccount: string
   sectionGeneral: string
@@ -679,6 +680,23 @@ export interface Translations {
     redirectingToListing: string
     paymentFailed: string
   }
+  promoteStore: {
+    heading: string
+    description: string
+    offerSummary: string
+    activeUntil: string
+    notPromoted: string
+    loadError: string
+    retry: string
+    storesOnly: string
+    comingSoon: string
+    promoteAgain: string
+    promotedUntilLabel: string
+    withinHours: string
+    walletDeductedBody: string
+    appleSuccessBody: string
+    backToDashboard: string
+  }
   expiredRecovery: {
     title: string
     subtitle: string
@@ -842,6 +860,7 @@ export const translations: Record<Locale, Translations> = {
     promotions: 'الترقيات',
     invoices: 'الفواتير',
     buySlotsNav: 'شراء خانات',
+    promoteStoreNav: 'ترويج المتجر',
     sectionActivity: 'نشاطي',
     sectionAccount: 'حسابي',
     sectionGeneral: 'عام',
@@ -1405,6 +1424,23 @@ export const translations: Record<Locale, Translations> = {
       redirectingToListing: 'جاري توجيهك لإكمال الإعلان...',
       paymentFailed: 'فشل الدفع، حاول مرة أخرى',
     },
+    promoteStore: {
+      heading: 'ترويج المتجر ⭐',
+      description: 'يظهر متجرك المميز في أول قائمة المتاجر مع شارة «مميز» طوال مدة الترويج. الشراء مرة أخرى يمدّد المدة.',
+      offerSummary: '{price} ج.م · {days} أيام',
+      activeUntil: 'متجرك مميز حتى {date}',
+      notPromoted: 'متجرك غير مميز حالياً',
+      loadError: 'تعذّر تحميل عرض الترويج. حاول مرة أخرى.',
+      retry: 'إعادة المحاولة',
+      storesOnly: 'ترويج المتجر متاح للمتاجر فقط.',
+      comingSoon: 'قريباً',
+      promoteAgain: 'مدّد الترويج ←',
+      promotedUntilLabel: 'مميز حتى:',
+      withinHours: 'سيقوم فريق Vatix بمراجعة التحويل وتفعيل ترويج متجرك خلال 24 ساعة.',
+      walletDeductedBody: 'تم خصم المبلغ من محفظتك وتفعيل ترويج متجرك فوراً.',
+      appleSuccessBody: 'تم تأكيد الدفع عبر App Store وتفعيل ترويج متجرك فوراً.',
+      backToDashboard: 'العودة للوحة التحكم',
+    },
     expiredRecovery: {
       title: 'انتهى اشتراكك',
       subtitle: 'اختر كيف تريد المتابعة',
@@ -1566,6 +1602,7 @@ export const translations: Record<Locale, Translations> = {
     promotions: 'Promotions',
     invoices: 'Invoices',
     buySlotsNav: 'Buy Slots',
+    promoteStoreNav: 'Promote my store',
     sectionActivity: 'My Activity',
     sectionAccount: 'My Account',
     sectionGeneral: 'General',
@@ -2128,6 +2165,23 @@ export const translations: Record<Locale, Translations> = {
       remainingWalletBalance: 'Remaining wallet balance:',
       redirectingToListing: 'Redirecting to continue your listing…',
       paymentFailed: 'Payment failed, please try again',
+    },
+    promoteStore: {
+      heading: 'Promote my store ⭐',
+      description: 'Your store is listed first in the stores list with a "Featured" badge for the whole promotion period. Buying again extends it.',
+      offerSummary: '{price} EGP · {days} days',
+      activeUntil: 'Your store is featured until {date}',
+      notPromoted: 'Your store is not featured right now',
+      loadError: "Couldn't load the promotion offer. Please try again.",
+      retry: 'Retry',
+      storesOnly: 'Store promotion is available to stores only.',
+      comingSoon: 'Coming soon',
+      promoteAgain: 'Extend promotion →',
+      promotedUntilLabel: 'Featured until:',
+      withinHours: 'Vatix team will review the transfer and activate your store promotion within 24 hours.',
+      walletDeductedBody: 'Amount deducted from your wallet and your store promotion is active.',
+      appleSuccessBody: 'App Store payment confirmed and your store promotion is active.',
+      backToDashboard: 'Back to dashboard',
     },
     expiredRecovery: {
       title: 'Your subscription has expired',

@@ -18,6 +18,7 @@ export type BackendPaymentType =
   | 'promotion_3ads'
   | 'promotion_5ads'
   | 'client_slot_bundle'
+  | 'promotion_store'
 
 export type IapProduct = {
   sku: string
@@ -84,6 +85,13 @@ export const SLOT_SKUS: string[] = [
 
 export function getIapProduct(sku: string): IapProduct | undefined {
   return IAP_PRODUCTS[sku]
+}
+
+// The store-promotion SKU is configured at runtime (site setting
+// `storePromotionAppleProductId`), so it is not part of the static IAP_PRODUCTS
+// map. It is a consumable: it can be bought again to extend the promotion.
+export function storePromotionIapProduct(sku: string): IapProduct {
+  return { sku, type: 'in-app', paymentType: 'promotion_store', isConsumable: true }
 }
 
 export function promotionSkuForCount(count: 1 | 3 | 5): string {

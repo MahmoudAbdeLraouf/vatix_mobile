@@ -16,7 +16,7 @@ interface ProductCardProps {
 
 // Mirrors vatix_website/components/product-card.tsx layout tokens:
 // 1:1 image, 12px body padding, 13/700 title (2 lines), 18/900 navy price,
-// yl+yd store-plus tag, --ss shadow, 12px radius, 1.5px g200 border.
+// --ss shadow, 12px radius, 1.5px g200 border.
 
 export const ProductCard = React.memo(function ProductCard({
   product,
