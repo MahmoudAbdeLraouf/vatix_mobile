@@ -39,7 +39,8 @@ export default function MyAdsScreen() {
   const { user } = useAuth()
   const ar = locale === 'ar'
   const isStore = user?.isStore ?? false
-  const isStorePlus = user?.type === 'store_plus' || user?.type === 'STORE_PLUS'
+  // Stores have no product cap; only clients are limited.
+  const isStorePlus = isStore
 
   const dirStyle = {
     textAlign: 'auto' as const,
@@ -74,9 +75,7 @@ export default function MyAdsScreen() {
     getPromotionBundles().then(setBundles).catch(() => {})
   }, [])
 
-  const limit = isStore
-    ? settings?.maxActiveProductsPerStore ?? 50
-    : (settings?.maxProductsPerClient ?? 10) + extraSlots
+  const limit = (settings?.maxProductsPerClient ?? 10) + extraSlots
   const fmt = (n: number | string) =>
     Number(n ?? 0).toLocaleString(ar ? 'ar-EG' : 'en-EG')
 

@@ -68,12 +68,13 @@ const DEFAULT_SETTINGS: SiteSettings = {
   androidLatestVersion: null,
   androidStoreUrl: null,
   maxProductsPerClient: 10,
-  maxActiveProductsPerStore: 50,
+  storePromotionPrice: 500,
+  storePromotionDays: 5,
+  storePromotionAppleProductId: null,
 }
 
 const PLAN_META: Record<SubscriptionType, { fallbackPrice: number; storeType: string }> = {
   subscription_store: { fallbackPrice: 450, storeType: 'store' },
-  subscription_store_plus: { fallbackPrice: 500, storeType: 'store_plus' },
 }
 
 export default function CheckoutScreen() {
@@ -153,7 +154,6 @@ export default function CheckoutScreen() {
   const title = useMemo(() => {
     if (params.title) return params.title
     if (context === 'subscription') {
-      if (subType === 'subscription_store_plus') return t.storeTypeStorePlus
       if (subType === 'subscription_store') return t.storeTypeStore
       return t.subscription
     }

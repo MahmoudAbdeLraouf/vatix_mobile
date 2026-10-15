@@ -13,7 +13,7 @@ export type EngagementKind =
   | 'dashboard_visit'
   | 'session_start'
 
-export type Audience = 'guest' | 'client' | 'store' | 'store_plus'
+export type Audience = 'guest' | 'client' | 'store'
 
 const KEYS = {
   product_view: 'rate_app_product_views',
@@ -107,7 +107,6 @@ export async function shouldShowRateApp(audience: Audience): Promise<boolean> {
     case 'client':
       return hasClientEngagement()
     case 'store':
-    case 'store_plus':
       return hasStoreEngagement()
   }
 }

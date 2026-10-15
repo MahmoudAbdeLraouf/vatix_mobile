@@ -99,7 +99,9 @@ const DEFAULT_SETTINGS: SiteSettings = {
   androidLatestVersion: null,
   androidStoreUrl: null,
   maxProductsPerClient: 10,
-  maxActiveProductsPerStore: 50,
+  storePromotionPrice: 500,
+  storePromotionDays: 5,
+  storePromotionAppleProductId: null,
 }
 
 // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited

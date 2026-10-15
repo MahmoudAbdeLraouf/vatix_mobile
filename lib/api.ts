@@ -1,6 +1,6 @@
 import { Platform } from 'react-native'
 import * as Sentry from '@sentry/react-native'
-import { AUTH_ERR } from '@/lib/auth'
+import { AUTH_ERR, normalizeUserType } from '@/lib/auth'
 import { getOrCreateVisitorId, visitorIdHeader } from '@/lib/visitor-id'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
@@ -108,11 +108,13 @@ export interface StoreProfile {
   linkedin: string | null
   status: string
   locationId: number | null
+  promotedUntil?: string | null
 }
 
 export interface Store {
   id: number
   type: string
+  isPromoted?: boolean
   phone: string | null
   contactPhone?: string | null
   isActive: boolean
@@ -149,7 +151,7 @@ export type ExpiredLoginOption = 'convert_to_client' | 'pay_instapay' | 'pay_mob
 
 export interface ExpiredLoginResponse {
   status: 'expired'
-  storeType: 'store' | 'store_plus'
+  storeType: 'store'
   currentPlanId: number | null
   options: ExpiredLoginOption[]
 }
@@ -197,7 +199,7 @@ export interface UserProfile {
 
 export interface PendingUpgradeRequest {
   id: number
-  targetType: 'store' | 'store_plus'
+  targetType: 'store'
   paymentId: number | null
   billingCycle: 'monthly' | 'yearly'
   requestedAt: string
@@ -244,17 +246,14 @@ type OwnerLike = {
 
 export function storeHref(owner: OwnerLike): string | null {
   if (!owner?.storeProfile) return null
-  const t = owner.type
-  const isStore = t === 'store' || t === 'STORE' || t === 'store_plus' || t === 'STORE_PLUS'
-  if (!isStore) return null
+  if (normalizeUserType(owner.type) !== 'store') return null
   const slug = owner.storeProfile.slug
   return `/stores/${slug ?? owner.id}`
 }
 
 export function storePlusHref(owner: OwnerLike): string | null {
   if (!owner?.storeProfile) return null
-  const t = owner.type
-  if (t !== 'store_plus' && t !== 'STORE_PLUS') return null
+  if (normalizeUserType(owner.type) !== 'store') return null
   const slug = owner.storeProfile.slug
   return `/s/${slug ?? owner.id}`
 }
@@ -631,7 +630,7 @@ export function registerClient(data: {
 export function registerStore(data: {
   phone: string
   password: string
-  type: 'store' | 'store_plus'
+  type: 'store'
   storeName: string
   description?: string
   locationId?: number
@@ -895,7 +894,9 @@ export interface SiteSettings {
   androidLatestVersion: string | null
   androidStoreUrl: string | null
   maxProductsPerClient: number
-  maxActiveProductsPerStore: number
+  storePromotionPrice: number
+  storePromotionDays: number
+  storePromotionAppleProductId: string | null
 }
 
 export function getSubscriptionPlans(): Promise<PlanData[]> {
@@ -932,6 +933,21 @@ export function getClientSlotBundles(): Promise<ClientSlotBundle[]> {
 
 export function getSiteSettings(): Promise<SiteSettings> {
   return cachedFetch('/site-settings', () => apiFetch('/site-settings'))
+}
+
+export interface StorePromotionOffer {
+  price: number
+  days: number
+  appleProductId: string | null
+}
+
+export async function getStorePromotionOffer(): Promise<StorePromotionOffer> {
+  const s = await getSiteSettings()
+  return {
+    price: s.storePromotionPrice ?? 500,
+    days: s.storePromotionDays ?? 5,
+    appleProductId: s.storePromotionAppleProductId ?? null,
+  }
 }
 
 export interface SiteStats {

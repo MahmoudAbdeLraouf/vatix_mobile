@@ -14,7 +14,9 @@ export type PaymentMethodChoice =
   | 'wallet'
   | 'mobile_wallet'
   | 'apple_iap'
-export type SubscriptionType = 'subscription_store' | 'subscription_store_plus'
+export type SubscriptionType = 'subscription_store'
+// Historical payment rows may still carry the legacy 'subscription_store_plus'
+// string, so payment-history types (PaymentRecord.type) stay plain strings.
 
 // ─── InstaPay initiators ──────────────────────────────────────────────────────
 

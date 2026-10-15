@@ -167,16 +167,21 @@ export async function saveSession(
 
   const stored: StoredUser = {
     id: user.id ?? 0,
-    type: user.type ?? 'client',
+    type: normalizeUserType(user.type),
     phone: user.phone ?? null,
     displayName,
-    isStore:
-      user.type === 'STORE' ||
-      user.type === 'store' ||
-      user.type === 'STORE_PLUS' ||
-      user.type === 'store_plus',
+    isStore: normalizeUserType(user.type) === 'store',
   }
   await SecureStore.setItemAsync(KEY_USER, JSON.stringify(stored), SECURE_WRITE_OPTIONS)
+}
+
+// Collapses legacy `store_plus` / `STORE_PLUS` (old stored users and tokens)
+// into `store`. Same contract as the website's normalizeUserType.
+export function normalizeUserType(t: string | null | undefined): 'admin' | 'client' | 'store' {
+  const v = (t ?? '').toLowerCase()
+  if (v === 'store' || v === 'store_plus') return 'store'
+  if (v === 'admin') return 'admin'
+  return 'client'
 }
 
 // Normalize a raw SecureStore blob to the current StoredUser shape. Older app
@@ -197,12 +202,9 @@ function normalizeStoredUser(raw: unknown): StoredUser | null {
   const phone = typeof r.phone === 'string' ? r.phone : null
   const displayName =
     typeof r.displayName === 'string' && r.displayName ? r.displayName : (phone ?? 'مستخدم')
-  const isStore =
-    typeof r.isStore === 'boolean'
-      ? r.isStore
-      : type === 'STORE' || type === 'store' || type === 'STORE_PLUS' || type === 'store_plus'
+  const normalizedType = normalizeUserType(type)
 
-  return { id, type, phone, displayName, isStore }
+  return { id, type: normalizedType, phone, displayName, isStore: normalizedType === 'store' }
 }
 
 export async function getStoredUser(): Promise<StoredUser | null> {
@@ -260,14 +262,10 @@ export async function updateStoredUser(user: {
 
   const stored: StoredUser = {
     id: user.id ?? existing?.id ?? 0,
-    type: user.type ?? existing?.type ?? 'client',
+    type: normalizeUserType(user.type ?? existing?.type),
     phone: user.phone ?? existing?.phone ?? null,
     displayName,
-    isStore:
-      user.type === 'STORE' ||
-      user.type === 'store' ||
-      user.type === 'STORE_PLUS' ||
-      user.type === 'store_plus',
+    isStore: normalizeUserType(user.type ?? existing?.type) === 'store',
   }
   await SecureStore.setItemAsync(KEY_USER, JSON.stringify(stored), SECURE_WRITE_OPTIONS)
 }

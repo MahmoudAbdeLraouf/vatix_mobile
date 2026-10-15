@@ -260,7 +260,7 @@ export default function SignupStoreScreen() {
           ? `/dashboard/subscription?upgrade=plus&cycle=${billingCycle}`
           : undefined
       await login(response, routeAfter ?? redirect)
-      void track({ name: 'sign_up', params: { method: 'phone', user_type: storeType } })
+      void track({ name: 'sign_up', params: { method: 'phone', user_type: 'store' } })
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
     } finally {

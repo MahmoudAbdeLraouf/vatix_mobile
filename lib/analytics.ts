@@ -86,7 +86,7 @@ export function trackSearch(keyword: string, zeroResults = false) {
 }
 
 export type AnalyticsEvent =
-  | { name: 'sign_up'; params: { method: 'phone'; user_type: 'client' | 'store' | 'store_plus' } }
+  | { name: 'sign_up'; params: { method: 'phone'; user_type: 'client' | 'store' } }
   | { name: 'post_listing'; params: { product_id: string | number; category_id?: string | number; price?: number } }
   | { name: 'contact_seller'; params: { product_id: string | number; channel: 'phone' | 'whatsapp' | 'chat' } }
 
