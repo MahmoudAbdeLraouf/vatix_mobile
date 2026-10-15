@@ -115,7 +115,7 @@ Goal: content creation parity (product add/edit + store profile edit).
 ### 3.2 Store profile management
 - [x] `app/dashboard/store.tsx` — edit store name, description, logo, cover, location (see gap notes)
 - [~] Delivery-area picker using locations tree — **BLOCKED (backend gap)**
-- [x] `app/dashboard/branches.tsx` — CRUD store branches (STORE_PLUS only)
+- [x] `app/dashboard/branches.tsx` — CRUD store branches (all stores)
 - [x] `app/dashboard/social.tsx` — social links
 
 **Backend gaps discovered (2026-07-15):**
