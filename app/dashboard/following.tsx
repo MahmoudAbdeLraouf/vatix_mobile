@@ -91,7 +91,6 @@ export default function FollowingScreen() {
             const sp = s.storeProfile
             const logoUrl = imgUrl(sp?.logo)
             const coverUrl = imgUrl(sp?.cover)
-            const isPlus = s.type === 'store_plus'
             return (
               <Pressable
                 key={s.id}
@@ -108,12 +107,6 @@ export default function FollowingScreen() {
                   ) : (
                     <View style={styles.coverPlaceholder}>
                       <Ionicons name="storefront-outline" size={26} color={colors.g300} />
-                    </View>
-                  )}
-                  {isPlus && (
-                    <View style={styles.plusBadge}>
-                      <Ionicons name="star" size={10} color={colors.dk} />
-                      <Text style={styles.plusBadgeText}>{t.storePlusLabel}</Text>
                     </View>
                   )}
 
@@ -274,25 +267,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.g200,
-  },
-  plusBadge: {
-    position: 'absolute',
-    top: spacing.sm,
-    start: spacing.sm,
-    backgroundColor: colors.y,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-    ...shadow.ss,
-  },
-  plusBadgeText: {
-    fontFamily: fonts.extraBold,
-    fontSize: 10,
-    color: colors.dk,
-    letterSpacing: 0.2,
   },
   unfollowBtn: {
     position: 'absolute',

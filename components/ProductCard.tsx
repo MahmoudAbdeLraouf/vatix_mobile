@@ -39,10 +39,9 @@ export const ProductCard = React.memo(function ProductCard({
   // `owner` may be absent when products come from endpoints that don't join it
   // (e.g. /stores/:id/products). Guard every access to avoid runtime crashes.
   const owner = product.owner
-  const isStorePlus = owner?.type === 'store_plus'
   const isStore = owner?.type === 'store'
   const storeName = owner?.storeProfile?.name
-  const ownerIcon = isStorePlus ? '⭐' : isStore ? '🏪' : null
+  const ownerIcon = isStore ? '🏪' : null
 
   const ratingsCount = product.ratingsCount ?? 0
   const avgRating = product.averageRating ?? 0

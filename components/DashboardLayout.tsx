@@ -27,7 +27,7 @@ import { MessagesBell } from '@/components/MessagesBell'
 import { NotificationBell } from '@/components/NotificationBell'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
-type NavKind = 'all' | 'clientOnly' | 'storeOnly' | 'storePlusOnly' | 'storeAnyOnly'
+type NavKind = 'all' | 'clientOnly' | 'storeOnly'
 
 interface NavItem {
   href: string
@@ -41,10 +41,10 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: '/(tabs)/dashboard',       labelKey: 'dashboardHome', icon: 'grid-outline',            emoji: '🏠', kind: 'all' },
   { href: '/dashboard/profile',      labelKey: 'profile',       icon: 'person-outline',          emoji: '👤', kind: 'all' },
-  { href: '/dashboard/store',        labelKey: 'storeInfo',     icon: 'storefront-outline',      emoji: '🏪', kind: 'storeAnyOnly' },
-  { href: '/dashboard/social',       labelKey: 'socialMedia',   icon: 'logo-instagram',          emoji: '📱', kind: 'storeAnyOnly' },
-  { href: '/dashboard/categories-brands', labelKey: 'categoriesBrands', icon: 'pricetags-outline', emoji: '🏷️', kind: 'storeAnyOnly' },
-  { href: '/dashboard/branches',     labelKey: 'branches',      icon: 'business-outline',        emoji: '🏢', kind: 'storePlusOnly' },
+  { href: '/dashboard/store',        labelKey: 'storeInfo',     icon: 'storefront-outline',      emoji: '🏪', kind: 'storeOnly' },
+  { href: '/dashboard/social',       labelKey: 'socialMedia',   icon: 'logo-instagram',          emoji: '📱', kind: 'storeOnly' },
+  { href: '/dashboard/categories-brands', labelKey: 'categoriesBrands', icon: 'pricetags-outline', emoji: '🏷️', kind: 'storeOnly' },
+  { href: '/dashboard/branches',     labelKey: 'branches',      icon: 'business-outline',        emoji: '🏢', kind: 'storeOnly' },
   { href: '/dashboard/messages',     labelKey: 'messages',      icon: 'chatbubble-outline',      emoji: '💬', kind: 'all', badgeKey: 'unread' },
   { href: '/dashboard/my-ads',       labelKey: 'myAds',         icon: 'list-outline',            emoji: '📋', kind: 'all' },
   { href: '/dashboard/buy-slots',    labelKey: 'buySlotsNav',   icon: 'ticket-outline',          emoji: '🎟️', kind: 'clientOnly' },
@@ -58,12 +58,11 @@ const NAV: NavItem[] = [
   { href: '/dashboard/settings',     labelKey: 'settings',      icon: 'settings-outline',        emoji: '⚙️', kind: 'all' },
 ]
 
-function normalizeType(t: string | null | undefined): 'client' | 'store' | 'store_plus' | 'admin' | 'unknown' {
+function normalizeType(t: string | null | undefined): 'client' | 'store' | 'admin' | 'unknown' {
   if (!t) return 'unknown'
   const v = t.toLowerCase()
   if (v === 'client') return 'client'
   if (v === 'store') return 'store'
-  if (v === 'store_plus') return 'store_plus'
   if (v === 'admin') return 'admin'
   return 'unknown'
 }
@@ -153,8 +152,6 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
   const userType = normalizeType(user?.type)
   const isClient = userType === 'client'
   const isStore = userType === 'store'
-  const isStorePlus = userType === 'store_plus'
-  const isStoreAny = isStore || isStorePlus
 
   const nav = useMemo(
     () =>
@@ -168,15 +165,11 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
             return isClient
           case 'storeOnly':
             return isStore
-          case 'storePlusOnly':
-            return isStorePlus
-          case 'storeAnyOnly':
-            return isStoreAny
           default:
             return true
         }
       }),
-    [isClient, isStore, isStorePlus, isStoreAny],
+    [isClient, isStore],
   )
 
   const isActive = (href: string) => {
@@ -193,9 +186,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
 
   const displayName = user?.displayName || t.profile
   const phone = user?.phone || ''
-  const badge = isStorePlus
-    ? { text: `⭐ ${t.storePlusPlan}`, bg: colors.y, fg: colors.dk }
-    : isStore
+  const badge = isStore
     ? { text: `🏪 ${t.storeTypeStore}`, bg: colors.dk, fg: colors.white }
     : isClient
     ? { text: locale === 'ar' ? '👤 مستخدم' : '👤 User', bg: colors.g200, fg: colors.dk }
@@ -354,12 +345,6 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
             <Pressable style={styles.upgradeBtn} onPress={() => go('/dashboard/subscription')}>
               <Ionicons name="storefront" size={16} color={colors.dk} />
               <Text style={[styles.upgradeText, dirText]}>{t.upgClientToStoreTitle}</Text>
-            </Pressable>
-          )}
-          {SUBSCRIPTION_UI_ENABLED && isStore && (
-            <Pressable style={styles.upgradeBtn} onPress={() => go('/dashboard/subscription')}>
-              <Ionicons name="diamond" size={16} color={colors.dk} />
-              <Text style={[styles.upgradeText, dirText]}>{t.upgStoreToPlusTitle}</Text>
             </Pressable>
           )}
 

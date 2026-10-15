@@ -170,7 +170,6 @@ export interface Translations {
   followingEmptySubtitle: string
   browseStores: string
   visitStore: string
-  storePlusLabel: string
   // Promo banners
   promoDealsTitle: string
   promoDealsSubtitle: string
@@ -276,10 +275,6 @@ export interface Translations {
   pendingUpgradeSubtitle: string
   upgClientToStoreTitle: string
   upgClientToStoreSubtitle: string
-  upgStoreToPlusTitle: string
-  upgStoreToPlusSubtitle: string
-  storePlusActive: string
-  storePlusActiveSub: string
   manageSubscription: string
   storeInfo: string
   about: string
@@ -315,7 +310,6 @@ export interface Translations {
   expiredPlan: string
   freeClientPlan: string
   standardStorePlan: string
-  storePlusPlan: string
   trialEndsIn: string
   daysRemaining: string
   daysLeftLabel: string
@@ -437,7 +431,6 @@ export interface Translations {
   newStoreInfo: string
   storeType: string
   storeTypeStore: string
-  storeTypeStorePlus: string
   clientDescription: string
   storeDescription: string
   storeLogo: string
@@ -896,7 +889,6 @@ export const translations: Record<Locale, Translations> = {
     followingEmptySubtitle: 'تابع المتاجر لتصلك آخر منتجاتها وعروضها هنا.',
     browseStores: 'تصفّح المتاجر',
     visitStore: 'زيارة المتجر',
-    storePlusLabel: 'بلس',
     // Promo banners
     promoDealsTitle: 'اكتشف أفضل العروض',
     promoDealsSubtitle: 'إلكترونيات بأسعار تنافسية في مصر',
@@ -1002,10 +994,6 @@ export const translations: Record<Locale, Translations> = {
     pendingUpgradeSubtitle: 'سيتم تفعيل الترقية فور موافقة الإدارة على الدفعة.',
     upgClientToStoreTitle: 'افتح متجرك على ڤاتيكس',
     upgClientToStoreSubtitle: 'أضف منتجاتك دون قيود، وتواصل مع آلاف العملاء يومياً.',
-    upgStoreToPlusTitle: 'ارتقِ إلى متجر بلَس',
-    upgStoreToPlusSubtitle: 'صفحة متجر خاصة وإحصائيات متقدمة.',
-    storePlusActive: 'أنت مشترك في متجر بلَس',
-    storePlusActiveSub: 'استمتع بجميع مزايا الاشتراك المميز.',
     manageSubscription: 'إدارة الاشتراك',
     storeInfo: 'بيانات المتجر',
     about: 'عن المتجر',
@@ -1041,7 +1029,6 @@ export const translations: Record<Locale, Translations> = {
     expiredPlan: 'اشتراك منتهي',
     freeClientPlan: 'حساب عميل مجاني',
     standardStorePlan: 'متجر',
-    storePlusPlan: 'متجر بلَس',
     trialEndsIn: 'تنتهي التجربة خلال',
     daysRemaining: 'أيام متبقية',
     daysLeftLabel: 'يوم',
@@ -1163,7 +1150,6 @@ export const translations: Record<Locale, Translations> = {
     newStoreInfo: 'بيانات المتجر الجديد',
     storeType: 'نوع المتجر',
     storeTypeStore: 'متجر',
-    storeTypeStorePlus: 'متجر بلَس',
     clientDescription: 'شراء وبيع الإلكترونيات كفرد.',
     storeDescription: 'وصف المتجر (اختياري)',
     storeLogo: 'شعار المتجر',
@@ -1627,7 +1613,6 @@ export const translations: Record<Locale, Translations> = {
     followingEmptySubtitle: 'Follow stores to see their latest products and offers here.',
     browseStores: 'Browse stores',
     visitStore: 'Visit store',
-    storePlusLabel: 'Plus',
     // Promo banners
     promoDealsTitle: 'Discover Best Deals',
     promoDealsSubtitle: 'Electronics at competitive prices in Egypt',
@@ -1733,10 +1718,6 @@ export const translations: Record<Locale, Translations> = {
     pendingUpgradeSubtitle: 'Your upgrade will activate as soon as an admin approves the payment.',
     upgClientToStoreTitle: 'Open Your Store on Vatix',
     upgClientToStoreSubtitle: 'List unlimited products and reach thousands of daily buyers.',
-    upgStoreToPlusTitle: 'Upgrade to Store Plus',
-    upgStoreToPlusSubtitle: 'Dedicated storefront and advanced analytics.',
-    storePlusActive: 'You are on Store Plus',
-    storePlusActiveSub: 'Enjoy all premium subscription benefits.',
     manageSubscription: 'Manage Subscription',
     storeInfo: 'Store Info',
     about: 'About',
@@ -1772,7 +1753,6 @@ export const translations: Record<Locale, Translations> = {
     expiredPlan: 'Subscription Expired',
     freeClientPlan: 'Free Client Account',
     standardStorePlan: 'Store',
-    storePlusPlan: 'Store Plus',
     trialEndsIn: 'Trial ends in',
     daysRemaining: 'days remaining',
     daysLeftLabel: 'days',
@@ -1894,7 +1874,6 @@ export const translations: Record<Locale, Translations> = {
     newStoreInfo: 'New Store Info',
     storeType: 'Store Type',
     storeTypeStore: 'Store',
-    storeTypeStorePlus: 'Store Plus',
     clientDescription: 'Buy and sell electronics as an individual.',
     storeDescription: 'Store description (optional)',
     storeLogo: 'Store logo',

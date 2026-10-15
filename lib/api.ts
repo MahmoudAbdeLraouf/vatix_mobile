@@ -251,13 +251,6 @@ export function storeHref(owner: OwnerLike): string | null {
   return `/stores/${slug ?? owner.id}`
 }
 
-export function storePlusHref(owner: OwnerLike): string | null {
-  if (!owner?.storeProfile) return null
-  if (normalizeUserType(owner.type) !== 'store') return null
-  const slug = owner.storeProfile.slug
-  return `/s/${slug ?? owner.id}`
-}
-
 export function productHref(product: { id: number; slug: string | null } | null | undefined): string {
   if (!product) return '/products'
   return `/products/${product.slug ?? product.id}`

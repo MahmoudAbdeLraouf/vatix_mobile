@@ -211,7 +211,7 @@ export default function ProductDetailScreen() {
     }[product.condition ?? ''] ?? t.conditionUsed
 
   const owner = product.owner
-  const isStore = owner?.type === 'store' || owner?.type === 'store_plus'
+  const isStore = owner?.type === 'store'
   const storeName =
     owner?.storeProfile?.name ??
     (owner?.clientProfile
@@ -219,9 +219,7 @@ export default function ProductDetailScreen() {
       : '')
   const storeLogo = imgUrl(owner?.storeProfile?.logo, { w: THUMB_TARGET_W })
   const ownerBadge =
-    owner?.type === 'store_plus'
-      ? { label: locale === 'ar' ? 'متجر مميز ⭐' : 'Store Plus ⭐', bg: colors.yl, fg: colors.dk }
-      : isStore
+    isStore
       ? { label: locale === 'ar' ? 'متجر 🏪' : 'Store 🏪', bg: colors.g100, fg: colors.g700 }
       : { label: locale === 'ar' ? 'فرد 👤' : 'Individual 👤', bg: colors.g100, fg: colors.g700 }
 
@@ -620,7 +618,6 @@ export default function ProductDetailScreen() {
                   const cover = imgUrl(store.storeProfile?.cover, { w: 340 })
                   const logo = imgUrl(store.storeProfile?.logo, { w: 68 })
                   const name = store.storeProfile?.name ?? ''
-                  const isPlus = store.type === 'store_plus'
                   return (
                     <Pressable
                       key={store.id}
@@ -645,27 +642,9 @@ export default function ProductDetailScreen() {
                             <Ionicons name="image-outline" size={22} color="rgba(255,255,255,0.25)" />
                           </View>
                         )}
-                        <View
-                          style={[
-                            styles.spotBadge,
-                            isPlus ? styles.spotBadgePlus : styles.spotBadgeStd,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.spotBadgeText,
-                              isPlus
-                                ? styles.spotBadgeTextPlus
-                                : styles.spotBadgeTextStd,
-                            ]}
-                          >
-                            {isPlus
-                              ? locale === 'ar'
-                                ? '⭐ Plus'
-                                : '⭐ Plus'
-                              : locale === 'ar'
-                              ? '🏪 متجر'
-                              : '🏪 Store'}
+                        <View style={[styles.spotBadge, styles.spotBadgeStd]}>
+                          <Text style={[styles.spotBadgeText, styles.spotBadgeTextStd]}>
+                            {locale === 'ar' ? '🏪 متجر' : '🏪 Store'}
                           </Text>
                         </View>
                       </View>
@@ -1564,9 +1543,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: radius.sm,
   },
-  spotBadgePlus: {
-    backgroundColor: colors.y,
-  },
   spotBadgeStd: {
     backgroundColor: 'rgba(255,255,255,0.95)',
   },
@@ -1574,9 +1550,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.extraBold,
     fontSize: 10,
     letterSpacing: 0.2,
-  },
-  spotBadgeTextPlus: {
-    color: colors.dk,
   },
   spotBadgeTextStd: {
     color: colors.dk,

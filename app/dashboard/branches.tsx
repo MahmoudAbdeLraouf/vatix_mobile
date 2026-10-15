@@ -68,8 +68,6 @@ export default function BranchesScreen() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
 
-  const isStorePlus = (profile?.type ?? '').toString().toUpperCase() === 'STORE_PLUS'
-
   const load = useCallback(async () => {
     setLoading(true)
     setLoadError(false)
@@ -221,14 +219,14 @@ export default function BranchesScreen() {
             </View>
           ) : loadError ? (
             <ErrorState kind="network" onRetry={load} style={styles.center} />
-          ) : !profile?.storeProfile || !isStorePlus ? (
+          ) : !profile?.storeProfile ? (
             <View style={styles.card}>
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyEmoji}>🏢</Text>
                 <Text style={[styles.emptyText, { textAlign: 'center' }]}>
                   {ar
-                    ? 'إدارة الفروع متاحة فقط لأصحاب متاجر Store Plus.'
-                    : 'Branch management is available only for Store Plus owners.'}
+                    ? 'إدارة الفروع متاحة فقط لأصحاب المتاجر.'
+                    : 'Branch management is available only for store owners.'}
                 </Text>
               </View>
             </View>

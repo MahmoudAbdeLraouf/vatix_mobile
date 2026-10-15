@@ -14,12 +14,11 @@ import type { Analytics, FavoriteProduct, PendingUpgradeRequest, Product, PromoI
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
-function normalizeType(t: string | null | undefined): 'client' | 'store' | 'store_plus' | 'unknown' {
+function normalizeType(t: string | null | undefined): 'client' | 'store' | 'unknown' {
   if (!t) return 'unknown'
   const v = t.toLowerCase()
   if (v === 'client') return 'client'
   if (v === 'store') return 'store'
-  if (v === 'store_plus') return 'store_plus'
   return 'unknown'
 }
 
@@ -136,8 +135,6 @@ export default function DashboardScreen() {
 
   const type = normalizeType(user?.type)
   const isClient = type === 'client'
-  const isStore = type === 'store'
-  const isStorePlus = type === 'store_plus'
 
   const welcome = t.welcomeName.replace('{name}', user?.displayName ?? '').replace(/،\s*(?=\s|👋)/, '')
 
@@ -245,7 +242,6 @@ export default function DashboardScreen() {
       {/* Client → Store upgrade — iOS pays via Apple IAP, Android/web via InstaPay */}
       {isClient && SUBSCRIPTION_UI_ENABLED && (
         <UpgradeBanner
-          variant="store"
           icon="storefront"
           badgeLabel={ar ? 'ترقية' : 'Upgrade'}
           title={t.upgClientToStoreTitle}
@@ -260,50 +256,6 @@ export default function DashboardScreen() {
           ar={ar}
           disabled={!!pendingUpgrade}
         />
-      )}
-
-      {/* Store → Store Plus upgrade — iOS pays via Apple IAP, Android/web via InstaPay */}
-      {isStore && SUBSCRIPTION_UI_ENABLED && (
-        <UpgradeBanner
-          variant="plus"
-          icon="diamond"
-          badgeLabel={ar ? 'مميز' : 'Premium'}
-          title={t.upgStoreToPlusTitle}
-          subtitle={t.upgStoreToPlusSubtitle}
-          features={
-            ar
-              ? ['ترويج تلقائي للإعلانات', 'إحصائيات متقدمة', 'أولوية في البحث']
-              : ['Auto-promoted listings', 'Advanced analytics', 'Search priority']
-          }
-          ctaLabel={ar ? 'ترقية الآن' : 'Upgrade Now'}
-          onPress={() => router.push('/dashboard/subscription')}
-          ar={ar}
-          disabled={!!pendingUpgrade}
-        />
-      )}
-
-      {/* Store Plus active */}
-      {isStorePlus && (
-        <View style={styles.plusCard}>
-          <View style={styles.plusLeft}>
-            <View style={styles.plusIconWrap}>
-              <Ionicons name="star" size={16} color={colors.dk} />
-            </View>
-            <View style={styles.plusTextWrap}>
-              <Text style={styles.plusTitle}>{t.storePlusActive}</Text>
-              <Text style={styles.plusSub}>{t.storePlusActiveSub}</Text>
-            </View>
-          </View>
-          {/* Manage subscription — iOS uses Apple IAP, Android/web uses InstaPay/wallet */}
-          {SUBSCRIPTION_UI_ENABLED && (
-            <Pressable
-              onPress={() => router.push('/dashboard/subscription')}
-              style={({ pressed }) => [styles.plusCta, pressed && { opacity: 0.8 }]}
-            >
-              <Text style={styles.plusCtaText}>{t.manageSubscription}</Text>
-            </Pressable>
-          )}
-        </View>
       )}
 
       <StoreLogoDialog visible={showLogoDialog} onClose={() => setShowLogoDialog(false)} />
@@ -402,7 +354,6 @@ function StatTile({
 }
 
 function UpgradeBanner({
-  variant,
   icon,
   badgeLabel,
   title,
@@ -413,7 +364,6 @@ function UpgradeBanner({
   ar,
   disabled = false,
 }: {
-  variant: 'store' | 'plus'
   icon: React.ComponentProps<typeof Ionicons>['name']
   badgeLabel: string
   title: string
@@ -424,7 +374,6 @@ function UpgradeBanner({
   ar: boolean
   disabled?: boolean
 }) {
-  const isPlus = variant === 'plus'
   const dirStyle = { textAlign: 'auto' as const, writingDirection: ar ? ('rtl' as const) : ('ltr' as const) }
 
   return (
@@ -438,7 +387,7 @@ function UpgradeBanner({
           <View style={styles.upgBadgeDot} />
           <Text style={styles.upgBadgeText}>{badgeLabel}</Text>
         </View>
-        <View style={[styles.upgIconWrap, isPlus && styles.upgIconWrapPlus]}>
+        <View style={styles.upgIconWrap}>
           <Ionicons name={icon} size={20} color={colors.dk} />
         </View>
       </View>
@@ -720,9 +669,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadow.ss,
   },
-  upgIconWrapPlus: {
-    backgroundColor: '#FFD166',
-  },
   upgTitle: {
     fontFamily: fonts.black,
     fontSize: 17,
@@ -776,56 +722,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 14,
     color: colors.dk,
-  },
-
-  // Store Plus active
-  plusCard: {
-    backgroundColor: colors.dk,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    gap: spacing.md,
-    ...shadow.sm,
-  },
-  plusLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  plusIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.y,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  plusTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  plusTitle: {
-    fontFamily: fonts.black,
-    fontSize: 14,
-    color: colors.y,
-  },
-  plusSub: {
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  plusCta: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.md,
-  },
-  plusCtaText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.85)',
   },
 })

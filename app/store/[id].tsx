@@ -141,7 +141,7 @@ export default function StoreDetailScreen() {
       setStore(s)
       if (isExpiredResource(s)) {
         expired = true
-      } else if (s.type === 'store_plus') {
+      } else {
         getStoreBranches(storeId).then(setBranches).catch(() => {})
         getLocations().then(setLocs).catch(() => {})
       }
@@ -206,17 +206,13 @@ export default function StoreDetailScreen() {
   const { storeProfile } = store
   const logo = imgUrl(storeProfile.logo)
   const cover = imgUrl(storeProfile.cover)
-  const isStorePlus = store.type === 'store_plus'
   const storeIdent = storeProfile.slug ?? store.id
-  const storePlusUrl = isStorePlus
-    ? storeProfile.websiteUrl || `https://vatix.store/s/${storeIdent}`
-    : null
+  const storefrontUrl = storeProfile.websiteUrl || `https://vatix.store/s/${storeIdent}`
 
   const socialLinks = (Object.keys(SOCIAL_ICONS) as SocialKey[]).filter(
     k => !!(storeProfile as unknown as Record<string, unknown>)[k],
   )
-  const showWebsiteInSocial = !!storeProfile.websiteUrl && !isStorePlus
-  const hasSocial = socialLinks.length > 0 || showWebsiteInSocial
+  const hasSocial = socialLinks.length > 0
 
   const generals = branches.filter(b => b.type === 'general')
   const branchList = branches.filter(b => b.type === 'branch')
@@ -245,7 +241,7 @@ export default function StoreDetailScreen() {
         ? '20' + rawPhone.slice(1)
         : rawPhone
     : null
-  const shareStoreUrl = storePlusUrl ?? `https://vatix.store/stores/${storeIdent}`
+  const shareStoreUrl = storefrontUrl
   const shareGreeting = locale === 'ar' ? 'تفضلوا بزيارة متجري على VATIX' : 'Visit my store on VATIX'
   const waMessage = `${storeProfile.name ?? ''}\n${shareGreeting}\n${shareStoreUrl}`
   const waLink = waPhone ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}` : null
@@ -279,7 +275,7 @@ export default function StoreDetailScreen() {
     }
   }
 
-  const availableTabs: TabKey[] = ['products', 'about', ...(isStorePlus && branchList.length > 0 ? (['branches'] as TabKey[]) : [])]
+  const availableTabs: TabKey[] = ['products', 'about', ...(branchList.length > 0 ? (['branches'] as TabKey[]) : [])]
   const tabLabel: Record<TabKey, string> = {
     products: t.storeProducts,
     about: t.about,
@@ -288,7 +284,7 @@ export default function StoreDetailScreen() {
 
   const canCall = phoneEntries.length > 0
   const canWhats = !!waLink
-  const canWebsite = !!storePlusUrl
+  const canWebsite = !!storefrontUrl
 
   const renderActionPill = (
     key: string,
@@ -351,7 +347,7 @@ export default function StoreDetailScreen() {
           { iconColor: '#25D366' },
         )}
       {canWebsite &&
-        renderActionPill('web', 'globe-outline', t.storeWebsite, () => Linking.openURL(storePlusUrl!), {
+        renderActionPill('web', 'globe-outline', t.storeWebsite, () => Linking.openURL(storefrontUrl), {
           iconColor: colors.dk,
         })}
     </View>
@@ -428,11 +424,6 @@ export default function StoreDetailScreen() {
                   </Text>
                 </View>
               )}
-              {isStorePlus && (
-                <View style={styles.plusBadge}>
-                  <Ionicons name="star" size={10} color={colors.dk} />
-                </View>
-              )}
             </View>
 
             <View style={styles.heroTextCol}>
@@ -442,16 +433,10 @@ export default function StoreDetailScreen() {
                 </Text>
               </View>
               <View style={styles.metaRow}>
-                {isStorePlus && (
-                  <View style={styles.verifiedPill}>
-                    <Ionicons name="checkmark-circle" size={11} color={colors.y} />
-                    <Text style={[styles.verifiedText, dir]}>{t.storeTypeStorePlus}</Text>
-                  </View>
-                )}
                 <Text style={[styles.metaText, dir]} numberOfLines={1}>
                   {[
                     `${products.length} ${t.storeProducts}`,
-                    isStorePlus && branchList.length > 0 ? `${branchList.length} ${t.branches}` : null,
+                    branchList.length > 0 ? `${branchList.length} ${t.branches}` : null,
                   ]
                     .filter(Boolean)
                     .join(dotSeparator)}
@@ -636,14 +621,6 @@ export default function StoreDetailScreen() {
                         </Pressable>
                       )
                     })}
-                    {showWebsiteInSocial && (
-                      <Pressable
-                        style={styles.socialBtn}
-                        onPress={() => Linking.openURL(storeProfile.websiteUrl!)}
-                      >
-                        <Ionicons name="globe-outline" size={20} color={colors.dk} />
-                      </Pressable>
-                    )}
                   </ScrollView>
                 </View>
               )}
@@ -922,19 +899,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: colors.y,
   },
-  plusBadge: {
-    position: 'absolute',
-    bottom: 0,
-    end: -2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.y,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.white,
-  },
   heroTextCol: {
     flex: 1,
     gap: 4,
@@ -956,22 +920,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     flexWrap: 'wrap',
-  },
-  verifiedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: colors.yl,
-    borderRadius: radius.full,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: colors.y,
-  },
-  verifiedText: {
-    fontFamily: fonts.bold,
-    fontSize: 10,
-    color: colors.dk,
   },
   metaText: {
     fontFamily: fonts.regular,

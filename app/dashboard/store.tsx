@@ -55,8 +55,6 @@ export default function StoreInfoScreen() {
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [locationId, setLocationId] = useState('')
 
-  const isStorePlus = profile?.type?.toUpperCase() === 'STORE_PLUS'
-
   const load = useCallback(async () => {
     setLoading(true)
     setLoadError(false)
@@ -112,7 +110,7 @@ export default function StoreInfoScreen() {
         description: description.trim() || undefined,
         logo: logo.trim() || undefined,
         cover: cover.trim() || undefined,
-        websiteUrl: isStorePlus ? websiteUrl.trim() || undefined : undefined,
+        websiteUrl: websiteUrl.trim() || undefined,
         locationId: locationId ? Number(locationId) : undefined,
       })
       setMsg({
@@ -191,29 +189,27 @@ export default function StoreInfoScreen() {
                 placeholder={ar ? 'اختر موقع المتجر' : 'Choose store location'}
               />
 
-              {isStorePlus && (
-                <View style={styles.field}>
-                  <Text style={[styles.label, dirStyle]}>
-                    {ar ? 'رابط الموقع الخارجي' : 'External Website URL'}
-                  </Text>
-                  <TextInput
-                    // URLs render LTR regardless of UI locale.
-                    style={[styles.input, { textAlign: 'left', writingDirection: 'ltr' }]}
-                    value={websiteUrl}
-                    onChangeText={setWebsiteUrl}
-                    placeholder="https://example.com"
-                    placeholderTextColor={colors.g400}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="url"
-                  />
-                  <Text style={[styles.hint, dirStyle]}>
-                    {ar
-                      ? 'اترك الحقل فارغاً لاستخدام صفحة المتجر الافتراضية من Vatix.'
-                      : 'Leave blank to use your default Vatix-hosted store page.'}
-                  </Text>
-                </View>
-              )}
+              <View style={styles.field}>
+                <Text style={[styles.label, dirStyle]}>
+                  {ar ? 'رابط الموقع الخارجي' : 'External Website URL'}
+                </Text>
+                <TextInput
+                  // URLs render LTR regardless of UI locale.
+                  style={[styles.input, { textAlign: 'left', writingDirection: 'ltr' }]}
+                  value={websiteUrl}
+                  onChangeText={setWebsiteUrl}
+                  placeholder="https://example.com"
+                  placeholderTextColor={colors.g400}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                />
+                <Text style={[styles.hint, dirStyle]}>
+                  {ar
+                    ? 'اترك الحقل فارغاً لاستخدام صفحة المتجر الافتراضية من Vatix.'
+                    : 'Leave blank to use your default Vatix-hosted store page.'}
+                </Text>
+              </View>
 
               <FileUpload
                 label={ar ? 'شعار المتجر (Logo)' : 'Store Logo'}
@@ -303,11 +299,7 @@ export default function StoreInfoScreen() {
                     <Text
                       style={[styles.previewBadge, dirStyle]}
                     >
-                      {isStorePlus
-                        ? '⭐ Store Plus'
-                        : ar
-                          ? '🏪 متجر'
-                          : '🏪 Store'}
+                      {ar ? '🏪 متجر' : '🏪 Store'}
                     </Text>
                   </View>
                 </View>

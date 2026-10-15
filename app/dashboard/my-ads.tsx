@@ -40,7 +40,6 @@ export default function MyAdsScreen() {
   const ar = locale === 'ar'
   const isStore = user?.isStore ?? false
   // Stores have no product cap; only clients are limited.
-  const isStorePlus = isStore
 
   const dirStyle = {
     textAlign: 'auto' as const,
@@ -115,10 +114,10 @@ export default function MyAdsScreen() {
   }, [products])
 
   const usedForLimit = stats.active
-  const usagePct = isStorePlus
+  const usagePct = isStore
     ? 0
     : Math.min(100, Math.round((usedForLimit / limit) * 100))
-  const isAtLimit = !isStorePlus && usedForLimit >= limit
+  const isAtLimit = !isStore && usedForLimit >= limit
 
   function confirmDelete(id: number) {
     Alert.alert(
@@ -262,13 +261,13 @@ export default function MyAdsScreen() {
                 {ar ? 'إعلاناتي' : 'My Listings'}
               </Text>
               <Text style={[styles.summarySub, dirStyle]} numberOfLines={1}>
-                {isStorePlus
+                {isStore
                   ? ar
-                    ? `${fmt(stats.total)} من غير محدود ∞`
-                    : `${fmt(stats.total)} of Unlimited ∞`
+                    ? 'غير محدود ∞'
+                    : 'Unlimited ∞'
                   : ar
-                    ? `${fmt(usedForLimit)} من ${fmt(limit)}${isStore ? ' (نشط)' : ''}`
-                    : `${fmt(usedForLimit)} of ${fmt(limit)}${isStore ? ' (active)' : ''}`}
+                    ? `${fmt(usedForLimit)} من ${fmt(limit)}`
+                    : `${fmt(usedForLimit)} of ${fmt(limit)}`}
               </Text>
               {!isStore && extraSlots > 0 && (
                 <View style={styles.extraChip}>
@@ -337,7 +336,7 @@ export default function MyAdsScreen() {
           </View>
 
           {/* Progress bar */}
-          {!isStorePlus && (
+          {!isStore && (
             <View style={styles.progressTrack}>
               <View
                 style={[

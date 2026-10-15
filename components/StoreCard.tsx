@@ -5,7 +5,6 @@ import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { Store, imgUrl } from '@/lib/api'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
-import { useLocale } from '@/contexts/locale'
 
 const COVER_H = 80
 const LOGO_SIZE = 44
@@ -17,7 +16,6 @@ interface StoreCardProps {
 }
 
 function StoreCardImpl({ store, style }: StoreCardProps) {
-  const { t } = useLocale()
   if (!store.storeProfile) return null
   // Logo is 44px, cover is 80px tall in a full-width card — request modest
   // widths so the resize endpoint returns thumbnails, not originals.
@@ -48,12 +46,6 @@ function StoreCardImpl({ store, style }: StoreCardProps) {
         )}
         {/* Subtle bottom fade */}
         <View style={styles.coverFade} />
-        {store.type === 'store_plus' ? (
-          <View style={styles.plusBadge}>
-            <Ionicons name="star" size={10} color={colors.dk} />
-            <Text style={styles.plusBadgeText}>{t.storePlusLabel}</Text>
-          </View>
-        ) : null}
       </View>
 
       {/* Logo overlapping cover */}
@@ -120,25 +112,6 @@ const styles = StyleSheet.create({
     right: 0,
     height: 28,
     backgroundColor: 'rgba(0,0,0,0.18)',
-  },
-  plusBadge: {
-    position: 'absolute',
-    top: 8,
-    end: 8,
-    backgroundColor: colors.y,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-    ...shadow.ss,
-  },
-  plusBadgeText: {
-    fontFamily: fonts.extraBold,
-    fontSize: 10,
-    color: colors.dk,
-    letterSpacing: 0.2,
   },
 
   logoRow: {
