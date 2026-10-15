@@ -320,7 +320,6 @@ export interface Translations {
   daysRemaining: string
   daysLeftLabel: string
   upgradeToStore: string
-  upgradeToStorePlus: string
   upgradeNow: string
   cancelSubscription: string
   cancelStore: string
@@ -445,10 +444,6 @@ export interface Translations {
   storeCover: string
   planCost: string
   monthlyBilling: string
-  yearlyBilling: string
-  storePlusFeaturesTagline: string
-  storePlusTrialThenActivate: (days: number) => string
-  billingCycleLabel: string
   monthly: string
   yearly: string
   perMonthSuffix: string
@@ -1051,7 +1046,6 @@ export const translations: Record<Locale, Translations> = {
     daysRemaining: 'أيام متبقية',
     daysLeftLabel: 'يوم',
     upgradeToStore: 'ترقية إلى متجر',
-    upgradeToStorePlus: 'ترقية إلى متجر بلَس',
     upgradeNow: 'ترقية الآن',
     cancelSubscription: 'إلغاء الاشتراك',
     cancelStore: 'إلغاء المتجر',
@@ -1176,11 +1170,6 @@ export const translations: Record<Locale, Translations> = {
     storeCover: 'صورة الغلاف (اختياري)',
     planCost: 'قيمة الخطة',
     monthlyBilling: 'شهرياً',
-    yearlyBilling: 'سنوياً',
-    storePlusFeaturesTagline: 'كامل المميزات + ظهور عالي',
-    storePlusTrialThenActivate: (days: number) =>
-      `تبدأ بتجربة مجانية ${days} يوم كمتجر عادي — يُفعَّل Store Plus تلقائياً بعد اعتماد الدفع من الإدارة`,
-    billingCycleLabel: 'دورة الفوترة',
     monthly: 'شهري',
     yearly: 'سنوي',
     perMonthSuffix: '/شهر',
@@ -1788,7 +1777,6 @@ export const translations: Record<Locale, Translations> = {
     daysRemaining: 'days remaining',
     daysLeftLabel: 'days',
     upgradeToStore: 'Upgrade to Store',
-    upgradeToStorePlus: 'Upgrade to Store Plus',
     upgradeNow: 'Upgrade Now',
     cancelSubscription: 'Cancel Subscription',
     cancelStore: 'Cancel Store',
@@ -1913,11 +1901,6 @@ export const translations: Record<Locale, Translations> = {
     storeCover: 'Cover image (optional)',
     planCost: 'Plan cost',
     monthlyBilling: 'monthly',
-    yearlyBilling: 'yearly',
-    storePlusFeaturesTagline: 'Full features + High visibility',
-    storePlusTrialThenActivate: (days: number) =>
-      `You'll start with a ${days}-day free trial as a standard store — Store Plus activates automatically once admin approves your payment`,
-    billingCycleLabel: 'Billing cycle',
     monthly: 'Monthly',
     yearly: 'Yearly',
     perMonthSuffix: '/mo',

@@ -57,7 +57,8 @@ export default function InvoicesScreen() {
 
   const TYPE_LABELS: Record<string, string> = {
     subscription_store: ar ? 'اشتراك متجر' : 'Store Sub',
-    subscription_store_plus: ar ? 'اشتراك Store Plus' : 'Store Plus Sub',
+    subscription_store_plus: ar ? 'اشتراك ستور بلس (سابق)' : 'Store Plus subscription (legacy)',
+    promotion_store: ar ? 'ترويج المتجر' : 'Store promotion',
     promotion_1ad: ar ? 'ترويج إعلان واحد' : 'Promo 1 Ad',
     promotion_3ads: ar ? 'ترويج ٣ إعلانات' : 'Promo 3 Ads',
     promotion_5ads: ar ? 'ترويج ٥ إعلانات' : 'Promo 5 Ads',

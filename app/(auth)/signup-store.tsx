@@ -22,7 +22,6 @@ import {
   checkOtp,
   checkPhoneAvailable,
   getSiteSettings,
-  getSubscriptionPlans,
   registerStore,
   sendOtp,
   uploadPublic,
@@ -34,14 +33,8 @@ import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 import { validatePassword } from '@/lib/password-policy'
-import { IS_IOS } from '@/lib/platform'
-
-type StoreType = 'store' | 'store_plus'
-type BillingCycle = 'monthly' | 'yearly'
 
 type Step = 'phone' | 'otp' | 'info'
-
-const TRIAL_DAYS = 14
 
 const STEP_ICONS: Record<Step, React.ComponentProps<typeof Ionicons>['name']> = {
   phone: 'call-outline',
@@ -66,8 +59,6 @@ export default function SignupStoreScreen() {
   const codeRef = useRef<TextInput>(null)
 
   const [storeName, setStoreName] = useState('')
-  const [storeType, setStoreType] = useState<StoreType>('store')
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
   const [description, setDescription] = useState('')
   // Pick-time URI is kept for the preview thumbnail only. The authoritative
   // value is the uploaded MinIO URL — picker-cache URIs get evicted between
@@ -78,16 +69,6 @@ export default function SignupStoreScreen() {
   const [coverUri, setCoverUri] = useState<string | null>(null)
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [coverUploading, setCoverUploading] = useState(false)
-  const [planAmounts, setPlanAmounts] = useState<{
-    store: number
-    store_plus_monthly: number
-    store_plus_yearly: number
-  }>({
-    store: 0,
-    store_plus_monthly: 0,
-    store_plus_yearly: 0,
-  })
-
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -95,22 +76,6 @@ export default function SignupStoreScreen() {
     getSiteSettings()
       .then(s => setOtpEnabled(s.otpVerificationEnabled))
       .catch(() => setOtpEnabled(true))
-  }, [])
-
-  useEffect(() => {
-    getSubscriptionPlans()
-      .then(plans => {
-        const active = plans.filter(p => p.isActive !== false)
-        const s = active.find(p => p.storeType === 'store')
-        const spM = active.find(p => p.storeType === 'store_plus' && p.billingCycle === 'monthly')
-        const spY = active.find(p => p.storeType === 'store_plus' && p.billingCycle === 'yearly')
-        setPlanAmounts({
-          store: s ? Math.round(Number(s.price)) : 0,
-          store_plus_monthly: spM ? Math.round(Number(spM.price)) : 0,
-          store_plus_yearly: spY ? Math.round(Number(spY.price)) : 0,
-        })
-      })
-      .catch(() => {})
   }, [])
 
   async function pickLogo() {
@@ -255,11 +220,7 @@ export default function SignupStoreScreen() {
         logo: logoUrl,
         ...(coverUrl ? { cover: coverUrl } : {}),
       })
-      const routeAfter =
-        storeType === 'store_plus'
-          ? `/dashboard/subscription?upgrade=plus&cycle=${billingCycle}`
-          : undefined
-      await login(response, routeAfter ?? redirect)
+      await login(response, redirect)
       void track({ name: 'sign_up', params: { method: 'phone', user_type: 'store' } })
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
@@ -392,82 +353,6 @@ export default function SignupStoreScreen() {
 
           {step === 'info' && (
             <>
-              <Text style={styles.sectionLabel}>{t.storeType}</Text>
-              <View style={styles.typeRow}>
-                {(['store', 'store_plus'] as const).map(opt => {
-                  const active = storeType === opt
-                  const label = opt === 'store' ? t.storeTypeStore : t.storeTypeStorePlus
-                  const icon = opt === 'store' ? '🏪' : '⭐'
-                  // Store Plus shows a "from …/mo" hint sourced from the monthly
-                  // plan; the exact selected cycle is chosen in the picker below.
-                  const price =
-                    opt === 'store' ? planAmounts.store : planAmounts.store_plus_monthly
-                  const priceSuffix = opt === 'store' ? t.monthlyBilling : t.perMonthSuffix
-                  return (
-                    <Pressable
-                      key={opt}
-                      onPress={() => setStoreType(opt)}
-                      style={[styles.typeBtn, active && styles.typeBtnActive]}
-                    >
-                      <Text style={[styles.typeIcon, active && styles.typeIconActive]}>{icon}</Text>
-                      <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>{label}</Text>
-                      {price > 0 ? (
-                        <Text style={[styles.typePrice, active && styles.typePriceActive]}>
-                          {opt === 'store_plus' ? `${t.fromPricePrefix} ` : ''}
-                          {price} {priceSuffix}
-                        </Text>
-                      ) : null}
-                      {opt === 'store' ? (
-                        <View style={styles.freeMonthBadge}>
-                          <Text style={styles.freeMonthText}>{t.freeMonthFirst}</Text>
-                        </View>
-                      ) : (
-                        <Text style={styles.tagline}>{t.storePlusFeaturesTagline}</Text>
-                      )}
-                    </Pressable>
-                  )
-                })}
-              </View>
-
-              {storeType === 'store_plus' && !IS_IOS && (
-                <>
-                  <Text style={styles.sectionLabel}>{t.billingCycleLabel}</Text>
-                  <View style={styles.typeRow}>
-                    {(['monthly', 'yearly'] as const).map(cyc => {
-                      const active = billingCycle === cyc
-                      const label = cyc === 'monthly' ? t.monthly : t.yearly
-                      const amount =
-                        cyc === 'monthly'
-                          ? planAmounts.store_plus_monthly
-                          : planAmounts.store_plus_yearly
-                      const suffix = cyc === 'monthly' ? t.perMonthSuffix : t.perYearSuffix
-                      return (
-                        <Pressable
-                          key={cyc}
-                          onPress={() => setBillingCycle(cyc)}
-                          style={[styles.typeBtn, active && styles.typeBtnActive]}
-                        >
-                          <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>
-                            {label}
-                          </Text>
-                          {amount > 0 ? (
-                            <Text style={[styles.typePrice, active && styles.typePriceActive]}>
-                              {amount} {suffix}
-                            </Text>
-                          ) : null}
-                        </Pressable>
-                      )
-                    })}
-                  </View>
-
-                  <View style={styles.infoBanner}>
-                    <Text style={styles.infoBannerText}>
-                      ⭐ {t.storePlusTrialThenActivate(TRIAL_DAYS)}
-                    </Text>
-                  </View>
-                </>
-              )}
-
               <Input label={t.storeName} value={storeName} onChangeText={setStoreName} autoCapitalize="words" />
 
               <Text style={styles.sectionLabel}>{t.storeDescription}</Text>
@@ -676,83 +561,7 @@ const styles = StyleSheet.create({
     textAlign: 'auto',
   },
 
-  typeRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  typeBtn: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: colors.g200,
-    borderRadius: radius.md,
-    backgroundColor: colors.white,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    alignItems: 'center',
-    gap: 4,
-  },
-  typeBtnActive: {
-    borderColor: colors.y,
-    backgroundColor: colors.yl,
-  },
-  typeIcon: {
-    fontSize: 22,
-  },
-  typeIconActive: {},
-  typeLabel: {
-    fontFamily: fonts.bold,
-    fontSize: 14,
-    color: colors.g700,
-  },
-  typeLabelActive: {
-    color: colors.dk,
-  },
-  typePrice: {
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    color: colors.g500,
-  },
-  typePriceActive: {
-    color: colors.dk,
-  },
-  freeMonthBadge: {
-    marginTop: 4,
-    backgroundColor: colors.y,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-  },
-  freeMonthText: {
-    fontFamily: fonts.bold,
-    fontSize: 10,
-    color: colors.dk,
-  },
-  tagline: {
-    marginTop: 4,
-    fontFamily: fonts.semiBold,
-    fontSize: 10,
-    color: colors.g500,
-    textAlign: 'center',
-  },
 
-  infoBanner: {
-    marginTop: 2,
-    marginBottom: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.yl,
-    borderWidth: 1,
-    borderColor: colors.y,
-  },
-  infoBannerText: {
-    fontFamily: fonts.bold,
-    fontSize: 12,
-    color: colors.dk,
-    lineHeight: 20,
-    textAlign: 'auto',
-  },
 
   textarea: {
     minHeight: 80,

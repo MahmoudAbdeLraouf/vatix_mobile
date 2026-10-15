@@ -19,7 +19,6 @@ import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import type { EventSubscription, Purchase, PurchaseError } from 'react-native-iap'
 import {
-  BillingCycle,
   expiredConvertToClient,
   expiredPayIap,
   expiredPayInstapay,
@@ -43,7 +42,7 @@ import {
 import {
   getIapProduct,
   iosFallbackDisplayPrice,
-  subscriptionSkuForStoreType,
+  SKU_SUBSCRIPTION_STORE,
 } from '@/lib/iap-products'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -56,10 +55,7 @@ import { IS_IOS, PAID_UI_ENABLED } from '@/lib/platform'
 // is active. Normally the dialog resolves the price from `/subscriptions/plans`
 // so admin updates to SubscriptionPlan.price are reflected in the QR / wallet
 // cards without a mobile release.
-const AMOUNT_BY_TYPE_CYCLE: Record<'store' | 'store_plus', Record<BillingCycle, number>> = {
-  store: { monthly: 450, yearly: 4500 },
-  store_plus: { monthly: 500, yearly: 5000 },
-}
+const FALLBACK_AMOUNT = 450
 
 type Step =
   | 'choice'
@@ -89,7 +85,6 @@ interface Props {
   visible: boolean
   phone: string
   password: string
-  storeType: 'store' | 'store_plus'
   onClose: () => void
 }
 
@@ -107,7 +102,7 @@ function useDir() {
   }
 }
 
-export function ExpiredStoreDialog({ visible, phone, password, storeType, onClose }: Props) {
+export function ExpiredStoreDialog({ visible, phone, password, onClose }: Props) {
   const { t } = useLocale()
   const { rowDir, dirStyle } = useDir()
   const auth = useAuth()
@@ -122,7 +117,6 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
   const [uploading, setUploading] = useState(false)
   const [buyerPhone, setBuyerPhone] = useState('')
   const [paySettings, setPaySettings] = useState<PaySettings>(DEFAULT_PAY_SETTINGS)
-  const [cycle, setCycle] = useState<BillingCycle>('monthly')
   const [iosPriceMap, setIosPriceMap] = useState<
     Record<string, { price: number; currency: string } | undefined>
   >({})
@@ -131,14 +125,13 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
   const planPrice = (() => {
     if (!plans) return null
     const match = plans.find(
-      (p) => p.isActive && p.storeType === storeType && (p.billingCycle ?? 'monthly') === cycle,
+      (p) => p.isActive && p.storeType === 'store' && (p.billingCycle ?? 'monthly') === 'monthly',
     )
     if (!match) return null
     const n = typeof match.price === 'string' ? Number(match.price) : match.price
     return Number.isFinite(n) ? n : null
   })()
-  const amount = planPrice ?? AMOUNT_BY_TYPE_CYCLE[storeType][cycle]
-  const showCyclePicker = storeType === 'store_plus' && !IS_IOS
+  const amount = planPrice ?? FALLBACK_AMOUNT
 
   useEffect(() => {
     if (!visible) return
@@ -148,7 +141,6 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
     setScreenshotUrl(null)
     setScreenshotLocal(null)
     setBuyerPhone('')
-    setCycle('monthly')
   }, [visible])
 
   useEffect(() => {
@@ -173,7 +165,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
         setPlans(list)
       })
       .catch(() => {
-        /* fall back to AMOUNT_BY_TYPE_CYCLE at render time */
+        /* fall back to FALLBACK_AMOUNT at render time */
       })
     return () => {
       cancelled = true
@@ -183,7 +175,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
   useEffect(() => {
     if (!IS_IOS || !visible) return
     let cancelled = false
-    const sku = subscriptionSkuForStoreType(storeType)
+    const sku = SKU_SUBSCRIPTION_STORE
     const product = getIapProduct(sku)
     if (!product) return
     ;(async () => {
@@ -203,7 +195,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
     return () => {
       cancelled = true
     }
-  }, [visible, storeType])
+  }, [visible])
 
   function handleClose() {
     if (busy || uploading) return
@@ -264,7 +256,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
     setError('')
     setBusy(true)
     try {
-      await expiredPayInstapay(phone, password, screenshotUrl, buyerPhone.trim(), cycle)
+      await expiredPayInstapay(phone, password, screenshotUrl, buyerPhone.trim(), 'monthly')
       setStep('instapay-done')
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
@@ -286,7 +278,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
     setError('')
     setBusy(true)
     try {
-      await expiredPayMobileWallet(phone, password, screenshotUrl, buyerPhone.trim(), cycle)
+      await expiredPayMobileWallet(phone, password, screenshotUrl, buyerPhone.trim(), 'monthly')
       setStep('mobile-wallet-done')
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
@@ -299,7 +291,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
     if (busy) return
     setError('')
     setBusy(true)
-    const sku = subscriptionSkuForStoreType(storeType)
+    const sku = SKU_SUBSCRIPTION_STORE
     const product = getIapProduct(sku)
     if (!product) {
       setError(authErrorMessage(new Error(AUTH_ERR.IAP_PRODUCT_UNAVAILABLE), t))
@@ -451,7 +443,7 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
                   )}
 
                   {IS_IOS && (() => {
-                    const sku = subscriptionSkuForStoreType(storeType)
+                    const sku = SKU_SUBSCRIPTION_STORE
                     const priced = iosPriceMap[sku]
                     const priceLabel = priced
                       ? `${priced.price.toFixed(2)} ${priced.currency}`
@@ -511,15 +503,6 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
 
               {PAID_UI_ENABLED && step === 'instapay' && (
                 <>
-                  {showCyclePicker && (
-                    <CyclePicker
-                      cycle={cycle}
-                      onChange={setCycle}
-                      disabled={busy || uploading}
-                      t={t}
-                      dirStyle={dirStyle}
-                    />
-                  )}
 
                   <InstapayQrCard amount={amount} />
 
@@ -611,15 +594,6 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
 
               {PAID_UI_ENABLED && step === 'mobile-wallet' && (
                 <>
-                  {showCyclePicker && (
-                    <CyclePicker
-                      cycle={cycle}
-                      onChange={setCycle}
-                      disabled={busy || uploading}
-                      t={t}
-                      dirStyle={dirStyle}
-                    />
-                  )}
 
                   <MobileWalletCard
                     amount={amount}
@@ -748,52 +722,6 @@ export function ExpiredStoreDialog({ visible, phone, password, storeType, onClos
         </Pressable>
       </Pressable>
     </Modal>
-  )
-}
-
-function CyclePicker({
-  cycle,
-  onChange,
-  disabled,
-  t,
-  dirStyle,
-}: {
-  cycle: BillingCycle
-  onChange: (c: BillingCycle) => void
-  disabled: boolean
-  t: ReturnType<typeof useLocale>['t']
-  dirStyle: { writingDirection: 'rtl' | 'ltr'; textAlign: 'auto' }
-}) {
-  return (
-    <View>
-      <Text style={[styles.fieldLabel, dirStyle]}>{t.billingCycleLabel}</Text>
-      <View style={styles.typeGrid}>
-        <Pressable
-          onPress={() => onChange('monthly')}
-          disabled={disabled}
-          style={[
-            styles.typeCard,
-            cycle === 'monthly' && { borderColor: colors.y, backgroundColor: colors.yl },
-            disabled && { opacity: 0.6 },
-          ]}
-        >
-          <Text style={styles.typeIcon}>🗓️</Text>
-          <Text style={styles.typeLabel}>{t.monthlyBilling}</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => onChange('yearly')}
-          disabled={disabled}
-          style={[
-            styles.typeCard,
-            cycle === 'yearly' && { borderColor: colors.y, backgroundColor: colors.yl },
-            disabled && { opacity: 0.6 },
-          ]}
-        >
-          <Text style={styles.typeIcon}>📅</Text>
-          <Text style={styles.typeLabel}>{t.yearlyBilling}</Text>
-        </Pressable>
-      </View>
-    </View>
   )
 }
 
@@ -1020,29 +948,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.dk,
     marginBottom: spacing.xs,
-  },
-  typeGrid: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  typeCard: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: colors.g200,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.white,
-    gap: 4,
-  },
-  typeIcon: {
-    fontSize: 22,
-  },
-  typeLabel: {
-    fontFamily: fonts.bold,
-    fontSize: 13,
-    color: colors.dk,
   },
   uploadBox: {
     borderWidth: 1.5,

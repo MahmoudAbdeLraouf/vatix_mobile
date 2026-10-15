@@ -47,22 +47,22 @@ import {
   SUBSCRIPTION_SKUS,
   getIapProduct,
   iosFallbackDisplayPrice,
-  subscriptionSkuForStoreType,
+  SKU_SUBSCRIPTION_STORE,
 } from '@/lib/iap-products'
 import { finalizePaymentSuccess, verifyIapPurchase } from '@/lib/payment'
 
 // Mirrors vatix_website/components/upgrade-modal.tsx
-// Three modes × multi-step flow:
-//   Mode: upgrade-to-store | upgrade-to-plus | cancel-store
+// Two modes × multi-step flow:
+//   Mode: upgrade-to-store | cancel-store
 //   Step: store-info → pay-method → instapay → instapay-done
 //         pay-method → mobile-wallet → mobile-wallet-done
 //         pay-method → wallet → wallet-done
-// upgrade-to-plus skips store-info (user already has store profile).
+// A user who already has a store profile skips store-info (renewal).
 // Store materialization is deferred: store metadata is sent inside payment
 // `metadata` so the backend creates the profile only after admin approval
 // (InstaPay / mobile-wallet) or immediately (wallet).
 
-export type UpgradeMode = 'upgrade-to-store' | 'upgrade-to-plus' | 'cancel-store'
+export type UpgradeMode = 'upgrade-to-store' | 'cancel-store'
 export type CancelReason =
   | 'expensive'
   | 'no_lead'
@@ -82,37 +82,15 @@ type Step =
   | 'apple-iap'
   | 'apple-iap-done'
 
-export type BillingCycle = 'monthly' | 'yearly'
-
 interface Props {
   visible: boolean
   mode: UpgradeMode
   onClose: () => void
   onSuccess?: () => void
-  // Only meaningful for `upgrade-to-plus`. Normal-store subscriptions are
-  // monthly-only. Ignored on iOS (App Store Connect has monthly SKUs only, so
-  // the effective cycle is forced to `monthly` there).
-  cycle?: BillingCycle
 }
 
-const PLAN_META: Record<
-  'store' | 'store_plus',
-  { code: string; fallbackPrice: Record<BillingCycle, number> }
-> = {
-  store: {
-    code: 'subscription_store',
-    fallbackPrice: { monthly: 450, yearly: 4500 },
-  },
-  store_plus: {
-    code: 'subscription_store_plus',
-    fallbackPrice: { monthly: 500, yearly: 5000 },
-  },
-}
-
-// Trial length shown on the yellow banner when Store Plus is selected.
-// Website sources this from NEXT_PUBLIC_TRIAL_DAYS; mobile hardcodes it since
-// only one call site consumes it.
-const TRIAL_DAYS = 14
+// Store subscriptions are monthly-only.
+const STORE_PLAN = { code: 'subscription_store', fallbackPrice: 450 }
 
 // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
 // RTL, `textAlign: 'right'` and `flexDirection: 'row-reverse'` resolve visually
@@ -138,21 +116,16 @@ function useDir() {
   }
 }
 
-export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props) {
+export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   const { t } = useLocale()
   const { ar, rowDir } = useDir()
   const insets = useSafeAreaInsets()
   const { user, refetchUser } = useAuth()
 
-  // A client tapping "Upgrade to Plus" has no storeProfile yet, so they must
-  // still run store-info + handleCreateStore before payment. Only skip that
-  // step when the user is already a store (upgrading tier).
-  const userType = user?.type
-  const hasStoreAlready =
-    userType === 'STORE' ||
-    userType === 'store' ||
-    userType === 'STORE_PLUS' ||
-    userType === 'store_plus'
+  // A client tapping "Upgrade to store" has no storeProfile yet, so they must
+  // still run store-info before payment. Only skip that step when the user is
+  // already a store (renewing).
+  const hasStoreAlready = user?.type === 'store'
   const needsStoreCreation = mode !== 'cancel-store' && !hasStoreAlready
 
   const [step, setStep] = useState<Step>(
@@ -177,27 +150,11 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
   // reflected without duplicating the pricing table in the client.
   const [iosPriceMap, setIosPriceMap] = useState<Record<string, string>>({})
 
-  // Store-info form — the account-type grid (mirrors website's signup-store)
-  // lets the user pick Standard vs Plus in the same step. Initial value is
-  // driven by which CTA opened the modal; user can flip either way from inside.
-  // For 'store_plus' the modal transitions to pay-method after handleTrialSignup
-  // materializes the standard-store profile (deferred Plus activation happens
-  // on payment approval).
-  const [storeType, setStoreType] = useState<'store' | 'store_plus'>(
-    mode === 'upgrade-to-plus' ? 'store_plus' : 'store',
-  )
+  // Store-info form
   const [storeName, setStoreName] = useState('')
   const [description, setDescription] = useState('')
   const [logo, setLogo] = useState('')
   const [cover, setCover] = useState('')
-
-  // Billing cycle. Only meaningful for `upgrade-to-plus`. Normal-store
-  // subscriptions are monthly-only. iOS is forced to `monthly` because App
-  // Store Connect only has monthly SKUs — a yearly picker there would fail at
-  // `requireIosProduct`.
-  const initialCycle: BillingCycle =
-    IS_IOS || mode !== 'upgrade-to-plus' ? 'monthly' : (cycle ?? 'monthly')
-  const [effectiveCycle, setEffectiveCycle] = useState<BillingCycle>(initialCycle)
 
   // InstaPay form
   const [screenshotKey, setScreenshotKey] = useState('')
@@ -215,14 +172,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
     setCover('')
     setScreenshotKey('')
     setBuyerPhone('')
-    setEffectiveCycle(
-      IS_IOS || mode !== 'upgrade-to-plus' ? 'monthly' : (cycle ?? 'monthly'),
-    )
-    setStoreType(mode === 'upgrade-to-plus' ? 'store_plus' : 'store')
     setCancelSubStep('reason')
     setCancelReason('')
     setCancelDetail('')
-  }, [visible, mode, needsStoreCreation, cycle])
+  }, [visible, mode, needsStoreCreation])
 
   // Load plans + settings + wallet on open
   useEffect(() => {
@@ -268,60 +221,27 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
     }
   }, [visible])
 
-  // Selected plan amount for pay-method / card / instapay / wallet steps.
-  // Cycle-scoped: for store_plus we match on both storeType AND billingCycle so
-  // the yearly tier surfaces its own DB price (falls back to PLAN_META fallback
-  // for the active cycle when the plan row is missing). Normal store is
-  // monthly-only, so cycle is effectively pinned to 'monthly'.
-  const selectedType: 'store' | 'store_plus' = storeType
+  // Selected plan amount for pay-method / instapay / wallet steps. Falls back
+  // to STORE_PLAN.fallbackPrice when the plan row is missing.
   const selectedPlan = useMemo(() => {
-    const meta = PLAN_META[selectedType]
-    const fallback = meta.fallbackPrice[effectiveCycle]
     const priceStr = plans.find(
-      p => p.storeType === selectedType && (p.billingCycle ?? 'monthly') === effectiveCycle,
+      p => p.storeType === 'store' && (p.billingCycle ?? 'monthly') === 'monthly',
     )?.price
-    const priceNum = priceStr != null ? Number(priceStr) : fallback
+    const priceNum = priceStr != null ? Number(priceStr) : STORE_PLAN.fallbackPrice
     return {
-      code: meta.code,
-      amount: Number.isFinite(priceNum) ? priceNum : fallback,
+      code: STORE_PLAN.code,
+      amount: Number.isFinite(priceNum) ? priceNum : STORE_PLAN.fallbackPrice,
     }
-  }, [plans, selectedType, effectiveCycle])
-
-  // Fetches the display amount for a given store type at the current cycle.
-  // Used by the store-info account-type grid to surface each tier's price
-  // side-by-side so the user can compare Standard vs Plus at a glance.
-  function priceFor(type: 'store' | 'store_plus'): number {
-    const meta = PLAN_META[type]
-    const fallback = meta.fallbackPrice[effectiveCycle]
-    const priceStr = plans.find(
-      p => p.storeType === type && (p.billingCycle ?? 'monthly') === effectiveCycle,
-    )?.price
-    const priceNum = priceStr != null ? Number(priceStr) : fallback
-    return Number.isFinite(priceNum) ? priceNum : fallback
-  }
+  }, [plans])
 
   const walletBalance = wallet?.balance ?? null
 
-  // On iOS, prefer the StoreKit-formatted price for the selected plan. Falls
-  // back to the grossed-up App Store Connect tier (999 / 1699 EGP) when
-  // StoreKit is unreachable (Expo Go, dev, offline) so the UI never shows the
-  // pre-commission backend price on an iOS build.
+  // On iOS, prefer the StoreKit-formatted price. Falls back to the grossed-up
+  // App Store Connect tier when StoreKit is unreachable (Expo Go, dev, offline)
+  // so the UI never shows the pre-commission backend price on an iOS build.
   const iosDisplayPrice = IS_IOS
-    ? (iosPriceMap[subscriptionSkuForStoreType(storeType)] ??
-      iosFallbackDisplayPrice(subscriptionSkuForStoreType(storeType)))
-    : undefined
-
-  // Per-type prices for the side-by-side account-type grid. Using the
-  // selected-type `iosDisplayPrice` on both cards would mislabel one of them
-  // (e.g. showing the Store tier's 599 EGP on the Store Plus card while Store
-  // is selected).
-  const storeIosDisplayPrice = IS_IOS
-    ? (iosPriceMap[subscriptionSkuForStoreType('store')] ??
-      iosFallbackDisplayPrice(subscriptionSkuForStoreType('store')))
-    : undefined
-  const plusIosDisplayPrice = IS_IOS
-    ? (iosPriceMap[subscriptionSkuForStoreType('store_plus')] ??
-      iosFallbackDisplayPrice(subscriptionSkuForStoreType('store_plus')))
+    ? (iosPriceMap[SKU_SUBSCRIPTION_STORE] ??
+      iosFallbackDisplayPrice(SKU_SUBSCRIPTION_STORE))
     : undefined
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
@@ -361,9 +281,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
     }
   }
 
-  // Path B for Store Plus signup: materialize a standard-store profile on the
-  // 14-day trial without any payment. storeType is forced to 'store' regardless
-  // of the mode — Store Plus itself does NOT get a free trial (spec).
+  // Materialize a store profile on the 14-day trial without any payment.
   async function handleTrialSignup() {
     if (!storeName.trim()) {
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
@@ -385,17 +303,9 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
       })
       await updateStoredUser((res as { user?: Parameters<typeof updateStoredUser>[0] })?.user ?? null)
       await refetchUser()
-      if (storeType === 'store_plus') {
-        // Website mirror: standard-store profile is now materialized on the
-        // 14-day trial. Transition into the pay-method step so the user can
-        // upgrade to Plus. Mobile keeps this in-modal instead of redirecting
-        // to /dashboard/subscription like the website does.
-        setStep('pay-method')
-      } else {
-        onSuccess?.()
-        onClose()
-        router.replace('/dashboard')
-      }
+      onSuccess?.()
+      onClose()
+      router.replace('/dashboard')
     } catch (e: unknown) {
       setErr(authErrorMessage(e, t))
     } finally {
@@ -412,7 +322,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
     if (!needsStoreCreation) return {}
     return {
       storeName: storeName.trim(),
-      storeType,
+      storeType: 'store',
       description: description.trim() || undefined,
       logo: logo || undefined,
       cover: cover || undefined,
@@ -441,7 +351,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
     try {
       await authPost('/payments/instapay/subscriptions', {
         type: selectedPlan.code,
-        billingCycle: effectiveCycle,
+        billingCycle: 'monthly',
         screenshotKey,
         buyerPhone: buyerPhone.trim(),
         metadata: buildStoreMetadata(),
@@ -476,7 +386,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
     try {
       await authPost('/payments/mobile-wallet/subscriptions', {
         type: selectedPlan.code,
-        billingCycle: effectiveCycle,
+        billingCycle: 'monthly',
         screenshotKey,
         buyerPhone: buyerPhone.trim(),
         metadata: buildStoreMetadata(),
@@ -503,7 +413,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
     try {
       const res = await authPost<{ user?: unknown }>('/payments/wallet/pay', {
         type: selectedPlan.code,
-        billingCycle: effectiveCycle,
+        billingCycle: 'monthly',
         metadata: buildStoreMetadata(),
       })
       await updateStoredUser((res as { user?: Parameters<typeof updateStoredUser>[0] })?.user ?? null)
@@ -537,7 +447,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
       setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
       return
     }
-    const sku = subscriptionSkuForStoreType(storeType)
+    const sku = SKU_SUBSCRIPTION_STORE
     const product = getIapProduct(sku)
     if (!product) {
       console.warn(`[IAP] subscription product not cached for sku=${sku}`)
@@ -597,7 +507,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
         signedTransaction: jws,
         metadata: {
           ...buildStoreMetadata(),
-          billingCycle: effectiveCycle,
+          billingCycle: 'monthly',
           ...(customerPrice !== undefined && { customerPrice }),
           customerCurrency,
         },
@@ -626,16 +536,13 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
   // ─── Title ─────────────────────────────────────────────────────────────────
 
   const currencyLabel = ar ? 'ج.م' : 'EGP'
-  const cycleUnit = effectiveCycle === 'yearly' ? t.yearlyBilling : t.monthlyBilling
   const priceLabel = iosDisplayPrice
     ? iosDisplayPrice
-    : `${selectedPlan.amount} ${currencyLabel} / ${cycleUnit}`
+    : `${selectedPlan.amount} ${currencyLabel} / ${t.monthlyBilling}`
   const title =
     mode === 'cancel-store'
       ? t.cancelStore
-      : mode === 'upgrade-to-plus'
-        ? `${t.upgradeToStorePlus} · ${priceLabel}`
-        : `${t.upgradeToStore} · ${priceLabel}`
+      : `${t.upgradeToStore} · ${priceLabel}`
 
   return (
     <Modal
@@ -694,15 +601,6 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
                   onLogoChange={setLogo}
                   cover={cover}
                   onCoverChange={setCover}
-                  storeType={storeType}
-                  onStoreTypeChange={setStoreType}
-                  storeAmount={priceFor('store')}
-                  plusAmount={priceFor('store_plus')}
-                  storeIosDisplayPrice={storeIosDisplayPrice}
-                  plusIosDisplayPrice={plusIosDisplayPrice}
-                  cycle={effectiveCycle}
-                  onCycleChange={setEffectiveCycle}
-                  showCyclePicker={storeType === 'store_plus' && !IS_IOS}
                   err={err}
                   busy={busy}
                   onBack={onClose}
@@ -712,9 +610,6 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess, cycle }: Props
                 <PayMethodPanel
                   price={selectedPlan.amount}
                   iosDisplayPrice={iosDisplayPrice}
-                  cycle={effectiveCycle}
-                  onCycleChange={setEffectiveCycle}
-                  showCyclePicker={storeType === 'store_plus' && !IS_IOS}
                   settings={settings}
                   walletBalance={walletBalance}
                   err={err}
@@ -849,111 +744,17 @@ function StoreInfoPanel(props: {
   onLogoChange: (v: string) => void
   cover: string
   onCoverChange: (v: string) => void
-  storeType: 'store' | 'store_plus'
-  onStoreTypeChange: (t: 'store' | 'store_plus') => void
-  storeAmount: number
-  plusAmount: number
-  storeIosDisplayPrice?: string
-  plusIosDisplayPrice?: string
-  cycle: BillingCycle
-  onCycleChange: (c: BillingCycle) => void
-  showCyclePicker: boolean
   err: string
   busy: boolean
   onBack: () => void
   onSubmit: () => void
 }) {
-  const {
-    storeName,
-    onStoreNameChange,
-    storeType,
-    onStoreTypeChange,
-    storeAmount,
-    plusAmount,
-    storeIosDisplayPrice,
-    plusIosDisplayPrice,
-    cycle,
-    onCycleChange,
-    showCyclePicker,
-  } = props
+  const { storeName, onStoreNameChange } = props
   const { t } = useLocale()
-  const { ar, rowDir, colDir, dirStyle } = useDir()
-  const cycleUnit = cycle === 'yearly' ? t.yearlyBilling : t.monthlyBilling
-  const currency = ar ? 'ج.م' : 'EGP'
-  const isPlus = storeType === 'store_plus'
-  const storePriceLabel = storeIosDisplayPrice ?? `${storeAmount} ${currency}`
-  const plusPriceLabel = plusIosDisplayPrice ?? `${plusAmount} ${currency}`
+  const { ar, rowDir } = useDir()
 
   return (
     <View>
-      <View style={colDir}>
-        <Text style={[styles.sectionLabel, dirStyle]}>
-          {ar ? 'نوع الحساب *' : 'Account type *'}
-        </Text>
-        <View style={styles.typeGrid}>
-          <Pressable
-            onPress={() => onStoreTypeChange('store')}
-            style={[
-              styles.typeCard,
-              storeType === 'store' && { borderColor: colors.y, backgroundColor: colors.yl },
-            ]}
-            disabled={props.busy}
-          >
-            <Text style={styles.typeIcon}>🏪</Text>
-            <Text style={styles.typeLabel}>{ar ? 'متجر عادي' : 'Standard Store'}</Text>
-            <Text style={styles.typeSub}>{storePriceLabel}</Text>
-            <Text style={[styles.typeBadge, { color: '#16a34a' }]}>
-              {ar ? `تجربة ${TRIAL_DAYS} يوم مجاناً 🎁` : `${TRIAL_DAYS}-day free trial 🎁`}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => onStoreTypeChange('store_plus')}
-            style={[
-              styles.typeCard,
-              storeType === 'store_plus' && { borderColor: colors.y, backgroundColor: colors.yl },
-            ]}
-            disabled={props.busy}
-          >
-            <Text style={styles.typeIcon}>⭐</Text>
-            <Text style={styles.typeLabel}>Store Plus</Text>
-            <Text style={styles.typeSub}>{plusPriceLabel}</Text>
-            <Text style={[styles.typeBadge, { color: colors.g500 }]}>
-              {ar ? 'كامل المميزات + ظهور عالي' : 'Full features + High visibility'}
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {showCyclePicker ? (
-        <View style={colDir}>
-          <Text style={[styles.sectionLabel, dirStyle]}>{t.billingCycleLabel}</Text>
-          <View style={styles.typeGrid}>
-            <Pressable
-              onPress={() => onCycleChange('monthly')}
-              style={[
-                styles.typeCard,
-                cycle === 'monthly' && { borderColor: colors.y, backgroundColor: colors.yl },
-              ]}
-              disabled={props.busy}
-            >
-              <Text style={styles.typeIcon}>🗓️</Text>
-              <Text style={styles.typeLabel}>{t.monthlyBilling}</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => onCycleChange('yearly')}
-              style={[
-                styles.typeCard,
-                cycle === 'yearly' && { borderColor: colors.y, backgroundColor: colors.yl },
-              ]}
-              disabled={props.busy}
-            >
-              <Text style={styles.typeIcon}>📅</Text>
-              <Text style={styles.typeLabel}>{t.yearlyBilling}</Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
-
       <Input
         label={ar ? 'اسم المتجر *' : 'Store name *'}
         value={storeName}
@@ -982,18 +783,6 @@ function StoreInfoPanel(props: {
         onChange={props.onCoverChange}
         aspect="wide"
       />
-
-      {isPlus ? (
-        <View style={[styles.priceRow, rowDir]}>
-          <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
-            <Text style={[styles.priceLabel, dirStyle]}>{t.planCost}</Text>
-          </View>
-          <Text style={styles.priceValue}>
-            {plusPriceLabel}{' '}
-            <Text style={styles.priceUnit}>/{cycleUnit}</Text>
-          </Text>
-        </View>
-      ) : null}
 
       <ErrorBox err={props.err} />
 
@@ -1024,9 +813,6 @@ function StoreInfoPanel(props: {
 function PayMethodPanel(props: {
   price: number
   iosDisplayPrice?: string
-  cycle: BillingCycle
-  onCycleChange: (c: BillingCycle) => void
-  showCyclePicker: boolean
   settings: SiteSettings | null
   walletBalance: number | null
   err: string
@@ -1041,11 +827,10 @@ function PayMethodPanel(props: {
 }) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
-  const { settings, walletBalance, price, cycle, onCycleChange, showCyclePicker } = props
+  const { settings, walletBalance, price } = props
   const instapayOn = settings?.instapayEnabled ?? false
   const mobileWalletOn = settings?.mobileWalletEnabled ?? false
   const walletShort = walletBalance != null && walletBalance < price
-  const cycleUnit = cycle === 'yearly' ? t.yearlyBilling : t.monthlyBilling
 
   return (
     <View>
@@ -1053,43 +838,13 @@ function PayMethodPanel(props: {
         <Text style={[styles.stepHeading, dirStyle]}>{t.choosePaymentMethod}</Text>
       </View>
 
-      {showCyclePicker ? (
-        <View style={colDir}>
-          <Text style={[styles.sectionLabel, dirStyle]}>{t.billingCycleLabel}</Text>
-          <View style={styles.typeGrid}>
-            <Pressable
-              onPress={() => onCycleChange('monthly')}
-              style={[
-                styles.typeCard,
-                cycle === 'monthly' && { borderColor: colors.y, backgroundColor: colors.yl },
-              ]}
-              disabled={props.busy}
-            >
-              <Text style={styles.typeIcon}>🗓️</Text>
-              <Text style={styles.typeLabel}>{t.monthlyBilling}</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => onCycleChange('yearly')}
-              style={[
-                styles.typeCard,
-                cycle === 'yearly' && { borderColor: colors.y, backgroundColor: colors.yl },
-              ]}
-              disabled={props.busy}
-            >
-              <Text style={styles.typeIcon}>📅</Text>
-              <Text style={styles.typeLabel}>{t.yearlyBilling}</Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
-
       <View style={[styles.priceRow, rowDir]}>
         <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
           <Text style={[styles.priceLabel, dirStyle]}>{t.planCost}</Text>
         </View>
         <Text style={styles.priceValue}>
           {props.iosDisplayPrice ?? `${price} ${ar ? 'ج.م' : 'EGP'}`}{' '}
-          <Text style={styles.priceUnit}>/{cycleUnit}</Text>
+          <Text style={styles.priceUnit}>/{t.monthlyBilling}</Text>
         </Text>
       </View>
 
@@ -1740,11 +1495,6 @@ const styles = StyleSheet.create({
     color: colors.dk,
     marginBottom: spacing.md,
   },
-  typeGrid: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
   typeCard: {
     flex: 1,
     borderWidth: 2,
@@ -1755,9 +1505,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  // 2-column wrap grid for the 6 cancellation reasons. `typeGrid` is a strict
-  // row and would squeeze the 6 cards into unreadable slivers, so this variant
-  // wraps at `flexBasis: 48%` (leaves room for the `spacing.sm` gap).
+  // 2-column wrap grid for the 6 cancellation reasons. A strict row would
+  // squeeze the 6 cards into unreadable slivers, so this wraps at
+  // `flexBasis: 48%` (leaves room for the `spacing.sm` gap).
   reasonGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1802,18 +1552,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.dk,
     textAlign: 'center',
-  },
-  typeSub: {
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    color: colors.g500,
-    textAlign: 'center',
-  },
-  typeBadge: {
-    fontFamily: fonts.bold,
-    fontSize: 11,
-    textAlign: 'center',
-    marginTop: 2,
   },
   priceRow: {
     flexDirection: 'row',

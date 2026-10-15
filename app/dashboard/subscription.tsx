@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams } from 'expo-router'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ErrorState } from '@/components/ui/ErrorState'
-import { BillingCycle, UpgradeModal, UpgradeMode } from '@/components/UpgradeModal'
+import { UpgradeModal, UpgradeMode } from '@/components/UpgradeModal'
 import { WalletTopupModal } from '@/components/WalletTopupModal'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
@@ -20,8 +20,8 @@ import { IS_IOS, PAID_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform
 import { fetchIosProducts } from '@/lib/iap'
 import {
   SUBSCRIPTION_SKUS,
+  SKU_SUBSCRIPTION_STORE,
   iosFallbackDisplayPrice,
-  subscriptionSkuForStoreType,
 } from '@/lib/iap-products'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -50,7 +50,6 @@ export default function SubscriptionScreen() {
   const type = (user?.type ?? 'client').toLowerCase()
   const isClient = type === 'client'
   const isStore = type === 'store'
-  const isStorePlus = type === 'store_plus'
 
   const [subInfo, setSubInfo] = useState<SubStatus | null>(null)
   const [history, setHistory] = useState<PaymentRecord[] | null>(null)
@@ -63,15 +62,9 @@ export default function SubscriptionScreen() {
   // without duplicating the pricing table in the client.
   const [iosPriceMap, setIosPriceMap] = useState<Record<string, string>>({})
 
-  // Deep-link params. Signup/login redirect here with ?upgrade=…&cycle=yearly
-  // when a store_plus purchase is required (e.g. Path A during signup, or the
-  // expired-subscription flow). The cycle only applies to store_plus — the
-  // regular store subscription is monthly-only.
-  const params = useLocalSearchParams<{
-    upgrade?: string
-    cycle?: 'monthly' | 'yearly'
-  }>()
-  const paramCycle: BillingCycle = params.cycle === 'yearly' ? 'yearly' : 'monthly'
+  // Deep-link param. Signup/expired flows route here with ?upgrade=store to
+  // drop the user directly into the purchase modal.
+  const params = useLocalSearchParams<{ upgrade?: string }>()
 
   const [modal, setModal] = useState<UpgradeMode | null>(null)
   const [walletModal, setWalletModal] = useState(false)
@@ -101,11 +94,10 @@ export default function SubscriptionScreen() {
     loadAll()
   }, [loadAll])
 
-  // Deep-link auto-open: signup/expired flows route here with ?upgrade=plus
-  // (or ?upgrade=store) to drop the user directly into the purchase modal.
+  // Deep-link auto-open: ?upgrade=store drops the user directly into the
+  // purchase modal.
   useEffect(() => {
-    if (params.upgrade === 'plus') setModal('upgrade-to-plus')
-    else if (params.upgrade === 'store') setModal('upgrade-to-store')
+    if (params.upgrade === 'store') setModal('upgrade-to-store')
   }, [params.upgrade])
 
   // Fetch StoreKit prices so the upgrade CTAs show the App-Store price the
@@ -161,26 +153,6 @@ export default function SubscriptionScreen() {
       ),
     [subPlans],
   )
-  const plusMonthly = useMemo(
-    () =>
-      Number(
-        subPlans.find(
-          p =>
-            p.storeType === 'store_plus' &&
-            (p.billingCycle ?? 'monthly') === 'monthly',
-        )?.price ?? 500,
-      ),
-    [subPlans],
-  )
-  const plusYearly = useMemo(
-    () =>
-      Number(
-        subPlans.find(
-          p => p.storeType === 'store_plus' && p.billingCycle === 'yearly',
-        )?.price ?? 5000,
-      ),
-    [subPlans],
-  )
   const fmt = (n: number) => n.toLocaleString(ar ? 'ar-EG' : 'en-EG')
 
   // On iOS the CTAs must show the App-Store price (commission-inclusive) —
@@ -188,26 +160,12 @@ export default function SubscriptionScreen() {
   // charge them. Falls back to the grossed-up ASC tier when StoreKit is
   // unreachable (Expo Go, dev, offline, pre-approval).
   const storeIosPrice = IS_IOS
-    ? (iosPriceMap[subscriptionSkuForStoreType('store')] ??
-      iosFallbackDisplayPrice(subscriptionSkuForStoreType('store')))
+    ? (iosPriceMap[SKU_SUBSCRIPTION_STORE] ??
+      iosFallbackDisplayPrice(SKU_SUBSCRIPTION_STORE))
     : undefined
-  const plusIosPrice = IS_IOS
-    ? (iosPriceMap[subscriptionSkuForStoreType('store_plus')] ??
-      iosFallbackDisplayPrice(subscriptionSkuForStoreType('store_plus')))
-    : undefined
-  // iOS ignores paramCycle — App Store Connect only has monthly SKUs, so the
-  // StoreKit-formatted price is always monthly. Android/web honor the deep-link
-  // cycle so upgrade CTAs match the modal's initial selection.
-  const plusCycle: BillingCycle = IS_IOS ? 'monthly' : paramCycle
-  const plusBackendPrice = plusCycle === 'yearly' ? plusYearly : plusMonthly
-  const cycleUnitFor = (c: BillingCycle) =>
-    c === 'yearly' ? t.yearlyBilling : t.monthlyBilling
   const storePriceLine = storeIosPrice
     ? `${storeIosPrice} / ${t.monthlyBilling}`
     : `${fmt(storeMonthly)} ${ar ? 'ج.م' : 'EGP'} / ${t.monthlyBilling}`
-  const plusPriceLine = plusIosPrice
-    ? `${plusIosPrice} / ${t.monthlyBilling}`
-    : `${fmt(plusBackendPrice)} ${ar ? 'ج.م' : 'EGP'} / ${cycleUnitFor(plusCycle)}`
 
   const isTrial = subInfo?.subscriptionStatus === 'trial'
   const isActive = subInfo?.subscriptionStatus === 'active'
@@ -216,7 +174,7 @@ export default function SubscriptionScreen() {
 
   const TYPE_LABELS: Record<string, string> = {
     subscription_store: ar ? 'اشتراك متجر' : 'Store Subscription',
-    subscription_store_plus: ar ? 'اشتراك Store Plus' : 'Store Plus Subscription',
+    subscription_store_plus: ar ? 'اشتراك ستور بلس (سابق)' : 'Store Plus subscription (legacy)',
     promotion_1ad: ar ? 'ترويج إعلان واحد' : 'Promo — 1 Ad',
     promotion_3ads: ar ? 'ترويج ٣ إعلانات' : 'Promo — 3 Ads',
     promotion_5ads: ar ? 'ترويج ٥ إعلانات' : 'Promo — 5 Ads',
@@ -248,19 +206,13 @@ export default function SubscriptionScreen() {
     Math.max(0, ((daysLeft ?? 0) / 30) * 100),
   )
   const trialDanger = (daysLeft ?? 0) <= 3
-  const currentPlanLabel = isStorePlus
-    ? t.storePlusPlan
-    : isStore
-      ? t.standardStorePlan
-      : ar
-        ? 'عميل'
-        : 'Client'
-  const currentPlanCost = isStorePlus ? plusMonthly : isStore ? storeMonthly : 0
-  const currentPlanPriceLine = isStorePlus
-    ? plusPriceLine
-    : isStore
-      ? storePriceLine
-      : null
+  const currentPlanLabel = isStore
+    ? t.standardStorePlan
+    : ar
+      ? 'عميل'
+      : 'Client'
+  const currentPlanCost = isStore ? storeMonthly : 0
+  const currentPlanPriceLine = isStore ? storePriceLine : null
 
   return (
     <DashboardLayout title={t.subscription}>
@@ -301,14 +253,10 @@ export default function SubscriptionScreen() {
                       : `${fmt(daysLeft)} ${t.daysLeftLabel}`}
                   </Text>
                 </View>
-                {/* Renew — iOS routes through Apple IAP inside the modal.
-                    Route to the user's actual tier so a normal-store user does
-                    not accidentally get upgraded to Plus by tapping Renew. */}
+                {/* Renew — iOS routes through Apple IAP inside the modal. */}
                 {SUBSCRIPTION_UI_ENABLED && (
                   <Pressable
-                    onPress={() =>
-                      setModal(isStorePlus ? 'upgrade-to-plus' : 'upgrade-to-store')
-                    }
+                    onPress={() => setModal('upgrade-to-store')}
                     style={({ pressed }) => [
                       styles.renewBtn,
                       pressed && styles.actionPressed,
@@ -420,64 +368,10 @@ export default function SubscriptionScreen() {
                   color={colors.g500}
                 />
               </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.actionCard,
-                  rowDir,
-                  pressed && styles.actionPressed,
-                ]}
-                onPress={() => setModal('upgrade-to-plus')}
-              >
-                <View style={[styles.actionIcon, { backgroundColor: colors.bl }]}>
-                  <Ionicons name="diamond" size={22} color={colors.blue} />
-                </View>
-                <View style={[styles.actionBody, colDir]}>
-                  <Text style={[styles.actionTitle, dirStyle]}>
-                    {t.storePlusPlan}
-                  </Text>
-                  <Text style={[styles.actionSub, dirStyle]}>
-                    {plusPriceLine}
-                  </Text>
-                </View>
-                <Ionicons
-                  name={ar ? 'chevron-back' : 'chevron-forward'}
-                  size={20}
-                  color={colors.g500}
-                />
-              </Pressable>
             </>
           )}
 
-          {isStore && SUBSCRIPTION_UI_ENABLED && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionCard,
-                rowDir,
-                pressed && styles.actionPressed,
-              ]}
-              onPress={() => setModal('upgrade-to-plus')}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: colors.bl }]}>
-                <Ionicons name="diamond" size={22} color={colors.blue} />
-              </View>
-              <View style={[styles.actionBody, colDir]}>
-                <Text style={[styles.actionTitle, dirStyle]}>
-                  {t.upgradeToStorePlus}
-                </Text>
-                <Text style={[styles.actionSub, dirStyle]}>
-                  {plusPriceLine}
-                </Text>
-              </View>
-              <Ionicons
-                name={ar ? 'chevron-back' : 'chevron-forward'}
-                size={20}
-                color={colors.g500}
-              />
-            </Pressable>
-          )}
-
-          {(isStore || isStorePlus) && (
+          {isStore && (
             <Pressable
               style={({ pressed }) => [
                 styles.cancelCard,
@@ -591,7 +485,6 @@ export default function SubscriptionScreen() {
       <UpgradeModal
         visible={!!modal}
         mode={modal ?? 'upgrade-to-store'}
-        cycle={plusCycle}
         onClose={() => setModal(null)}
         onSuccess={refreshAfterUpgrade}
       />

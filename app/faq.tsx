@@ -17,7 +17,7 @@ const FAQS_AR: QA[] = [
   { q: 'هل النشر مجاني؟', a: 'نعم، النشر الأساسي مجاني تماماً. يمكنك ترويج إعلانك للوصول لأكبر عدد.' },
   { q: 'كيف أتواصل مع البائع؟', a: 'من خلال زر الاتصال أو المراسلة في صفحة الإعلان.' },
   { q: 'كيف أحوّل حسابي إلى متجر؟', a: 'من لوحة التحكم > الإعدادات > ترقية إلى متجر، أو من خلال صفحة الأسعار.' },
-  { q: 'ما الفرق بين المتجر وStore Plus؟', a: 'Store Plus يوفر ترتيباً أعلى في نتائج البحث وشارة مميزة وإحصائيات متقدمة.' },
+  { q: 'ما هو ترويج المتجر؟', a: 'كل المتاجر تحصل على نفس الميزات. ترويج المتجر خدمة مدفوعة لفترة محدودة تمنح متجرك شارة «مميز» وترتيباً أعلى في قوائم المتاجر. يظهر السعر والمدة في صفحة الأسعار.' },
   { q: 'كيف أشحن المحفظة؟', a: 'من لوحة التحكم > المحفظة > شحن الرصيد، ندعم بطاقات Visa وMastercard وInstaPay.' },
   { q: 'كيف أبلّغ عن إعلان مخالف؟', a: 'في صفحة الإعلان توجد خيار "الإبلاغ"، سنراجع الأمر خلال ٢٤ ساعة.' },
 ]
@@ -27,7 +27,7 @@ const FAQS_EN: QA[] = [
   { q: 'Is posting free?', a: 'Yes, basic posting is completely free. You can promote your ad to reach more people.' },
   { q: 'How do I contact the seller?', a: 'Use the call or message button on the product page.' },
   { q: 'How do I convert my account to a store?', a: 'From Dashboard > Settings > Upgrade to Store, or via the Pricing page.' },
-  { q: 'What is the difference between Store and Store Plus?', a: 'Store Plus offers higher search ranking, a premium badge, and advanced analytics.' },
+  { q: 'What is store promotion?', a: 'All stores get the same features. Store promotion is a paid, time-limited service that gives your store a "Featured" badge and higher placement in store listings. See the pricing page for the current price and duration.' },
   { q: 'How do I top up my wallet?', a: 'From Dashboard > Wallet > Top Up. We support Visa, Mastercard, and InstaPay.' },
   { q: 'How do I report a violating ad?', a: 'On the product page you\'ll find a "Report" option. We review within 24 hours.' },
 ]

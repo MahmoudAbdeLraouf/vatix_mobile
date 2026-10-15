@@ -194,7 +194,6 @@ export default function LoginScreen() {
             visible
             phone={expired.phone}
             password={expired.password}
-            storeType={expired.res.storeType}
             onClose={() => setExpired(null)}
           />
         )}
