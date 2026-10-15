@@ -642,9 +642,9 @@ export default function ProductDetailScreen() {
                             <Ionicons name="image-outline" size={22} color="rgba(255,255,255,0.25)" />
                           </View>
                         )}
-                        <View style={[styles.spotBadge, styles.spotBadgeStd]}>
+                        <View style={[styles.spotBadge, store.isPromoted === true ? styles.spotBadgePromoted : styles.spotBadgeStd]}>
                           <Text style={[styles.spotBadgeText, styles.spotBadgeTextStd]}>
-                            {locale === 'ar' ? '🏪 متجر' : '🏪 Store'}
+                            {store.isPromoted === true ? t.featured : locale === 'ar' ? '🏪 متجر' : '🏪 Store'}
                           </Text>
                         </View>
                       </View>
@@ -1545,6 +1545,9 @@ const styles = StyleSheet.create({
   },
   spotBadgeStd: {
     backgroundColor: 'rgba(255,255,255,0.95)',
+  },
+  spotBadgePromoted: {
+    backgroundColor: colors.y,
   },
   spotBadgeText: {
     fontFamily: fonts.extraBold,

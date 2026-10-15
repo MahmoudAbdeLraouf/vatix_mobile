@@ -1427,7 +1427,7 @@ export const translations: Record<Locale, Translations> = {
     },
     promoteStore: {
       heading: 'ترويج المتجر ⭐',
-      description: 'يظهر متجرك المميز في أول قائمة المتاجر مع شارة «مميز» طوال مدة الترويج. الشراء مرة أخرى يمدّد المدة.',
+      description: 'يظهر متجرك المميز في أول قائمة المتاجر مع شارة «مميز» طوال مدة الترويج، ويظهر متجرك أولاً في شريط المتاجر المميزة بصفحات المنتجات. الشراء مرة أخرى يمدّد المدة.',
       offerSummary: '{price} ج.م · {days} أيام',
       activeUntil: 'متجرك مميز حتى {date}',
       notPromoted: 'متجرك غير مميز حالياً',
@@ -2170,7 +2170,7 @@ export const translations: Record<Locale, Translations> = {
     },
     promoteStore: {
       heading: 'Promote my store ⭐',
-      description: 'Your store is listed first in the stores list with a "Featured" badge for the whole promotion period. Buying again extends it.',
+      description: 'Your store is listed first in the stores list with a "Featured" badge for the whole promotion period. Your store appears first in the featured stores strip on product pages. Buying again extends it.',
       offerSummary: '{price} EGP · {days} days',
       activeUntil: 'Your store is featured until {date}',
       notPromoted: 'Your store is not featured right now',
