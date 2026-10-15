@@ -48,7 +48,10 @@ export default function SignupStoreScreen() {
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
 
   const [step, setStep] = useState<Step>('phone')
-  const [otpEnabled, setOtpEnabled] = useState(true)
+  // null = settings not loaded yet. The OTP step stays hidden unless OTP is
+  // confirmed on; when unknown, the /auth/verify/send response decides
+  // (the backend answers 'skipped' when verification is disabled).
+  const [otpEnabled, setOtpEnabled] = useState<boolean | null>(null)
 
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -75,7 +78,7 @@ export default function SignupStoreScreen() {
   useEffect(() => {
     getSiteSettings()
       .then(s => setOtpEnabled(s.otpVerificationEnabled))
-      .catch(() => setOtpEnabled(true))
+      .catch(() => {})
   }, [])
 
   async function pickLogo() {
@@ -173,12 +176,13 @@ export default function SignupStoreScreen() {
     try {
       const { available } = await checkPhoneAvailable(phone.trim())
       if (!available) { setError(t.phoneTaken); setLoading(false); return }
-      if (!otpEnabled) {
-        setStep('info')
-        return
+      let enabled = otpEnabled
+      if (enabled !== false) {
+        const { status } = await sendOtp(phone.trim())
+        enabled = status !== 'skipped'
+        setOtpEnabled(enabled)
       }
-      await sendOtp(phone.trim())
-      setStep('otp')
+      setStep(enabled ? 'otp' : 'info')
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))
     } finally {

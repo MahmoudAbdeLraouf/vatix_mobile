@@ -41,7 +41,10 @@ export default function SignupClientScreen() {
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
 
   const [step, setStep] = useState<Step>('form')
-  const [otpEnabled, setOtpEnabled] = useState(true)
+  // null = settings not loaded yet. The OTP step stays hidden unless OTP is
+  // confirmed on; when unknown, the /auth/verify/send response decides
+  // (the backend answers 'skipped' when verification is disabled).
+  const [otpEnabled, setOtpEnabled] = useState<boolean | null>(null)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -59,7 +62,7 @@ export default function SignupClientScreen() {
   useEffect(() => {
     getSiteSettings()
       .then(s => setOtpEnabled(s.otpVerificationEnabled))
-      .catch(() => setOtpEnabled(true))
+      .catch(() => {})
   }, [])
 
   const STEPS: Step[] = otpEnabled ? ['form', 'otp'] : ['form']
@@ -88,11 +91,16 @@ export default function SignupClientScreen() {
     try {
       const { available } = await checkPhoneAvailable(phone.trim())
       if (!available) { setError(t.phoneTaken); setLoading(false); return }
-      if (!otpEnabled) {
+      let enabled = otpEnabled
+      if (enabled !== false) {
+        const { status } = await sendOtp(phone.trim())
+        enabled = status !== 'skipped'
+        setOtpEnabled(enabled)
+      }
+      if (!enabled) {
         await registerAndLogin()
         return
       }
-      await sendOtp(phone.trim())
       setStep('otp')
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))

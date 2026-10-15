@@ -706,7 +706,7 @@ export function checkPhoneAvailable(phone: string): Promise<{ available: boolean
   return apiFetch(`/auth/check-phone?phone=${encodeURIComponent(phone)}`)
 }
 
-export function sendOtp(phone: string): Promise<void> {
+export function sendOtp(phone: string): Promise<{ sid: string; status: string }> {
   return apiFetch('/auth/verify/send', { method: 'POST', body: JSON.stringify({ phone }) })
 }
 
