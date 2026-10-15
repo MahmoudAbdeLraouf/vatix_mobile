@@ -187,6 +187,14 @@ export default function PromoteStoreScreen() {
     await refetchUser()
   }
 
+  // Translate the backend's English 403s for the Arabic-first UI.
+  function paymentErrorMessage(err: unknown): string {
+    const msg = err instanceof Error ? err.message : ''
+    if (msg.includes('Only stores can promote')) return t.promoteStore.storesOnly
+    if (msg.includes('Renew your subscription')) return t.promoteStore.renewFirst
+    return authErrorMessage(err, t) || t.buySlots.paymentFailed
+  }
+
   function resetForm() {
     setSubmitError(null)
     setStep('method')
@@ -208,7 +216,7 @@ export default function PromoteStoreScreen() {
       await refreshAfterPurchase().catch(() => undefined)
       setStep('wallet-done')
     } catch (err) {
-      setSubmitError(authErrorMessage(err, t) || t.buySlots.paymentFailed)
+      setSubmitError(paymentErrorMessage(err))
     } finally {
       setSubmitting(false)
     }
@@ -232,7 +240,7 @@ export default function PromoteStoreScreen() {
       })
       setStep(path === 'instapay' ? 'instapay-done' : 'mobile-wallet-done')
     } catch (err) {
-      setSubmitError(authErrorMessage(err, t) || t.buySlots.paymentFailed)
+      setSubmitError(paymentErrorMessage(err))
     } finally {
       setSubmitting(false)
     }
@@ -288,11 +296,11 @@ export default function PromoteStoreScreen() {
         },
       })
       await finishIosPurchase(purchase, product.isConsumable)
-      await refreshAfterPurchase()
+      await refreshAfterPurchase().catch(() => undefined)
       setStep('apple-iap-done')
     } catch (e: unknown) {
       if (!cancelled) {
-        setSubmitError(authErrorMessage(e, t) || t.buySlots.paymentFailed)
+        setSubmitError(paymentErrorMessage(e))
       }
       setStep('method')
     } finally {

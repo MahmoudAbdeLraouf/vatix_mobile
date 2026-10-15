@@ -689,6 +689,7 @@ export interface Translations {
     loadError: string
     retry: string
     storesOnly: string
+    renewFirst: string
     comingSoon: string
     promoteAgain: string
     promotedUntilLabel: string
@@ -1433,6 +1434,7 @@ export const translations: Record<Locale, Translations> = {
       loadError: 'تعذّر تحميل عرض الترويج. حاول مرة أخرى.',
       retry: 'إعادة المحاولة',
       storesOnly: 'ترويج المتجر متاح للمتاجر فقط.',
+      renewFirst: 'جدّد اشتراكك أولاً قبل ترويج متجرك.',
       comingSoon: 'قريباً',
       promoteAgain: 'مدّد الترويج ←',
       promotedUntilLabel: 'مميز حتى:',
@@ -2175,6 +2177,7 @@ export const translations: Record<Locale, Translations> = {
       loadError: "Couldn't load the promotion offer. Please try again.",
       retry: 'Retry',
       storesOnly: 'Store promotion is available to stores only.',
+      renewFirst: 'Renew your subscription before promoting your store.',
       comingSoon: 'Coming soon',
       promoteAgain: 'Extend promotion →',
       promotedUntilLabel: 'Featured until:',
