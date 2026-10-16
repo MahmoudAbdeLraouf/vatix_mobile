@@ -45,6 +45,7 @@ export interface ShopifyPreviewResult {
   valid: ShopifyRow[]
   errors: ImportPreviewError[]
   nextPageInfo: string | null
+  skippedExisting?: number
   shop: string
 }
 
@@ -71,6 +72,7 @@ export interface EasyOrdersPreviewResult {
   hasMore: boolean
   page: number
   pageCount: number
+  skippedExisting?: number
 }
 
 export interface ShopifyStatus {
@@ -85,6 +87,7 @@ export interface EasyOrdersStatus {
 
 export interface ImportConfirmResult {
   createdIds: number[]
+  skippedExisting?: number
 }
 
 /** Shopify and EasyOrders accept at most this many image URLs per row. */
@@ -98,6 +101,8 @@ export class ImportApiError extends Error {
   code: string | null
   retryAfter: number | null
   rowNumber: number | null
+  /** Effective listing cap on CLIENT_PRODUCT_CAP_REACHED. */
+  cap: number | null
 
   constructor(status: number, body: any) {
     super(importErrorMessage(body))
@@ -109,6 +114,8 @@ export class ImportApiError extends Error {
     this.retryAfter = typeof retry === 'number' ? retry : null
     const row = body?.rowNumber ?? nested?.rowNumber
     this.rowNumber = typeof row === 'number' ? row : null
+    const cap = body?.cap ?? nested?.cap
+    this.cap = typeof cap === 'number' ? cap : null
   }
 }
 

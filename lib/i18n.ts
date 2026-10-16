@@ -530,6 +530,7 @@ export interface Translations {
     currency: string
     rowsCount: string
     noRows: string
+    skippedExisting: string
     errorsHeading: string
     loadMore: string
     confirmBtn: string
@@ -545,6 +546,15 @@ export interface Translations {
     categoryNotFound: string
     brandNotFound: string
     capReached: string
+    capReachedError: string
+    capTitle: string
+    capUsed: string
+    capRemaining: string
+    capFull: string
+    capHint: string
+    capBuySlots: string
+    capConvertStore: string
+    capStoreTrialHint: string
     ok: string
     shopLabel: string
     shopPlaceholder: string
@@ -678,6 +688,9 @@ export interface Translations {
     extraSlotsOwnedLabel: string
     remainingWalletBalance: string
     redirectingToListing: string
+    continueImporting: string
+    redirectingToImport: string
+    finishImportAfterApproval: string
     paymentFailed: string
   }
   promoteStore: {
@@ -1275,6 +1288,7 @@ export const translations: Record<Locale, Translations> = {
       currency: 'ج.م',
       rowsCount: '{count} منتج جاهز للاستيراد',
       noRows: 'لا توجد منتجات للاستيراد.',
+      skippedExisting: 'تم تخطي {n} منتج — مستورد بالفعل',
       errorsHeading: 'أخطاء',
       loadMore: 'تحميل المزيد',
       confirmBtn: 'تأكيد واستيراد {count} منتج',
@@ -1290,6 +1304,15 @@ export const translations: Record<Locale, Translations> = {
       categoryNotFound: 'التصنيف غير موجود في الصف {row}.',
       brandNotFound: 'الماركة غير موجودة في الصف {row}.',
       capReached: 'وصلت للحد الأقصى من الإعلانات. اشترِ مساحات إضافية للمتابعة.',
+      capReachedError: 'عدد المنتجات أكبر من رصيدك المتبقي (الحد {cap} إعلان). اشترِ إعلانات إضافية أو حوّل حسابك لمتجر.',
+      capTitle: 'رصيد إعلاناتك',
+      capUsed: '{count} من {cap} إعلان',
+      capRemaining: 'متبقي {remaining}',
+      capFull: 'وصلت للحد الأقصى',
+      capHint: 'الحساب العادي له حد {cap} إعلانات مدى الحياة. اشترِ إعلانات إضافية أو حوّل حسابك لمتجر بدون حد.',
+      capBuySlots: 'شراء إعلانات إضافية',
+      capConvertStore: 'تحويل الحساب لمتجر',
+      capStoreTrialHint: 'المتجر بدون حد للإعلانات — تجربة مجانية {days} يوم لأول مرة.',
       ok: 'حسناً',
       shopLabel: 'نطاق متجر Shopify',
       shopPlaceholder: 'my-store',
@@ -1423,6 +1446,9 @@ export const translations: Record<Locale, Translations> = {
       extraSlotsOwnedLabel: 'الإعلانات الإضافية المُلكك:',
       remainingWalletBalance: 'رصيد المحفظة المتبقي:',
       redirectingToListing: 'جاري توجيهك لإكمال الإعلان...',
+      continueImporting: 'أكمل الاستيراد',
+      redirectingToImport: 'جاري توجيهك لإكمال الاستيراد...',
+      finishImportAfterApproval: 'يمكنك إكمال الاستيراد بعد الموافقة.',
       paymentFailed: 'فشل الدفع، حاول مرة أخرى',
     },
     promoteStore: {
@@ -2018,6 +2044,7 @@ export const translations: Record<Locale, Translations> = {
       currency: 'EGP',
       rowsCount: '{count} products ready to import',
       noRows: 'No products to import.',
+      skippedExisting: '{n} products skipped — already imported',
       errorsHeading: 'Errors',
       loadMore: 'Load more',
       confirmBtn: 'Confirm & import {count} products',
@@ -2033,6 +2060,15 @@ export const translations: Record<Locale, Translations> = {
       categoryNotFound: 'Category not found on row {row}.',
       brandNotFound: 'Brand not found on row {row}.',
       capReached: 'You\'ve reached your listing limit. Buy extra slots to continue.',
+      capReachedError: 'This import is bigger than your remaining allowance (limit {cap} listings). Buy extra slots or convert to a store.',
+      capTitle: 'Your listing allowance',
+      capUsed: '{count} of {cap} listings',
+      capRemaining: '{remaining} left',
+      capFull: 'Limit reached',
+      capHint: 'Personal accounts have a lifetime limit of {cap} listings. Buy extra slots or convert to a store with no limit.',
+      capBuySlots: 'Buy extra slots',
+      capConvertStore: 'Convert to a store',
+      capStoreTrialHint: 'Stores have unlimited listings — {days}-day free trial the first time.',
       ok: 'OK',
       shopLabel: 'Shopify store domain',
       shopPlaceholder: 'my-store',
@@ -2166,6 +2202,9 @@ export const translations: Record<Locale, Translations> = {
       extraSlotsOwnedLabel: 'Extra slots owned:',
       remainingWalletBalance: 'Remaining wallet balance:',
       redirectingToListing: 'Redirecting to continue your listing…',
+      continueImporting: 'Continue importing',
+      redirectingToImport: 'Redirecting to continue your import…',
+      finishImportAfterApproval: 'You can finish importing after approval.',
       paymentFailed: 'Payment failed, please try again',
     },
     promoteStore: {

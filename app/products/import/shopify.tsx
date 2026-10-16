@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Button } from '@/components/ui/Button'
 import { ImportBackLink } from '@/components/import/ImportBackLink'
+import { ClientCapCard } from '@/components/import/ClientCapCard'
 import { DefaultCategoryBrand } from '@/components/import/DefaultCategoryBrand'
 import { ImportRowCard } from '@/components/import/ImportRowCard'
 import { ImportErrors } from '@/components/import/ImportErrors'
@@ -47,7 +48,7 @@ export default function ShopifyImportScreen() {
     : null
 
   const { categoryOptions, brandOptions } = useImportOptions()
-  const confirm = useImportConfirm()
+  const confirm = useImportConfirm('shopify')
 
   const [conn, setConn] = useState<ConnState>('loading')
   const [shop, setShop] = useState<string | null>(null)
@@ -65,6 +66,7 @@ export default function ShopifyImportScreen() {
 
   const [rows, setRows] = useState<ShopifyRow[] | null>(null)
   const [previewErrors, setPreviewErrors] = useState<ImportPreviewError[]>([])
+  const [skippedExisting, setSkippedExisting] = useState(0)
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
 
@@ -99,6 +101,7 @@ export default function ShopifyImportScreen() {
   const resetPreview = () => {
     setRows(null)
     setPreviewErrors([])
+    setSkippedExisting(0)
     setPreviewError(null)
     confirm.setError(null)
   }
@@ -173,6 +176,7 @@ export default function ShopifyImportScreen() {
         })),
       )
       setPreviewErrors(res.errors ?? [])
+      setSkippedExisting(res.skippedExisting ?? 0)
     } catch (err) {
       if (
         err instanceof ImportApiError &&
@@ -237,6 +241,7 @@ export default function ShopifyImportScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ImportBackLink />
+        <ClientCapCard screen="shopify" />
         <Text style={[styles.title, dirStyle]}>{ip.shopifyTitle}</Text>
 
         {conn === 'loading' ? (
@@ -346,6 +351,11 @@ export default function ShopifyImportScreen() {
                 <Text style={[styles.heading, dirStyle]}>
                   {rowCount > 0 ? ip.rowsCount.replace('{count}', String(rowCount)) : ip.noRows}
                 </Text>
+                {skippedExisting > 0 ? (
+                  <Text style={[styles.muted, dirStyle]}>
+                    {ip.skippedExisting.replace('{n}', String(skippedExisting))}
+                  </Text>
+                ) : null}
 
                 {rows.map((r) => (
                   <ImportRowCard

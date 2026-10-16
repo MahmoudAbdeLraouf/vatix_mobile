@@ -42,7 +42,8 @@ app/
     dashboard.tsx       User profile + menu tiles
   products/[id].tsx     Product detail
   products/new.tsx      "Where are your products?" chooser — manual / Shopify / EasyOrders / Excel
-  products/add.tsx      Manual add-product form (buy-slots resumes here directly, skipping the chooser)
+  products/add.tsx      Manual add-product form (buy-slots resumes here directly, skipping the chooser;
+                        resumeTo=import&screen=… returns to the import screen instead)
   products/import/
     easyorders.tsx      Connect EasyOrders Api-Key → preview → confirm
     shopify.tsx         Shopify OAuth (expo-web-browser) → preview → confirm
@@ -59,11 +60,12 @@ components/
   ui/Logo.tsx           Vatix wordmark + yellow dot
   ProductCard.tsx       Card for product grid/lists
   StoreCard.tsx         Avatar card for store lists
-  import/               Shared import UI: ImportBackLink, DefaultCategoryBrand, ImportRowCard, ImportErrors
+  import/               Shared import UI: ImportBackLink, DefaultCategoryBrand, ImportRowCard, ImportErrors,
+                        ClientCapCard (client lifetime-cap progress + buy slots / convert-to-store upsell)
 
 hooks/
   useImportOptions.ts   Category/brand select options for import screens
-  useImportConfirm.ts   Confirm runner (busy/error, cap → buy-slots redirect) + describeImportError
+  useImportConfirm.ts   Confirm runner (busy/error, cap → alert offering buy-slots) + describeImportError
 
 constants/theme.ts      Colors, fonts, spacing, radius, shadow
 lib/auth.ts             Token storage, silent refresh, authFetch/authPost/authPatch/authDelete

@@ -46,6 +46,8 @@ import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload
 import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
 
+const IMPORT_SCREENS = ['shopify', 'easyorders', 'excel'] as const
+
 function useDir() {
   const { locale } = useLocale()
   const ar = locale === 'ar'
@@ -111,6 +113,7 @@ export default function BuySlotsScreen() {
   const params = useLocalSearchParams<{
     resumeProductId?: string
     resumeTo?: string
+    screen?: string
     bundleId?: string
   }>()
 
@@ -126,7 +129,14 @@ export default function BuySlotsScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const resuming = Boolean(params.resumeProductId || params.resumeTo === 'add')
+  // resumeTo=import comes from an import screen hitting the cap; `screen` is
+  // whitelisted so a crafted deep link can't route anywhere else.
+  const importScreen =
+    params.resumeTo === 'import' && IMPORT_SCREENS.includes(params.screen as never)
+      ? (params.screen as (typeof IMPORT_SCREENS)[number])
+      : null
+  const resumingImport = importScreen != null
+  const resuming = Boolean(params.resumeProductId || params.resumeTo === 'add' || resumingImport)
 
   useEffect(() => {
     let cancelled = false
@@ -204,6 +214,13 @@ export default function BuySlotsScreen() {
     router.replace(target as never)
   }
 
+  // Back to the import screen keeps its loaded preview; replace is the cold-start fallback.
+  function goResume() {
+    if (!importScreen) return goToAddListing()
+    if (router.canGoBack()) router.back()
+    else router.replace(`/products/import/${importScreen}` as never)
+  }
+
   async function handleWalletPayment() {
     if (!selected) return
     setSubmitError(null)
@@ -223,7 +240,7 @@ export default function BuySlotsScreen() {
       await refetchUser()
       setStep('wallet-done')
       if (resuming) {
-        setTimeout(goToAddListing, 1200)
+        setTimeout(goResume, 1200)
       }
     } catch (err) {
       setSubmitError(authErrorMessage(err, t) || t.buySlots.paymentFailed)
@@ -342,7 +359,7 @@ export default function BuySlotsScreen() {
       await refetchUser()
       setStep('apple-iap-done')
       if (resuming) {
-        setTimeout(goToAddListing, 1200)
+        setTimeout(goResume, 1200)
       }
     } catch (e: unknown) {
       if (cancelled) {
@@ -463,12 +480,16 @@ export default function BuySlotsScreen() {
               </Text>
             </View>
             {resuming ? (
-              <Text style={[styles.doneRedirect, dirStyle]}>{t.buySlots.redirectingToListing}</Text>
+              <Text style={[styles.doneRedirect, dirStyle]}>{resumingImport ? t.buySlots.redirectingToImport : t.buySlots.redirectingToListing}</Text>
             ) : null}
             <View style={styles.doneCtaRow}>
               {resuming ? (
                 <>
-                  <Button label={t.buySlots.addListing} variant="primary" onPress={goToAddListing} />
+                  <Button
+                    label={resumingImport ? t.buySlots.continueImporting : t.buySlots.addListing}
+                    variant="primary"
+                    onPress={goResume}
+                  />
                   <Button
                     label={t.buySlots.buyAnotherPack}
                     variant="outline"
@@ -502,12 +523,16 @@ export default function BuySlotsScreen() {
             <Text style={[styles.doneTitle, dirStyle]}>{t.buySlots.paymentSuccessTitle}</Text>
             <Text style={[styles.doneBody, dirStyle]}>{t.buySlots.appleSuccessBody}</Text>
             {resuming ? (
-              <Text style={[styles.doneRedirect, dirStyle]}>{t.buySlots.redirectingToListing}</Text>
+              <Text style={[styles.doneRedirect, dirStyle]}>{resumingImport ? t.buySlots.redirectingToImport : t.buySlots.redirectingToListing}</Text>
             ) : null}
             <View style={styles.doneCtaRow}>
               {resuming ? (
                 <>
-                  <Button label={t.buySlots.addListing} variant="primary" onPress={goToAddListing} />
+                  <Button
+                    label={resumingImport ? t.buySlots.continueImporting : t.buySlots.addListing}
+                    variant="primary"
+                    onPress={goResume}
+                  />
                   <Button
                     label={t.buySlots.buyAnotherPack}
                     variant="outline"
@@ -537,12 +562,16 @@ export default function BuySlotsScreen() {
             <Text style={[styles.doneTitle, dirStyle]}>{t.buySlots.requestReceivedTitle}</Text>
             <Text style={[styles.doneBody, dirStyle]}>{t.buySlots.withinHours}</Text>
             {resuming ? (
-              <Text style={[styles.doneRedirect, dirStyle]}>{t.buySlots.finishAfterApproval}</Text>
+              <Text style={[styles.doneRedirect, dirStyle]}>{resumingImport ? t.buySlots.finishImportAfterApproval : t.buySlots.finishAfterApproval}</Text>
             ) : null}
             <View style={styles.doneCtaRow}>
               {resuming ? (
                 <>
-                  <Button label={t.buySlots.addListing} variant="primary" onPress={goToAddListing} />
+                  <Button
+                    label={resumingImport ? t.buySlots.continueImporting : t.buySlots.addListing}
+                    variant="primary"
+                    onPress={goResume}
+                  />
                   <Button
                     label={t.buySlots.buyAnotherPack}
                     variant="outline"

@@ -7,6 +7,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Button } from '@/components/ui/Button'
 import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect'
 import { ImportBackLink } from '@/components/import/ImportBackLink'
+import { ClientCapCard } from '@/components/import/ClientCapCard'
 import { DefaultCategoryBrand } from '@/components/import/DefaultCategoryBrand'
 import { ImportRowCard } from '@/components/import/ImportRowCard'
 import { ImportErrors } from '@/components/import/ImportErrors'
@@ -126,7 +127,7 @@ export default function ExcelImportScreen() {
     : null
 
   const { categoryOptions, brandOptions } = useImportOptions()
-  const confirm = useImportConfirm()
+  const confirm = useImportConfirm('excel')
 
   const [fileName, setFileName] = useState<string | null>(null)
   const [sourceText, setSourceText] = useState('')
@@ -275,6 +276,7 @@ export default function ExcelImportScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ImportBackLink />
+        <ClientCapCard screen="excel" />
         <Text style={[styles.title, dirStyle]}>{ip.excelTitle}</Text>
 
         <View style={styles.card}>

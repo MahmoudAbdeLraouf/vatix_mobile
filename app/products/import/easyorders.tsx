@@ -6,6 +6,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ImportBackLink } from '@/components/import/ImportBackLink'
+import { ClientCapCard } from '@/components/import/ClientCapCard'
 import { DefaultCategoryBrand } from '@/components/import/DefaultCategoryBrand'
 import { ImportRowCard } from '@/components/import/ImportRowCard'
 import { ImportErrors } from '@/components/import/ImportErrors'
@@ -48,7 +49,7 @@ export default function EasyOrdersImportScreen() {
     : null
 
   const { categoryOptions, brandOptions } = useImportOptions()
-  const confirm = useImportConfirm()
+  const confirm = useImportConfirm('easyorders')
 
   const [conn, setConn] = useState<ConnState>('loading')
   const [connectedAt, setConnectedAt] = useState<string | null>(null)
@@ -64,6 +65,7 @@ export default function EasyOrdersImportScreen() {
 
   const [rows, setRows] = useState<EasyOrdersRow[] | null>(null)
   const [previewErrors, setPreviewErrors] = useState<EasyOrdersPreviewError[]>([])
+  const [skippedExisting, setSkippedExisting] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [page, setPage] = useState(1)
   const [loadingPreview, setLoadingPreview] = useState(false)
@@ -87,6 +89,7 @@ export default function EasyOrdersImportScreen() {
   const resetPreview = () => {
     setRows(null)
     setPreviewErrors([])
+    setSkippedExisting(0)
     setHasMore(false)
     setPage(1)
     setPreviewError(null)
@@ -159,9 +162,11 @@ export default function EasyOrdersImportScreen() {
       if (nextPage === 1) {
         setRows(incoming)
         setPreviewErrors(res.errors)
+        setSkippedExisting(res.skippedExisting ?? 0)
       } else {
         setRows((prev) => [...(prev ?? []), ...incoming])
         setPreviewErrors((prev) => [...prev, ...res.errors])
+        setSkippedExisting((prev) => prev + (res.skippedExisting ?? 0))
       }
       setHasMore(res.hasMore)
       setPage(res.page)
@@ -228,6 +233,7 @@ export default function EasyOrdersImportScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ImportBackLink />
+        <ClientCapCard screen="easyorders" />
         <Text style={[styles.title, dirStyle]}>{ip.easyOrdersTitle}</Text>
 
         {conn === 'loading' ? (
@@ -340,6 +346,11 @@ export default function EasyOrdersImportScreen() {
                 <Text style={[styles.heading, dirStyle]}>
                   {rowCount > 0 ? ip.rowsCount.replace('{count}', String(rowCount)) : ip.noRows}
                 </Text>
+                {skippedExisting > 0 ? (
+                  <Text style={[styles.muted, dirStyle]}>
+                    {ip.skippedExisting.replace('{n}', String(skippedExisting))}
+                  </Text>
+                ) : null}
 
                 {rows.map((r) => (
                   <ImportRowCard

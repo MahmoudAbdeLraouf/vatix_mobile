@@ -3,6 +3,7 @@ import { Alert } from 'react-native'
 import { router } from 'expo-router'
 import { useLocale } from '@/contexts/locale'
 import { authErrorMessage } from '@/lib/auth'
+import { buySlotsForImportHref, type ImportScreen } from '@/components/import/ClientCapCard'
 import { ImportApiError, type ImportConfirmResult } from '@/lib/import'
 import type { Translations } from '@/lib/i18n'
 
@@ -18,10 +19,10 @@ export function describeImportError(err: unknown, t: Translations, fallback: str
 
 /**
  * Wraps a confirm call shared by the Shopify, EasyOrders and Excel screens:
- * busy flag, listing-cap redirect, row-specific category/brand errors, and the
+ * busy flag, listing-cap prompt (buy slots, then resume this screen), row-specific category/brand errors, and the
  * success alert that lands on My Ads.
  */
-export function useImportConfirm() {
+export function useImportConfirm(screen: ImportScreen) {
   const { t } = useLocale()
   const ip = t.importProducts
   const [busy, setBusy] = useState(false)
@@ -37,17 +38,24 @@ export function useImportConfirm() {
       try {
         const res = await confirm()
         const count = res?.createdIds?.length ?? 0
+        const skipped = res?.skippedExisting ?? 0
+        const body = ip.importedBody.replace('{count}', String(count))
         Alert.alert(
           ip.importedTitle,
-          ip.importedBody.replace('{count}', String(count)),
+          skipped > 0 ? `${body}\n${ip.skippedExisting.replace('{n}', String(skipped))}` : body,
           [{ text: ip.ok, onPress: () => router.replace('/dashboard/my-ads') }],
           { cancelable: false },
         )
       } catch (err) {
         if (err instanceof ImportApiError) {
           if (err.code === 'CLIENT_PRODUCT_CAP_REACHED') {
-            setError(ip.capReached)
-            router.push('/dashboard/buy-slots')
+            const msg =
+              err.cap != null ? ip.capReachedError.replace('{cap}', String(err.cap)) : ip.capReached
+            setError(msg)
+            Alert.alert(ip.capTitle, msg, [
+              { text: ip.ok, style: 'cancel' },
+              { text: ip.capBuySlots, onPress: () => router.push(buySlotsForImportHref(screen) as never) },
+            ])
             return
           }
           if (err.code === 'CATEGORY_NOT_FOUND' && err.rowNumber != null) {
@@ -65,7 +73,7 @@ export function useImportConfirm() {
         setBusy(false)
       }
     },
-    [ip, t],
+    [ip, t, screen],
   )
 
   return { busy, error, setError, run }
