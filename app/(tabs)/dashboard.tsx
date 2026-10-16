@@ -34,12 +34,14 @@ export default function DashboardScreen() {
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [promoCredits, setPromoCredits] = useState<number | null>(null)
   const [analyticsViews, setAnalyticsViews] = useState<number | null>(null)
+  const [extraSlots, setExtraSlots] = useState<number | null>(null)
   const [adsError, setAdsError] = useState(false)
   const [favsError, setFavsError] = useState(false)
   const [msgError, setMsgError] = useState(false)
   const [walletError, setWalletError] = useState(false)
   const [promoError, setPromoError] = useState(false)
   const [analyticsError, setAnalyticsError] = useState(false)
+  const [profileError, setProfileError] = useState(false)
   const [pendingInstapay, setPendingInstapay] = useState(false)
   const [showLogoDialog, setShowLogoDialog] = useState(false)
   const [showAddProductDialog, setShowAddProductDialog] = useState(false)
@@ -111,6 +113,7 @@ export default function DashboardScreen() {
 
       if (profileR.status === 'fulfilled') {
         const profile = profileR.value as UserProfile | null
+        setExtraSlots(Number(profile?.extraProductSlots ?? 0))
         setShowLogoDialog(!!profile?.flags?.showStoreLogoDialog)
         setShowAddProductDialog(!!profile?.flags?.showAddProductDialog)
         setPendingUpgrade(profile?.pendingUpgrade ?? null)
@@ -120,6 +123,8 @@ export default function DashboardScreen() {
           setExpiringEndsAt(profile.flags.subscriptionEndsAt)
           setShowExpiringDialog(true)
         }
+      } else {
+        setProfileError(true)
       }
     }
     load()
@@ -212,6 +217,16 @@ export default function DashboardScreen() {
             label={t.promote}
             icon="star-outline"
             onPress={() => router.push('/dashboard/promote')}
+          />
+        )}
+        {/* Extra listing slots (Apple IAP on iOS) — kept on the main grid so it's discoverable */}
+        {isClient && (
+          <StatTile
+            value={extraSlots}
+            error={profileError}
+            label={t.buySlotsNav}
+            icon="ticket-outline"
+            onPress={() => router.push('/dashboard/buy-slots')}
           />
         )}
         <StatTile
