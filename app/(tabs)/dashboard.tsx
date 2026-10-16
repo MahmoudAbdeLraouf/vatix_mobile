@@ -9,8 +9,9 @@ import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDia
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
-import { PAID_UI_ENABLED, PROMOTION_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
-import type { Analytics, FavoriteProduct, PendingUpgradeRequest, Product, PromoInfo, UserProfile, WalletBalance } from '@/lib/api'
+import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
+import { getStorePromotionOffer } from '@/lib/api'
+import type { Analytics, FavoriteProduct, PendingUpgradeRequest, Product, PromoInfo, StorePromotionOffer, UserProfile, WalletBalance } from '@/lib/api'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -45,6 +46,9 @@ export default function DashboardScreen() {
   const [showExpiringDialog, setShowExpiringDialog] = useState(false)
   const [expiringEndsAt, setExpiringEndsAt] = useState<string | null>(null)
   const [pendingUpgrade, setPendingUpgrade] = useState<PendingUpgradeRequest | null>(null)
+  // undefined = profile not loaded yet, null = not promoted, string = active promotion end (ISO)
+  const [promotedUntil, setPromotedUntil] = useState<string | null | undefined>(undefined)
+  const [promotionOffer, setPromotionOffer] = useState<StorePromotionOffer | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -61,10 +65,11 @@ export default function DashboardScreen() {
         PAID_UI_ENABLED ? authFetch<WalletBalance>('/payments/wallet/balance') : Promise.resolve(null),
         PROMOTION_UI_ENABLED ? authFetch<PromoInfo>('/payments/promo-credits') : Promise.resolve(null),
         authFetch<Analytics>('/user/analytics'),
+        PROMOTION_UI_ENABLED ? getStorePromotionOffer() : Promise.resolve(null),
       ])
       if (cancelled) return
 
-      const [adsR, favsR, paymentsR, profileR, unreadR, walletR, promoR, analyticsR] = results
+      const [adsR, favsR, paymentsR, profileR, unreadR, walletR, promoR, analyticsR, offerR] = results
 
       if (adsR.status === 'fulfilled') setAdsCount((adsR.value as Product[] | null)?.length ?? 0)
       else setAdsError(true)
@@ -95,6 +100,8 @@ export default function DashboardScreen() {
         setAnalyticsError(true)
       }
 
+      if (offerR.status === 'fulfilled') setPromotionOffer(offerR.value as StorePromotionOffer | null)
+
       if (paymentsR.status === 'fulfilled') {
         const payments = paymentsR.value as { status: string; method: string }[] | null
         setPendingInstapay(
@@ -107,6 +114,8 @@ export default function DashboardScreen() {
         setShowLogoDialog(!!profile?.flags?.showStoreLogoDialog)
         setShowAddProductDialog(!!profile?.flags?.showAddProductDialog)
         setPendingUpgrade(profile?.pendingUpgrade ?? null)
+        const until = profile?.storeProfile?.promotedUntil ?? null
+        setPromotedUntil(until && Date.parse(until) > Date.now() ? until : null)
         if (profile?.flags?.showSubscriptionExpiringDialog && profile?.flags?.subscriptionEndsAt) {
           setExpiringEndsAt(profile.flags.subscriptionEndsAt)
           setShowExpiringDialog(true)
@@ -135,6 +144,8 @@ export default function DashboardScreen() {
 
   const type = normalizeType(user?.type)
   const isClient = type === 'client'
+  const isStore = type === 'store'
+  const dirStyle = { textAlign: 'auto' as const, writingDirection: ar ? ('rtl' as const) : ('ltr' as const) }
 
   const welcome = t.welcomeName.replace('{name}', user?.displayName ?? '').replace(/،\s*(?=\s|👋)/, '')
 
@@ -239,6 +250,49 @@ export default function DashboardScreen() {
         </View>
       )}
 
+      {/* Store promotion CTA — iOS pays via Apple IAP, so the EGP price is Android-only */}
+      {isStore && PROMOTION_UI_ENABLED && promotedUntil !== undefined && (
+        <View style={styles.promoteCard}>
+          <Text style={[styles.promoteTitle, dirStyle]}>
+            {promotedUntil
+              ? ar
+                ? `🚀 متجرك مروّج حتى ${formatPromoDate(promotedUntil, locale)}`
+                : `🚀 Your store is promoted until ${formatPromoDate(promotedUntil, locale)}`
+              : ar
+                ? '🚀 روّج متجرك واظهر أولاً'
+                : '🚀 Promote your store and appear first'}
+          </Text>
+          <Text style={[styles.promoteSub, dirStyle]}>
+            {promotedUntil
+              ? ar
+                ? 'يمكنك تمديد الترويج الآن وستُضاف الأيام إلى تاريخ الانتهاء الحالي.'
+                : 'Extend now and the extra days are added to your current end date.'
+              : ar
+                ? 'اظهر في أول الصفحة الرئيسية وقائمة المتاجر ليصل متجرك لعملاء أكثر.'
+                : 'Appear first on the homepage and stores list to reach more customers.'}
+          </Text>
+          {promotionOffer && (
+            <Text style={[styles.promotePrice, dirStyle]}>
+              {IS_IOS
+                ? `${promotionOffer.days} ${ar ? 'أيام' : 'days'}`
+                : `${promotionOffer.price} ${ar ? 'ج.م' : 'EGP'} / ${promotionOffer.days} ${ar ? 'أيام' : 'days'}`}
+            </Text>
+          )}
+          <Pressable
+            onPress={() => router.push('/dashboard/promote-store')}
+            style={({ pressed }) => [styles.upgCta, pressed && { opacity: 0.9 }]}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.upgCtaText, dirStyle]} numberOfLines={1}>
+              {promotedUntil
+                ? ar ? 'تمديد الترويج' : 'Extend promotion'
+                : ar ? 'روّج متجرك الآن' : 'Promote my store'}
+            </Text>
+            <Ionicons name={ar ? 'arrow-back' : 'arrow-forward'} size={16} color={colors.dk} />
+          </Pressable>
+        </View>
+      )}
+
       {/* Client → Store upgrade — iOS pays via Apple IAP, Android/web via InstaPay */}
       {isClient && SUBSCRIPTION_UI_ENABLED && (
         <UpgradeBanner
@@ -272,6 +326,14 @@ export default function DashboardScreen() {
       )}
     </DashboardLayout>
   )
+}
+
+function formatPromoDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 function SeeMoreTile({ label }: { label: string }) {
@@ -569,6 +631,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.78)',
     lineHeight: 18,
+  },
+
+  // Store promotion CTA
+  promoteCard: {
+    gap: spacing.xs,
+    backgroundColor: colors.dk,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  promoteTitle: {
+    fontFamily: fonts.black,
+    fontSize: 15,
+    color: colors.white,
+  },
+  promoteSub: {
+    fontFamily: fonts.regular,
+    fontSize: 12.5,
+    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 18,
+  },
+  promotePrice: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.y,
   },
 
   // Pending upgrade request
