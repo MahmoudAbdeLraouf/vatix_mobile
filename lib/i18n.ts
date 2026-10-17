@@ -1198,8 +1198,8 @@ export const translations: Record<Locale, Translations> = {
     paymentPendingBody: 'دفعتك قيد المراجعة، سنُفعّل الخدمة فور التحقق.',
     continueToStore: 'المتابعة إلى المتجر',
     // Update prompt
-    updateRequiredTitle: 'تحديث مطلوب',
-    updateRequiredBody: 'إصدارك من التطبيق لم يعد مدعوماً. حدّث الآن للمتابعة.',
+    updateRequiredTitle: 'حدّث ڤاتيكس للمتابعة',
+    updateRequiredBody: 'نسخة جديدة من ڤاتيكس متاحة بتحسينات مهمة. حسابك وبياناتك محفوظة كما هي.',
     updateAvailableTitle: 'تحديث جديد متاح',
     updateAvailableBody: 'إصدار أحدث من ڤاتيكس أصبح متاحاً. حدّث الآن للحصول على أفضل تجربة.',
     updateNow: 'تحديث الآن',
@@ -1954,8 +1954,8 @@ export const translations: Record<Locale, Translations> = {
     paymentPendingBody: 'Your payment is under review. The service will be activated once verified.',
     continueToStore: 'Continue to store',
     // Update prompt
-    updateRequiredTitle: 'Update Required',
-    updateRequiredBody: 'Your app version is no longer supported. Please update to continue.',
+    updateRequiredTitle: 'Update Vatix to continue',
+    updateRequiredBody: 'A new version of Vatix is available with important improvements. Your account and data stay safe.',
     updateAvailableTitle: 'Update Available',
     updateAvailableBody: 'A newer version of Vatix is available. Update now for the best experience.',
     updateNow: 'Update Now',
