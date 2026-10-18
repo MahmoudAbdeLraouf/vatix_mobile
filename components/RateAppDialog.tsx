@@ -14,6 +14,7 @@ import { router } from 'expo-router'
 import * as StoreReview from 'expo-store-review'
 import { useLocale } from '@/contexts/locale'
 import { markActionDismissed, markActionSeen } from '@/lib/auth'
+import { markRated } from '@/lib/rate-app-engagement'
 import { Button } from '@/components/ui/Button'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -87,6 +88,7 @@ export function RateAppDialog({ visible, onClose }: Props) {
     setBusy(true)
     clearAutoHide()
     markActionSeen('rate_app_dialog')
+    markRated()
     onClose()
     // Prefer opening the configured store URL — the native in-app review sheet
     // silently no-ops in dev/internal-track builds and past quota, leaving the

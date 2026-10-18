@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { authErrorMessage, deleteAccount } from '@/lib/auth'
+import { markRated } from '@/lib/rate-app-engagement'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { validatePassword } from '@/lib/password-policy'
 import { IS_IOS } from '@/lib/platform'
@@ -136,11 +137,13 @@ export default function SettingsScreen() {
       const canReview =
         (await StoreReview.hasAction()) && (await StoreReview.isAvailableAsync())
       if (canReview) {
+        markRated()
         await StoreReview.requestReview()
         return
       }
       const url = StoreReview.storeUrl()
       if (url) {
+        markRated()
         await Linking.openURL(url)
         return
       }

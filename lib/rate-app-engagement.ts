@@ -27,9 +27,12 @@ const KEYS = {
 
 const KEY_LAST_SHOWN = 'rate_app_last_shown_at'
 const KEY_DISMISSED = 'rate_app_dismissed_at'
+// Set once the user taps "Rate" (dialog or Settings). The stores never tell us
+// whether a review was actually left, so the tap is the strongest signal we get.
+const KEY_RATED = 'rate_app_rated_at'
 
-const COOLDOWN_MS_GUEST = 60 * 24 * 60 * 60 * 1000
-const COOLDOWN_MS_USER = 30 * 24 * 60 * 60 * 1000
+// Users who haven't rated are re-prompted after this long.
+const COOLDOWN_MS = 15 * 24 * 60 * 60 * 1000
 
 const CLIENT_ENGAGEMENT_THRESHOLD = 3
 const GUEST_VIEW_THRESHOLD = 3
@@ -58,15 +61,14 @@ export async function bumpEngagement(kind: EngagementKind): Promise<void> {
   await writeInt(key, current + 1)
 }
 
-async function isInCooldown(audience: Audience): Promise<boolean> {
+async function isInCooldown(): Promise<boolean> {
   const [shown, dismissed] = await Promise.all([
     readTimestamp(KEY_LAST_SHOWN),
     readTimestamp(KEY_DISMISSED),
   ])
   const last = Math.max(shown ?? 0, dismissed ?? 0)
   if (!last) return false
-  const cooldown = audience === 'guest' ? COOLDOWN_MS_GUEST : COOLDOWN_MS_USER
-  return Date.now() - last < cooldown
+  return Date.now() - last < COOLDOWN_MS
 }
 
 async function hasClientEngagement(): Promise<boolean> {
@@ -100,7 +102,8 @@ async function hasGuestEngagement(): Promise<boolean> {
 }
 
 export async function shouldShowRateApp(audience: Audience): Promise<boolean> {
-  if (await isInCooldown(audience)) return false
+  if (await readTimestamp(KEY_RATED)) return false
+  if (await isInCooldown()) return false
   switch (audience) {
     case 'guest':
       return hasGuestEngagement()
@@ -119,11 +122,16 @@ export async function markDismissed(): Promise<void> {
   await writeInt(KEY_DISMISSED, Date.now())
 }
 
+export async function markRated(): Promise<void> {
+  await writeInt(KEY_RATED, Date.now())
+}
+
 export async function resetAll(): Promise<void> {
   const keys = [
     ...Object.values(KEYS),
     KEY_LAST_SHOWN,
     KEY_DISMISSED,
+    KEY_RATED,
   ]
   await Promise.all(keys.map((k) => SecureStore.deleteItemAsync(k).catch(() => {})))
 }
