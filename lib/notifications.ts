@@ -94,11 +94,13 @@ type NotificationDataRoute = {
   productId?: number | string
   storeId?: number | string
   conversationId?: number | string
+  broRequestId?: number | string
 }
 
 function routeFromData(data: NotificationDataRoute | undefined): string | null {
   if (!data) return null
   if (data.route && typeof data.route === 'string') return data.route
+  if (data.broRequestId != null) return `/bro/requests/${data.broRequestId}`
   if (data.productId != null) return `/products/${data.productId}`
   if (data.storeId != null) return `/store/${data.storeId}`
   if (data.conversationId != null) return `/dashboard/messages/${data.conversationId}`
