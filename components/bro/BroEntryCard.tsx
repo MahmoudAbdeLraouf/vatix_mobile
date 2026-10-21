@@ -65,6 +65,21 @@ const CHIPS: { want: BroWant; key: 'chipCheaper' | 'chipBetter' | 'chipBox' }[] 
 
 type Gate = 'loading' | 'on' | 'off'
 
+// The card remounts often (e.g. FlatList empty component as results toggle), so share one
+// status request across mounts. A rejection drops the cache so the next mount retries.
+const STATUS_TTL_MS = 60_000
+let statusCache: { promise: Promise<{ enabled: boolean }>; at: number } | null = null
+
+function getCachedBroStatus(): Promise<{ enabled: boolean }> {
+  if (statusCache && Date.now() - statusCache.at < STATUS_TTL_MS) return statusCache.promise
+  const entry = { promise: getBroStatus(), at: Date.now() }
+  statusCache = entry
+  entry.promise.catch(() => {
+    if (statusCache === entry) statusCache = null
+  })
+  return entry.promise
+}
+
 export function BroEntryCard({
   variant,
   context = {},
@@ -81,7 +96,7 @@ export function BroEntryCard({
   // Never blocks or breaks the host screen: loading, disabled and failed all render nothing.
   useEffect(() => {
     let cancelled = false
-    getBroStatus()
+    getCachedBroStatus()
       .then(s => {
         if (!cancelled) setGate(s.enabled ? 'on' : 'off')
       })

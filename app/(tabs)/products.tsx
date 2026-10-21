@@ -42,6 +42,18 @@ import { ErrorState } from '@/components/ui/ErrorState'
 
 type SortValue = 'newest' | 'oldest' | 'price_asc' | 'price_desc'
 
+function queryKey(
+  q: string,
+  catId?: number,
+  brId?: number,
+  locId?: number,
+  s?: SortValue,
+  minP?: string,
+  maxP?: string,
+) {
+  return JSON.stringify([q, catId, brId, locId, s, minP, maxP])
+}
+
 export default function ProductsScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
   const params = useLocalSearchParams<{ categoryId?: string; brandId?: string; search?: string }>()
@@ -63,6 +75,9 @@ export default function ProductsScreen() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  // Query key of the last page-1 fetch that actually landed; lets the empty-state
+  // Bro card wait until the empty list belongs to what is currently typed/filtered.
+  const [settledKey, setSettledKey] = useState<string | null>(null)
 
   const [categories, setCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
@@ -89,6 +104,8 @@ export default function ProductsScreen() {
     setBrandId(params.brandId ? Number(params.brandId) : undefined)
     if (params.search !== undefined) setSearch(params.search)
   }, [params.categoryId, params.brandId, params.search])
+
+  const currentKey = queryKey(search, categoryId, brandId, locationId, sort, minPrice, maxPrice)
 
   const fetchProducts = useCallback(
     async (
@@ -119,6 +136,7 @@ export default function ProductsScreen() {
         })
         setProducts(prev => (p === 1 ? res.items : [...prev, ...res.items]))
         setTotalPages(res.meta.pages)
+        if (p === 1) setSettledKey(queryKey(q, catId, brId, locId, s, minP, maxP))
         if (p === 1 && q.trim()) trackSearch(q, res.meta.total === 0)
       } catch (e) {
         if (p === 1) {
@@ -527,7 +545,7 @@ export default function ProductsScreen() {
             ListEmptyComponent={
               <>
                 <EmptyState title={t.noResults} subtitle={t.notFoundHint} />
-                {search.trim().length > 0 && (
+                {search.trim().length > 0 && !loading && settledKey === currentKey && (
                   <BroEntryCard
                     variant="search"
                     context={{

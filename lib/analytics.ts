@@ -1,6 +1,7 @@
 import { Platform } from 'react-native'
 import { visitorIdHeader } from '@/lib/visitor-id'
 import { getToken } from '@/lib/auth'
+import type { BroEntryVariant } from '@/components/bro/BroEntryCard'
 
 const API = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 const CLIENT_PLATFORM = Platform.OS
@@ -89,7 +90,7 @@ export type AnalyticsEvent =
   | { name: 'sign_up'; params: { method: 'phone'; user_type: 'client' | 'store' } }
   | { name: 'post_listing'; params: { product_id: string | number; category_id?: string | number; price?: number } }
   | { name: 'contact_seller'; params: { product_id: string | number; channel: 'phone' | 'whatsapp' | 'chat' } }
-  | { name: 'bro_entry_view'; params: { variant: 'product' | 'sold' | 'search' | 'home' } }
+  | { name: 'bro_entry_view'; params: { variant: BroEntryVariant } }
 
 // Firebase native SDK removed — funnel events currently no-op so we can ship
 // JS-only updates via `eas update` without a new native binary. Reintroduce a
