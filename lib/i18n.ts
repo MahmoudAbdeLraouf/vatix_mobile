@@ -837,6 +837,7 @@ export interface Translations {
     sellerAsk: string
     qrAvailable: string
     qrSold: string
+    qrWrongModel: string
     qrOwnReply: string
     formIntro: string
     fieldLatestPrice: string
@@ -1686,7 +1687,7 @@ export const translations: Record<Locale, Translations> = {
       // Seller side (chat + /bro/i/[id])
       sellerDisclosure: '🤖 ده مساعد فاتكس الآلي. فيه مشتري حقيقي في {area} مهتم بإعلانك. رقمك مش بيتشارك غير لو المشتري كلّمك بنفسه.',
       sellerAsk: 'أهلاً 👋 فيه مشتري بيدوّر على الجهاز ده بالظبط. هو لسه متاح؟',
-      qrAvailable: '✅ متاح', qrSold: '❌ اتباع', qrOwnReply: '💬 رد بنفسي',
+      qrAvailable: '✅ متاح', qrSold: '❌ اتباع', qrWrongModel: '🔄 مش نفس الموديل', qrOwnReply: '💬 رد بنفسي',
       formIntro: 'تمام 🙏 سؤالين سريعين عشان المشتري يقرر:',
       fieldLatestPrice: 'آخر سعر (ج)', fieldCheckArea: 'مكان المعاينة', fieldScratches: 'حالة الجهاز', fieldExtras: 'معاه إيه؟',
       fieldWarrantyNote: 'تفاصيل الضمان (اختياري)', fieldNote: 'ملاحظة للمشتري (اختياري)',
@@ -2514,7 +2515,7 @@ export const translations: Record<Locale, Translations> = {
       // Seller side (chat + /bro/i/[id])
       sellerDisclosure: '🤖 This is the automated Vatix assistant. A real buyer in {area} is interested in your ad. Your number is only shared if the buyer contacts you themselves.',
       sellerAsk: 'Hi 👋 a buyer is looking for exactly this device. Is it still available?',
-      qrAvailable: '✅ Available', qrSold: '❌ Sold', qrOwnReply: '💬 I will reply myself',
+      qrAvailable: '✅ Available', qrSold: '❌ Sold', qrWrongModel: '🔄 Wrong model', qrOwnReply: '💬 I will reply myself',
       formIntro: 'Great 🙏 two quick questions so the buyer can decide:',
       fieldLatestPrice: 'Latest price (EGP)', fieldCheckArea: 'Check-up area', fieldScratches: 'Device condition', fieldExtras: 'Comes with',
       fieldWarrantyNote: 'Warranty details (optional)', fieldNote: 'Note to the buyer (optional)',

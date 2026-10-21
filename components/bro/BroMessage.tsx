@@ -5,6 +5,7 @@ import { useLocale } from '@/contexts/locale'
 import { translations } from '@/lib/i18n'
 import {
   answerBroAvailability,
+  answerBroWrongModel,
   broMarkSold,
   broUpdatePrice,
   setBroOptOut,
@@ -144,6 +145,9 @@ export function BroMessage({
         break
       case 'sold':
         quick.push({ key: action, label: b.qrSold, onPress: () => void answer(() => answerBroAvailability(inquiryId, false)) })
+        break
+      case 'wrong_model':
+        quick.push({ key: action, label: b.qrWrongModel, onPress: () => void answer(() => answerBroWrongModel(inquiryId)) })
         break
       case 'free_text':
         quick.push({ key: action, label: b.qrOwnReply, onPress: () => setReplying((v) => !v) })

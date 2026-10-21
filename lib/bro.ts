@@ -14,6 +14,7 @@ export type BroInquiryStatus =
   | 'sent'
   | 'available'
   | 'sold'
+  | 'wrong_model'
   | 'free_text'
   | 'no_reply'
   | 'skipped'
@@ -192,6 +193,11 @@ export function getBroSellerView(id: number): Promise<BroSellerView | null> {
 
 export function answerBroAvailability(id: number, available: boolean): Promise<{ ok: boolean }> {
   return authPost<{ ok: boolean }>(`/bro/inquiries/${id}/availability`, { available })
+}
+
+/** Seller says the listing is a different model than the one the buyer asked for. */
+export function answerBroWrongModel(id: number): Promise<{ ok: boolean }> {
+  return authPost<{ ok: boolean }>(`/bro/inquiries/${id}/wrong-model`, {})
 }
 
 export function submitBroDetails(id: number, body: BroDetailsBody): Promise<{ ok: boolean }> {
