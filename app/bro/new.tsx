@@ -213,6 +213,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
     const productId = parseId(params.productId)
     const model = (first(params.model) ?? '').trim().slice(0, MODEL_MAX)
     const storage = (first(params.storage) ?? '').trim().slice(0, STORAGE_MAX)
+    const budgetMin = parseId(params.budgetMin)
     const budgetMax = parseId(params.budgetMax)
     const wants = parseWants(params.wants)
     const srcRaw = first(params.source)
@@ -227,13 +228,14 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
     if (model.length >= 2) known.push('model')
     if (storage) known.push('storage')
     if (areaId != null && areaId === locationId) known.push('area')
-    if (budgetMax != null || wants.length > 0) known.push('budget')
+    if (budgetMin != null || budgetMax != null || wants.length > 0) known.push('budget')
     return {
       categoryId: catOk ? categoryId : null,
       brandId: brandOk ? brandId : null,
       areaId,
       model,
       storage,
+      budgetMin,
       budgetMax,
       wants,
       source,
@@ -247,7 +249,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
   const [model, setModel] = useState(init.model)
   const [storage, setStorage] = useState(init.storage)
   const [areaId, setAreaId] = useState(init.areaId != null ? String(init.areaId) : '')
-  const [budgetMin, setBudgetMin] = useState('')
+  const [budgetMin, setBudgetMin] = useState(init.budgetMin != null ? String(init.budgetMin) : '')
   const [budgetMax, setBudgetMax] = useState(init.budgetMax != null ? String(init.budgetMax) : '')
   const [wants, setWants] = useState<BroWant[]>(init.wants)
   const [editing, setEditing] = useState(false)
@@ -346,6 +348,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
         draft.set('locationId', areaId)
         draft.set('model', modelTrim)
         if (storage.trim()) draft.set('storage', storage.trim())
+        if (minN) draft.set('budgetMin', String(minN))
         if (maxN) draft.set('budgetMax', String(maxN))
         if (wants.length) draft.set('wants', wants.join(','))
         router.push({ pathname: '/(auth)/login', params: { redirect: `/bro/new?${draft.toString()}` } })
@@ -401,7 +404,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
           <View style={styles.summary}>
             <Text style={[styles.summaryLabel, dirStyle]}>{b.knownFromSearch}</Text>
             <Text style={[styles.summaryText, dirStyle]}>{summaryParts.join(' · ')}</Text>
-            <View style={styles.summaryEdit}>
+            <View style={[styles.summaryEdit, { alignSelf: ar ? 'flex-end' : 'flex-start' }]}>
               <BroButton label={b.edit} onPress={() => setEditing(true)} dirStyle={dirStyle} />
             </View>
           </View>
@@ -572,7 +575,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { fontFamily: fonts.bold, fontSize: 12, color: '#8a6500' },
   summaryText: { fontFamily: fonts.semiBold, fontSize: 14, color: '#1A2540' },
-  summaryEdit: { alignSelf: 'flex-start', marginTop: 4 },
+  summaryEdit: { marginTop: 4 },
   field: { gap: spacing.sm },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   label: { fontFamily: fonts.bold, fontSize: 14, color: '#1A2540' },

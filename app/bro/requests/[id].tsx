@@ -285,7 +285,7 @@ function RequestView({ id }: { id: number }) {
             {request.modelText}
             {request.storage ? ` · ${request.storage}` : ''}
           </Text>
-          <View style={[styles.pill, searching ? styles.pillOn : styles.pillOff, styles.statusPill]}>
+          <View style={[styles.pill, searching ? styles.pillOn : styles.pillOff, styles.statusPill, { alignSelf: ar ? 'flex-end' : 'flex-start' }]}>
             <Text style={[styles.pillText, { color: searching ? '#8a6500' : colors.g700 }]}>{statusLabel}</Text>
           </View>
         </View>
@@ -401,7 +401,7 @@ function MatchCard({
   return (
     <View style={styles.card}>
       {match.isCheapest ? (
-        <View style={styles.ribbon}>
+        <View style={[styles.ribbon, { alignSelf: ar ? 'flex-end' : 'flex-start' }]}>
           <Text style={styles.ribbonText}>{b.cheapestRibbon}</Text>
         </View>
       ) : null}
@@ -475,14 +475,14 @@ const styles = StyleSheet.create({
   pill: { borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
   pillOn: { backgroundColor: '#fff8e1' },
   pillOff: { backgroundColor: colors.g100 },
-  statusPill: { alignSelf: 'flex-start', marginTop: 6 },
+  statusPill: { marginTop: 6 },
   pillText: { fontFamily: fonts.bold, fontSize: 12 },
   pillTextDark: { fontFamily: fonts.bold, fontSize: 12, color: '#1A2540' },
   list: { gap: 10 },
   sold: { fontFamily: fonts.regular, fontSize: 13, color: colors.g500 },
   err: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red },
   errSmall: { fontFamily: fonts.regular, fontSize: 12, color: colors.red },
-  ribbon: { alignSelf: 'flex-start', backgroundColor: '#F5B800', borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
+  ribbon: { backgroundColor: '#F5B800', borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
   ribbonText: { fontFamily: fonts.extraBold, fontSize: 12, color: '#1A2540' },
   matchTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   thumb: { width: 72, height: 72, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.g100 },
