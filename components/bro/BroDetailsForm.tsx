@@ -11,8 +11,17 @@ const SCRATCHES: BroScratches[] = ['none', 'minor', 'repaired']
 const PRICE_FORMAT = /^\d+(\.\d{1,2})?$/
 const MAX_PRICE = 10_000_000
 
+/** Arabic keyboards emit Arabic-Indic digits and `٫`/`,` as the decimal mark; the API only takes ASCII. */
+function normalizePrice(raw: string): string {
+  return raw
+    .trim()
+    .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/[٫,]/g, '.')
+}
+
 function isValidPrice(raw: string): boolean {
-  const v = raw.trim()
+  const v = normalizePrice(raw)
   if (!PRICE_FORMAT.test(v)) return false
   const n = Number(v)
   return Number.isFinite(n) && n >= 0 && n <= MAX_PRICE
@@ -68,7 +77,7 @@ export function BroDetailsForm({
     setError(null)
     try {
       await submitBroDetails(inquiryId, {
-        latestPrice: Number(price),
+        latestPrice: Number(normalizePrice(price)),
         checkArea: area.trim(),
         scratches,
         hasBox,
