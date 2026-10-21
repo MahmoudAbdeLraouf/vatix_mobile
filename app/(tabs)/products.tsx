@@ -37,6 +37,7 @@ import { trackSearch } from '@/lib/analytics'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { BroEntryCard } from '@/components/bro/BroEntryCard'
 import { ErrorState } from '@/components/ui/ErrorState'
 
 type SortValue = 'newest' | 'oldest' | 'price_asc' | 'price_desc'
@@ -523,7 +524,23 @@ export default function ProductsScreen() {
             keyExtractor={p => String(p.id)}
             contentContainerStyle={styles.list}
             ListHeaderComponent={listHeader}
-            ListEmptyComponent={<EmptyState title={t.noResults} subtitle={t.notFoundHint} />}
+            ListEmptyComponent={
+              <>
+                <EmptyState title={t.noResults} subtitle={t.notFoundHint} />
+                {search.trim().length > 0 && (
+                  <BroEntryCard
+                    variant="search"
+                    context={{
+                      model: search,
+                      categoryId,
+                      brandId,
+                      locationId,
+                      budgetMax: maxPrice.trim() || null,
+                    }}
+                  />
+                )}
+              </>
+            }
             renderItem={renderProduct}
             onEndReached={loadMore}
             onEndReachedThreshold={0.4}

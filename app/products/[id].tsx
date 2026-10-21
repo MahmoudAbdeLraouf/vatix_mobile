@@ -37,6 +37,7 @@ import { track, trackProductView, trackProductWhatsappClick } from '@/lib/analyt
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { MessagesBell } from '@/components/MessagesBell'
+import { BroEntryCard } from '@/components/bro/BroEntryCard'
 import { RevealPhone } from '@/components/RevealPhone'
 import { StartChatButton } from '@/components/StartChatButton'
 import { StarRating } from '@/components/StarRating'
@@ -238,6 +239,18 @@ export default function ProductDetailScreen() {
   )
   const hasPhoneReveal = product.showPhone && !isOwnerExpired && !!ownerContact
   const hasActions = !!owner?.id || !!waLink || hasPhoneReveal
+
+  // Vatix Bro entry points: never shown to the listing's own owner.
+  const isOwnListing = !!owner?.id && user?.id === owner.id
+  const isUnavailable = !product.isActive || !!product.soldAt || isOwnerExpired
+  const broContext = {
+    productId: product.id,
+    categoryId: product.category?.id ?? null,
+    brandId: product.brand?.id ?? null,
+    locationId: product.location?.id ?? null,
+    model: product.title,
+    price: product.price,
+  }
   const bottomBarH =
     Math.max(insets.bottom, spacing.md) + 56 + spacing.md + spacing.lg + spacing.md
 
@@ -383,6 +396,8 @@ export default function ProductDetailScreen() {
         <View style={styles.card}>
           <View style={styles.handle} />
 
+          {!isOwnListing && isUnavailable && <BroEntryCard variant="sold" context={broContext} />}
+
           {/* Condition + location row */}
           <View style={styles.badgeRow}>
             <View
@@ -495,6 +510,8 @@ export default function ProductDetailScreen() {
               </View>
             )
           )}
+
+          {!isOwnListing && !isUnavailable && <BroEntryCard variant="product" context={broContext} />}
 
           {/* Safety tips — surfaced before contact CTAs so buyers see the
               inspect-before-pay guidance before reaching out to any seller. */}

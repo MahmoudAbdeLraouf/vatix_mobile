@@ -49,6 +49,7 @@ import { ProductCard } from '@/components/ProductCard'
 import { StoreCard } from '@/components/StoreCard'
 import { MessagesBell } from '@/components/MessagesBell'
 import { RateAppDialog } from '@/components/RateAppDialog'
+import { BroEntryCard } from '@/components/bro/BroEntryCard'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Logo } from '@/components/ui/Logo'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
@@ -574,6 +575,9 @@ export default function HomeScreen() {
           </ScrollView>
           <PromoDots count={PROMO_BANNERS.length} active={activePromo} />
         </View>
+
+        {/* Vatix Bro strip (renders nothing unless Bro is enabled) */}
+        <BroEntryCard variant="home" />
 
         {/* Category Icons */}
         {categories.length > 1 && (
