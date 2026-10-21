@@ -752,6 +752,140 @@ export interface Translations {
     appleDoneTitle: string
     appleDoneBody: string
   }
+  bro: {
+    name: string
+    badge: string
+    navLink: string
+    chipCheaper: string
+    chipBetter: string
+    chipBox: string
+    ctaFind: string
+    stickyCta: string
+    soldTitle: string
+    ctaFindAvailable: string
+    heroStrip: string
+    searchEmptyTitle: string
+    searchEmptyBody: string
+    searchEmptyCta: string
+    intakeTitle: string
+    stepCategory: string
+    stepBrand: string
+    stepModel: string
+    stepStorage: string
+    stepArea: string
+    stepBudget: string
+    optional: string
+    required: string
+    modelPlaceholder: string
+    storagePlaceholder: string
+    budgetMin: string
+    budgetMax: string
+    wantsLabel: string
+    wantCheaper: string
+    wantBetterCondition: string
+    wantWithBox: string
+    knownFromSearch: string
+    edit: string
+    submit: string
+    submitting: string
+    intakeFooter: string
+    errModelRequired: string
+    errAreaRequired: string
+    errBudgetRange: string
+    intakeLoadFailed: string
+    errCategoryRequired: string
+    areaPlaceholder: string
+    askingProgress: string
+    pillAvailable: string
+    pillSold: string
+    pillPending: string
+    sectionAvailable: string
+    sectionSold: string
+    cheapestRibbon: string
+    priceDrop: string
+    priceEgp: string
+    chatSeller: string
+    viewAd: string
+    connecting: string
+    stopSearch: string
+    rerun: string
+    emptyTitle: string
+    widenArea: string
+    dropBudget: string
+    listTitle: string
+    listEmpty: string
+    newRequest: string
+    statusSearching: string
+    statusDone: string
+    statusExpired: string
+    statusCancelled: string
+    factAvailable: string
+    factArea: string
+    factWarranty: string
+    scratchesNone: string
+    scratchesMinor: string
+    scratchesRepaired: string
+    extraBox: string
+    extraInvoice: string
+    extraWarranty: string
+    sellerQuote: string
+    agoNow: string
+    agoMinutes: string
+    agoHours: string
+    agoDays: string
+    sellerDisclosure: string
+    sellerAsk: string
+    qrAvailable: string
+    qrSold: string
+    qrOwnReply: string
+    formIntro: string
+    fieldLatestPrice: string
+    fieldCheckArea: string
+    fieldScratches: string
+    fieldExtras: string
+    fieldWarrantyNote: string
+    fieldNote: string
+    freeTextPlaceholder: string
+    sellerSend: string
+    sellerThanks: string
+    priceUpdatePrompt: string
+    soldConfirmPrompt: string
+    yes: string
+    no: string
+    optOutPrompt: string
+    optOutAction: string
+    optOutDone: string
+    optInAction: string
+    sellerLoginRequired: string
+    sellerNotFound: string
+    sellerLinkNotYours: string
+    sellerLoadFailed: string
+    retry: string
+    loading: string
+    sellerPageTitle: string
+    sellerBuyerArea: string
+    sellerStatusAvailable: string
+    sellerStatusSold: string
+    sellerStatusClosed: string
+    sellerYourReply: string
+    sellerOpenChat: string
+    notifStarted: string
+    notifFound: string
+    notifNone: string
+    errRateLimit: string
+    errSearchDown: string
+    errDisabled: string
+    errNotFound: string
+    errFinished: string
+    errStillRunning: string
+    errNotConfirmed: string
+    errNoLongerAvailable: string
+    errGeneric: string
+    errPrice: string
+    unavailableTitle: string
+    unavailableBody: string
+    unavailableHome: string
+  }
 }
 
 export const translations: Record<Locale, Translations> = {
@@ -1510,6 +1644,78 @@ export const translations: Record<Locale, Translations> = {
       appleDoneTitle: 'تم تفعيل اشتراكك',
       appleDoneBody: 'تم تجديد اشتراكك بنجاح. يتم تسجيل دخولك الآن.',
     },
+    bro: {
+      // Identity
+      name: 'Vatix Bro', badge: 'مساعد فاتكس الرسمي', navLink: 'Vatix Bro',
+      // Product page card (B) + sticky bar
+      chipCheaper: '💸 أرخص من {price}', chipBetter: '✨ حالة أحسن', chipBox: '📦 بالعلبة',
+      ctaFind: '🔍 دوّرلي على زيه', stickyCta: 'VB · دوّرلي على زيه ←',
+      // Sold-listing takeover (C)
+      soldTitle: 'الإعلان ده اتباع 😕 بس Vatix Bro يلاقيلك زيه', ctaFindAvailable: '🔍 دوّرلي على واحد متاح',
+      // Entry points
+      heroStrip: 'مش لاقي اللي عايزه؟ خلّي Vatix Bro يدوّرلك', searchEmptyTitle: 'ملقيتش اللي بتدوّر عليه؟',
+      searchEmptyBody: 'Vatix Bro يسأل البيّاعين بدالك ويرجعلك بالمتاح بس.', searchEmptyCta: '🔍 دوّرلي على {model}',
+      // Intake form
+      intakeTitle: 'قول لـ Bro عايز إيه', stepCategory: 'القسم', stepBrand: 'الماركة', stepModel: 'الموديل',
+      stepStorage: 'السعة', stepArea: 'المنطقة', stepBudget: 'الميزانية',
+      optional: 'اختياري', required: 'مطلوب', modelPlaceholder: 'مثلاً: آيفون 15 برو', storagePlaceholder: 'مثلاً: 256',
+      budgetMin: 'من', budgetMax: 'لحد', wantsLabel: 'عايزه إزاي؟',
+      wantCheaper: '💸 أرخص', wantBetterCondition: '✨ حالة أحسن', wantWithBox: '📦 بالعلبة',
+      knownFromSearch: '✓ عرفت من بحثك', edit: 'تعديل',
+      submit: '🚀 يلا يا Bro دوّر', submitting: 'بدوّر…',
+      intakeFooter: '🔒 Bro بيعرّف نفسه للبيّاعين إنه مساعد فاتكس بيسأل لمشتري حقيقي، ومبيشاركش رقمك ولا اسمك غير لما تكلّم البيّاع بنفسك.',
+      errModelRequired: 'اكتب اسم الموديل', errAreaRequired: 'اختار المنطقة', errBudgetRange: 'أقل ميزانية لازم تكون أقل من أعلى ميزانية',
+      intakeLoadFailed: 'مقدرناش نحمّل الأقسام والمناطق، جرّب تاني', errCategoryRequired: 'اختار القسم', areaPlaceholder: 'اختار المنطقة',
+      // Request page
+      askingProgress: 'بسأل {asked} بيّاعين… {available} أكّدوا',
+      pillAvailable: '✓ متاح', pillSold: '✕ اتباع', pillPending: '⏳ لسه بيردّوا',
+      sectionAvailable: 'متاحين دلوقتي', sectionSold: 'اتباع · مخفي',
+      cheapestRibbon: '⭐ أرخص سعر', priceDrop: 'نزل {amount}', priceEgp: '{price} ج',
+      chatSeller: '💬 كلّم البيّاع', viewAd: 'الإعلان', connecting: 'بفتحلك المحادثة…',
+      stopSearch: 'وقّف البحث', rerun: 'دوّر تاني',
+      emptyTitle: 'ملقيتش حاجة دلوقتي', widenArea: 'وسّع المنطقة', dropBudget: 'شيل الميزانية',
+      // Requests list
+      listTitle: 'طلباتي مع Bro', listEmpty: 'لسه مفيش طلبات. قول لـ Bro عايز إيه وهو يدوّرلك.', newRequest: 'طلب جديد',
+      statusSearching: 'بيدوّر', statusDone: 'خلص', statusExpired: 'انتهى', statusCancelled: 'اتلغى',
+      // Match facts grid
+      factAvailable: 'متاح · اتأكد {ago}', factArea: 'المعاينة في {area}', factWarranty: 'الضمان: {note}',
+      scratchesNone: 'سليم', scratchesMinor: 'خدش بسيط', scratchesRepaired: 'اتصلّح',
+      extraBox: 'علبة', extraInvoice: 'فاتورة', extraWarranty: 'ضمان',
+      sellerQuote: 'البيّاع بيقول: «{note}»',
+      agoNow: 'دلوقتي', agoMinutes: 'من {n} دقيقة', agoHours: 'من {n} ساعة', agoDays: 'من {n} يوم',
+      // Seller side (chat + /bro/i/[id])
+      sellerDisclosure: '🤖 ده مساعد فاتكس الآلي. فيه مشتري حقيقي في {area} مهتم بإعلانك. رقمك مش بيتشارك غير لو المشتري كلّمك بنفسه.',
+      sellerAsk: 'أهلاً 👋 فيه مشتري بيدوّر على الجهاز ده بالظبط. هو لسه متاح؟',
+      qrAvailable: '✅ متاح', qrSold: '❌ اتباع', qrOwnReply: '💬 رد بنفسي',
+      formIntro: 'تمام 🙏 سؤالين سريعين عشان المشتري يقرر:',
+      fieldLatestPrice: 'آخر سعر (ج)', fieldCheckArea: 'مكان المعاينة', fieldScratches: 'حالة الجهاز', fieldExtras: 'معاه إيه؟',
+      fieldWarrantyNote: 'تفاصيل الضمان (اختياري)', fieldNote: 'ملاحظة للمشتري (اختياري)',
+      freeTextPlaceholder: 'اكتب ردّك هنا', sellerSend: 'ابعت',
+      sellerThanks: 'شكراً! بعتّ ردّك للمشتري ✨ لو عايز يكلّمك هيظهرلك هنا.',
+      priceUpdatePrompt: '💡 حدّث سعر إعلانك لـ {price} ج؟', soldConfirmPrompt: 'تعلّم عليه إنه اتباع؟',
+      yes: 'أيوه', no: 'لأ',
+      optOutPrompt: 'مش عايز رسايل من Bro؟', optOutAction: 'إيقاف', optOutDone: 'تمام، مش هيوصلك رسايل من Bro تاني.',
+      optInAction: 'رجّع الرسايل', sellerLoginRequired: 'سجّل دخولك الأول عشان تردّ على المشتري.',
+      sellerNotFound: 'الطلب ده مش موجود أو مش بتاعك.',
+      sellerLinkNotYours: 'الرابط ده مش ليك', sellerLoadFailed: 'مقدرناش نحمّل الطلب، جرّب تاني', retry: 'جرّب تاني', loading: 'بحمّل…',
+      sellerPageTitle: 'فيه مشتري مهتم بإعلانك', sellerBuyerArea: 'المشتري في {area}',
+      sellerStatusAvailable: '✅ ردّيت إنه متاح', sellerStatusSold: '❌ ردّيت إنه اتباع',
+      sellerStatusClosed: 'الطلب ده اتقفل ومبقاش محتاج ردّ', sellerYourReply: 'ردّك: «{text}»',
+      sellerOpenChat: '💬 افتح المحادثة',
+      // Notifications
+      notifStarted: 'بدأت أدوّر ✅ هبعتلك أول ما حد يأكّد.',
+      notifFound: 'لقيتلك {n} {model} متاحين في {area} 🎉 أرخص واحد {price} ج…',
+      notifNone: 'ملقيتش حاجة متاحة المرة دي 😕 تحب أدوّر تاني أو أوسّع المنطقة؟',
+      // Backend error messages (shown verbatim when the API returns them)
+      errRateLimit: 'وصلت للحد الأقصى من طلبات Bro دلوقتي، جرّب تاني بعد شوية',
+      errSearchDown: 'البحث مش متاح دلوقتي، جرّب تاني كمان شوية', errDisabled: 'Vatix Bro مش متاح دلوقتي',
+      errNotFound: 'الطلب مش موجود', errFinished: 'الطلب ده خلص خلاص', errStillRunning: 'مينفعش تعيد الطلب وهو لسه شغال',
+      errNotConfirmed: 'البائع لسه ما أكّدش إن الإعلان متاح', errNoLongerAvailable: 'الإعلان ده مبقاش متاح',
+      errGeneric: 'حصلت مشكلة، جرّب تاني',
+      errPrice: 'اكتب سعر صحيح (لحد رقمين بعد العلامة العشرية)',
+      // Feature-off page (/bro/new when Bro is disabled)
+      unavailableTitle: 'Vatix Bro مش متاح دلوقتي', unavailableBody: 'الخدمة موقوفة مؤقتاً، جرّب تاني بعد شوية.', unavailableHome: 'ارجع للرئيسية',
+    },
   },
   en: {
     appName: 'Vatix',
@@ -2265,6 +2471,78 @@ export const translations: Record<Locale, Translations> = {
       optionAppleDesc: 'Renew instantly through the App Store',
       appleDoneTitle: 'Subscription activated',
       appleDoneBody: 'Your subscription has been renewed. Signing you in now.',
+    },
+    bro: {
+      // Identity
+      name: 'Vatix Bro', badge: 'Official Vatix assistant', navLink: 'Vatix Bro',
+      // Product page card (B) + sticky bar
+      chipCheaper: '💸 Cheaper than {price}', chipBetter: '✨ Better condition', chipBox: '📦 With box',
+      ctaFind: '🔍 Find me the same one', stickyCta: 'VB · Find me the same one →',
+      // Sold-listing takeover (C)
+      soldTitle: 'This ad is sold 😕 but Vatix Bro can find you the same one', ctaFindAvailable: '🔍 Find me an available one',
+      // Entry points
+      heroStrip: 'Cannot find what you want? Let Vatix Bro search for you', searchEmptyTitle: 'Did not find what you are looking for?',
+      searchEmptyBody: 'Vatix Bro asks sellers for you and comes back with what is actually available.', searchEmptyCta: '🔍 Find me {model}',
+      // Intake form
+      intakeTitle: 'Tell Bro what you want', stepCategory: 'Category', stepBrand: 'Brand', stepModel: 'Model',
+      stepStorage: 'Storage', stepArea: 'Area', stepBudget: 'Budget',
+      optional: 'Optional', required: 'Required', modelPlaceholder: 'e.g. iPhone 15 Pro', storagePlaceholder: 'e.g. 256',
+      budgetMin: 'From', budgetMax: 'Up to', wantsLabel: 'How would you like it?',
+      wantCheaper: '💸 Cheaper', wantBetterCondition: '✨ Better condition', wantWithBox: '📦 With box',
+      knownFromSearch: '✓ Picked up from your search', edit: 'Edit',
+      submit: "🚀 Go Bro, search", submitting: 'Searching…',
+      intakeFooter: '🔒 Bro tells sellers he is a Vatix assistant asking for a real buyer, and never shares your number or name until you contact the seller yourself.',
+      errModelRequired: 'Enter the model name', errAreaRequired: 'Choose an area', errBudgetRange: 'Minimum budget must be lower than maximum budget',
+      intakeLoadFailed: 'We could not load the categories and areas, try again', errCategoryRequired: 'Choose a category', areaPlaceholder: 'Choose an area',
+      // Request page
+      askingProgress: 'Asking {asked} sellers… {available} confirmed',
+      pillAvailable: '✓ Available', pillSold: '✕ Sold', pillPending: '⏳ Still replying',
+      sectionAvailable: 'Available now', sectionSold: 'Sold · hidden',
+      cheapestRibbon: '⭐ Cheapest', priceDrop: 'Down {amount}', priceEgp: 'EGP {price}',
+      chatSeller: '💬 Chat with seller', viewAd: 'View ad', connecting: 'Opening the chat…',
+      stopSearch: 'Stop searching', rerun: 'Search again',
+      emptyTitle: 'Nothing found right now', widenArea: 'Widen the area', dropBudget: 'Remove the budget',
+      // Requests list
+      listTitle: 'My Bro requests', listEmpty: 'No requests yet. Tell Bro what you want and he will search for you.', newRequest: 'New request',
+      statusSearching: 'Searching', statusDone: 'Done', statusExpired: 'Expired', statusCancelled: 'Cancelled',
+      // Match facts grid
+      factAvailable: 'Available · confirmed {ago}', factArea: 'Check-up in {area}', factWarranty: 'Warranty: {note}',
+      scratchesNone: 'Flawless', scratchesMinor: 'Minor scratch', scratchesRepaired: 'Repaired',
+      extraBox: 'Box', extraInvoice: 'Invoice', extraWarranty: 'Warranty',
+      sellerQuote: 'Seller says: “{note}”',
+      agoNow: 'just now', agoMinutes: '{n} min ago', agoHours: '{n} h ago', agoDays: '{n} d ago',
+      // Seller side (chat + /bro/i/[id])
+      sellerDisclosure: '🤖 This is the automated Vatix assistant. A real buyer in {area} is interested in your ad. Your number is only shared if the buyer contacts you themselves.',
+      sellerAsk: 'Hi 👋 a buyer is looking for exactly this device. Is it still available?',
+      qrAvailable: '✅ Available', qrSold: '❌ Sold', qrOwnReply: '💬 I will reply myself',
+      formIntro: 'Great 🙏 two quick questions so the buyer can decide:',
+      fieldLatestPrice: 'Latest price (EGP)', fieldCheckArea: 'Check-up area', fieldScratches: 'Device condition', fieldExtras: 'Comes with',
+      fieldWarrantyNote: 'Warranty details (optional)', fieldNote: 'Note to the buyer (optional)',
+      freeTextPlaceholder: 'Type your reply here', sellerSend: 'Send',
+      sellerThanks: 'Thanks! Your reply was sent to the buyer ✨ If they want to talk to you it will show up here.',
+      priceUpdatePrompt: '💡 Update your ad price to {price} EGP?', soldConfirmPrompt: 'Mark it as sold?',
+      yes: 'Yes', no: 'No',
+      optOutPrompt: 'Do not want messages from Bro?', optOutAction: 'Stop', optOutDone: 'Done, you will not get Bro messages anymore.',
+      optInAction: 'Turn messages back on', sellerLoginRequired: 'Log in first to reply to the buyer.',
+      sellerNotFound: 'This request does not exist or is not yours.',
+      sellerLinkNotYours: 'This link is not yours', sellerLoadFailed: 'We could not load the request, try again', retry: 'Try again', loading: 'Loading…',
+      sellerPageTitle: 'A buyer is interested in your ad', sellerBuyerArea: 'The buyer is in {area}',
+      sellerStatusAvailable: '✅ You replied it is available', sellerStatusSold: '❌ You replied it is sold',
+      sellerStatusClosed: 'This request is closed and needs no reply', sellerYourReply: 'Your reply: “{text}”',
+      sellerOpenChat: '💬 Open the chat',
+      // Notifications
+      notifStarted: 'I started searching ✅ I will message you as soon as someone confirms.',
+      notifFound: 'I found {n} {model} available in {area} 🎉 The cheapest is EGP {price}…',
+      notifNone: 'Nothing available this time 😕 Want me to search again or widen the area?',
+      // Backend error messages (shown verbatim when the API returns them)
+      errRateLimit: 'You have reached the Bro request limit for now, try again in a bit',
+      errSearchDown: 'Search is unavailable right now, try again shortly', errDisabled: 'Vatix Bro is not available right now',
+      errNotFound: 'Request not found', errFinished: 'This request is already finished', errStillRunning: 'You cannot re-run a request that is still running',
+      errNotConfirmed: 'The seller has not confirmed the ad is available yet', errNoLongerAvailable: 'This ad is no longer available',
+      errGeneric: 'Something went wrong, try again',
+      errPrice: 'Enter a valid price (up to 2 decimals)',
+      // Feature-off page (/bro/new when Bro is disabled)
+      unavailableTitle: 'Vatix Bro is not available right now', unavailableBody: 'The service is temporarily off, please try again in a bit.', unavailableHome: 'Back to home',
     },
   },
 }

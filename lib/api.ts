@@ -2,6 +2,7 @@ import { Platform } from 'react-native'
 import * as Sentry from '@sentry/react-native'
 import { AUTH_ERR, normalizeUserType } from '@/lib/auth'
 import { getOrCreateVisitorId, visitorIdHeader } from '@/lib/visitor-id'
+import type { BroMessageMeta } from '@/lib/bro'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 const MINIO_PUBLIC = process.env.EXPO_PUBLIC_MINIO_URL ?? 'http://localhost:9000'
@@ -267,7 +268,7 @@ export class ApiError extends Error {
   }
 }
 
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${BASE}${path}`
   let res: Response
   try {
@@ -675,6 +676,8 @@ export interface Message {
   senderId: number
   content: string
   isRead?: boolean
+  /** Structured payload on Vatix Bro system messages; absent on normal chat. */
+  meta?: BroMessageMeta | null
   createdAt: string
 }
 
@@ -684,7 +687,7 @@ export interface ConversationListItem {
   product: { id: number; title: string; image: string | null } | null
   createdAt: string
   updatedAt: string
-  otherUser: { id: number; displayName: string; isStore: boolean; logo: string | null }
+  otherUser: { id: number; displayName: string; isStore: boolean; logo: string | null; isBro?: boolean }
   lastMessage: Message | null
   unreadCount: number
 }

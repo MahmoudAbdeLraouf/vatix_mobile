@@ -22,6 +22,8 @@ import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { ConversationDetail, ConversationListItem, imgUrl, Message } from '@/lib/api'
 import { authFetch, authPatch, authPost } from '@/lib/auth'
+import { BroMessage } from '@/components/bro/BroMessage'
+import { BroAvatar, BroBadge } from '@/components/bro/BroAvatar'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 function timeLabel(iso: string, ar: boolean): string {
@@ -214,7 +216,8 @@ export default function ConversationScreen() {
   const product = conversation?.product
   const productImg = imgUrl(product?.image)
 
-  const otherName = other?.displayName ?? t.messages
+  const otherIsBro = other?.isBro ?? false
+  const otherName = otherIsBro ? t.bro.name : (other?.displayName ?? t.messages)
   const otherIsStore = other?.isStore ?? false
   const otherLogo = imgUrl(other?.logo)
 
@@ -249,6 +252,9 @@ export default function ConversationScreen() {
             />
           </Pressable>
 
+          {otherIsBro ? (
+            <BroAvatar size={44} radius={14} />
+          ) : (
           <View style={styles.headerAvatarWrap}>
             <View
               style={[
@@ -278,6 +284,7 @@ export default function ConversationScreen() {
               />
             </View>
           </View>
+          )}
 
           <View style={[styles.headerText, colDir]}>
             <Text
@@ -286,12 +293,18 @@ export default function ConversationScreen() {
             >
               {otherName}
             </Text>
-            <Text
-              numberOfLines={1}
-              style={[styles.headerRole, dirStyle]}
-            >
-              {otherIsStore ? t.store : t.user}
-            </Text>
+            {otherIsBro ? (
+              <View style={styles.headerBadgeWrap}>
+                <BroBadge label={t.bro.badge} />
+              </View>
+            ) : (
+              <Text
+                numberOfLines={1}
+                style={[styles.headerRole, dirStyle]}
+              >
+                {otherIsStore ? t.store : t.user}
+              </Text>
+            )}
           </View>
         </View>
 
@@ -373,6 +386,14 @@ export default function ConversationScreen() {
                 )
               }
               const m = item.message
+              if (m.meta?.bro) {
+                return (
+                  <BroMessage
+                    message={{ id: m.id, content: m.content, meta: m.meta, createdAt: m.createdAt }}
+                    onAnswered={poll}
+                  />
+                )
+              }
               const mine = m.senderId === user?.id
               // Website intentionally aligns "mine" to flex-start; mirror that here.
               return (
@@ -535,6 +556,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 15,
     color: colors.dk,
+  },
+  headerBadgeWrap: {
+    marginTop: 2,
+    alignItems: 'flex-start',
   },
   headerRole: {
     fontFamily: fonts.regular,

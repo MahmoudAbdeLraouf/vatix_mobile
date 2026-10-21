@@ -17,6 +17,7 @@ import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { imgUrl, type ConversationListItem } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
+import { BroAvatar, BroBadge } from '@/components/bro/BroAvatar'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -188,12 +189,12 @@ export default function MessagesScreen() {
       if (filter === 'stores' && !c.otherUser?.isStore) return false
       if (filter === 'people' && c.otherUser?.isStore) return false
       if (!q) return true
-      const name = (c.otherUser?.displayName ?? '').toLowerCase()
+      const name = (c.otherUser?.isBro ? t.bro.name : (c.otherUser?.displayName ?? '')).toLowerCase()
       const product = (c.product?.title ?? '').toLowerCase()
       const preview = (c.lastMessage?.content ?? '').toLowerCase()
       return name.includes(q) || product.includes(q) || preview.includes(q)
     })
-  }, [conversations, query, filter])
+  }, [conversations, query, filter, t])
 
   const heroSubtitle = useMemo(() => {
     if (conversations === null || error) return ''
@@ -361,7 +362,8 @@ export default function MessagesScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => {
-              const name = item.otherUser?.displayName ?? t.profile
+              const isBro = !!item.otherUser?.isBro
+              const name = isBro ? t.bro.name : (item.otherUser?.displayName ?? t.profile)
               const isOwnLast = item.lastMessage?.senderId === user?.id
               const rawPreview = item.lastMessage?.content ?? ''
               const preview = rawPreview
@@ -386,6 +388,9 @@ export default function MessagesScreen() {
                     pressed && styles.itemPressed,
                   ]}
                 >
+                  {isBro ? (
+                    <BroAvatar size={52} radius={16} />
+                  ) : (
                   <View style={styles.avatarWrap}>
                     <View style={[styles.avatar, isStore ? styles.avatarStore : styles.avatarUser]}>
                       {logo ? (
@@ -410,6 +415,7 @@ export default function MessagesScreen() {
                       />
                     </View>
                   </View>
+                  )}
 
                   <View style={styles.itemBody}>
                     <View style={[styles.itemTop]}>
@@ -423,6 +429,7 @@ export default function MessagesScreen() {
                       >
                         {name}
                       </Text>
+                      {isBro ? <BroBadge label={t.bro.badge} /> : null}
                       <View style={styles.timeWrap}>
                         {unread > 0 ? <View style={styles.timeDot} /> : null}
                         <Text style={[styles.time, unread > 0 && styles.timeUnread]}>{time}</Text>
