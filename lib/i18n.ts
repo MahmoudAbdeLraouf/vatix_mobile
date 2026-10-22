@@ -902,6 +902,11 @@ export interface Translations {
     browseProducts: string
     foundNavLink: string
     requestsNav: string
+    fabChooserTitle: string
+    fabPostProduct: string
+    fabPostProductSub: string
+    fabPostRequest: string
+    fabPostRequestSub: string
     makeOffer: string
     makeOfferAgain: string
     offerSent: string
@@ -1863,6 +1868,11 @@ export const translations: Record<Locale, Translations> = {
       browseProducts: 'تصفّح المنتجات',
       foundNavLink: 'اللي لقاه جيكو',
       requestsNav: 'طلبات الشراء',
+      fabChooserTitle: 'عايز تعمل إيه؟',
+      fabPostProduct: 'اعرض منتج',
+      fabPostProductSub: 'انشر إعلان لجهاز عايز تبيعه',
+      fabPostRequest: 'اطلب جهاز',
+      fabPostRequestSub: 'قول لجيكو انت عايز إيه والبياعين يبعتولك عروض',
       makeOffer: 'قدّم عرض',
       makeOfferAgain: 'قدّم عرض تاني',
       offerSent: 'عرضك اتبعت ✓',
@@ -2822,6 +2832,11 @@ export const translations: Record<Locale, Translations> = {
       browseProducts: 'Browse products',
       foundNavLink: 'Geeko finds',
       requestsNav: 'Buy requests',
+      fabChooserTitle: 'What would you like to do?',
+      fabPostProduct: 'Post a product',
+      fabPostProductSub: 'List a device you want to sell',
+      fabPostRequest: 'Request a device',
+      fabPostRequestSub: 'Tell Geeko what you need and sellers send you offers',
       makeOffer: 'Make an offer',
       makeOfferAgain: 'Send a new offer',
       offerSent: 'Your offer was sent ✓',
