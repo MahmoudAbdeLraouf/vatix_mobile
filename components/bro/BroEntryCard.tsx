@@ -8,7 +8,7 @@ import { getBroStatus, type BroRequestSource, type BroWant } from '@/lib/bro'
 import { BroAvatar, BroBadge } from '@/components/bro/BroAvatar'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 
-export type BroEntryVariant = 'product' | 'sold' | 'search' | 'home'
+export type BroEntryVariant = 'product' | 'sold' | 'search' | 'home' | 'pill'
 
 /** Plain prefill passed in by host screens. Empty values are dropped from the route params. */
 export interface BroEntryContext {
@@ -28,6 +28,8 @@ const SOURCE: Record<BroEntryVariant, BroRequestSource> = {
   sold: 'product_sold',
   search: 'search',
   home: 'home',
+  // Always-visible header pill on the products tab; prefilled from the current search/filters.
+  pill: 'search',
 }
 
 const NAVY = '#1A2540'
@@ -78,6 +80,23 @@ function getCachedBroStatus(): Promise<{ enabled: boolean }> {
     if (statusCache === entry) statusCache = null
   })
   return entry.promise
+}
+
+/** False until the cached status resolves; Bro entry points render nothing unless this is true. */
+export function useBroEnabled(): boolean {
+  const [enabled, setEnabled] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    getCachedBroStatus()
+      .then(s => {
+        if (!cancelled) setEnabled(s.enabled)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return enabled
 }
 
 export function BroEntryCard({
@@ -135,6 +154,21 @@ export function BroEntryCard({
       wants,
     )
     router.push({ pathname: '/bro/new', params } as never)
+  }
+
+  if (variant === 'pill') {
+    return (
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={open}
+        accessibilityRole="button"
+        accessibilityLabel={b.navLink}
+        style={[styles.pill, rowDir]}
+      >
+        <BroAvatar size={20} />
+        <Text style={styles.pillText}>{b.navLink}</Text>
+      </TouchableOpacity>
+    )
   }
 
   if (variant === 'home') {
@@ -280,4 +314,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   stripBtnText: { fontFamily: fonts.bold, fontSize: 12, color: colors.white },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingStart: 6,
+    paddingEnd: spacing.md,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    backgroundColor: NAVY,
+    borderWidth: 1.5,
+    borderColor: YELLOW,
+  },
+  pillText: { fontFamily: fonts.extraBold, fontSize: 13, color: colors.white },
 })

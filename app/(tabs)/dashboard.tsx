@@ -6,6 +6,8 @@ import { DashboardLayout, useDashboardChrome } from '@/components/DashboardLayou
 import { AddProductDialog } from '@/components/AddProductDialog'
 import { StoreLogoDialog } from '@/components/StoreLogoDialog'
 import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDialog'
+import { BroAvatar } from '@/components/bro/BroAvatar'
+import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
@@ -27,6 +29,7 @@ export default function DashboardScreen() {
   const { t, locale } = useLocale()
   const { user, isAuthenticated, loading } = useAuth()
   const ar = locale === 'ar'
+  const broEnabled = useBroEnabled()
 
   const [adsCount, setAdsCount] = useState<number | null>(null)
   const [favsCount, setFavsCount] = useState<number | null>(null)
@@ -201,6 +204,24 @@ export default function DashboardScreen() {
           badge={msgUnread && msgUnread > 0 ? msgUnread : null}
           onPress={() => router.push('/dashboard/messages')}
         />
+        {broEnabled && (
+          <Pressable
+            onPress={() => router.push('/bro' as never)}
+            style={({ pressed }) => [styles.statTile, pressed && { opacity: 0.85 }]}
+            accessibilityRole="button"
+            accessibilityLabel={t.bro.listTitle}
+          >
+            <View style={styles.broIconWrap}>
+              <BroAvatar size={36} radius={18} />
+            </View>
+            <Text style={styles.broTileName} numberOfLines={1}>
+              {t.bro.navLink}
+            </Text>
+            <Text style={styles.statLabel} numberOfLines={1}>
+              {t.bro.listTitle}
+            </Text>
+          </Pressable>
+        )}
         {PAID_UI_ENABLED && (
           <StatTile
             value={walletBalance}
@@ -597,6 +618,15 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: colors.white,
     lineHeight: 12,
+  },
+  broIconWrap: {
+    marginBottom: 6,
+  },
+  broTileName: {
+    fontFamily: fonts.black,
+    fontSize: 15,
+    lineHeight: 26,
+    color: colors.yd,
   },
   statValue: {
     fontFamily: fonts.black,

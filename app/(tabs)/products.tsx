@@ -313,6 +313,17 @@ export default function ProductsScreen() {
             <Ionicons name="add" size={15} color={colors.dk} />
             <Text style={styles.postAdText}>{t.postFreeAd}</Text>
           </TouchableOpacity>
+          {/* Renders nothing unless Bro is enabled */}
+          <BroEntryCard
+            variant="pill"
+            context={{
+              model: search,
+              categoryId,
+              brandId,
+              locationId,
+              budgetMax: maxPrice.trim() || null,
+            }}
+          />
         </View>
       </View>
 
@@ -453,6 +464,8 @@ export default function ProductsScreen() {
     activeLocation,
     minPrice,
     maxPrice,
+    search,
+    categoryId,
     filtersLabel,
     hasActiveFilters,
     resetLabel,
@@ -655,7 +668,6 @@ const styles = StyleSheet.create({
   heroMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing.sm,
     flexWrap: 'wrap',
   },

@@ -817,6 +817,12 @@ export interface Translations {
     dropBudget: string
     listTitle: string
     listEmpty: string
+    tabLabel: string
+    foundTitle: string
+    foundSubtitle: string
+    foundEmpty: string
+    foundForRequest: string
+    allRequests: string
     newRequest: string
     statusSearching: string
     statusDone: string
@@ -852,6 +858,7 @@ export interface Translations {
     fieldNote: string
     freeTextPlaceholder: string
     sellerSend: string
+    formComposerHint: string
     sellerThanks: string
     priceUpdatePrompt: string
     soldConfirmPrompt: string
@@ -1683,6 +1690,7 @@ export const translations: Record<Locale, Translations> = {
       emptyTitle: 'ملقيتش حاجة دلوقتي', widenArea: 'وسّع المنطقة', dropBudget: 'شيل الميزانية',
       // Requests list
       listTitle: 'طلباتي مع Bro', listEmpty: 'لسه مفيش طلبات. قول لـ Bro عايز إيه وهو يدوّرلك.', newRequest: 'طلب جديد',
+      tabLabel: 'Bro', foundTitle: 'اللي لقاه Bro', foundSubtitle: 'أجهزة البيّاعين أكدوا إنها متاحة', foundEmpty: 'لسه Bro ملقاش أجهزة. أول ما بيّاع يأكد إن جهازه متاح هيظهر هنا.', foundForRequest: 'لطلب: {model}', allRequests: 'كل طلباتي',
       statusSearching: 'بيدوّر', statusDone: 'خلص', statusExpired: 'انتهى', statusCancelled: 'اتلغى', statusFound: 'لقيت جهاز',
       // Match facts grid
       factAvailable: 'متاح · اتأكد {ago}', factArea: 'المعاينة في {area}', factWarranty: 'الضمان: {note}',
@@ -1697,7 +1705,7 @@ export const translations: Record<Locale, Translations> = {
       formIntro: 'تمام 🙏 سؤالين سريعين عشان المشتري يقرر:',
       fieldLatestPrice: 'آخر سعر (ج)', fieldCheckArea: 'مكان المعاينة', fieldScratches: 'حالة الجهاز', fieldExtras: 'معاه إيه؟',
       fieldWarrantyNote: 'تفاصيل الضمان (اختياري)', fieldNote: 'ملاحظة للمشتري (اختياري)',
-      freeTextPlaceholder: 'اكتب ردّك هنا', sellerSend: 'ابعت',
+      freeTextPlaceholder: 'اكتب ردّك هنا', sellerSend: 'ابعت', formComposerHint: 'املأ البيانات في الفورم اللي فوق 👆',
       sellerThanks: 'شكراً! بعتّ ردّك للمشتري ✨ لو عايز يكلّمك هيظهرلك هنا.',
       priceUpdatePrompt: '💡 حدّث سعر إعلانك لـ {price} ج؟', soldConfirmPrompt: 'تعلّم عليه إنه اتباع؟',
       yes: 'أيوه', no: 'لأ',
@@ -2513,6 +2521,7 @@ export const translations: Record<Locale, Translations> = {
       emptyTitle: 'Nothing found right now', widenArea: 'Widen the area', dropBudget: 'Remove the budget',
       // Requests list
       listTitle: 'My Bro requests', listEmpty: 'No requests yet. Tell Bro what you want and he will search for you.', newRequest: 'New request',
+      tabLabel: 'Bro', foundTitle: 'Bro finds', foundSubtitle: 'Devices sellers confirmed are available', foundEmpty: 'Bro has not found any devices yet. Once a seller confirms a device is available it shows up here.', foundForRequest: 'For: {model}', allRequests: 'All my requests',
       statusSearching: 'Searching', statusDone: 'Done', statusExpired: 'Expired', statusCancelled: 'Cancelled', statusFound: 'Found one',
       // Match facts grid
       factAvailable: 'Available · confirmed {ago}', factArea: 'Check-up in {area}', factWarranty: 'Warranty: {note}',
@@ -2527,7 +2536,7 @@ export const translations: Record<Locale, Translations> = {
       formIntro: 'Great 🙏 two quick questions so the buyer can decide:',
       fieldLatestPrice: 'Latest price (EGP)', fieldCheckArea: 'Check-up area', fieldScratches: 'Device condition', fieldExtras: 'Comes with',
       fieldWarrantyNote: 'Warranty details (optional)', fieldNote: 'Note to the buyer (optional)',
-      freeTextPlaceholder: 'Type your reply here', sellerSend: 'Send',
+      freeTextPlaceholder: 'Type your reply here', sellerSend: 'Send', formComposerHint: 'Fill in the form above to reply 👆',
       sellerThanks: 'Thanks! Your reply was sent to the buyer ✨ If they want to talk to you it will show up here.',
       priceUpdatePrompt: '💡 Update your ad price to {price} EGP?', soldConfirmPrompt: 'Mark it as sold?',
       yes: 'Yes', no: 'No',

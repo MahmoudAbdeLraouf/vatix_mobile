@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
+import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { colors, fonts } from '@/constants/theme'
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
@@ -12,6 +13,7 @@ const TAB_ICONS: Record<string, { active: IoniconsName; inactive: IoniconsName }
   home: { active: 'home', inactive: 'home-outline' },
   products: { active: 'grid', inactive: 'grid-outline' },
   stores: { active: 'storefront', inactive: 'storefront-outline' },
+  'bro-finds': { active: 'sparkles', inactive: 'sparkles-outline' },
   dashboard: { active: 'person', inactive: 'person-outline' },
 }
 
@@ -22,6 +24,7 @@ export default function TabsLayout() {
   const { t, locale, isRtl } = useLocale()
   const insets = useSafeAreaInsets()
   const { requireLogin } = useLoginGate()
+  const broEnabled = useBroEnabled()
 
   const tabBarHeight = 62 + insets.bottom
 
@@ -98,6 +101,16 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen name="stores" options={{ title: t.stores }} />
+      {/* Everything Bro found, reachable any time (not just from the notification). */}
+      <Tabs.Screen
+        name="bro-finds"
+        options={{ title: t.bro.tabLabel, href: broEnabled ? undefined : null }}
+        listeners={{
+          tabPress: e => {
+            if (!requireLogin()) e.preventDefault()
+          },
+        }}
+      />
       <Tabs.Screen
         name="dashboard"
         options={{ title: t.dashboard }}

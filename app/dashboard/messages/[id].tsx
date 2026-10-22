@@ -220,6 +220,8 @@ export default function ConversationScreen() {
   const otherName = otherIsBro ? t.bro.name : (other?.displayName ?? t.messages)
   const otherIsStore = other?.isStore ?? false
   const otherLogo = imgUrl(other?.logo)
+  // Bro's details form takes text input itself; composer text is ignored by Bro until it's submitted.
+  const broFormOpen = !!messages[messages.length - 1]?.meta?.bro?.actions?.includes('details')
 
   // Build rows: date separators + messages
   const rows: Row[] = useMemo(() => {
@@ -430,6 +432,9 @@ export default function ConversationScreen() {
         )}
 
         <View style={[styles.inputBarWrap, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+          {broFormOpen ? (
+            <Text style={styles.broFormHint}>{t.bro.formComposerHint}</Text>
+          ) : (
           <View style={styles.inputBar}>
             <View style={styles.inputPill}>
               <TextInput
@@ -467,6 +472,7 @@ export default function ConversationScreen() {
               )}
             </Pressable>
           </View>
+          )}
         </View>
     </DashboardLayout>
   )
@@ -736,6 +742,15 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.g200,
     ...shadow.sm,
+  },
+  broFormHint: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.g600,
+    textAlign: 'center',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
   },
   inputBar: {
     flexDirection: 'row',
