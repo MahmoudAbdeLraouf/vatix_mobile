@@ -228,8 +228,6 @@ export default function RequestsTab() {
         </View>
       </Pressable>
 
-      {userType === 'client' && usage ? <BroUsageMeter usage={usage} style={styles.meter} /> : null}
-
       <View style={styles.filterCard}>
         <View style={styles.sortRow}>
           {(['newest', 'budget'] as const).map(s => {
@@ -268,6 +266,9 @@ export default function RequestsTab() {
           />
         </View>
       </View>
+
+      {/* Offer quota sits with the board it applies to, away from the Ask-Geeko banner. */}
+      {userType === 'client' && usage ? <BroUsageMeter usage={usage} style={styles.meter} /> : null}
 
       {!loading && !failed ? (
         <View style={styles.resultsRow}>
