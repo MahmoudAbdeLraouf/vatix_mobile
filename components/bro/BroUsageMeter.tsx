@@ -1,11 +1,11 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
 import { useLocale } from '@/contexts/locale'
 import type { BroUsage } from '@/lib/bro'
 import { colors, fonts, radius } from '@/constants/theme'
 import { useBroDir } from '@/components/bro/BroCardParts'
 
 /** Monthly offer meter for clients. Stores (cap null) see nothing. */
-export function BroUsageMeter({ usage }: { usage: BroUsage }) {
+export function BroUsageMeter({ usage, style }: { usage: BroUsage; style?: StyleProp<ViewStyle> }) {
   const { t } = useLocale()
   const { dirStyle, rowDir } = useBroDir()
   const b = t.bro
@@ -16,7 +16,7 @@ export function BroUsageMeter({ usage }: { usage: BroUsage }) {
   const fill = used >= cap ? '#dc2626' : pct >= 80 ? '#f97316' : colors.y
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, style]}>
       <View style={[styles.head, rowDir]}>
         <Text style={[styles.label, dirStyle]}>{b.meterLabel}</Text>
         <Text style={[styles.count, dirStyle]}>

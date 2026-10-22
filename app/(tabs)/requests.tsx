@@ -15,7 +15,7 @@ import { BroOfferSheet } from '@/components/bro/BroOfferSheet'
 import { BroUsageMeter } from '@/components/bro/BroUsageMeter'
 import { CategoryBar } from '@/components/CategoryBar'
 import { MessagesBell } from '@/components/MessagesBell'
-import { SearchableSelect } from '@/components/ui/SearchableSelect'
+import { FilterCombobox } from '@/components/FilterCombobox'
 import { Button } from '@/components/ui/Button'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -26,7 +26,7 @@ export default function RequestsTab() {
   const { locale, t, isRtl, setLocale } = useLocale()
   const b = t.bro
   const ar = locale === 'ar'
-  const filtersLabel = ar ? 'الفلاتر' : 'Filters'
+  const geekoHint = ar ? 'قول لجيكو عايز إيه والعروض توصلك' : 'Tell Geeko what you want and get offers'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
   const { user, loading: authLoading } = useAuth()
   const { requireLogin } = useLoginGate()
@@ -61,12 +61,12 @@ export default function RequestsTab() {
   }, [])
 
   const brandOptions = useMemo(
-    () => [{ value: '', label: b.boardAllBrands }, ...brands.map(br => ({ value: String(br.id), label: localeName(br.translations, locale) }))],
-    [brands, locale, b.boardAllBrands],
+    () => brands.map(br => ({ value: String(br.id), label: localeName(br.translations, locale) })),
+    [brands, locale],
   )
   const locationOptions = useMemo(
-    () => [{ value: '', label: b.boardAllAreas }, ...locations.map(l => ({ value: String(l.id), label: localeName(l.translations, locale) }))],
-    [locations, locale, b.boardAllAreas],
+    () => locations.map(l => ({ value: String(l.id), label: localeName(l.translations, locale) })),
+    [locations, locale],
   )
 
   const loadPage = useCallback((nextPage: number, append: boolean) => {
@@ -176,8 +176,6 @@ export default function RequestsTab() {
     setSheet(null)
   }
 
-  const activeFilterCount = [categoryId, brandId, locationId].filter(Boolean).length
-
   // Same navy title bar as Products / Stores: title + locale, messages, notifications.
   const topBar = (
     <View style={styles.titleRow}>
@@ -213,27 +211,26 @@ export default function RequestsTab() {
 
   const listHeader = (
     <View style={styles.listHeader}>
-      {userType === 'client' && usage ? <BroUsageMeter usage={usage} /> : null}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push({ pathname: '/bro/new', params: { source: 'nav' } } as never)}
+        style={({ pressed }) => [styles.banner, pressed && styles.pressed]}
+      >
+        <View style={styles.bannerAvatar}>
+          <BroAvatar size={40} />
+        </View>
+        <View style={styles.bannerBody}>
+          <Text style={[styles.bannerTitle, dirStyle]} numberOfLines={1}>{b.boardAskGeeko} ✦</Text>
+          <Text style={[styles.bannerSub, dirStyle]} numberOfLines={1}>{geekoHint}</Text>
+        </View>
+        <View style={styles.bannerGo}>
+          <Ionicons name={isRtl ? 'arrow-back' : 'arrow-forward'} size={18} color={colors.y} />
+        </View>
+      </Pressable>
+
+      {userType === 'client' && usage ? <BroUsageMeter usage={usage} style={styles.meter} /> : null}
 
       <View style={styles.filterCard}>
-        <View style={styles.filterCardHeader}>
-          <View style={styles.filterTitleRow}>
-            <Ionicons name="options-outline" size={16} color={colors.dk} />
-            <Text style={styles.filterTitle}>{filtersLabel}</Text>
-            {activeFilterCount > 0 ? (
-              <View style={styles.filterCountPill}>
-                <Text style={styles.filterCountText}>{activeFilterCount}</Text>
-              </View>
-            ) : null}
-          </View>
-          {hasFilters ? (
-            <Pressable onPress={clearFilters} hitSlop={8} style={styles.resetBtn}>
-              <Ionicons name="refresh-outline" size={13} color={colors.g600} />
-              <Text style={styles.resetBtnText}>{b.boardClearFilters}</Text>
-            </Pressable>
-          ) : null}
-        </View>
-
         <View style={styles.sortRow}>
           {(['newest', 'budget'] as const).map(s => {
             const on = sort === s
@@ -243,6 +240,11 @@ export default function RequestsTab() {
                 onPress={() => { if (on) return; resetBoard(); setSort(s) }}
                 style={[styles.sortBtn, on && styles.sortBtnOn]}
               >
+                <Ionicons
+                  name={s === 'newest' ? 'time-outline' : 'cash-outline'}
+                  size={15}
+                  color={on ? colors.y : colors.g500}
+                />
                 <Text style={[styles.sortText, on && styles.sortTextOn]}>{s === 'newest' ? b.sortNewest : b.sortBudget}</Text>
               </Pressable>
             )
@@ -250,25 +252,33 @@ export default function RequestsTab() {
         </View>
 
         <View style={styles.filterRow}>
-          <SearchableSelect
+          <FilterCombobox
             style={styles.filterCell}
             options={brandOptions}
             value={brandId}
-            onChange={v => { resetBoard(); setBrandId(v) }}
-            placeholder={b.boardFilterBrandPlaceholder}
+            onChange={v => { if (v === brandId) return; resetBoard(); setBrandId(v) }}
+            placeholder={b.boardAllBrands}
           />
-          <SearchableSelect
+          <FilterCombobox
             style={styles.filterCell}
             options={locationOptions}
             value={locationId}
-            onChange={v => { resetBoard(); setLocationId(v) }}
-            placeholder={b.boardFilterAreaPlaceholder}
+            onChange={v => { if (v === locationId) return; resetBoard(); setLocationId(v) }}
+            placeholder={b.boardAllAreas}
           />
         </View>
       </View>
 
       {!loading && !failed ? (
-        <Text style={[styles.count, dirStyle]}>{countLabel(total)}</Text>
+        <View style={styles.resultsRow}>
+          <Text style={[styles.count, dirStyle]}>{countLabel(total)}</Text>
+          {hasFilters ? (
+            <Pressable onPress={clearFilters} hitSlop={8} style={styles.clearBtn}>
+              <Ionicons name="close-circle" size={15} color={colors.g500} />
+              <Text style={styles.clearText}>{b.boardClearFilters}</Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
 
       {notice ? (
@@ -314,37 +324,7 @@ export default function RequestsTab() {
     <SafeAreaView style={[styles.safe, { direction: isRtl ? 'rtl' : 'ltr' }]} edges={['top']}>
       <View style={styles.header}>
         {topBar}
-        <Text style={[styles.sub, dirStyle]}>{b.boardSubtitle}</Text>
-        <View style={styles.pillRow}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push({ pathname: '/bro/new', params: { source: 'nav' } } as never)}
-            style={({ pressed }) => [styles.geekoPill, pressed && styles.pressed]}
-          >
-            <BroAvatar size={26} />
-            <Text style={styles.geekoText}>{b.boardAskGeeko}</Text>
-            <Text style={styles.geekoStar}>✦</Text>
-          </Pressable>
-          {userType ? (
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => router.push('/bro/offers' as never)}
-              style={({ pressed }) => [styles.ghostPill, pressed && styles.pressed]}
-            >
-              <Text style={styles.ghostPillText}>{b.myOffersTitle}</Text>
-            </Pressable>
-          ) : null}
-          {/* Geeko finds lost its tab to this board, so it's reachable from here. */}
-          {userType ? (
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => router.push('/(tabs)/bro-finds' as never)}
-              style={({ pressed }) => [styles.ghostPill, pressed && styles.pressed]}
-            >
-              <Text style={styles.ghostPillText}>{b.foundNavLink}</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        <Text style={[styles.sub, dirStyle]} numberOfLines={2}>{b.boardSubtitle}</Text>
       </View>
 
       <CategoryBar
@@ -408,31 +388,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sub: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 20, color: 'rgba(255,255,255,0.72)' },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
-  geekoPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.y,
-    borderRadius: radius.full,
-    paddingVertical: 5,
-    paddingStart: 5,
-    paddingEnd: 14,
-    ...shadow.ss,
-  },
-  geekoText: { fontFamily: fonts.extraBold, fontSize: 13, color: colors.dk },
-  geekoStar: { fontFamily: fonts.bold, fontSize: 13, color: colors.dk },
-  ghostPill: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-    borderRadius: radius.full,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-  ghostPillText: { fontFamily: fonts.bold, fontSize: 13, color: colors.white },
-  pressed: { opacity: 0.85 },
+  sub: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 20, color: 'rgba(255,255,255,0.7)' },
+  pressed: { opacity: 0.88 },
   content: {
     flex: 1,
     backgroundColor: colors.g100,
@@ -443,41 +400,68 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xl },
   listHeader: { gap: spacing.md, marginBottom: spacing.md },
 
-  // Filter card — same chrome as the Products tab.
-  filterCard: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm, ...shadow.ss },
-  filterCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs },
-  filterTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  filterTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.g900 },
-  filterCountPill: {
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 6,
-    borderRadius: 10,
-    backgroundColor: colors.y,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginStart: spacing.xs,
-  },
-  filterCountText: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 16, color: colors.dk },
-  resetBtn: {
+  // Ask-Geeko banner — the board's one call to action.
+  banner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 5,
-    borderRadius: radius.full,
-    backgroundColor: colors.g100,
+    gap: spacing.md,
+    backgroundColor: colors.y,
+    borderRadius: radius.lg,
+    paddingVertical: 12,
+    paddingStart: 12,
+    paddingEnd: 14,
+    ...shadow.ss,
   },
-  resetBtnText: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.g600 },
-  sortRow: { flexDirection: 'row', backgroundColor: colors.g100, borderRadius: radius.full, padding: 3 },
-  sortBtn: { flex: 1, alignItems: 'center', borderRadius: radius.full, paddingVertical: 7 },
+  bannerAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerBody: { flex: 1, gap: 2 },
+  bannerTitle: { fontFamily: fonts.extraBold, fontSize: 15, lineHeight: 22, color: colors.dk },
+  bannerSub: { fontFamily: fonts.semiBold, fontSize: 12, lineHeight: 18, color: 'rgba(26,37,64,0.72)' },
+  bannerGo: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.dk,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  meter: { marginBottom: 0, borderWidth: 0, borderRadius: radius.lg, ...shadow.ss },
+
+  // Sort + brand/area filters.
+  filterCard: { backgroundColor: colors.white, borderRadius: radius.lg, padding: 10, gap: 10, ...shadow.ss },
+  sortRow: { flexDirection: 'row', backgroundColor: colors.g100, borderRadius: radius.full, padding: 4, gap: 4 },
+  sortBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: radius.full,
+    paddingVertical: 8,
+  },
   sortBtnOn: { backgroundColor: colors.dk },
-  sortText: { fontFamily: fonts.bold, fontSize: 13, color: colors.g500 },
+  sortText: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 18, color: colors.g500 },
   sortTextOn: { color: colors.white },
-  filterRow: { flexDirection: 'row', alignItems: 'stretch', gap: spacing.sm },
+  filterRow: { flexDirection: 'row', alignItems: 'stretch', gap: 10 },
   filterCell: { flex: 1 },
 
-  count: { fontFamily: fonts.bold, fontSize: 14, color: colors.dk },
+  resultsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginBottom: -spacing.xs,
+  },
+  clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  clearText: { fontFamily: fonts.semiBold, fontSize: 12, lineHeight: 18, color: colors.g500 },
+  count: { fontFamily: fonts.extraBold, fontSize: 14, lineHeight: 20, color: colors.dk },
   notice: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -488,7 +472,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: 12,
   },
-  noticeText: { flex: 1, fontFamily: fonts.semiBold, fontSize: 13, color: colors.dk },
+  noticeText: { flex: 1, fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 20, color: colors.dk },
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxl, gap: spacing.md },
   footer: { gap: spacing.sm, alignItems: 'stretch', marginTop: spacing.xs },
   err: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red, textAlign: 'center' },
