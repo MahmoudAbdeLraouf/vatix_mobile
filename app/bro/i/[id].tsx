@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
+import { broHeader } from '@/components/bro/BroStackHeader'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
 import { imgUrl } from '@/lib/api'
@@ -111,7 +112,7 @@ export default function BroSellerScreen() {
     }
   }
 
-  const header = <Stack.Screen options={{ headerShown: true, title: b.sellerPageTitle }} />
+  const header = <Stack.Screen options={broHeader(b.sellerPageTitle)} />
 
   if (loading) {
     return (

@@ -29,7 +29,9 @@ export function useBroDir() {
   const ar = locale === 'ar'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
   const rowDir = ar ? ({ direction: 'ltr', flexDirection: 'row-reverse' } as const) : null
-  return { ar, dirStyle, rowDir }
+  // Text columns inside a rowDir row inherit its ltr direction; colDir restores rtl so 'auto' text sits right.
+  const colDir = ar ? ({ direction: 'rtl' } as const) : null
+  return { ar, dirStyle, rowDir, colDir }
 }
 
 /** Localised relative time ("منذ ...") and the fact chips for a match or an offer. */

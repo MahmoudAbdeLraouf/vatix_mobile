@@ -314,16 +314,18 @@ export default function ProductsScreen() {
             <Text style={styles.postAdText}>{t.postFreeAd}</Text>
           </TouchableOpacity>
           {/* Always visible, like the post-ad button */}
-          <BroEntryCard
-            variant="pill"
-            context={{
-              model: search,
-              categoryId,
-              brandId,
-              locationId,
-              budgetMax: maxPrice.trim() || null,
-            }}
-          />
+          <View style={styles.broPillSlot}>
+            <BroEntryCard
+              variant="pill"
+              context={{
+                model: search,
+                categoryId,
+                brandId,
+                locationId,
+                budgetMax: maxPrice.trim() || null,
+              }}
+            />
+          </View>
         </View>
       </View>
 
@@ -669,14 +671,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    flexWrap: 'wrap',
   },
   postAdBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     minHeight: 40,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: radius.full,
     backgroundColor: colors.y,
@@ -686,6 +687,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.extraBold,
     fontSize: 13,
     color: colors.dk,
+  },
+  // Content-sized, but shrinks (text scales down) instead of wrapping to a second line on narrow phones.
+  broPillSlot: {
+    flexShrink: 1,
+    minWidth: 0,
   },
 
   // Active-filter chip strip.

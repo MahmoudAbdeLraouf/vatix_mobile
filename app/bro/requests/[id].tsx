@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { broHeader } from '@/components/bro/BroStackHeader'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
 import { apiFetch, type LocationNode } from '@/lib/api'
@@ -36,7 +37,7 @@ export default function BroRequestScreen() {
   if (!rawId || !/^[1-9]\d*$/.test(rawId)) {
     return (
       <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <Stack.Screen options={{ headerShown: true, title: t.bro.listTitle }} />
+        <Stack.Screen options={broHeader(t.bro.listTitle)} />
         <ScrollView contentContainerStyle={styles.content}>
           <ErrorState title={t.bro.errGeneric} />
         </ScrollView>
@@ -244,7 +245,7 @@ function RequestView({ id }: { id: number }) {
     }, on => setConnectingOfferId(on ? offerId : null))
   }
 
-  const header = <Stack.Screen options={{ headerShown: true, title: b.listTitle }} />
+  const header = <Stack.Screen options={broHeader(b.listTitle)} />
 
   if (loading) {
     return (

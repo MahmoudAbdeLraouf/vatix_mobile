@@ -168,7 +168,9 @@ export function BroEntryCard({
         style={({ pressed }) => [styles.pill, rowDir, pressed && styles.pressed]}
       >
         <BroAvatar size={26} radius={13} />
-        <Text style={styles.pillText}>{b.pillLabel}</Text>
+        <Text style={styles.pillText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {b.pillLabel}
+        </Text>
         <Ionicons name="sparkles" size={12} color={YELLOW} />
       </Pressable>
     )
@@ -362,5 +364,5 @@ const styles = StyleSheet.create({
     backgroundColor: NAVY,
     ...shadow.ss,
   },
-  pillText: { fontFamily: fonts.extraBold, fontSize: 13, color: colors.white },
+  pillText: { flexShrink: 1, fontFamily: fonts.extraBold, fontSize: 13, color: colors.white },
 })

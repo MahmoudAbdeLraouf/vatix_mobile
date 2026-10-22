@@ -1288,7 +1288,7 @@ export const translations: Record<Locale, Translations> = {
     heroSub: 'آلاف الإعلانات من متاجر موثوقة ومستخدمين. ابحث، قارن، واشترِ بأمان.',
     heroSearchPlaceholder: 'ابحث عن جوال، لابتوب، شاشة...',
     heroSearchBtn: '🔍 بحث',
-    postFreeAd: '+ إضافة إعلان مجاناً',
+    postFreeAd: 'إضافة إعلان مجاناً',
     browseAll: 'تصفح كل الإعلانات ←',
     noAds: 'لا توجد إعلانات بعد',
     // Hero stats
@@ -2259,7 +2259,7 @@ export const translations: Record<Locale, Translations> = {
     heroSub: 'Thousands of listings from trusted stores and sellers. Search, compare, and buy safely.',
     heroSearchPlaceholder: 'Search for phones, laptops, screens...',
     heroSearchBtn: '🔍 Search',
-    postFreeAd: '+ Post Free Ad',
+    postFreeAd: 'Post Free Ad',
     browseAll: 'Browse all listings →',
     noAds: 'No listings yet',
     // Hero stats

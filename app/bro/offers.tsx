@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native'
 import { Stack, router } from 'expo-router'
+import { broHeader } from '@/components/bro/BroStackHeader'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
@@ -71,7 +72,7 @@ export default function BroOffersScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <Stack.Screen options={{ headerShown: true, title: b.myOffersTitle }} />
+      <Stack.Screen options={broHeader(b.myOffersTitle)} />
       {!broEnabled ? (
         <View style={styles.pad}>
           <View style={styles.card}>

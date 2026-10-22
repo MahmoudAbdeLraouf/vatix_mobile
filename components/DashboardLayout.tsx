@@ -24,6 +24,7 @@ import { authFetch } from '@/lib/auth'
 import { PAID_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { Logo } from '@/components/ui/Logo'
 import { MessagesBell } from '@/components/MessagesBell'
+import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { NotificationBell } from '@/components/NotificationBell'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
@@ -31,22 +32,27 @@ type NavKind = 'all' | 'clientOnly' | 'storeOnly'
 
 interface NavItem {
   href: string
-  labelKey: keyof ReturnType<typeof useLocale>['t']
+  labelKey?: keyof ReturnType<typeof useLocale>['t']
   icon: React.ComponentProps<typeof Ionicons>['name']
   emoji: string
   kind: NavKind
   badgeKey?: 'unread'
+  /** Label not in the top-level `t` (e.g. nested `t.bro.*`); wins over labelKey. */
+  label?: (t: ReturnType<typeof useLocale>['t']) => string
+  /** Only shown while Geeko (Bro) is enabled. */
+  broOnly?: boolean
 }
 
 const NAV: NavItem[] = [
   { href: '/(tabs)/dashboard',       labelKey: 'dashboardHome', icon: 'grid-outline',            emoji: '🏠', kind: 'all' },
   { href: '/dashboard/profile',      labelKey: 'profile',       icon: 'person-outline',          emoji: '👤', kind: 'all' },
   { href: '/dashboard/store',        labelKey: 'storeInfo',     icon: 'storefront-outline',      emoji: '🏪', kind: 'storeOnly' },
+  { href: '/dashboard/my-ads',       labelKey: 'myAds',         icon: 'list-outline',            emoji: '📋', kind: 'all' },
+  { href: '/bro',                    label: (t) => t.bro.listTitle, icon: 'sparkles-outline', emoji: '🤖', kind: 'all', broOnly: true },
   { href: '/dashboard/social',       labelKey: 'socialMedia',   icon: 'logo-instagram',          emoji: '📱', kind: 'storeOnly' },
   { href: '/dashboard/categories-brands', labelKey: 'categoriesBrands', icon: 'pricetags-outline', emoji: '🏷️', kind: 'storeOnly' },
   { href: '/dashboard/branches',     labelKey: 'branches',      icon: 'business-outline',        emoji: '🏢', kind: 'storeOnly' },
   { href: '/dashboard/messages',     labelKey: 'messages',      icon: 'chatbubble-outline',      emoji: '💬', kind: 'all', badgeKey: 'unread' },
-  { href: '/dashboard/my-ads',       labelKey: 'myAds',         icon: 'list-outline',            emoji: '📋', kind: 'all' },
   { href: '/dashboard/buy-slots',    labelKey: 'buySlotsNav',   icon: 'ticket-outline',          emoji: '🎟️', kind: 'clientOnly' },
   { href: '/dashboard/favorites',    labelKey: 'favorites',     icon: 'heart-outline',           emoji: '❤️', kind: 'all' },
   { href: '/dashboard/following',    labelKey: 'following',     icon: 'people-outline',          emoji: '🏬', kind: 'all' },
@@ -153,12 +159,14 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
   const userType = normalizeType(user?.type)
   const isClient = userType === 'client'
   const isStore = userType === 'store'
+  const broEnabled = useBroEnabled()
 
   const nav = useMemo(
     () =>
       NAV.filter((n) => {
         // iOS: Promote + Subscription go through Apple IAP; only wallet top-up stays hidden.
         if (!PAID_UI_ENABLED && n.href === '/dashboard/wallet') return false
+        if (n.broOnly && !broEnabled) return false
         switch (n.kind) {
           case 'all':
             return true
@@ -170,7 +178,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
             return true
         }
       }),
-    [isClient, isStore],
+    [isClient, isStore, broEnabled],
   )
 
   const isActive = (href: string) => {
@@ -357,7 +365,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
           >
             {nav.map((n) => {
               const active = isActive(n.href)
-              const label = (t as any)[n.labelKey] ?? String(n.labelKey)
+              const label = n.label ? n.label(t) : (t as any)[n.labelKey!] ?? String(n.labelKey)
               const showBadge = n.badgeKey === 'unread' && unread > 0
               return (
                 <Pressable

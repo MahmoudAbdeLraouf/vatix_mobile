@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { Stack, router } from 'expo-router'
+import { broHeader } from '@/components/bro/BroStackHeader'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
 import { isLoggedIn } from '@/lib/auth'
@@ -119,7 +120,7 @@ export default function BroListScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <Stack.Screen options={{ headerShown: true, title: b.listTitle }} />
+      <Stack.Screen options={broHeader(b.listTitle)} />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={

@@ -1,19 +1,27 @@
+import { useState } from 'react'
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
 import { useLocale } from '@/contexts/locale'
 import type { BroUsage } from '@/lib/bro'
 import { colors, fonts, radius } from '@/constants/theme'
 import { useBroDir } from '@/components/bro/BroCardParts'
+import { BroButton } from '@/components/bro/BroButton'
+import { UpgradeModal } from '@/components/UpgradeModal'
 
-/** Monthly offer meter for clients. Stores (cap null) see nothing. */
-export function BroUsageMeter({ usage, style }: { usage: BroUsage; style?: StyleProp<ViewStyle> }) {
-  const { t } = useLocale()
+/**
+ * Monthly offer meter for clients. Stores (cap null) see nothing.
+ * With `upgrade`, a full meter also explains the limit and offers the store upgrade.
+ */
+export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsage; style?: StyleProp<ViewStyle>; upgrade?: boolean }) {
+  const { t, locale } = useLocale()
+  const [showUpgrade, setShowUpgrade] = useState(false)
   const { dirStyle, rowDir } = useBroDir()
   const b = t.bro
   const { used, cap } = usage.offers
   if (cap == null || cap <= 0) return null
 
   const pct = Math.min(100, Math.round((used / cap) * 100))
-  const fill = used >= cap ? '#dc2626' : pct >= 80 ? '#f97316' : colors.y
+  const full = used >= cap
+  const fill = full ? '#dc2626' : pct >= 80 ? '#f97316' : colors.y
 
   return (
     <View style={[styles.card, style]}>
@@ -30,8 +38,26 @@ export function BroUsageMeter({ usage, style }: { usage: BroUsage; style?: Style
       >
         <View style={[styles.fill, { width: `${pct}%`, backgroundColor: fill }]} />
       </View>
+      {full && upgrade ? (
+        <View style={styles.capBox} accessibilityRole="alert">
+          <Text style={[styles.capTitle, dirStyle]}>{b.capBlockTitle}</Text>
+          <Text style={[styles.capBody, dirStyle]}>{b.capReached.replace('{date}', resetDate(usage.resetsAt, locale))}</Text>
+          <Text style={[styles.capBody, dirStyle]}>{b.upgradeNudge}</Text>
+          <BroButton label={b.capUpgradeCta} variant="yellow" size="md" onPress={() => setShowUpgrade(true)} />
+        </View>
+      ) : null}
+      {upgrade ? <UpgradeModal visible={showUpgrade} mode="upgrade-to-store" onClose={() => setShowUpgrade(false)} /> : null}
     </View>
   )
+}
+
+function resetDate(iso: string, locale: string): string {
+  const d = new Date(iso)
+  try {
+    return d.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'long', timeZone: 'Africa/Cairo' })
+  } catch {
+    return d.toLocaleDateString()
+  }
 }
 
 const styles = StyleSheet.create({
@@ -56,4 +82,7 @@ const styles = StyleSheet.create({
   count: { fontFamily: fonts.regular, fontSize: 12, color: colors.g600 },
   track: { height: 10, backgroundColor: colors.g200, borderRadius: 99, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 99 },
+  capBox: { marginTop: 12, gap: 6 },
+  capTitle: { fontFamily: fonts.bold, fontSize: 14, color: '#dc2626' },
+  capBody: { fontFamily: fonts.regular, fontSize: 13, color: colors.g600, lineHeight: 20 },
 })

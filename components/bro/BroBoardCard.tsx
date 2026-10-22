@@ -28,7 +28,7 @@ const GREEN = '#16a34a'
 /** One buy request on the offers board. */
 export function BroBoardCard({ item, onMakeOffer }: { item: BroBoardItem; onMakeOffer: () => void }) {
   const { t, locale } = useLocale()
-  const { dirStyle, rowDir } = useBroDir()
+  const { dirStyle, rowDir, colDir } = useBroDir()
   const b = t.bro
   const nf = (n: number) => n.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')
 
@@ -68,7 +68,7 @@ export function BroBoardCard({ item, onMakeOffer }: { item: BroBoardItem; onMake
         <View style={[styles.tile, { backgroundColor: icon.bg }]}>
           <Text style={styles.tileEmoji}>{icon.emoji}</Text>
         </View>
-        <View style={styles.headText}>
+        <View style={[styles.headText, colDir]}>
           <Text style={[styles.title, dirStyle]} numberOfLines={2}>
             {title}
           </Text>

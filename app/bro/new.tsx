@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
+import { broHeader } from '@/components/bro/BroStackHeader'
 import { Ionicons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
@@ -100,7 +101,7 @@ export default function BroNewScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <Stack.Screen options={{ headerShown: true, title: b.intakeTitle }} />
+      <Stack.Screen options={broHeader(b.intakeTitle)} />
       {state === 'loading' ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.y} />
@@ -204,6 +205,9 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
   const ar = locale === 'ar'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
   const rowDir = ar ? ({ direction: 'ltr', flexDirection: 'row-reverse' } as const) : null
+  // Text inside a rowDir row inherits direction:'ltr', so textAlign:'auto' would
+  // pin Arabic left — align physically instead.
+  const rowText = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: ar ? ('right' as const) : ('left' as const) }
   const { categories, brands, locations } = options
 
   // One-time prefill from the route params (search / product / login round trip).
@@ -384,7 +388,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
   // Required is the default; only optional fields are tagged.
   const label = (text: string, req: boolean) => (
     <View style={[styles.labelRow, rowDir]}>
-      <Text style={[styles.label, dirStyle]}>{text}</Text>
+      <Text style={[styles.label, rowText]}>{text}</Text>
       {req ? null : (
         <View style={styles.tag}>
           <Text style={styles.tagText}>{b.optional}</Text>
@@ -398,7 +402,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
       <View style={styles.sectionIcon}>
         <Ionicons name={icon} size={17} color={colors.yt} />
       </View>
-      <Text style={[styles.sectionTitle, dirStyle]}>{title}</Text>
+      <Text style={[styles.sectionTitle, rowText]}>{title}</Text>
     </View>
   )
   const pill = (key: string, text: string, on: boolean, onPress: () => void, icon?: IconName) => (
@@ -430,8 +434,8 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
             <BroAvatar size={46} radius={23} />
           </View>
           <View style={styles.heroText}>
-            <Text style={[styles.heroTitle, dirStyle]}>{b.intakeHeroTitle}</Text>
-            <Text style={[styles.heroHint, dirStyle]}>{b.intakeHint}</Text>
+            <Text style={[styles.heroTitle, rowText]}>{b.intakeHeroTitle}</Text>
+            <Text style={[styles.heroHint, rowText]}>{b.intakeHint}</Text>
           </View>
         </View>
 
@@ -439,7 +443,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
           <View style={styles.summary}>
             <View style={[styles.summaryHead, rowDir]}>
               <Ionicons name="checkmark-circle" size={18} color={colors.yt} />
-              <Text style={[styles.summaryLabel, dirStyle]}>{b.knownFromSearch}</Text>
+              <Text style={[styles.summaryLabel, rowText]}>{b.knownFromSearch}</Text>
               <Pressable onPress={() => setEditing(true)} hitSlop={8} style={({ pressed }) => [styles.editBtn, rowDir, pressed && styles.pillPressed]}>
                 <Ionicons name="create-outline" size={14} color={colors.dk} />
                 <Text style={styles.editText}>{b.edit}</Text>

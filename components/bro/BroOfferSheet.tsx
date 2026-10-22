@@ -81,7 +81,7 @@ function Notice({ text, onRetry, retryLabel, busy }: { text?: string; onRetry?: 
 function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
   const { locale, t } = useLocale()
   const b = t.bro
-  const { dirStyle, rowDir } = useBroDir()
+  const { dirStyle, rowDir, colDir } = useBroDir()
   const insets = useSafeAreaInsets()
 
   const [tab, setTab] = useState<Tab>('products')
@@ -185,6 +185,8 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
         price: Number(p.price),
         locationId: p.location?.id ?? null,
         productId: p.id,
+        // Prefill the note with the product description (form + DTO cap it at 280).
+        sellerNote: p.description?.trim().slice(0, 280) || null,
       },
       images: [...p.images].sort((a, c) => (a.sortOrder ?? 0) - (c.sortOrder ?? 0)).map(i => i.url),
     })
@@ -228,7 +230,21 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
     } catch (err) {
       const e = err as BroApiError
       const bodyMsg = (e.body as { message?: unknown } | undefined)?.message
-      setError((typeof bodyMsg === 'string' ? bodyMsg : e.message) || b.errGeneric)
+      const capBody = e.body as { code?: unknown; cap?: unknown; used?: unknown; resetsAt?: unknown } | undefined
+      if (e.status === 429 && capBody?.code === 'BRO_CLIENT_OFFER_CAP' && typeof capBody.cap === 'number') {
+        // Monthly cap hit: switch straight to the limit + upgrade view instead of a raw error.
+        const capNum = capBody.cap
+        const usedNum = typeof capBody.used === 'number' ? capBody.used : capNum
+        const resetsAt = typeof capBody.resetsAt === 'string' ? capBody.resetsAt : undefined
+        setUsage(u => ({
+          yearMonth: u?.yearMonth ?? '',
+          resetsAt: resetsAt ?? u?.resetsAt ?? '',
+          offers: { used: Math.max(usedNum, capNum), cap: capNum },
+        }))
+        setPicked(null)
+      } else {
+        setError((typeof bodyMsg === 'string' ? bodyMsg : e.message) || b.errGeneric)
+      }
       // Limits changed under us (cap hit, duplicate offer): re-read the meter.
       if (e.status === 409 || e.status === 429) loadUsage()
     } finally {
@@ -240,7 +256,7 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
     return (
       <View key={key} style={[styles.row, rowDir, opts?.disabled && styles.rowDim]}>
         {img ? <Image source={{ uri: img }} style={styles.thumb} /> : <View style={styles.thumb} />}
-        <View style={styles.rowText}>
+        <View style={[styles.rowText, colDir]}>
           <Text style={[styles.rowTitle, dirStyle]} numberOfLines={1}>{title}</Text>
           <Text style={[styles.rowPrice, dirStyle]}>{price(priceValue)}</Text>
           {opts?.hint ? <Text style={[styles.rowHint, dirStyle]}>{opts.hint}</Text> : null}
@@ -316,9 +332,9 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
   return (
     <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} accessibilityLabel={b.sheetClose} />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom }]} accessibilityViewIsModal>
+      <View style={[styles.sheet, colDir, { paddingBottom: insets.bottom }]} accessibilityViewIsModal>
         <View style={[styles.header, rowDir]}>
-          <View style={styles.headerText}>
+          <View style={[styles.headerText, colDir]}>
             <Text style={[styles.title, dirStyle]}>{b.sheetTitle}</Text>
             {modelText ? <Text style={[styles.subtitle, dirStyle]} numberOfLines={1}>{b.sheetFor.replace('{model}', modelText)}</Text> : null}
           </View>

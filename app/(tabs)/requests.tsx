@@ -268,7 +268,7 @@ export default function RequestsTab() {
       </View>
 
       {/* Offer quota sits with the board it applies to, away from the Ask-Geeko banner. */}
-      {userType === 'client' && usage ? <BroUsageMeter usage={usage} style={styles.meter} /> : null}
+      {userType === 'client' && usage ? <BroUsageMeter usage={usage} style={styles.meter} upgrade /> : null}
 
       {!loading && !failed ? (
         <View style={styles.resultsRow}>

@@ -38,7 +38,9 @@ export function BroOfferForm({
 }) {
   const { t, locale } = useLocale()
   const b = t.bro
-  const { dirStyle, rowDir } = useBroDir()
+  const { ar, dirStyle, rowDir } = useBroDir()
+  // Inputs use explicit alignment: TextInput gravity is absolute on Android, so 'right' is right either way.
+  const inputDir = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: ar ? ('right' as const) : ('left' as const) }
 
   const [title, setTitle] = useState(initial.title ?? '')
   const [price, setPrice] = useState(Number(initial.price) > 0 ? String(Number(initial.price)) : '')
@@ -169,7 +171,7 @@ export function BroOfferForm({
           placeholderTextColor={colors.g400}
           maxLength={150}
           editable={!locked}
-          style={[styles.input, dirStyle, showErrors && !titleOk && styles.inputError]}
+          style={[styles.input, inputDir, showErrors && !titleOk && styles.inputError]}
         />
         {showErrors && !titleOk ? <Text style={[styles.err, dirStyle]}>{b.errOfferTitle}</Text> : null}
       </View>
@@ -183,7 +185,7 @@ export function BroOfferForm({
           placeholder="0"
           placeholderTextColor={colors.g400}
           editable={!locked}
-          style={[styles.input, dirStyle, showErrors && !priceOk && styles.inputError]}
+          style={[styles.input, inputDir, showErrors && !priceOk && styles.inputError]}
         />
         {showErrors && !priceOk ? <Text style={[styles.err, dirStyle]}>{b.errOfferPrice}</Text> : null}
       </View>
@@ -232,7 +234,7 @@ export function BroOfferForm({
             onChangeText={setWarrantyNote}
             maxLength={60}
             editable={!locked}
-            style={[styles.input, dirStyle]}
+            style={[styles.input, inputDir]}
           />
         </View>
       ) : null}
@@ -245,7 +247,7 @@ export function BroOfferForm({
           maxLength={280}
           multiline
           editable={!locked}
-          style={[styles.input, styles.textarea, dirStyle]}
+          style={[styles.input, styles.textarea, inputDir]}
         />
       </View>
 
@@ -314,7 +316,7 @@ function CheckRow({
   disabled?: boolean
   onToggle: () => void
 }) {
-  const { dirStyle, rowDir } = useBroDir()
+  const { ar, rowDir } = useBroDir()
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -324,7 +326,7 @@ function CheckRow({
       style={[styles.checkRow, rowDir]}
     >
       <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={22} color={checked ? colors.dk : colors.g400} />
-      <Text style={[styles.checkLabel, dirStyle]}>{label}</Text>
+      <Text style={[styles.checkLabel, { writingDirection: ar ? 'rtl' : 'ltr', textAlign: ar ? 'right' : 'left' }]}>{label}</Text>
     </Pressable>
   )
 }
