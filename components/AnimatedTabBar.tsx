@@ -16,7 +16,7 @@ const NOTCH_DEPTH = 34
 const NOTCH_HALF = 46
 const BUBBLE_TOP = NOTCH_DEPTH - 5 - BUBBLE // bubble floats 5px above the notch floor
 const CORNER = 24
-const LABEL_GAP = 12 // breathing room under the labels, above the safe-area inset
+const LABEL_GAP = 16 // breathing room under the labels, above the safe-area inset
 
 // White strip 2× the screen width with the notch at its middle; sliding it sideways moves the notch
 // without re-drawing the path, so the native driver can animate it.
@@ -111,7 +111,7 @@ export function AnimatedTabBar({
 
             if (route.name === 'add') {
               return (
-                <View key={route.key} style={styles.item} onLayout={onLayout}>
+                <View key={route.key} style={[styles.item, { justifyContent: 'center', paddingTop: 0 }]} onLayout={onLayout}>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={fabLabel}
@@ -143,7 +143,7 @@ export function AnimatedTabBar({
                 <View style={[styles.iconBox, focused && { opacity: 0 }]}>
                   {set && <Ionicons name={set.inactive} size={23} color={colors.g500} />}
                 </View>
-                <Text numberOfLines={1} style={[styles.label, focused && styles.labelActive]}>
+                <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={[styles.label, focused && styles.labelActive]}>
                   {label}
                 </Text>
               </Pressable>
@@ -174,9 +174,10 @@ const styles = StyleSheet.create({
   },
   strip: { position: 'absolute', top: 0, left: 0 },
   row: { flex: 1, flexDirection: 'row', alignItems: 'stretch' },
-  item: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 8, gap: 3 },
+  // Top-aligned with a fixed label line box: Cairo's tall line height used to overflow a centred item and eat the gap below.
+  item: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 8, gap: 3 },
   iconBox: { height: 26, alignItems: 'center', justifyContent: 'center' },
-  label: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.g500 },
+  label: { fontFamily: fonts.semiBold, fontSize: 11, lineHeight: 16, color: colors.g500 },
   labelActive: { fontFamily: fonts.bold, color: colors.dk, marginTop: 4 },
   fab: {
     width: 46,
