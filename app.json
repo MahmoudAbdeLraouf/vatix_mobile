@@ -75,9 +75,16 @@
       }
     },
     "owner": "ekraouf",
-    "runtimeVersion": "1",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
     "updates": {
-      "url": "https://u.expo.dev/1821eea1-16a1-482e-8cbf-2156a10616a4"
+      "url": "https://updates.vatix.store/manifest",
+      "codeSigningCertificate": "./ota/certs/certificate.pem",
+      "codeSigningMetadata": {
+        "keyid": "main",
+        "alg": "rsa-v1_5-sha256"
+      }
     }
   }
 }

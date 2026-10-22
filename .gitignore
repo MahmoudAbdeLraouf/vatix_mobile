@@ -62,3 +62,9 @@ build-artifacts/
 # local-only assets
 screenshots/
 play-store/
+
+# OTA code-signing certificate is public (private key lives in ~/.vatix-ota)
+!ota/certs/certificate.pem
+
+# OTA export output
+ota/.dist/

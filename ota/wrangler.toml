@@ -1,0 +1,15 @@
+name = "vatix-ota"
+main = "worker/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+routes = [{ pattern = "updates.vatix.store", custom_domain = true }]
+
+[vars]
+DEFAULT_CHANNEL = "production"
+
+[[r2_buckets]]
+binding = "OTA"
+bucket_name = "vatix-ota"
+
+# Secret (set once): npx wrangler secret put ADMIN_TOKEN  <  ~/.vatix-ota/admin-token

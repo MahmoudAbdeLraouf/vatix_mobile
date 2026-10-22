@@ -56,3 +56,7 @@ play-store/
 
 # Marketing / device screenshots
 screenshots/
+
+# OTA: the public code-signing certificate is needed at prebuild; export output is not
+!ota/certs/certificate.pem
+ota/.dist/
