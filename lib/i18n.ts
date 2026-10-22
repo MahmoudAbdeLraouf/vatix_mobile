@@ -898,6 +898,134 @@ export interface Translations {
     unavailableTitle: string
     unavailableBody: string
     unavailableHome: string
+    // Requests board + seller offers
+    browseProducts: string
+    foundNavLink: string
+    requestsNav: string
+    makeOffer: string
+    makeOfferAgain: string
+    offerSent: string
+    badgeSearching: string
+    badgeOpen: string
+    badgeNew: string
+    meter: string
+    tabFromProducts: string
+    tabScratch: string
+    tabSaved: string
+    saveOffer: string
+    offersSection: string
+    tagOffer: string
+    tagBro: string
+    tagOfferBro: string
+    cheapest: string
+    unavailable: string
+    broFoundSection: string
+    stripDone: string
+    markFound: string
+    searchAgain: string
+    stateActive: string
+    stateClosed: string
+    stateUnavailable: string
+    stateWithdrawn: string
+    myOffersTitle: string
+    withdraw: string
+    capReached: string
+    upgradeNudge: string
+    boardTitle: string
+    boardAskGeeko: string
+    boardSubtitle: string
+    boardAllCategories: string
+    boardAllAreas: string
+    boardFilterAreaPlaceholder: string
+    boardFilterCategoryPlaceholder: string
+    boardAllBrands: string
+    boardFilterBrandPlaceholder: string
+    boardCountOne: string
+    boardCountTwo: string
+    boardCountFew: string
+    boardCountMany: string
+    boardClearFilters: string
+    boardEmpty: string
+    boardLoadFailed: string
+    boardLoadMore: string
+    boardLoadingMore: string
+    budgetRange: string
+    budgetUpTo: string
+    budgetFrom: string
+    offersCount: string
+    offersCountOne: string
+    offersCountNone: string
+    cardInArea: string
+    budgetLabel: string
+    budgetAmtRange: string
+    budgetAmtUpTo: string
+    budgetAmtFrom: string
+    budgetCurrency: string
+    budgetOpen: string
+    anyCondition: string
+    firstOfferHint: string
+    storageUnit: string
+    sortNewest: string
+    sortBudget: string
+    allCategories: string
+    sheetTitle: string
+    sheetFor: string
+    sheetClose: string
+    sheetLoadFailed: string
+    sheetNotFound: string
+    offerOpenFailed: string
+    pickProduct: string
+    noProducts: string
+    noSavedOffers: string
+    useThis: string
+    savedUnavailableHint: string
+    backToList: string
+    offerTitleLabel: string
+    offerTitlePlaceholder: string
+    offerPriceLabel: string
+    offerAreaLabel: string
+    offerAreaPlaceholder: string
+    areasLoadFailed: string
+    offerPhotosLabel: string
+    offerPhotosHint: string
+    addPhotos: string
+    uploadingPhotos: string
+    removePhoto: string
+    photosUploadFailed: string
+    offerSubmit: string
+    offerSubmitting: string
+    errOfferTitle: string
+    errOfferPrice: string
+    meterLabel: string
+    capBlockTitle: string
+    capUpgradeCta: string
+    offerSentToast: string
+    saveAsProduct: string
+    offerSentProductCreated: string
+    offerSentProductFailed: string
+    productCapSkipped: string
+    productCapSkippedUpgrade: string
+    upgradeToStore: string
+    done: string
+    loginToOffer: string
+    savedTab: string
+    myOffersEmpty: string
+    myOffersLoadFailed: string
+    savedLoadFailed: string
+    offerNoArea: string
+    withdrawConfirm: string
+    withdrawing: string
+    withdrawFailed: string
+    editSaved: string
+    editSavedTitle: string
+    saveEditBtn: string
+    savingEdit: string
+    savedEditNote: string
+    saveEditFailed: string
+    deleteSaved: string
+    deleteSavedConfirm: string
+    deleteSavedFailed: string
+    browseRequests: string
   }
 }
 
@@ -1659,24 +1787,24 @@ export const translations: Record<Locale, Translations> = {
     },
     bro: {
       // Identity
-      name: 'Vatix Bro', badge: 'مساعد فاتكس الرسمي', navLink: 'Vatix Bro', pillLabel: 'لاقيهولي',
+      name: 'جيكو', badge: 'مساعد فاتكس الرسمي', navLink: 'جيكو', pillLabel: 'خلي جيكو يدورلي عليه',
       // Product page card (B) + sticky bar
       chipCheaper: '💸 أرخص من {price}', chipBetter: '✨ حالة أحسن', chipBox: '📦 بالعلبة',
       ctaFind: '🔍 دوّرلي على زيه', stickyCta: 'VB · دوّرلي على زيه ←',
       // Sold-listing takeover (C)
-      soldTitle: 'الإعلان ده اتباع 😕 بس Vatix Bro يلاقيلك زيه', ctaFindAvailable: '🔍 دوّرلي على واحد متاح',
+      soldTitle: 'الإعلان ده اتباع 😕 بس جيكو يلاقيلك زيه', ctaFindAvailable: '🔍 دوّرلي على واحد متاح',
       // Entry points
-      heroStrip: 'مش لاقي اللي عايزه؟ خلّي Vatix Bro يدوّرلك', searchEmptyTitle: 'ملقيتش اللي بتدوّر عليه؟',
-      searchEmptyBody: 'Vatix Bro يسأل البيّاعين بدالك ويرجعلك بالمتاح بس.', searchEmptyCta: '🔍 دوّرلي على {model}',
+      heroStrip: 'مش لاقي اللي عايزه؟ خلّي جيكو يدوّرلك', searchEmptyTitle: 'ملقيتش اللي بتدوّر عليه؟',
+      searchEmptyBody: 'جيكو يسأل البيّاعين بدالك ويرجعلك بالمتاح بس.', searchEmptyCta: '🔍 دوّرلي على {model}',
       // Intake form
-      intakeTitle: 'قول لـ Bro عايز إيه', stepCategory: 'القسم', stepBrand: 'الماركة', stepModel: 'الموديل',
+      intakeTitle: 'قول لجيكو عايز إيه', stepCategory: 'القسم', stepBrand: 'الماركة', stepModel: 'الموديل',
       stepStorage: 'السعة', stepArea: 'المنطقة', stepBudget: 'الميزانية',
       optional: 'اختياري', required: 'مطلوب', modelPlaceholder: 'مثلاً: آيفون 15 برو', storagePlaceholder: 'مثلاً: 256',
       budgetMin: 'من', budgetMax: 'لحد', wantsLabel: 'عايزه إزاي؟',
       wantCheaper: '💸 أرخص', wantBetterCondition: '✨ حالة أحسن', wantWithBox: '📦 بالعلبة',
       knownFromSearch: '✓ عرفت من بحثك', edit: 'تعديل',
-      submit: '🚀 يلا يا Bro دوّر', submitting: 'بدوّر…',
-      intakeFooter: '🔒 Bro بيعرّف نفسه للبيّاعين إنه مساعد فاتكس بيسأل لمشتري حقيقي، ومبيشاركش رقمك ولا اسمك غير لما تكلّم البيّاع بنفسك.',
+      submit: '🚀 يلا يا جيكو دوّر', submitting: 'بدوّر…',
+      intakeFooter: '🔒 جيكو بيعرّف نفسه للبيّاعين إنه مساعد فاتكس بيسأل لمشتري حقيقي، ومبيشاركش رقمك ولا اسمك غير لما تكلّم البيّاع بنفسك.',
       errModelRequired: 'اكتب اسم الموديل', errAreaRequired: 'اختار المنطقة', errBudgetRange: 'أقل ميزانية لازم تكون أقل من أعلى ميزانية',
       intakeLoadFailed: 'مقدرناش نحمّل الأقسام والمناطق، جرّب تاني', errCategoryRequired: 'اختار القسم', areaPlaceholder: 'اختار المنطقة',
       // Request page
@@ -1690,8 +1818,8 @@ export const translations: Record<Locale, Translations> = {
       noCandidatesYet: 'لسه مفيش حد عنده الجهاز ده — هدوّر تاني كل يوم.',
       emptyTitle: 'ملقيتش حاجة دلوقتي', widenArea: 'وسّع المنطقة', dropBudget: 'شيل الميزانية',
       // Requests list
-      listTitle: 'طلباتي مع Bro', listEmpty: 'لسه مفيش طلبات. قول لـ Bro عايز إيه وهو يدوّرلك.', newRequest: 'طلب جديد',
-      tabLabel: 'Bro', foundTitle: 'اللي لقاه Bro', foundSubtitle: 'أجهزة البيّاعين أكدوا إنها متاحة', foundEmpty: 'لسه Bro ملقاش أجهزة. أول ما بيّاع يأكد إن جهازه متاح هيظهر هنا.', foundForRequest: 'لطلب: {model}', allRequests: 'كل طلباتي',
+      listTitle: 'طلباتي مع جيكو', listEmpty: 'لسه مفيش طلبات. قول لجيكو عايز إيه وهو يدوّرلك.', newRequest: 'طلب جديد',
+      tabLabel: 'Bro', foundTitle: 'اللي لقاه جيكو', foundSubtitle: 'أجهزة البيّاعين أكدوا إنها متاحة', foundEmpty: 'لسه جيكو ملقاش أجهزة. أول ما بيّاع يأكد إن جهازه متاح هيظهر هنا.', foundForRequest: 'لطلب: {model}', allRequests: 'كل طلباتي',
       statusSearching: 'بيدوّر', statusDone: 'خلص', statusExpired: 'انتهى', statusCancelled: 'اتلغى', statusFound: 'لقيت جهاز',
       // Match facts grid
       factAvailable: 'متاح · اتأكد {ago}', factArea: 'المعاينة في {area}', factWarranty: 'الضمان: {note}',
@@ -1710,7 +1838,7 @@ export const translations: Record<Locale, Translations> = {
       sellerThanks: 'شكراً! بعتّ ردّك للمشتري ✨ لو عايز يكلّمك هيظهرلك هنا.',
       priceUpdatePrompt: '💡 حدّث سعر إعلانك لـ {price} ج؟', soldConfirmPrompt: 'تعلّم عليه إنه اتباع؟',
       yes: 'أيوه', no: 'لأ',
-      optOutPrompt: 'مش عايز رسايل من Bro؟', optOutAction: 'إيقاف', optOutDone: 'تمام، مش هيوصلك رسايل من Bro تاني.',
+      optOutPrompt: 'مش عايز رسايل من جيكو؟', optOutAction: 'إيقاف', optOutDone: 'تمام، مش هيوصلك رسايل من جيكو تاني.',
       optInAction: 'رجّع الرسايل', sellerLoginRequired: 'سجّل دخولك الأول عشان تردّ على المشتري.',
       sellerNotFound: 'الطلب ده مش موجود أو مش بتاعك.',
       sellerLinkNotYours: 'الرابط ده مش ليك', sellerLoadFailed: 'مقدرناش نحمّل الطلب، جرّب تاني', retry: 'جرّب تاني', loading: 'بحمّل…',
@@ -1724,13 +1852,141 @@ export const translations: Record<Locale, Translations> = {
       notifNone: 'ملقيتش حاجة متاحة المرة دي 😕 تحب أدوّر تاني أو أوسّع المنطقة؟',
       // Backend error messages (shown verbatim when the API returns them)
       errRateLimit: 'وصلت للحد الأقصى من طلبات Bro دلوقتي، جرّب تاني بعد شوية',
-      errSearchDown: 'البحث مش متاح دلوقتي، جرّب تاني كمان شوية', errDisabled: 'Vatix Bro مش متاح دلوقتي',
+      errSearchDown: 'البحث مش متاح دلوقتي، جرّب تاني كمان شوية', errDisabled: 'جيكو مش متاح دلوقتي',
       errNotFound: 'الطلب مش موجود', errFinished: 'الطلب ده خلص خلاص', errStillRunning: 'مينفعش تعيد الطلب وهو لسه شغال',
       errNotConfirmed: 'البائع لسه ما أكّدش إن الإعلان متاح', errNoLongerAvailable: 'الإعلان ده مبقاش متاح',
       errGeneric: 'حصلت مشكلة، جرّب تاني',
       errPrice: 'اكتب سعر صحيح (لحد رقمين بعد العلامة العشرية)',
       // Feature-off page (/bro/new when Bro is disabled)
-      unavailableTitle: 'Vatix Bro مش متاح دلوقتي', unavailableBody: 'الخدمة موقوفة مؤقتاً، جرّب تاني بعد شوية.', unavailableHome: 'ارجع للرئيسية',
+      unavailableTitle: 'جيكو مش متاح دلوقتي', unavailableBody: 'الخدمة موقوفة مؤقتاً، جرّب تاني بعد شوية.', unavailableHome: 'ارجع للرئيسية',
+      // Requests board + seller offers
+      browseProducts: 'تصفّح المنتجات',
+      foundNavLink: 'اللي لقاه جيكو',
+      requestsNav: 'طلبات الشراء',
+      makeOffer: 'قدّم عرض',
+      makeOfferAgain: 'قدّم عرض تاني',
+      offerSent: 'عرضك اتبعت ✓',
+      badgeSearching: 'جيكو بيدور',
+      badgeOpen: 'مفتوح',
+      badgeNew: 'جديد',
+      meter: '{used} من {cap} · بيتجدد أول الشهر',
+      tabFromProducts: 'من منتجاتي',
+      tabScratch: 'عرض جديد',
+      tabSaved: 'عروضي المحفوظة',
+      saveOffer: 'احفظ العرض ده',
+      offersSection: '🙋 عروض من البائعين ({n})',
+      tagOffer: 'عرض',
+      tagBro: 'جيكو',
+      tagOfferBro: 'عرض · جيكو',
+      cheapest: 'الأرخص',
+      unavailable: 'مش متاح',
+      broFoundSection: '🔎 لقاها جيكو',
+      stripDone: 'جيكو خلّص التدوير · طلبك لسه ظاهر في صفحة الطلبات لحد {date}',
+      markFound: 'علّم إنه اتلقى',
+      searchAgain: 'دوّر تاني',
+      stateActive: 'نشط',
+      stateClosed: 'مقفول',
+      stateUnavailable: 'مش متاح',
+      stateWithdrawn: 'اتسحب',
+      myOffersTitle: 'عروضي',
+      withdraw: 'اسحب العرض',
+      capReached: 'وصلت للحد الأقصى من العروض الشهر ده. هيتجدد في {date}.',
+      upgradeNudge: 'عايز تقدّم عروض من غير حد أقصى؟ حوّل حسابك لحساب متجر.',
+      boardTitle: 'طلبات الشراء',
+      boardAskGeeko: 'اطلب جهاز من جيكو',
+      boardSubtitle: 'مشترين بيدوّروا على أجهزة دلوقتي. قدّم عرضك وكلّمهم.',
+      boardAllCategories: 'كل الأقسام',
+      boardAllAreas: 'كل المناطق',
+      boardFilterAreaPlaceholder: 'المنطقة',
+      boardFilterCategoryPlaceholder: 'القسم',
+      boardAllBrands: 'كل الماركات',
+      boardFilterBrandPlaceholder: 'الماركة',
+      boardCountOne: 'طلب واحد',
+      boardCountTwo: 'طلبين',
+      boardCountFew: '{n} طلبات',
+      boardCountMany: '{n} طلب',
+      boardClearFilters: 'مسح الفلاتر',
+      boardEmpty: 'مفيش طلبات مفتوحة دلوقتي. ارجع تشوف بعد شوية.',
+      boardLoadFailed: 'مقدرناش نحمّل الطلبات، جرّب تاني',
+      boardLoadMore: 'حمّل المزيد',
+      boardLoadingMore: 'بحمّل…',
+      budgetRange: 'الميزانية: {min} – {max} ج.م',
+      budgetUpTo: 'الميزانية: لحد {max} ج.م',
+      budgetFrom: 'الميزانية: من {min} ج.م',
+      offersCount: '{n} عروض',
+      offersCountOne: 'عرض واحد',
+      offersCountNone: 'لسه مفيش عروض',
+      cardInArea: 'في {area}',
+      budgetLabel: 'الميزانية',
+      budgetAmtRange: '{min} – {max}',
+      budgetAmtUpTo: 'لحد {max}',
+      budgetAmtFrom: 'من {min}',
+      budgetCurrency: 'ج.م',
+      budgetOpen: 'مفتوحة — قدّم سعرك',
+      anyCondition: 'أي حالة مناسبة',
+      firstOfferHint: '🔥 كن أول واحد يقدّم عرض',
+      storageUnit: 'جيجا',
+      sortNewest: 'الأحدث',
+      sortBudget: 'أعلى ميزانية',
+      allCategories: 'الكل',
+      sheetTitle: 'قدّم عرضك',
+      sheetFor: 'على طلب: {model}',
+      sheetClose: 'إغلاق',
+      sheetLoadFailed: 'مقدرناش نحمّل البيانات، جرّب تاني',
+      sheetNotFound: 'الطلب ده مش متاح للعروض دلوقتي',
+      offerOpenFailed: 'معرفناش نفتح الطلب ده. جرّب تاني',
+      pickProduct: 'اختار واحد من إعلاناتك',
+      noProducts: 'مفيش عندك إعلانات متاحة. اعمل عرض جديد من التبويب التاني.',
+      noSavedOffers: 'مفيش عروض محفوظة لسه. احفظ عرض من تبويب «عرض جديد».',
+      useThis: 'استخدم ده',
+      savedUnavailableHint: 'الإعلان المرتبط بالعرض ده مبقاش متاح',
+      backToList: 'رجوع للقائمة',
+      offerTitleLabel: 'عنوان العرض',
+      offerTitlePlaceholder: 'مثلاً: آيفون 15 برو 256 زي الجديد',
+      offerPriceLabel: 'السعر (ج)',
+      offerAreaLabel: 'مكان المعاينة',
+      offerAreaPlaceholder: 'اختار المنطقة (اختياري)',
+      areasLoadFailed: 'مقدرناش نحمّل المناطق',
+      offerPhotosLabel: 'صور الجهاز',
+      offerPhotosHint: 'لحد {max} صور',
+      addPhotos: 'ضيف صور',
+      uploadingPhotos: 'برفع الصور…',
+      removePhoto: 'شيل الصورة',
+      photosUploadFailed: 'مقدرناش نرفع الصور، جرّب تاني',
+      offerSubmit: 'ابعت العرض',
+      offerSubmitting: 'ببعت…',
+      errOfferTitle: 'اكتب عنوان للعرض',
+      errOfferPrice: 'اكتب سعر أكبر من صفر (لحد رقمين بعد العلامة العشرية)',
+      meterLabel: 'عروضك الشهر ده',
+      capBlockTitle: 'وصلت للحد الأقصى',
+      capUpgradeCta: 'حوّل لحساب متجر',
+      offerSentToast: 'عرضك اتبعت للمشتري ✓',
+      saveAsProduct: 'احفظه كمنتج',
+      offerSentProductCreated: 'عرضك اتبعت للمشتري ✓ واتحفظ كمنتج في إعلاناتك',
+      offerSentProductFailed: 'عرضك اتبعت للمشتري ✓ بس معرفناش نحفظه كمنتج، جرّب تضيفه من «إضافة إعلان»',
+      productCapSkipped: 'بس المنتج متحفظش لأنك وصلت للحد الأقصى ({cap} منتجات).',
+      productCapSkippedUpgrade: 'بس المنتج متحفظش لأنك وصلت للحد الأقصى ({cap} منتجات). حوّل حسابك لمتجر عشان تضيف منتجات بلا حد.',
+      upgradeToStore: 'حوّل لمتجر',
+      done: 'تمام',
+      loginToOffer: 'سجّل دخولك الأول عشان تقدّم عرض.',
+      savedTab: 'المحفوظة',
+      myOffersEmpty: 'لسه ما قدّمتش أي عروض. شوف طلبات الشراء وقدّم أول عرض.',
+      myOffersLoadFailed: 'مقدرناش نحمّل عروضك، جرّب تاني',
+      savedLoadFailed: 'مقدرناش نحمّل العروض المحفوظة، جرّب تاني',
+      offerNoArea: 'من غير منطقة',
+      withdrawConfirm: 'هتسحب العرض ده؟ المشتري مش هيشوفه تاني.',
+      withdrawing: 'بسحب…',
+      withdrawFailed: 'معرفناش نسحب العرض، جرّب تاني',
+      editSaved: 'تعديل',
+      editSavedTitle: 'تعديل العرض المحفوظ',
+      saveEditBtn: 'احفظ التعديل',
+      savingEdit: 'بحفظ…',
+      savedEditNote: 'التعديل هنا ما بيغيّرش العروض اللي اتبعتت قبل كده.',
+      saveEditFailed: 'معرفناش نحفظ التعديل، جرّب تاني',
+      deleteSaved: 'احذف',
+      deleteSavedConfirm: 'تحذف العرض المحفوظ ده؟',
+      deleteSavedFailed: 'معرفناش نحذف العرض، جرّب تاني',
+      browseRequests: 'شوف طلبات الشراء',
     },
   },
   en: {
@@ -2490,24 +2746,24 @@ export const translations: Record<Locale, Translations> = {
     },
     bro: {
       // Identity
-      name: 'Vatix Bro', badge: 'Official Vatix assistant', navLink: 'Vatix Bro', pillLabel: 'Find it for me',
+      name: 'Geeko', badge: 'Official Vatix assistant', navLink: 'Geeko', pillLabel: 'Let Geeko find it for me',
       // Product page card (B) + sticky bar
       chipCheaper: '💸 Cheaper than {price}', chipBetter: '✨ Better condition', chipBox: '📦 With box',
       ctaFind: '🔍 Find me the same one', stickyCta: 'VB · Find me the same one →',
       // Sold-listing takeover (C)
-      soldTitle: 'This ad is sold 😕 but Vatix Bro can find you the same one', ctaFindAvailable: '🔍 Find me an available one',
+      soldTitle: 'This ad is sold 😕 but Geeko can find you the same one', ctaFindAvailable: '🔍 Find me an available one',
       // Entry points
-      heroStrip: 'Cannot find what you want? Let Vatix Bro search for you', searchEmptyTitle: 'Did not find what you are looking for?',
-      searchEmptyBody: 'Vatix Bro asks sellers for you and comes back with what is actually available.', searchEmptyCta: '🔍 Find me {model}',
+      heroStrip: 'Cannot find what you want? Let Geeko search for you', searchEmptyTitle: 'Did not find what you are looking for?',
+      searchEmptyBody: 'Geeko asks sellers for you and comes back with what is actually available.', searchEmptyCta: '🔍 Find me {model}',
       // Intake form
-      intakeTitle: 'Tell Bro what you want', stepCategory: 'Category', stepBrand: 'Brand', stepModel: 'Model',
+      intakeTitle: 'Tell Geeko what you want', stepCategory: 'Category', stepBrand: 'Brand', stepModel: 'Model',
       stepStorage: 'Storage', stepArea: 'Area', stepBudget: 'Budget',
       optional: 'Optional', required: 'Required', modelPlaceholder: 'e.g. iPhone 15 Pro', storagePlaceholder: 'e.g. 256',
       budgetMin: 'From', budgetMax: 'Up to', wantsLabel: 'How would you like it?',
       wantCheaper: '💸 Cheaper', wantBetterCondition: '✨ Better condition', wantWithBox: '📦 With box',
       knownFromSearch: '✓ Picked up from your search', edit: 'Edit',
-      submit: "🚀 Go Bro, search", submitting: 'Searching…',
-      intakeFooter: '🔒 Bro tells sellers he is a Vatix assistant asking for a real buyer, and never shares your number or name until you contact the seller yourself.',
+      submit: '🚀 Go Geeko, search', submitting: 'Searching…',
+      intakeFooter: '🔒 Geeko tells sellers he is a Vatix assistant asking for a real buyer, and never shares your number or name until you contact the seller yourself.',
       errModelRequired: 'Enter the model name', errAreaRequired: 'Choose an area', errBudgetRange: 'Minimum budget must be lower than maximum budget',
       intakeLoadFailed: 'We could not load the categories and areas, try again', errCategoryRequired: 'Choose a category', areaPlaceholder: 'Choose an area',
       // Request page
@@ -2521,8 +2777,8 @@ export const translations: Record<Locale, Translations> = {
       noCandidatesYet: 'No sellers have it yet — I’ll look again every day.',
       emptyTitle: 'Nothing found right now', widenArea: 'Widen the area', dropBudget: 'Remove the budget',
       // Requests list
-      listTitle: 'My Bro requests', listEmpty: 'No requests yet. Tell Bro what you want and he will search for you.', newRequest: 'New request',
-      tabLabel: 'Bro', foundTitle: 'Bro finds', foundSubtitle: 'Devices sellers confirmed are available', foundEmpty: 'Bro has not found any devices yet. Once a seller confirms a device is available it shows up here.', foundForRequest: 'For: {model}', allRequests: 'All my requests',
+      listTitle: 'My Geeko requests', listEmpty: 'No requests yet. Tell Geeko what you want and he will search for you.', newRequest: 'New request',
+      tabLabel: 'Bro', foundTitle: 'Geeko finds', foundSubtitle: 'Devices sellers confirmed are available', foundEmpty: 'Geeko has not found any devices yet. Once a seller confirms a device is available it shows up here.', foundForRequest: 'For: {model}', allRequests: 'All my requests',
       statusSearching: 'Searching', statusDone: 'Done', statusExpired: 'Expired', statusCancelled: 'Cancelled', statusFound: 'Found one',
       // Match facts grid
       factAvailable: 'Available · confirmed {ago}', factArea: 'Check-up in {area}', factWarranty: 'Warranty: {note}',
@@ -2541,7 +2797,7 @@ export const translations: Record<Locale, Translations> = {
       sellerThanks: 'Thanks! Your reply was sent to the buyer ✨ If they want to talk to you it will show up here.',
       priceUpdatePrompt: '💡 Update your ad price to {price} EGP?', soldConfirmPrompt: 'Mark it as sold?',
       yes: 'Yes', no: 'No',
-      optOutPrompt: 'Do not want messages from Bro?', optOutAction: 'Stop', optOutDone: 'Done, you will not get Bro messages anymore.',
+      optOutPrompt: 'Do not want messages from Geeko?', optOutAction: 'Stop', optOutDone: 'Done, you will not get Geeko messages anymore.',
       optInAction: 'Turn messages back on', sellerLoginRequired: 'Log in first to reply to the buyer.',
       sellerNotFound: 'This request does not exist or is not yours.',
       sellerLinkNotYours: 'This link is not yours', sellerLoadFailed: 'We could not load the request, try again', retry: 'Try again', loading: 'Loading…',
@@ -2555,13 +2811,141 @@ export const translations: Record<Locale, Translations> = {
       notifNone: 'Nothing available this time 😕 Want me to search again or widen the area?',
       // Backend error messages (shown verbatim when the API returns them)
       errRateLimit: 'You have reached the Bro request limit for now, try again in a bit',
-      errSearchDown: 'Search is unavailable right now, try again shortly', errDisabled: 'Vatix Bro is not available right now',
+      errSearchDown: 'Search is unavailable right now, try again shortly', errDisabled: 'Geeko is not available right now',
       errNotFound: 'Request not found', errFinished: 'This request is already finished', errStillRunning: 'You cannot re-run a request that is still running',
       errNotConfirmed: 'The seller has not confirmed the ad is available yet', errNoLongerAvailable: 'This ad is no longer available',
       errGeneric: 'Something went wrong, try again',
       errPrice: 'Enter a valid price (up to 2 decimals)',
       // Feature-off page (/bro/new when Bro is disabled)
-      unavailableTitle: 'Vatix Bro is not available right now', unavailableBody: 'The service is temporarily off, please try again in a bit.', unavailableHome: 'Back to home',
+      unavailableTitle: 'Geeko is not available right now', unavailableBody: 'The service is temporarily off, please try again in a bit.', unavailableHome: 'Back to home',
+      // Requests board + seller offers
+      browseProducts: 'Browse products',
+      foundNavLink: 'Geeko finds',
+      requestsNav: 'Buy requests',
+      makeOffer: 'Make an offer',
+      makeOfferAgain: 'Send a new offer',
+      offerSent: 'Your offer was sent ✓',
+      badgeSearching: 'Geeko is searching',
+      badgeOpen: 'Open',
+      badgeNew: 'New',
+      meter: '{used} of {cap} · resets at the start of the month',
+      tabFromProducts: 'From my products',
+      tabScratch: 'New offer',
+      tabSaved: 'My saved offers',
+      saveOffer: 'Save this offer',
+      offersSection: '🙋 Offers from sellers ({n})',
+      tagOffer: 'Offer',
+      tagBro: 'Geeko',
+      tagOfferBro: 'Offer · Geeko',
+      cheapest: 'Cheapest',
+      unavailable: 'Unavailable',
+      broFoundSection: '🔎 Found by Geeko',
+      stripDone: 'Geeko finished searching · your request stays on the requests page until {date}',
+      markFound: 'Mark as found',
+      searchAgain: 'Search again',
+      stateActive: 'Active',
+      stateClosed: 'Closed',
+      stateUnavailable: 'Unavailable',
+      stateWithdrawn: 'Withdrawn',
+      myOffersTitle: 'My offers',
+      withdraw: 'Withdraw offer',
+      capReached: 'You\'ve reached this month\'s offer limit. It resets on {date}.',
+      upgradeNudge: 'Want to make unlimited offers? Upgrade your account to a store.',
+      boardTitle: 'Buy requests',
+      boardAskGeeko: 'Request a device by Geeko',
+      boardSubtitle: 'Buyers are looking for devices right now. Make your offer and chat with them.',
+      boardAllCategories: 'All categories',
+      boardAllAreas: 'All areas',
+      boardFilterAreaPlaceholder: 'Area',
+      boardFilterCategoryPlaceholder: 'Category',
+      boardAllBrands: 'All brands',
+      boardFilterBrandPlaceholder: 'Brand',
+      boardCountOne: '1 request',
+      boardCountTwo: '2 requests',
+      boardCountFew: '{n} requests',
+      boardCountMany: '{n} requests',
+      boardClearFilters: 'Clear filters',
+      boardEmpty: 'There are no open requests right now. Check back soon.',
+      boardLoadFailed: 'We couldn\'t load the requests, please try again',
+      boardLoadMore: 'Load more',
+      boardLoadingMore: 'Loading…',
+      budgetRange: 'Budget: {min} – {max} EGP',
+      budgetUpTo: 'Budget: up to {max} EGP',
+      budgetFrom: 'Budget: from {min} EGP',
+      offersCount: '{n} offers',
+      offersCountOne: '1 offer',
+      offersCountNone: 'No offers yet',
+      cardInArea: 'in {area}',
+      budgetLabel: 'Budget',
+      budgetAmtRange: '{min} – {max}',
+      budgetAmtUpTo: 'up to {max}',
+      budgetAmtFrom: 'from {min}',
+      budgetCurrency: 'EGP',
+      budgetOpen: 'Open — name your price',
+      anyCondition: 'Any condition works',
+      firstOfferHint: '🔥 Be the first to make an offer',
+      storageUnit: 'GB',
+      sortNewest: 'Newest',
+      sortBudget: 'Highest budget',
+      allCategories: 'All',
+      sheetTitle: 'Make your offer',
+      sheetFor: 'For request: {model}',
+      sheetClose: 'Close',
+      sheetLoadFailed: 'We couldn\'t load the data, please try again',
+      sheetNotFound: 'This request is no longer open for offers',
+      offerOpenFailed: 'We couldn\'t open this request. Please try again',
+      pickProduct: 'Pick one of your listings',
+      noProducts: 'You have no available listings. Create a new offer from the other tab.',
+      noSavedOffers: 'No saved offers yet. Save one from the "New offer" tab.',
+      useThis: 'Use this',
+      savedUnavailableHint: 'The listing linked to this offer is no longer available',
+      backToList: 'Back to list',
+      offerTitleLabel: 'Offer title',
+      offerTitlePlaceholder: 'e.g. iPhone 15 Pro 256 like new',
+      offerPriceLabel: 'Price (EGP)',
+      offerAreaLabel: 'Meeting area',
+      offerAreaPlaceholder: 'Choose an area (optional)',
+      areasLoadFailed: 'We couldn\'t load the areas',
+      offerPhotosLabel: 'Device photos',
+      offerPhotosHint: 'Up to {max} photos',
+      addPhotos: 'Add photos',
+      uploadingPhotos: 'Uploading photos…',
+      removePhoto: 'Remove photo',
+      photosUploadFailed: 'We couldn\'t upload the photos, please try again',
+      offerSubmit: 'Send offer',
+      offerSubmitting: 'Sending…',
+      errOfferTitle: 'Enter a title for the offer',
+      errOfferPrice: 'Enter a price above zero (up to two decimals)',
+      meterLabel: 'Your offers this month',
+      capBlockTitle: 'You\'ve reached the limit',
+      capUpgradeCta: 'Upgrade to a store account',
+      offerSentToast: 'Your offer was sent to the buyer ✓',
+      saveAsProduct: 'Save as a product',
+      offerSentProductCreated: 'Your offer was sent ✓ and saved as a product in your ads',
+      offerSentProductFailed: 'Your offer was sent ✓ but we couldn\'t save it as a product. Try adding it from “Post ad”',
+      productCapSkipped: 'The product wasn\'t saved because you reached the limit ({cap} products).',
+      productCapSkippedUpgrade: 'The product wasn\'t saved because you reached the limit ({cap} products). Convert to a store to add unlimited products.',
+      upgradeToStore: 'Convert to store',
+      done: 'OK',
+      loginToOffer: 'Log in first to make an offer.',
+      savedTab: 'Saved',
+      myOffersEmpty: 'You have not made any offers yet. Browse buy requests and make your first one.',
+      myOffersLoadFailed: 'We could not load your offers, try again',
+      savedLoadFailed: 'We could not load your saved offers, try again',
+      offerNoArea: 'No area',
+      withdrawConfirm: 'Withdraw this offer? The buyer will no longer see it.',
+      withdrawing: 'Withdrawing…',
+      withdrawFailed: 'We could not withdraw the offer, try again',
+      editSaved: 'Edit',
+      editSavedTitle: 'Edit saved offer',
+      saveEditBtn: 'Save changes',
+      savingEdit: 'Saving…',
+      savedEditNote: 'Editing here does not change offers you already sent.',
+      saveEditFailed: 'We could not save your changes, try again',
+      deleteSaved: 'Delete',
+      deleteSavedConfirm: 'Delete this saved offer?',
+      deleteSavedFailed: 'We could not delete the offer, try again',
+      browseRequests: 'Browse buy requests',
     },
   },
 }
