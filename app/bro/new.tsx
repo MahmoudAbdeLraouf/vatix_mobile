@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
 import { isLoggedIn } from '@/lib/auth'
@@ -23,7 +24,6 @@ import {
   type CreateBroRequestBody,
 } from '@/lib/bro'
 import { BroAvatar } from '@/components/bro/BroAvatar'
-import { BroButton } from '@/components/bro/BroButton'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
@@ -38,6 +38,7 @@ const STORAGE_MAX = 20
 
 type StepKey = 'category' | 'brand' | 'model' | 'storage' | 'area' | 'budget'
 type Param = string | string[] | undefined
+type IconName = React.ComponentProps<typeof Ionicons>['name']
 
 const first = (v: Param) => (Array.isArray(v) ? v[0] : v)
 
@@ -377,225 +378,356 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
     }
   }
 
+  const catOptions = useMemo(() => categories.map(c => ({ value: String(c.id), label: catName(c) })), [categories, catName])
+  const brandOptions = useMemo(() => brands.map(x => ({ value: String(x.id), label: brandName(x) })), [brands, brandName])
+
   // Required is the default; only optional fields are tagged.
-  const tag = (req: boolean) => (req ? null : <Text style={styles.tag}>{b.optional}</Text>)
   const label = (text: string, req: boolean) => (
     <View style={[styles.labelRow, rowDir]}>
       <Text style={[styles.label, dirStyle]}>{text}</Text>
-      {tag(req)}
+      {req ? null : (
+        <View style={styles.tag}>
+          <Text style={styles.tagText}>{b.optional}</Text>
+        </View>
+      )}
     </View>
   )
   const fieldError = (msg: string) => (showErrors ? <Text style={[styles.err, dirStyle]}>{msg}</Text> : null)
+  const section = (icon: IconName, title: string) => (
+    <View style={[styles.sectionHead, rowDir]}>
+      <View style={styles.sectionIcon}>
+        <Ionicons name={icon} size={17} color={colors.yt} />
+      </View>
+      <Text style={[styles.sectionTitle, dirStyle]}>{title}</Text>
+    </View>
+  )
+  const pill = (key: string, text: string, on: boolean, onPress: () => void, icon?: IconName) => (
+    <Pressable
+      key={key}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      style={({ pressed }) => [styles.pill, rowDir, on && styles.pillOn, pressed && !on && styles.pillPressed]}
+    >
+      {icon ? <Ionicons name={icon} size={14} color={on ? colors.yt : colors.g500} /> : null}
+      <Text style={[styles.pillText, on && styles.pillTextOn]}>{text}</Text>
+    </Pressable>
+  )
+
+  const showDevice = showStep('category') || showStep('brand') || showStep('model') || showStep('storage')
+  const showWhere = showStep('area') || showStep('budget')
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-      automaticallyAdjustKeyboardInsets
-    >
-      <View style={[styles.header, rowDir]}>
-        <BroAvatar size={32} />
-        <Text style={[styles.title, dirStyle]}>{b.intakeTitle}</Text>
-      </View>
+    <View style={styles.flex}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
+        <View style={[styles.hero, rowDir]}>
+          <View style={styles.heroGlow} />
+          <View style={styles.heroAvatar}>
+            <BroAvatar size={46} radius={23} />
+          </View>
+          <View style={styles.heroText}>
+            <Text style={[styles.heroTitle, dirStyle]}>{b.intakeHeroTitle}</Text>
+            <Text style={[styles.heroHint, dirStyle]}>{b.intakeHint}</Text>
+          </View>
+        </View>
 
-      <View style={styles.card}>
         {known.length > 0 && !editing ? (
           <View style={styles.summary}>
-            <Text style={[styles.summaryLabel, dirStyle]}>{b.knownFromSearch}</Text>
+            <View style={[styles.summaryHead, rowDir]}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.yt} />
+              <Text style={[styles.summaryLabel, dirStyle]}>{b.knownFromSearch}</Text>
+              <Pressable onPress={() => setEditing(true)} hitSlop={8} style={({ pressed }) => [styles.editBtn, rowDir, pressed && styles.pillPressed]}>
+                <Ionicons name="create-outline" size={14} color={colors.dk} />
+                <Text style={styles.editText}>{b.edit}</Text>
+              </Pressable>
+            </View>
             <Text style={[styles.summaryText, dirStyle]}>{summaryParts.join(' · ')}</Text>
-            <View style={[styles.summaryEdit, { alignSelf: ar ? 'flex-end' : 'flex-start' }]}>
-              <BroButton label={b.edit} onPress={() => setEditing(true)} dirStyle={dirStyle} />
-            </View>
           </View>
         ) : null}
 
-        {showStep('category') ? (
-          <View style={styles.field}>
-            {label(b.stepCategory, true)}
-            <View style={[styles.chips, rowDir]}>
-              {categories.map(c => (
-                <BroButton
-                  key={c.id}
-                  label={catName(c)}
-                  selected={categoryId === c.id}
-                  chip
-                  onPress={() => setCategoryId(c.id)}
+        {showDevice ? (
+          <View style={styles.card}>
+            {section('phone-portrait-outline', b.sectionDevice)}
+
+            {showStep('category') ? (
+              <View style={styles.field}>
+                {label(b.stepCategory, true)}
+                <SearchableSelect
+                  options={catOptions}
+                  value={categoryId != null ? String(categoryId) : ''}
+                  onChange={v => setCategoryId(v ? Number(v) : null)}
+                  placeholder={b.categoryPlaceholder}
+                  style={styles.select}
                 />
-              ))}
-            </View>
-            {errCategory ? fieldError(b.errCategoryRequired) : null}
-          </View>
-        ) : null}
-
-        {showStep('brand') ? (
-          <View style={styles.field}>
-            {label(b.stepBrand, false)}
-            <ScrollView style={styles.brandScroll} nestedScrollEnabled>
-              <View style={[styles.chips, rowDir]}>
-                {brands.map(x => (
-                  <BroButton
-                    key={x.id}
-                    label={brandName(x)}
-                    selected={brandId === x.id}
-                    chip
-                    onPress={() => setBrandId(cur => (cur === x.id ? null : x.id))}
-                  />
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        ) : null}
-
-        {showStep('model') ? (
-          <View style={styles.field}>
-            {label(b.stepModel, true)}
-            <TextInput
-              value={model}
-              onChangeText={v => setModel(v.slice(0, MODEL_MAX))}
-              placeholder={b.modelPlaceholder}
-              placeholderTextColor={colors.g400}
-              maxLength={MODEL_MAX}
-              style={[styles.input, dirStyle]}
-            />
-            {suggestions.length > 0 ? (
-              <View style={[styles.chips, rowDir]}>
-                {suggestions.map(s => (
-                  <BroButton key={s} chip icon="sparkles-outline" label={s} onPress={() => setModel(s.slice(0, MODEL_MAX))} dirStyle={dirStyle} />
-                ))}
+                {errCategory ? fieldError(b.errCategoryRequired) : null}
               </View>
             ) : null}
-            {errModel ? fieldError(b.errModelRequired) : null}
-          </View>
-        ) : null}
 
-        {showStep('storage') ? (
-          <View style={styles.field}>
-            {label(b.stepStorage, false)}
-            <TextInput
-              value={storage}
-              onChangeText={v => setStorage(v.slice(0, STORAGE_MAX))}
-              placeholder={b.storagePlaceholder}
-              placeholderTextColor={colors.g400}
-              maxLength={STORAGE_MAX}
-              style={[styles.input, dirStyle]}
-            />
-            <View style={[styles.chips, rowDir]}>
-              {STORAGE_PRESETS.map(p => (
-                <BroButton
-                  key={p}
-                  label={p}
-                  selected={storage === p}
-                  chip
-                  onPress={() => setStorage(cur => (cur === p ? '' : p))}
+            {showStep('brand') ? (
+              <View style={styles.field}>
+                {label(b.stepBrand, false)}
+                <SearchableSelect
+                  options={brandOptions}
+                  value={brandId != null ? String(brandId) : ''}
+                  onChange={v => setBrandId(v ? Number(v) : null)}
+                  placeholder={b.brandPlaceholder}
+                  style={styles.select}
                 />
-              ))}
-            </View>
-          </View>
-        ) : null}
+              </View>
+            ) : null}
 
-        {showStep('area') ? (
-          <View style={styles.field}>
-            {label(b.stepArea, true)}
-            <SearchableSelect options={areaOptions} value={areaId} onChange={setAreaId} placeholder={b.areaPlaceholder} />
-            {errArea ? fieldError(b.errAreaRequired) : null}
-          </View>
-        ) : null}
-
-        {showStep('budget') ? (
-          <View style={styles.field}>
-            {label(b.stepBudget, false)}
-            <View style={[styles.budgetRow, rowDir]}>
-              <TextInput
-                value={budgetMin}
-                onChangeText={v => setBudgetMin(digitsOnly(v))}
-                placeholder={b.budgetMin}
-                placeholderTextColor={colors.g400}
-                keyboardType="number-pad"
-                style={[styles.input, styles.budgetInput, dirStyle]}
-              />
-              <TextInput
-                value={budgetMax}
-                onChangeText={v => setBudgetMax(digitsOnly(v))}
-                placeholder={b.budgetMax}
-                placeholderTextColor={colors.g400}
-                keyboardType="number-pad"
-                style={[styles.input, styles.budgetInput, dirStyle]}
-              />
-            </View>
-            {errBudget ? fieldError(b.errBudgetRange) : null}
-            <Text style={[styles.sub, dirStyle]}>{b.wantsLabel}</Text>
-            <View style={[styles.chips, rowDir]}>
-              {WANTS.map(w => (
-                <BroButton
-                  key={w}
-                  label={wantLabel[w]}
-                  selected={wants.includes(w)}
-                  chip
-                  onPress={() => toggleWant(w)}
+            {showStep('model') ? (
+              <View style={styles.field}>
+                {label(b.stepModel, true)}
+                <TextInput
+                  value={model}
+                  onChangeText={v => setModel(v.slice(0, MODEL_MAX))}
+                  placeholder={b.modelPlaceholder}
+                  placeholderTextColor={colors.g400}
+                  maxLength={MODEL_MAX}
+                  style={[styles.input, showErrors && errModel && styles.inputErr, dirStyle]}
                 />
-              ))}
-            </View>
+                {suggestions.length > 0 ? (
+                  <View style={[styles.pills, rowDir]}>
+                    {suggestions.map(s => pill(s, s, false, () => setModel(s.slice(0, MODEL_MAX)), 'sparkles-outline'))}
+                  </View>
+                ) : null}
+                {errModel ? fieldError(b.errModelRequired) : null}
+              </View>
+            ) : null}
+
+            {showStep('storage') ? (
+              <View style={styles.field}>
+                {label(b.stepStorage, false)}
+                <View style={[styles.pills, rowDir]}>
+                  {STORAGE_PRESETS.map(p => pill(p, p, storage === p, () => setStorage(cur => (cur === p ? '' : p))))}
+                </View>
+                <TextInput
+                  value={storage}
+                  onChangeText={v => setStorage(v.slice(0, STORAGE_MAX))}
+                  placeholder={b.storagePlaceholder}
+                  placeholderTextColor={colors.g400}
+                  maxLength={STORAGE_MAX}
+                  style={[styles.input, dirStyle]}
+                />
+              </View>
+            ) : null}
           </View>
         ) : null}
 
+        {showWhere ? (
+          <View style={styles.card}>
+            {section('location-outline', b.sectionWhere)}
+
+            {showStep('area') ? (
+              <View style={styles.field}>
+                {label(b.stepArea, true)}
+                <SearchableSelect
+                  options={areaOptions}
+                  value={areaId}
+                  onChange={setAreaId}
+                  placeholder={b.areaPlaceholder}
+                  style={styles.select}
+                />
+                {errArea ? fieldError(b.errAreaRequired) : null}
+              </View>
+            ) : null}
+
+            {showStep('budget') ? (
+              <View style={styles.field}>
+                {label(b.stepBudget, false)}
+                <View style={[styles.budgetRow, rowDir]}>
+                  <TextInput
+                    value={budgetMin}
+                    onChangeText={v => setBudgetMin(digitsOnly(v))}
+                    placeholder={b.budgetMin}
+                    placeholderTextColor={colors.g400}
+                    keyboardType="number-pad"
+                    style={[styles.input, styles.budgetInput, showErrors && errBudget && styles.inputErr, dirStyle]}
+                  />
+                  <View style={styles.budgetDash} />
+                  <TextInput
+                    value={budgetMax}
+                    onChangeText={v => setBudgetMax(digitsOnly(v))}
+                    placeholder={b.budgetMax}
+                    placeholderTextColor={colors.g400}
+                    keyboardType="number-pad"
+                    style={[styles.input, styles.budgetInput, showErrors && errBudget && styles.inputErr, dirStyle]}
+                  />
+                </View>
+                {errBudget ? fieldError(b.errBudgetRange) : null}
+                <Text style={[styles.sub, dirStyle]}>{b.wantsLabel}</Text>
+                <View style={[styles.pills, rowDir]}>
+                  {WANTS.map(w => pill(w, wantLabel[w], wants.includes(w), () => toggleWant(w)))}
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        <View style={styles.privacy}>
+          <Text style={[styles.footer, dirStyle]}>{b.intakeFooter}</Text>
+        </View>
+      </ScrollView>
+
+      <View style={styles.bar}>
         {error ? <Text style={[styles.errBox, dirStyle]}>{error}</Text> : null}
-
         <Button label={busy ? b.submitting : b.submit} variant="dk" size="lg" fullWidth loading={busy} onPress={submit} />
-        <Text style={[styles.footer, dirStyle]}>{b.intakeFooter}</Text>
       </View>
-    </ScrollView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.g100 },
+  flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  title: { flex: 1, fontFamily: fonts.extraBold, fontSize: 18, color: colors.dk },
+  content: { padding: spacing.md, paddingBottom: spacing.lg, gap: spacing.md },
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.dk,
+    borderRadius: radius.xl,
+    padding: spacing.md,
+    overflow: 'hidden',
+    ...shadow.ss,
+  },
+  heroGlow: {
+    position: 'absolute',
+    top: -40,
+    end: -40,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: colors.y,
+    opacity: 0.14,
+  },
+  heroAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: colors.y,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroText: { flex: 1, gap: 2 },
+  heroTitle: { fontFamily: fonts.extraBold, fontSize: 16, lineHeight: 26, color: colors.white },
+  heroHint: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 21, color: colors.g300 },
   card: {
     backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.g200,
+    borderRadius: radius.xl,
     padding: spacing.md,
-    gap: spacing.md,
+    gap: spacing.md + 2,
     ...shadow.ss,
   },
   cardTitle: { fontFamily: fonts.extraBold, fontSize: 16, color: colors.dk },
   cardBody: { fontFamily: fonts.regular, fontSize: 14, color: colors.g700, lineHeight: 22 },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm + 2,
+    paddingBottom: spacing.sm + 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.g100,
+  },
+  sectionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.yl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: { flex: 1, fontFamily: fonts.extraBold, fontSize: 15, lineHeight: 24, color: colors.dk },
   summary: {
     backgroundColor: colors.yl,
-    borderRadius: radius.md,
-    borderWidth: 1,
+    borderRadius: radius.xl,
+    borderWidth: 1.5,
     borderColor: colors.y,
-    padding: spacing.sm + 4,
-    gap: 4,
+    padding: spacing.md,
+    gap: spacing.xs + 2,
   },
-  summaryLabel: { fontFamily: fonts.bold, fontSize: 12, color: colors.yt },
-  summaryText: { fontFamily: fonts.semiBold, fontSize: 14, color: colors.dk },
-  summaryEdit: { marginTop: 4 },
+  summaryHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs + 2 },
+  summaryLabel: { flex: 1, fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: colors.yt },
+  summaryText: { fontFamily: fonts.semiBold, fontSize: 14, lineHeight: 22, color: colors.dk },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 30,
+    paddingHorizontal: spacing.sm + 4,
+    borderRadius: radius.full,
+    backgroundColor: colors.white,
+  },
+  editText: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 18, color: colors.dk },
   field: { gap: spacing.sm },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  label: { fontFamily: fonts.bold, fontSize: 14, color: colors.dk },
-  tag: { fontFamily: fonts.regular, fontSize: 11, color: colors.g500 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  brandScroll: { maxHeight: 148 },
+  label: { fontFamily: fonts.bold, fontSize: 14, lineHeight: 22, color: colors.dk },
+  tag: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+    borderRadius: radius.full,
+    backgroundColor: colors.g100,
+  },
+  tagText: { fontFamily: fonts.semiBold, fontSize: 11, lineHeight: 17, color: colors.g500 },
+  select: { marginBottom: 0 },
   input: {
-    borderWidth: 1,
-    borderColor: colors.g200,
+    height: 52,
+    borderWidth: 1.5,
+    borderColor: colors.g300,
     borderRadius: radius.md,
-    paddingHorizontal: spacing.sm + 4,
-    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 0,
     fontFamily: fonts.regular,
-    fontSize: 14,
+    fontSize: 15,
     color: colors.g900,
     backgroundColor: colors.white,
   },
-  budgetRow: { flexDirection: 'row', gap: spacing.sm },
+  inputErr: { borderColor: colors.red },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    borderWidth: 1.5,
+    borderColor: colors.g200,
+    backgroundColor: colors.g50,
+  },
+  pillOn: { backgroundColor: colors.yl, borderColor: colors.y },
+  pillPressed: { backgroundColor: colors.g100 },
+  pillText: { fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 20, color: colors.g700 },
+  pillTextOn: { fontFamily: fonts.bold, color: colors.dk },
+  budgetRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   budgetInput: { flex: 1 },
-  sub: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.g700, marginTop: 4 },
-  err: { fontFamily: fonts.regular, fontSize: 12, color: colors.red },
-  errBox: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red },
-  footer: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500 },
+  budgetDash: { width: 10, height: 2, borderRadius: 1, backgroundColor: colors.g300 },
+  sub: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: colors.g700, marginTop: spacing.xs },
+  err: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 18, color: colors.red },
+  errBox: { fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 20, color: colors.red },
+  privacy: {
+    padding: spacing.sm + 4,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.g200,
+    borderStyle: 'dashed',
+  },
+  footer: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 20, color: colors.g500 },
+  bar: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm + 4,
+    paddingBottom: spacing.sm + 4,
+    gap: spacing.sm,
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.g200,
+  },
 })

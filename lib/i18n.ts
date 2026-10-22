@@ -796,6 +796,12 @@ export interface Translations {
     intakeLoadFailed: string
     errCategoryRequired: string
     areaPlaceholder: string
+    intakeHeroTitle: string
+    intakeHint: string
+    sectionDevice: string
+    sectionWhere: string
+    categoryPlaceholder: string
+    brandPlaceholder: string
     askingProgress: string
     pillAvailable: string
     pillSold: string
@@ -1812,6 +1818,8 @@ export const translations: Record<Locale, Translations> = {
       intakeFooter: '🔒 جيكو بيعرّف نفسه للبيّاعين إنه مساعد فاتكس بيسأل لمشتري حقيقي، ومبيشاركش رقمك ولا اسمك غير لما تكلّم البيّاع بنفسك.',
       errModelRequired: 'اكتب اسم الموديل', errAreaRequired: 'اختار المنطقة', errBudgetRange: 'أقل ميزانية لازم تكون أقل من أعلى ميزانية',
       intakeLoadFailed: 'مقدرناش نحمّل الأقسام والمناطق، جرّب تاني', errCategoryRequired: 'اختار القسم', areaPlaceholder: 'اختار المنطقة',
+      intakeHeroTitle: 'أنا جيكو، هدوّرلك أنا 👋', intakeHint: 'قولّي على الجهاز اللي عايزه، وأنا أسأل البيّاعين القريبين منك وأرجعلك بالمتاح بس.',
+      sectionDevice: 'الجهاز', sectionWhere: 'المنطقة والميزانية', categoryPlaceholder: 'اختار القسم', brandPlaceholder: 'أي ماركة',
       // Request page
       askingProgress: 'بسأل {asked} بيّاعين… {available} أكّدوا',
       pillAvailable: '✓ متاح', pillSold: '✕ اتباع', pillPending: '⏳ لسه بيردّوا',
@@ -2776,6 +2784,8 @@ export const translations: Record<Locale, Translations> = {
       intakeFooter: '🔒 Geeko tells sellers he is a Vatix assistant asking for a real buyer, and never shares your number or name until you contact the seller yourself.',
       errModelRequired: 'Enter the model name', errAreaRequired: 'Choose an area', errBudgetRange: 'Minimum budget must be lower than maximum budget',
       intakeLoadFailed: 'We could not load the categories and areas, try again', errCategoryRequired: 'Choose a category', areaPlaceholder: 'Choose an area',
+      intakeHeroTitle: "I'm Geeko, I'll do the hunting 👋", intakeHint: "Tell me the device you want. I'll ask nearby sellers and come back with only what's available.",
+      sectionDevice: 'The device', sectionWhere: 'Area & budget', categoryPlaceholder: 'Choose a category', brandPlaceholder: 'Any brand',
       // Request page
       askingProgress: 'Asking {asked} sellers… {available} confirmed',
       pillAvailable: '✓ Available', pillSold: '✕ Sold', pillPending: '⏳ Still replying',
