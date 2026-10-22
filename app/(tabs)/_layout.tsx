@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
+import { BroGlyph } from '@/components/bro/BroAvatar'
 import { colors, fonts } from '@/constants/theme'
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
@@ -13,7 +14,6 @@ const TAB_ICONS: Record<string, { active: IoniconsName; inactive: IoniconsName }
   home: { active: 'home', inactive: 'home-outline' },
   products: { active: 'grid', inactive: 'grid-outline' },
   stores: { active: 'storefront', inactive: 'storefront-outline' },
-  'bro-finds': { active: 'sparkles', inactive: 'sparkles-outline' },
   dashboard: { active: 'person', inactive: 'person-outline' },
 }
 
@@ -51,6 +51,8 @@ export default function TabsLayout() {
           fontSize: 11,
         },
         tabBarIcon: ({ color, focused }) => {
+          // Bro gets its robot mark instead of a stock icon so the tab reads as the assistant.
+          if (route.name === 'bro-finds') return <BroGlyph size={25} color={color} focused={focused} />
           const icons = TAB_ICONS[route.name]
           if (!icons) return null
           return (

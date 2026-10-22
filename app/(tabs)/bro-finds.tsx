@@ -194,11 +194,11 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.g100 },
   content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  h1: { fontFamily: fonts.extraBold, fontSize: 20, color: '#1A2540' },
+  h1: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.dk },
   sub: { fontFamily: fonts.regular, fontSize: 13, color: colors.g500 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   groupHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  groupTitle: { flex: 1, fontFamily: fonts.extraBold, fontSize: 15, color: '#1A2540' },
+  groupTitle: { flex: 1, fontFamily: fonts.extraBold, fontSize: 15, color: colors.dk },
   groupLink: { fontFamily: fonts.bold, fontSize: 20, color: colors.g500 },
   err: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red },
 })

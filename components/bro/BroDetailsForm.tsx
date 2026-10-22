@@ -124,7 +124,7 @@ export function BroDetailsForm({
           <BroButton
             key={s}
             label={scratchLabel[s]}
-            variant={scratches === s ? 'dark' : 'outline'}
+            chip
             selected={scratches === s}
             disabled={locked}
             onPress={() => setScratches(s)}
@@ -136,24 +136,27 @@ export function BroDetailsForm({
       <Text style={[styles.label, dirStyle]}>{b.fieldExtras}</Text>
       <View style={[styles.chips, rowDir]}>
         <BroButton
-          label={`📦 ${b.extraBox}`}
-          variant={hasBox ? 'dark' : 'outline'}
+          label={b.extraBox}
+          chip
+          icon="cube-outline"
           selected={hasBox}
           disabled={locked}
           onPress={() => setHasBox((v) => !v)}
           dirStyle={dirStyle}
         />
         <BroButton
-          label={`🧾 ${b.extraInvoice}`}
-          variant={hasInvoice ? 'dark' : 'outline'}
+          label={b.extraInvoice}
+          chip
+          icon="receipt-outline"
           selected={hasInvoice}
           disabled={locked}
           onPress={() => setHasInvoice((v) => !v)}
           dirStyle={dirStyle}
         />
         <BroButton
-          label={`🛡️ ${b.extraWarranty}`}
-          variant={hasWarranty ? 'dark' : 'outline'}
+          label={b.extraWarranty}
+          chip
+          icon="shield-checkmark-outline"
           selected={hasWarranty}
           disabled={locked}
           onPress={() => setHasWarranty((v) => !v)}

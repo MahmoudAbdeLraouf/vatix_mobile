@@ -187,7 +187,7 @@ export function BroMessage({
                 key={q.key}
                 label={q.label}
                 disabled={locked}
-                variant={q.key === 'free_text' && replying ? 'dark' : 'outline'}
+                chip
                 selected={q.key === 'free_text' ? replying : undefined}
                 onPress={q.onPress}
                 dirStyle={dirStyle}
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   bubblePlain: { backgroundColor: colors.white, borderColor: colors.g200 },
-  bubblePrompt: { backgroundColor: '#fff8e1', borderColor: colors.y },
+  bubblePrompt: { backgroundColor: colors.yl, borderColor: colors.y },
   header: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   name: { fontFamily: fonts.bold, fontSize: 12, color: colors.dk },
   banner: {

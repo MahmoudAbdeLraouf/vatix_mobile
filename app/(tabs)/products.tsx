@@ -313,7 +313,7 @@ export default function ProductsScreen() {
             <Ionicons name="add" size={15} color={colors.dk} />
             <Text style={styles.postAdText}>{t.postFreeAd}</Text>
           </TouchableOpacity>
-          {/* Renders nothing unless Bro is enabled */}
+          {/* Always visible, like the post-ad button */}
           <BroEntryCard
             variant="pill"
             context={{
@@ -675,6 +675,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    minHeight: 40,
     paddingHorizontal: spacing.md,
     paddingVertical: 8,
     borderRadius: radius.full,

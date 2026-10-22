@@ -9,6 +9,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/Button'
 import { SkeletonRow } from '@/components/ui/Skeleton'
+import { BroCountPills } from '@/components/bro/BroCountPills'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 // Per-row counts cost one request each, so only the newest rows get them.
@@ -94,7 +95,6 @@ export default function BroListScreen() {
     cancelled: b.statusCancelled,
     found: b.statusFound,
   }
-  const nfmt = (n: number) => n.toLocaleString(ar ? 'ar-EG' : 'en-EG')
 
   let body: React.ReactNode
   if (loading) {
@@ -128,7 +128,7 @@ export default function BroListScreen() {
                   {r.storage ? ` · ${r.storage}` : ''}
                 </Text>
                 <View style={[styles.pill, searching ? styles.pillSearching : styles.pillIdle]}>
-                  <Text style={[styles.pillText, { color: searching ? '#8a6500' : colors.g700 }]}>
+                  <Text style={[styles.pillText, { color: searching ? colors.yt : colors.g700 }]}>
                     {statusLabel[r.status]}
                   </Text>
                 </View>
@@ -137,10 +137,8 @@ export default function BroListScreen() {
                 {new Date(r.createdAt).toLocaleDateString(ar ? 'ar-EG' : 'en-EG')}
               </Text>
               {c ? (
-                <View style={[styles.countRow, rowDir]}>
-                  <Text style={[styles.count, dirStyle]}>{`${b.pillAvailable} ${nfmt(c.available)}`}</Text>
-                  <Text style={[styles.count, dirStyle]}>{`${b.pillSold} ${nfmt(c.sold)}`}</Text>
-                  <Text style={[styles.count, dirStyle]}>{`${b.pillPending} ${nfmt(c.pending)}`}</Text>
+                <View style={styles.countRow}>
+                  <BroCountPills counts={c} />
                 </View>
               ) : null}
             </Pressable>
@@ -186,10 +184,9 @@ const styles = StyleSheet.create({
   rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   rowTitle: { flex: 1, fontFamily: fonts.bold, fontSize: 15, color: colors.dk },
   pill: { borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
-  pillSearching: { backgroundColor: '#fff8e1' },
+  pillSearching: { backgroundColor: colors.yl },
   pillIdle: { backgroundColor: colors.g100 },
   pillText: { fontFamily: fonts.bold, fontSize: 11 },
   date: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500 },
-  countRow: { flexDirection: 'row', gap: spacing.md, marginTop: 2 },
-  count: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.g700 },
+  countRow: { marginTop: 4 },
 })

@@ -6,6 +6,7 @@ export const colors = {
   y: '#F5B800',
   yl: '#FFF9E6',
   yd: '#D9A200',
+  yt: '#8A6500', // amber text on yl
   // Dark navy
   dk: '#062B5B',
   dk2: '#10366B',

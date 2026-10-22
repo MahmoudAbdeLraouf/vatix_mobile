@@ -756,6 +756,7 @@ export interface Translations {
     name: string
     badge: string
     navLink: string
+    pillLabel: string
     chipCheaper: string
     chipBetter: string
     chipBox: string
@@ -1658,7 +1659,7 @@ export const translations: Record<Locale, Translations> = {
     },
     bro: {
       // Identity
-      name: 'Vatix Bro', badge: 'مساعد فاتكس الرسمي', navLink: 'Vatix Bro',
+      name: 'Vatix Bro', badge: 'مساعد فاتكس الرسمي', navLink: 'Vatix Bro', pillLabel: 'لاقيهولي',
       // Product page card (B) + sticky bar
       chipCheaper: '💸 أرخص من {price}', chipBetter: '✨ حالة أحسن', chipBox: '📦 بالعلبة',
       ctaFind: '🔍 دوّرلي على زيه', stickyCta: 'VB · دوّرلي على زيه ←',
@@ -2489,7 +2490,7 @@ export const translations: Record<Locale, Translations> = {
     },
     bro: {
       // Identity
-      name: 'Vatix Bro', badge: 'Official Vatix assistant', navLink: 'Vatix Bro',
+      name: 'Vatix Bro', badge: 'Official Vatix assistant', navLink: 'Vatix Bro', pillLabel: 'Find it for me',
       // Product page card (B) + sticky bar
       chipCheaper: '💸 Cheaper than {price}', chipBetter: '✨ Better condition', chipBox: '📦 With box',
       ctaFind: '🔍 Find me the same one', stickyCta: 'VB · Find me the same one →',

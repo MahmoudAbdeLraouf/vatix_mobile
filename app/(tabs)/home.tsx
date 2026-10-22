@@ -576,9 +576,6 @@ export default function HomeScreen() {
           <PromoDots count={PROMO_BANNERS.length} active={activePromo} />
         </View>
 
-        {/* Vatix Bro strip (renders nothing unless Bro is enabled) */}
-        <BroEntryCard variant="home" />
-
         {/* Category Icons */}
         {categories.length > 1 && (
           <Section title={t.categories} onMore={() => router.push('/(tabs)/products')}>
@@ -612,6 +609,10 @@ export default function HomeScreen() {
             </ScrollView>
           </Section>
         )}
+
+        {/* Vatix Bro card (renders nothing unless Bro is enabled). Sits after categories as the
+            "can't find it?" fallback, and away from the carousel so it isn't read as a navy promo slide. */}
+        <BroEntryCard variant="home" />
 
         {/* Featured Stores */}
         {stores.length > 0 && (

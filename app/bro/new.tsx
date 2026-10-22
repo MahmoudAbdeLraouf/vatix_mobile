@@ -377,9 +377,8 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
     }
   }
 
-  const tag = (req: boolean) => (
-    <Text style={[styles.tag, req ? styles.tagReq : null]}>{req ? b.required : b.optional}</Text>
-  )
+  // Required is the default; only optional fields are tagged.
+  const tag = (req: boolean) => (req ? null : <Text style={styles.tag}>{b.optional}</Text>)
   const label = (text: string, req: boolean) => (
     <View style={[styles.labelRow, rowDir]}>
       <Text style={[styles.label, dirStyle]}>{text}</Text>
@@ -419,7 +418,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
                   key={c.id}
                   label={catName(c)}
                   selected={categoryId === c.id}
-                  variant={categoryId === c.id ? 'dark' : 'outline'}
+                  chip
                   onPress={() => setCategoryId(c.id)}
                 />
               ))}
@@ -438,7 +437,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
                     key={x.id}
                     label={brandName(x)}
                     selected={brandId === x.id}
-                    variant={brandId === x.id ? 'dark' : 'outline'}
+                    chip
                     onPress={() => setBrandId(cur => (cur === x.id ? null : x.id))}
                   />
                 ))}
@@ -461,7 +460,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
             {suggestions.length > 0 ? (
               <View style={[styles.chips, rowDir]}>
                 {suggestions.map(s => (
-                  <BroButton key={s} label={s} onPress={() => setModel(s.slice(0, MODEL_MAX))} dirStyle={dirStyle} />
+                  <BroButton key={s} chip icon="sparkles-outline" label={s} onPress={() => setModel(s.slice(0, MODEL_MAX))} dirStyle={dirStyle} />
                 ))}
               </View>
             ) : null}
@@ -486,7 +485,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
                   key={p}
                   label={p}
                   selected={storage === p}
-                  variant={storage === p ? 'dark' : 'outline'}
+                  chip
                   onPress={() => setStorage(cur => (cur === p ? '' : p))}
                 />
               ))}
@@ -531,7 +530,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
                   key={w}
                   label={wantLabel[w]}
                   selected={wants.includes(w)}
-                  variant={wants.includes(w) ? 'dark' : 'outline'}
+                  chip
                   onPress={() => toggleWant(w)}
                 />
               ))}
@@ -553,7 +552,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  title: { flex: 1, fontFamily: fonts.extraBold, fontSize: 18, color: '#1A2540' },
+  title: { flex: 1, fontFamily: fonts.extraBold, fontSize: 18, color: colors.dk },
   card: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,
@@ -563,24 +562,23 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     ...shadow.ss,
   },
-  cardTitle: { fontFamily: fonts.extraBold, fontSize: 16, color: '#1A2540' },
+  cardTitle: { fontFamily: fonts.extraBold, fontSize: 16, color: colors.dk },
   cardBody: { fontFamily: fonts.regular, fontSize: 14, color: colors.g700, lineHeight: 22 },
   summary: {
-    backgroundColor: '#fff8e1',
+    backgroundColor: colors.yl,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.y,
     padding: spacing.sm + 4,
     gap: 4,
   },
-  summaryLabel: { fontFamily: fonts.bold, fontSize: 12, color: '#8a6500' },
-  summaryText: { fontFamily: fonts.semiBold, fontSize: 14, color: '#1A2540' },
+  summaryLabel: { fontFamily: fonts.bold, fontSize: 12, color: colors.yt },
+  summaryText: { fontFamily: fonts.semiBold, fontSize: 14, color: colors.dk },
   summaryEdit: { marginTop: 4 },
   field: { gap: spacing.sm },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  label: { fontFamily: fonts.bold, fontSize: 14, color: '#1A2540' },
+  label: { fontFamily: fonts.bold, fontSize: 14, color: colors.dk },
   tag: { fontFamily: fonts.regular, fontSize: 11, color: colors.g500 },
-  tagReq: { color: colors.red },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   brandScroll: { maxHeight: 148 },
   input: {

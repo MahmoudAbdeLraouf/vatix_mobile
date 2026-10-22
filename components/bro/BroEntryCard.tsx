@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { track } from '@/lib/analytics'
 import { getBroStatus, type BroRequestSource, type BroWant } from '@/lib/bro'
 import { BroAvatar, BroBadge } from '@/components/bro/BroAvatar'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 export type BroEntryVariant = 'product' | 'sold' | 'search' | 'home' | 'pill'
 
@@ -32,9 +32,8 @@ const SOURCE: Record<BroEntryVariant, BroRequestSource> = {
   pill: 'search',
 }
 
-const NAVY = '#1A2540'
-const YELLOW = '#F5B800'
-const LIGHT = '#fff8e1'
+const NAVY = colors.dk
+const YELLOW = colors.y
 
 /** Builds the /bro/new route params. Anything empty, zero or non-numeric-where-numeric is omitted. */
 function buildBroNewParams(
@@ -127,14 +126,17 @@ export function BroEntryCard({
     }
   }, [])
 
+  // The products-tab pill always shows, like "post free ad"; /bro/new handles the disabled state itself.
+  const visible = variant === 'pill' || gate === 'on'
+
   // Once per mounted card, and only when it is actually visible.
   useEffect(() => {
-    if (gate !== 'on' || tracked.current) return
+    if (!visible || tracked.current) return
     tracked.current = true
     void track({ name: 'bro_entry_view', params: { variant } })
-  }, [gate, variant])
+  }, [visible, variant])
 
-  if (gate !== 'on') return null
+  if (!visible) return null
 
   const ar = locale === 'ar'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
@@ -157,36 +159,49 @@ export function BroEntryCard({
   }
 
   if (variant === 'pill') {
+    // Same height and shape as the yellow "post free ad" pill beside it, in navy so the two read as a pair.
     return (
-      <TouchableOpacity
-        activeOpacity={0.85}
+      <Pressable
         onPress={open}
         accessibilityRole="button"
-        accessibilityLabel={b.navLink}
-        style={[styles.pill, rowDir]}
+        accessibilityLabel={`${b.navLink}: ${b.pillLabel}`}
+        style={({ pressed }) => [styles.pill, rowDir, pressed && styles.pressed]}
       >
-        <BroAvatar size={20} />
-        <Text style={styles.pillText}>{b.navLink}</Text>
-      </TouchableOpacity>
+        <BroAvatar size={26} radius={13} />
+        <Text style={styles.pillText}>{b.pillLabel}</Text>
+        <Ionicons name="sparkles" size={12} color={YELLOW} />
+      </Pressable>
     )
   }
 
   if (variant === 'home') {
+    // Real Yoga direction (not the ltr + row-reverse trick) so the text column inherits RTL. The body is
+    // placed by flex (alignSelf start, shrink-wrapped), not textAlign: Android flips an explicit
+    // textAlign 'right' to the left edge for an Arabic paragraph.
+    const bannerDir = { direction: ar ? ('rtl' as const) : ('ltr' as const) }
+    const bannerTextDir = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
+    // The whole banner is the tap target; the yellow arrow is just the affordance.
     return (
-      <View style={[styles.strip, rowDir]}>
-        <BroAvatar size={32} />
-        <Text style={[styles.stripText, dirStyle]}>{b.heroStrip}</Text>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={open}
-          accessibilityRole="button"
-          accessibilityLabel={b.navLink}
-          style={[styles.stripBtn, rowDir]}
-        >
-          <Text style={styles.stripBtnText}>{b.navLink}</Text>
-          <Ionicons name={ar ? 'arrow-back' : 'arrow-forward'} size={14} color={colors.white} />
-        </TouchableOpacity>
-      </View>
+      <Pressable
+        onPress={open}
+        accessibilityRole="button"
+        accessibilityLabel={`${b.navLink}. ${b.heroStrip}`}
+        style={({ pressed }) => [styles.banner, bannerDir, pressed && styles.pressed]}
+      >
+        <BroAvatar size={48} radius={14} />
+        <View style={styles.bannerText}>
+          <View style={styles.bannerTitleRow}>
+            <Text style={[styles.bannerTitle, bannerTextDir]}>{b.navLink}</Text>
+            <Ionicons name="sparkles" size={13} color={YELLOW} />
+          </View>
+          <Text style={[styles.bannerBody, bannerTextDir]} numberOfLines={2}>
+            {b.heroStrip}
+          </Text>
+        </View>
+        <View style={styles.bannerArrow}>
+          <Ionicons name={ar ? 'arrow-back' : 'arrow-forward'} size={18} color={NAVY} />
+        </View>
+      </Pressable>
     )
   }
 
@@ -222,41 +237,47 @@ export function BroEntryCard({
                 ? b.chipCheaper.replace('{price}', '').trim()
                 : b[key].replace('{price}', priceLabel)
             return (
-              <TouchableOpacity
+              <Pressable
                 key={want}
-                activeOpacity={0.8}
                 onPress={() => toggle(want)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
-                style={[styles.chip, active && styles.chipActive]}
+                style={({ pressed }) => [styles.chip, rowDir, active && styles.chipActive, pressed && styles.pressed]}
               >
+                <Ionicons
+                  name={active ? 'checkmark-circle' : 'add-circle-outline'}
+                  size={15}
+                  color={active ? YELLOW : 'rgba(255,255,255,0.6)'}
+                />
                 <Text style={[styles.chipText, active && styles.chipTextActive, dirStyle]}>{label}</Text>
-              </TouchableOpacity>
+              </Pressable>
             )
           })}
         </View>
       )}
 
-      <TouchableOpacity
-        activeOpacity={0.85}
+      <Pressable
         onPress={open}
         accessibilityRole="button"
-        style={styles.cta}
+        style={({ pressed }) => [styles.cta, rowDir, pressed && styles.pressed]}
       >
+        <Ionicons name="search" size={17} color={NAVY} />
         <Text style={[styles.ctaText, dirStyle]}>{cta}</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  pressed: { opacity: 0.85 },
   card: {
     backgroundColor: NAVY,
     borderRadius: radius.lg,
-    borderWidth: 1.5,
-    borderColor: YELLOW,
+    borderWidth: 1,
+    borderColor: 'rgba(245,184,0,0.35)',
     padding: spacing.md,
     marginBottom: spacing.md,
+    ...shadow.ss,
   },
   cardSearch: { marginTop: spacing.lg },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
@@ -271,60 +292,75 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     marginBottom: 12,
   },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   chip: {
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.35)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 36,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: radius.full,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingStart: 10,
+    paddingEnd: 14,
   },
-  chipActive: { borderColor: YELLOW, backgroundColor: 'rgba(245,184,0,0.12)' },
+  chipActive: { borderColor: YELLOW, backgroundColor: 'rgba(245,184,0,0.14)' },
   chipText: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.white },
-  chipTextActive: { color: YELLOW },
+  chipTextActive: { fontFamily: fonts.bold, color: YELLOW },
   cta: {
+    flexDirection: 'row',
+    gap: 8,
     backgroundColor: YELLOW,
     borderRadius: radius.md,
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctaText: { fontFamily: fonts.extraBold, fontSize: 14, color: NAVY, textAlign: 'center' },
-  strip: {
+  ctaText: { flexShrink: 1, fontFamily: fonts.extraBold, fontSize: 14, color: NAVY, textAlign: 'center' },
+  banner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: LIGHT,
-    borderBottomWidth: 1,
-    borderBottomColor: YELLOW,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 10,
-    marginTop: spacing.lg,
-  },
-  stripText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: NAVY },
-  stripBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
     backgroundColor: NAVY,
-    borderRadius: radius.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: radius.lg,
+    paddingStart: 12,
+    paddingEnd: 14,
+    paddingVertical: 12,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    ...shadow.ss,
   },
-  stripBtnText: { fontFamily: fonts.bold, fontSize: 12, color: colors.white },
+  bannerText: { flex: 1, minWidth: 0, gap: 2 },
+  bannerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  bannerTitle: { fontFamily: fonts.extraBold, fontSize: 15, lineHeight: 22, color: colors.white },
+  bannerBody: {
+    alignSelf: 'flex-start',
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    lineHeight: 19,
+    color: 'rgba(255,255,255,0.78)',
+  },
+  bannerArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: YELLOW,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingStart: 6,
-    paddingEnd: spacing.md,
-    paddingVertical: 4,
+    minHeight: 40,
+    paddingStart: 7,
+    paddingEnd: 14,
     borderRadius: radius.full,
     backgroundColor: NAVY,
-    borderWidth: 1.5,
-    borderColor: YELLOW,
+    ...shadow.ss,
   },
   pillText: { fontFamily: fonts.extraBold, fontSize: 13, color: colors.white },
 })

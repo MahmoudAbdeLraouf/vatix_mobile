@@ -14,6 +14,7 @@ import {
   type BroRequestView,
 } from '@/lib/bro'
 import { BroButton } from '@/components/bro/BroButton'
+import { BroCountPills } from '@/components/bro/BroCountPills'
 import { BroMatchCard } from '@/components/bro/BroMatchCard'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -297,7 +298,7 @@ function RequestView({ id }: { id: number }) {
             {request.storage ? ` · ${request.storage}` : ''}
           </Text>
           <View style={[styles.pill, searching ? styles.pillOn : styles.pillOff, styles.statusPill, { alignSelf: ar ? 'flex-end' : 'flex-start' }]}>
-            <Text style={[styles.pillText, { color: searching ? '#8a6500' : colors.g700 }]}>{statusLabel}</Text>
+            <Text style={[styles.pillText, { color: searching ? colors.yt : colors.g700 }]}>{statusLabel}</Text>
           </View>
         </View>
 
@@ -305,23 +306,7 @@ function RequestView({ id }: { id: number }) {
           <Text style={[styles.progress, dirStyle]}>
             {b.askingProgress.replace('{asked}', String(counts.asked)).replace('{available}', String(counts.available))}
           </Text>
-          <View style={[styles.chips, rowDir]}>
-            <View style={[styles.pill, styles.pillOn]}>
-              <Text style={styles.pillTextDark}>
-                {b.pillAvailable} {counts.available}
-              </Text>
-            </View>
-            <View style={[styles.pill, styles.pillOff]}>
-              <Text style={styles.pillTextDark}>
-                {b.pillSold} {counts.sold}
-              </Text>
-            </View>
-            <View style={[styles.pill, styles.pillOff]}>
-              <Text style={styles.pillTextDark}>
-                {b.pillPending} {counts.pending}
-              </Text>
-            </View>
-          </View>
+          <BroCountPills counts={counts} />
         </View>
 
         {searching ? (
@@ -373,8 +358,8 @@ function RequestView({ id }: { id: number }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.g100 },
   content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
-  h1: { fontFamily: fonts.extraBold, fontSize: 20, color: '#1A2540' },
-  h2: { fontFamily: fonts.extraBold, fontSize: 15, color: '#1A2540' },
+  h1: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.dk },
+  h2: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.dk },
   card: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,
@@ -385,15 +370,14 @@ const styles = StyleSheet.create({
     ...shadow.ss,
   },
   centerCard: { alignItems: 'center' },
-  emptyTitle: { fontFamily: fonts.extraBold, fontSize: 14, color: '#1A2540' },
-  progress: { fontFamily: fonts.extraBold, fontSize: 14, color: '#1A2540' },
+  emptyTitle: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.dk },
+  progress: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.dk },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
   pill: { borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
-  pillOn: { backgroundColor: '#fff8e1' },
+  pillOn: { backgroundColor: colors.yl },
   pillOff: { backgroundColor: colors.g100 },
   statusPill: { marginTop: 6 },
   pillText: { fontFamily: fonts.bold, fontSize: 12 },
-  pillTextDark: { fontFamily: fonts.bold, fontSize: 12, color: '#1A2540' },
   list: { gap: 10 },
   sold: { fontFamily: fonts.regular, fontSize: 13, color: colors.g500 },
   err: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red },
