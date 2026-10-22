@@ -902,7 +902,6 @@ export interface Translations {
     browseProducts: string
     foundNavLink: string
     requestsNav: string
-    checkClientRequests: string
     fabChooserTitle: string
     fabPostProduct: string
     fabPostProductSub: string
@@ -1869,7 +1868,6 @@ export const translations: Record<Locale, Translations> = {
       browseProducts: 'تصفّح المنتجات',
       foundNavLink: 'اللي لقاه جيكو',
       requestsNav: 'طلبات الشراء',
-      checkClientRequests: 'شوف طلبات العملاء',
       fabChooserTitle: 'عايز تعمل إيه؟',
       fabPostProduct: 'اعرض منتج',
       fabPostProductSub: 'انشر إعلان لجهاز عايز تبيعه',
@@ -2834,7 +2832,6 @@ export const translations: Record<Locale, Translations> = {
       browseProducts: 'Browse products',
       foundNavLink: 'Geeko finds',
       requestsNav: 'Buy requests',
-      checkClientRequests: 'Check client requests',
       fabChooserTitle: 'What would you like to do?',
       fabPostProduct: 'Post a product',
       fabPostProductSub: 'List a device you want to sell',

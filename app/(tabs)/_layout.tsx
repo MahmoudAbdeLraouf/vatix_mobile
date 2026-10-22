@@ -6,21 +6,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
-import { BroAvatar, BroGlyph } from '@/components/bro/BroAvatar'
+import { BroAvatar } from '@/components/bro/BroAvatar'
+import { AnimatedTabBar, type TabIcons } from '@/components/AnimatedTabBar'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 
-type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
-
-const TAB_ICONS: Record<string, { active: IoniconsName; inactive: IoniconsName }> = {
+const TAB_ICONS: TabIcons = {
   home: { active: 'home', inactive: 'home-outline' },
   products: { active: 'grid', inactive: 'grid-outline' },
   requests: { active: 'megaphone', inactive: 'megaphone-outline' },
   stores: { active: 'storefront', inactive: 'storefront-outline' },
   dashboard: { active: 'person', inactive: 'person-outline' },
 }
-
-const FAB_SIZE = 56
-const FAB_LIFT = 18
 
 export default function TabsLayout() {
   const { t, locale, isRtl } = useLocale()
@@ -42,81 +38,39 @@ export default function TabsLayout() {
     else router.push({ pathname: '/bro/new', params: { source: 'nav' } } as never)
   }
 
-  const tabBarHeight = 62 + insets.bottom
+  // Bar order; the + sits in the middle. Bro swaps the stores tab for the buyer requests board.
+  const visibleTabs = broEnabled
+    ? ['home', 'products', 'add', 'requests', 'dashboard']
+    : ['home', 'products', 'add', 'stores', 'dashboard']
 
   return (
     <>
     <Tabs
       key={locale}
-      screenOptions={({ route }) => ({
+      tabBar={props => (
+        <AnimatedTabBar
+          {...props}
+          visible={visibleTabs}
+          icons={TAB_ICONS}
+          isRtl={isRtl}
+          bottomInset={insets.bottom}
+          onFabPress={onFabPress}
+          fabLabel={t.postFreeAd}
+        />
+      )}
+      screenOptions={{
         headerShown: false,
         // Bottom-tabs scene wrapper — direction must be set here for Yoga to
         // mirror inside each tab's native container.
         sceneStyle: { direction: isRtl ? 'rtl' : 'ltr' },
-        tabBarActiveTintColor: colors.y,
-        tabBarInactiveTintColor: colors.g500,
-        tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopColor: colors.g200,
-          borderTopWidth: 1,
-          height: tabBarHeight,
-          paddingBottom: insets.bottom + 6,
-          paddingTop: 6,
-        },
-        tabBarLabelStyle: {
-          fontFamily: fonts.semiBold,
-          fontSize: 11,
-        },
-        tabBarIcon: ({ color, focused }) => {
-          // Bro gets its robot mark instead of a stock icon so the tab reads as the assistant.
-          if (route.name === 'bro-finds') return <BroGlyph size={25} color={color} focused={focused} />
-          const icons = TAB_ICONS[route.name]
-          if (!icons) return null
-          return (
-            <Ionicons
-              name={focused ? icons.active : icons.inactive}
-              size={24}
-              color={color}
-            />
-          )
-        },
-      })}
+      }}
     >
       <Tabs.Screen name="home" options={{ title: t.home }} />
       <Tabs.Screen name="products" options={{ title: t.products }} />
       {/* Buyer requests board — replaces the stores and Geeko tabs while Bro is on. */}
       <Tabs.Screen name="requests" options={{ title: t.bro.requestsNav, href: broEnabled ? undefined : null }} />
-      <Tabs.Screen
-        name="add"
-        options={{
-          title: '',
-          tabBarLabel: () => null,
-          tabBarButton: () => (
-            <View style={styles.fabSlot} pointerEvents="box-none">
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.postFreeAd}
-                onPress={onFabPress}
-                style={({ pressed }) => [
-                  styles.fab,
-                  { transform: [{ translateY: -FAB_LIFT }, { scale: pressed ? 0.96 : 1 }] },
-                ]}
-              >
-                <View style={styles.iconStack}>
-                  <Ionicons name="camera" size={30} color={colors.white} />
-                  <Ionicons name="add" size={14} color={colors.y} style={styles.iconPlus} />
-                </View>
-              </Pressable>
-            </View>
-          ),
-        }}
-        listeners={{
-          tabPress: e => {
-            e.preventDefault()
-            onFabPress()
-          },
-        }}
-      />
+      {/* Rendered by AnimatedTabBar as the + button; never navigated to. */}
+      <Tabs.Screen name="add" options={{ title: '' }} />
       <Tabs.Screen name="stores" options={{ title: t.stores, href: broEnabled ? null : undefined }} />
       {/* Hidden from the bar; still reachable from notifications and the requests flow. */}
       <Tabs.Screen name="bro-finds" options={{ title: t.bro.tabLabel, href: null }} />
@@ -181,36 +135,6 @@ function ChooserRow({ icon, title, sub, isRtl, onPress }: {
 }
 
 const styles = StyleSheet.create({
-  fabSlot: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fab: {
-    width: FAB_SIZE,
-    height: FAB_SIZE,
-    borderRadius: FAB_SIZE / 2,
-    backgroundColor: colors.y,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: colors.white,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-  },
-  iconStack: {
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconPlus: {
-    position: 'absolute',
-    top: 10,
-  },
   backdrop: { flex: 1, backgroundColor: 'rgba(6,20,40,0.45)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.white,
