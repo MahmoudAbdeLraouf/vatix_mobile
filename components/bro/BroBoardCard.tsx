@@ -3,7 +3,7 @@ import { useLocale } from '@/contexts/locale'
 import { hasActiveOffer, type BroBoardItem } from '@/lib/bro'
 import { BroButton } from '@/components/bro/BroButton'
 import { useBroCardFormat, useBroDir } from '@/components/bro/BroCardParts'
-import { colors, fonts, radius } from '@/constants/theme'
+import { colors, fonts, radius, shadow } from '@/constants/theme'
 
 /** Emoji + tint per category, matched on the localised category name (ar or en). */
 const CATEGORY_ICONS: { re: RegExp; emoji: string; bg: string }[] = [
@@ -139,10 +139,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.g100,
     padding: 14,
     marginBottom: 12,
     gap: 10,
+    ...shadow.ss,
   },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   tile: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },

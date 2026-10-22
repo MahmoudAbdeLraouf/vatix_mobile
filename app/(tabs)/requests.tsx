@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
@@ -12,17 +13,20 @@ import { BroAvatar } from '@/components/bro/BroAvatar'
 import { BroBoardCard } from '@/components/bro/BroBoardCard'
 import { BroOfferSheet } from '@/components/bro/BroOfferSheet'
 import { BroUsageMeter } from '@/components/bro/BroUsageMeter'
+import { CategoryBar } from '@/components/CategoryBar'
+import { MessagesBell } from '@/components/MessagesBell'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { Button } from '@/components/ui/Button'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 type Sort = 'newest' | 'budget'
 
 /** Public board of buyer requests that sellers can answer with an offer. Mirrors the website /requests. */
 export default function RequestsTab() {
-  const { locale, t } = useLocale()
+  const { locale, t, isRtl, setLocale } = useLocale()
   const b = t.bro
   const ar = locale === 'ar'
+  const filtersLabel = ar ? 'الفلاتر' : 'Filters'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
   const { user, loading: authLoading } = useAuth()
   const { requireLogin } = useLoginGate()
@@ -59,10 +63,6 @@ export default function RequestsTab() {
   const brandOptions = useMemo(
     () => [{ value: '', label: b.boardAllBrands }, ...brands.map(br => ({ value: String(br.id), label: localeName(br.translations, locale) }))],
     [brands, locale, b.boardAllBrands],
-  )
-  const categoryOptions = useMemo(
-    () => [{ value: '', label: b.boardAllCategories }, ...categories.map(c => ({ value: String(c.id), label: localeName(c.translations, locale) }))],
-    [categories, locale, b.boardAllCategories],
   )
   const locationOptions = useMemo(
     () => [{ value: '', label: b.boardAllAreas }, ...locations.map(l => ({ value: String(l.id), label: localeName(l.translations, locale) }))],
@@ -176,116 +176,104 @@ export default function RequestsTab() {
     setSheet(null)
   }
 
+  const activeFilterCount = [categoryId, brandId, locationId].filter(Boolean).length
+
+  // Same navy title bar as Products / Stores: title + locale, messages, notifications.
+  const topBar = (
+    <View style={styles.titleRow}>
+      <Text style={styles.title} numberOfLines={1}>{b.boardTitle}</Text>
+      <View style={styles.titleActions}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => setLocale(ar ? 'en' : 'ar')}>
+          <Ionicons name="globe-outline" size={20} color={colors.white} />
+        </TouchableOpacity>
+        <MessagesBell color={colors.white} size={20} style={styles.iconBtn} />
+        <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/dashboard/notifications')}>
+          <Ionicons name="notifications-outline" size={20} color={colors.white} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  )
+
   if (!broEnabled || boardGone) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.card}>
-            <Text style={[styles.cardTitle, dirStyle]}>{b.unavailableTitle}</Text>
-            <Text style={[styles.cardBody, dirStyle]}>{b.unavailableBody}</Text>
-            <Button label={b.unavailableHome} variant="dk" size="md" onPress={() => router.replace('/(tabs)/home')} />
-          </View>
-        </ScrollView>
+      <SafeAreaView style={[styles.safe, { direction: isRtl ? 'rtl' : 'ltr' }]} edges={['top']}>
+        <View style={styles.header}>{topBar}</View>
+        <View style={styles.content}>
+          <ScrollView contentContainerStyle={styles.list}>
+            <View style={styles.card}>
+              <Text style={[styles.cardTitle, dirStyle]}>{b.unavailableTitle}</Text>
+              <Text style={[styles.cardBody, dirStyle]}>{b.unavailableBody}</Text>
+              <Button label={b.unavailableHome} variant="dk" size="md" onPress={() => router.replace('/(tabs)/home')} />
+            </View>
+          </ScrollView>
+        </View>
       </SafeAreaView>
     )
   }
 
-  const header = (
-    <View style={styles.headerWrap}>
-      <View>
-        <Text style={[styles.h1, dirStyle]}>{b.boardTitle}</Text>
-        <Text style={[styles.sub, dirStyle]}>{b.boardSubtitle}</Text>
-      </View>
-
-      <View style={styles.pillRow}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push({ pathname: '/bro/new', params: { source: 'nav' } } as never)}
-          style={({ pressed }) => [styles.geekoPill, pressed && styles.pressed]}
-        >
-          <BroAvatar size={26} />
-          <Text style={styles.geekoText}>{b.boardAskGeeko}</Text>
-          <Text style={styles.geekoStar}>✦</Text>
-        </Pressable>
-        {userType ? (
-          <Pressable
-            accessibilityRole="link"
-            onPress={() => router.push('/bro/offers' as never)}
-            style={({ pressed }) => [styles.myOffersPill, pressed && styles.pressed]}
-          >
-            <Text style={styles.myOffersText}>{b.myOffersTitle}</Text>
-          </Pressable>
-        ) : null}
-        {/* Geeko finds lost its tab to this board, so it's reachable from here. */}
-        {userType ? (
-          <Pressable
-            accessibilityRole="link"
-            onPress={() => router.push('/(tabs)/bro-finds' as never)}
-            style={({ pressed }) => [styles.myOffersPill, pressed && styles.pressed]}
-          >
-            <Text style={styles.myOffersText}>{b.foundNavLink}</Text>
-          </Pressable>
-        ) : null}
-      </View>
-
+  const listHeader = (
+    <View style={styles.listHeader}>
       {userType === 'client' && usage ? <BroUsageMeter usage={usage} /> : null}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-        {[{ value: '', label: b.allCategories }, ...categoryOptions.slice(1)].map(c => {
-          const on = categoryId === c.value
-          return (
-            <Pressable
-              key={c.value || 'all'}
-              onPress={() => { if (on) return; resetBoard(); setCategoryId(c.value) }}
-              style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
-            >
-              <Text style={[styles.chipText, on && styles.chipTextOn]}>{c.label}</Text>
-            </Pressable>
-          )
-        })}
-      </ScrollView>
-
-      <View style={styles.sortRow}>
-        {(['newest', 'budget'] as const).map(s => {
-          const on = sort === s
-          return (
-            <Pressable
-              key={s}
-              onPress={() => { if (on) return; resetBoard(); setSort(s) }}
-              style={[styles.sortBtn, on && styles.sortBtnOn]}
-            >
-              <Text style={[styles.sortText, on && styles.sortTextOn]}>{s === 'newest' ? b.sortNewest : b.sortBudget}</Text>
-            </Pressable>
-          )
-        })}
-      </View>
-
-      <SearchableSelect
-        options={brandOptions}
-        value={brandId}
-        onChange={v => { resetBoard(); setBrandId(v) }}
-        placeholder={b.boardFilterBrandPlaceholder}
-      />
-      <SearchableSelect
-        options={locationOptions}
-        value={locationId}
-        onChange={v => { resetBoard(); setLocationId(v) }}
-        placeholder={b.boardFilterAreaPlaceholder}
-      />
-
-      {(!loading && !failed) || hasFilters ? (
-        <View style={styles.countRow}>
-          <Text style={[styles.count, dirStyle]}>{loading ? '' : countLabel(total)}</Text>
+      <View style={styles.filterCard}>
+        <View style={styles.filterCardHeader}>
+          <View style={styles.filterTitleRow}>
+            <Ionicons name="options-outline" size={16} color={colors.dk} />
+            <Text style={styles.filterTitle}>{filtersLabel}</Text>
+            {activeFilterCount > 0 ? (
+              <View style={styles.filterCountPill}>
+                <Text style={styles.filterCountText}>{activeFilterCount}</Text>
+              </View>
+            ) : null}
+          </View>
           {hasFilters ? (
-            <Pressable onPress={clearFilters} hitSlop={8}>
-              <Text style={styles.clear}>{b.boardClearFilters}</Text>
+            <Pressable onPress={clearFilters} hitSlop={8} style={styles.resetBtn}>
+              <Ionicons name="refresh-outline" size={13} color={colors.g600} />
+              <Text style={styles.resetBtnText}>{b.boardClearFilters}</Text>
             </Pressable>
           ) : null}
         </View>
+
+        <View style={styles.sortRow}>
+          {(['newest', 'budget'] as const).map(s => {
+            const on = sort === s
+            return (
+              <Pressable
+                key={s}
+                onPress={() => { if (on) return; resetBoard(); setSort(s) }}
+                style={[styles.sortBtn, on && styles.sortBtnOn]}
+              >
+                <Text style={[styles.sortText, on && styles.sortTextOn]}>{s === 'newest' ? b.sortNewest : b.sortBudget}</Text>
+              </Pressable>
+            )
+          })}
+        </View>
+
+        <View style={styles.filterRow}>
+          <SearchableSelect
+            style={styles.filterCell}
+            options={brandOptions}
+            value={brandId}
+            onChange={v => { resetBoard(); setBrandId(v) }}
+            placeholder={b.boardFilterBrandPlaceholder}
+          />
+          <SearchableSelect
+            style={styles.filterCell}
+            options={locationOptions}
+            value={locationId}
+            onChange={v => { resetBoard(); setLocationId(v) }}
+            placeholder={b.boardFilterAreaPlaceholder}
+          />
+        </View>
+      </View>
+
+      {!loading && !failed ? (
+        <Text style={[styles.count, dirStyle]}>{countLabel(total)}</Text>
       ) : null}
 
       {notice ? (
         <View style={styles.notice}>
+          <Ionicons name="checkmark-circle" size={18} color={colors.yd} />
           <Text style={[styles.noticeText, dirStyle]}>{notice}</Text>
         </View>
       ) : null}
@@ -296,11 +284,15 @@ export default function RequestsTab() {
     <View style={styles.center}><ActivityIndicator color={colors.y} /></View>
   ) : failed ? (
     <View style={styles.center}>
+      <Ionicons name="cloud-offline-outline" size={40} color={colors.g400} />
       <Text style={[styles.cardBody, dirStyle]}>{b.boardLoadFailed}</Text>
       <Button label={b.retry} variant="dk" size="md" onPress={() => { resetBoard(); void loadPage(1, false) }} />
     </View>
   ) : (
-    <View style={styles.center}><Text style={[styles.cardBody, dirStyle]}>{b.boardEmpty}</Text></View>
+    <View style={styles.center}>
+      <Ionicons name="search-outline" size={40} color={colors.g400} />
+      <Text style={[styles.cardBody, dirStyle]}>{b.boardEmpty}</Text>
+    </View>
   )
 
   const footer = items.length === 0 ? null : (
@@ -319,20 +311,69 @@ export default function RequestsTab() {
   )
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <FlatList
-        data={items}
-        keyExtractor={i => String(i.id)}
-        renderItem={({ item }) => <BroBoardCard item={item} onMakeOffer={() => makeOffer(item)} />}
-        ListHeaderComponent={header}
-        ListEmptyComponent={empty}
-        ListFooterComponent={footer}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        onEndReachedThreshold={0.4}
-        onEndReached={() => { if (!failed) loadMore() }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.y} />}
+    <SafeAreaView style={[styles.safe, { direction: isRtl ? 'rtl' : 'ltr' }]} edges={['top']}>
+      <View style={styles.header}>
+        {topBar}
+        <Text style={[styles.sub, dirStyle]}>{b.boardSubtitle}</Text>
+        <View style={styles.pillRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: '/bro/new', params: { source: 'nav' } } as never)}
+            style={({ pressed }) => [styles.geekoPill, pressed && styles.pressed]}
+          >
+            <BroAvatar size={26} />
+            <Text style={styles.geekoText}>{b.boardAskGeeko}</Text>
+            <Text style={styles.geekoStar}>✦</Text>
+          </Pressable>
+          {userType ? (
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => router.push('/bro/offers' as never)}
+              style={({ pressed }) => [styles.ghostPill, pressed && styles.pressed]}
+            >
+              <Text style={styles.ghostPillText}>{b.myOffersTitle}</Text>
+            </Pressable>
+          ) : null}
+          {/* Geeko finds lost its tab to this board, so it's reachable from here. */}
+          {userType ? (
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => router.push('/(tabs)/bro-finds' as never)}
+              style={({ pressed }) => [styles.ghostPill, pressed && styles.pressed]}
+            >
+              <Text style={styles.ghostPillText}>{b.foundNavLink}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+
+      <CategoryBar
+        categories={categories}
+        activeCategoryId={categoryId ? Number(categoryId) : null}
+        onSelect={id => {
+          const v = id == null ? '' : String(id)
+          if (v === categoryId) return
+          resetBoard()
+          setCategoryId(v)
+        }}
+        allLabel={b.allCategories}
       />
+
+      <View style={styles.content}>
+        <FlatList
+          data={items}
+          keyExtractor={i => String(i.id)}
+          renderItem={({ item }) => <BroBoardCard item={item} onMakeOffer={() => makeOffer(item)} />}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={empty}
+          ListFooterComponent={footer}
+          contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+          onEndReachedThreshold={0.4}
+          onEndReached={() => { if (!failed) loadMore() }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.y} />}
+        />
+      </View>
       {sheet && userType ? (
         <BroOfferSheet
           visible
@@ -348,64 +389,110 @@ export default function RequestsTab() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
-  content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
-  headerWrap: { gap: 12 },
-  h1: { fontFamily: fonts.extraBold, fontSize: 22, color: colors.dk },
-  sub: { fontFamily: fonts.regular, fontSize: 13, color: colors.g500, marginTop: 2 },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
+  safe: { flex: 1, backgroundColor: colors.dk },
+  header: {
+    backgroundColor: colors.dk,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  titleActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  title: { flexShrink: 1, fontFamily: fonts.bold, fontSize: 20, color: colors.white },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sub: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 20, color: 'rgba(255,255,255,0.72)' },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
   geekoPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.dk,
-    borderWidth: 1.5,
-    borderColor: colors.y,
+    backgroundColor: colors.y,
     borderRadius: radius.full,
-    paddingVertical: 6,
-    paddingStart: 6,
+    paddingVertical: 5,
+    paddingStart: 5,
     paddingEnd: 14,
+    ...shadow.ss,
   },
-  geekoText: { fontFamily: fonts.bold, fontSize: 13, color: colors.white },
-  geekoStar: { fontFamily: fonts.bold, fontSize: 13, color: colors.y },
-  myOffersPill: {
-    borderWidth: 1.5,
-    borderColor: colors.g300,
-    backgroundColor: colors.white,
+  geekoText: { fontFamily: fonts.extraBold, fontSize: 13, color: colors.dk },
+  geekoStar: { fontFamily: fonts.bold, fontSize: 13, color: colors.dk },
+  ghostPill: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
     borderRadius: radius.full,
-    paddingVertical: 9,
+    paddingVertical: 8,
     paddingHorizontal: 14,
   },
-  myOffersText: { fontFamily: fonts.bold, fontSize: 13, color: colors.dk },
+  ghostPillText: { fontFamily: fonts.bold, fontSize: 13, color: colors.white },
   pressed: { opacity: 0.85 },
-  chips: { gap: 8, paddingVertical: 2 },
-  chip: { borderRadius: radius.full, paddingVertical: 7, paddingHorizontal: 14, borderWidth: 1.5 },
-  chipOn: { backgroundColor: colors.dk, borderColor: colors.dk },
-  chipOff: { backgroundColor: colors.white, borderColor: colors.g300 },
-  chipText: { fontFamily: fonts.bold, fontSize: 13, color: colors.g700 },
-  chipTextOn: { color: colors.white },
-  sortRow: {
-    flexDirection: 'row',
-    alignSelf: 'flex-start',
-    backgroundColor: colors.white,
-    borderWidth: 1.5,
-    borderColor: colors.g300,
-    borderRadius: radius.full,
-    padding: 3,
+  content: {
+    flex: 1,
+    backgroundColor: colors.g100,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
   },
-  sortBtn: { borderRadius: radius.full, paddingVertical: 6, paddingHorizontal: 14 },
-  sortBtnOn: { backgroundColor: colors.yl },
+  list: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xl },
+  listHeader: { gap: spacing.md, marginBottom: spacing.md },
+
+  // Filter card — same chrome as the Products tab.
+  filterCard: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm, ...shadow.ss },
+  filterCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs },
+  filterTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  filterTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.g900 },
+  filterCountPill: {
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    backgroundColor: colors.y,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginStart: spacing.xs,
+  },
+  filterCountText: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 16, color: colors.dk },
+  resetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    borderRadius: radius.full,
+    backgroundColor: colors.g100,
+  },
+  resetBtnText: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.g600 },
+  sortRow: { flexDirection: 'row', backgroundColor: colors.g100, borderRadius: radius.full, padding: 3 },
+  sortBtn: { flex: 1, alignItems: 'center', borderRadius: radius.full, paddingVertical: 7 },
+  sortBtnOn: { backgroundColor: colors.dk },
   sortText: { fontFamily: fonts.bold, fontSize: 13, color: colors.g500 },
-  sortTextOn: { color: colors.dk },
-  countRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  count: { flex: 1, fontFamily: fonts.semiBold, fontSize: 13, color: colors.g600 },
-  clear: { fontFamily: fonts.bold, fontSize: 13, color: '#D9A200', textDecorationLine: 'underline' },
-  notice: { backgroundColor: colors.yl, borderRadius: radius.md, padding: 12 },
-  noticeText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.dk },
-  center: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl, gap: spacing.md },
-  footer: { gap: spacing.sm, alignItems: 'stretch' },
+  sortTextOn: { color: colors.white },
+  filterRow: { flexDirection: 'row', alignItems: 'stretch', gap: spacing.sm },
+  filterCell: { flex: 1 },
+
+  count: { fontFamily: fonts.bold, fontSize: 14, color: colors.dk },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.yl,
+    borderWidth: 1,
+    borderColor: colors.y,
+    borderRadius: radius.md,
+    padding: 12,
+  },
+  noticeText: { flex: 1, fontFamily: fonts.semiBold, fontSize: 13, color: colors.dk },
+  center: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxl, gap: spacing.md },
+  footer: { gap: spacing.sm, alignItems: 'stretch', marginTop: spacing.xs },
   err: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red, textAlign: 'center' },
-  card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
+  card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md, ...shadow.ss },
   cardTitle: { fontFamily: fonts.extraBold, fontSize: 17, color: colors.dk },
-  cardBody: { fontFamily: fonts.regular, fontSize: 14, color: colors.g600 },
+  cardBody: { fontFamily: fonts.regular, fontSize: 14, color: colors.g600, textAlign: 'center' },
 })
