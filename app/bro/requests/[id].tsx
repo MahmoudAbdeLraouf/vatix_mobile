@@ -7,6 +7,7 @@ import { apiFetch, imgUrl, type LocationNode } from '@/lib/api'
 import {
   cancelBroRequest,
   connectBroInquiry,
+  foundBroRequest,
   getBroRequest,
   rerunBroRequest,
   type BroMatchView,
@@ -194,9 +195,10 @@ function RequestView({ id }: { id: number }) {
     }
   }
 
-  function stop() {
+  // Ends the search with `end`, then reloads the view (shared by cancel and found).
+  function endSearch(end: (id: number) => Promise<BroRequest>) {
     void run(async () => {
-      await cancelBroRequest(id)
+      await end(id)
       const { v, current } = await fetchLatest()
       if (!current) return // a newer fetch owns the view
       if (v) {
@@ -208,6 +210,9 @@ function RequestView({ id }: { id: number }) {
       }
     }, setBusy)
   }
+
+  const stop = () => endSearch(cancelBroRequest)
+  const found = () => endSearch(foundBroRequest)
 
   function rerun() {
     void run(async () => {
@@ -265,12 +270,19 @@ function RequestView({ id }: { id: number }) {
   const status = request.status
   const canRerun = status === 'expired' || status === 'done'
   // Nobody was asked and the run is over, or it expired: offer to loosen the search.
-  const showWiden = status === 'expired' || (status !== 'searching' && status !== 'cancelled' && counts.asked === 0)
+  const showWiden = status === 'expired' || (status !== 'searching' && status !== 'cancelled' && status !== 'found' && counts.asked === 0)
+  const untilDate = new Date(request.expiresAt).toLocaleDateString(ar ? 'ar-EG' : 'en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Africa/Cairo',
+  })
   const statusLabel = {
     searching: b.statusSearching,
     done: b.statusDone,
     expired: b.statusExpired,
     cancelled: b.statusCancelled,
+    found: b.statusFound,
   }[status]
 
   return (
@@ -313,6 +325,13 @@ function RequestView({ id }: { id: number }) {
           </View>
         </View>
 
+        {searching ? (
+          <Text style={[styles.until, dirStyle]}>
+            {b.searchingUntil.replace('{date}', untilDate)}
+            {counts.asked === 0 ? `\n${b.noCandidatesYet}` : ''}
+          </Text>
+        ) : null}
+
         {pollError ? <Text style={[styles.errSmall, dirStyle]}>{b.errGeneric}</Text> : null}
 
         {matches.length > 0 ? (
@@ -344,6 +363,7 @@ function RequestView({ id }: { id: number }) {
 
         <View style={[styles.chips, rowDir]}>
           {searching ? <Button label={b.stopSearch} variant="outline" size="md" disabled={busy} onPress={stop} /> : null}
+          {searching ? <Button label={b.foundButton} variant="dk" size="md" disabled={busy} onPress={found} /> : null}
           {canRerun ? <Button label={b.rerun} variant="dk" size="md" disabled={busy} onPress={rerun} /> : null}
         </View>
       </ScrollView>
@@ -481,6 +501,7 @@ const styles = StyleSheet.create({
   list: { gap: 10 },
   sold: { fontFamily: fonts.regular, fontSize: 13, color: colors.g500 },
   err: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red },
+  until: { fontFamily: fonts.regular, fontSize: 13, color: colors.g700 },
   errSmall: { fontFamily: fonts.regular, fontSize: 12, color: colors.red },
   ribbon: { backgroundColor: '#F5B800', borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
   ribbonText: { fontFamily: fonts.extraBold, fontSize: 12, color: '#1A2540' },

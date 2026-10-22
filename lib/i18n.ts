@@ -809,6 +809,9 @@ export interface Translations {
     connecting: string
     stopSearch: string
     rerun: string
+    foundButton: string
+    searchingUntil: string
+    noCandidatesYet: string
     emptyTitle: string
     widenArea: string
     dropBudget: string
@@ -819,6 +822,7 @@ export interface Translations {
     statusDone: string
     statusExpired: string
     statusCancelled: string
+    statusFound: string
     factAvailable: string
     factArea: string
     factWarranty: string
@@ -1674,10 +1678,12 @@ export const translations: Record<Locale, Translations> = {
       cheapestRibbon: '⭐ أرخص سعر', priceDrop: 'نزل {amount}', priceEgp: '{price} ج',
       chatSeller: '💬 كلّم البيّاع', viewAd: 'الإعلان', connecting: 'بفتحلك المحادثة…',
       stopSearch: 'وقّف البحث', rerun: 'دوّر تاني',
+      foundButton: 'لقيت جهاز خلاص', searchingUntil: 'هفضل أدوّر لحد {date}',
+      noCandidatesYet: 'لسه مفيش حد عنده الجهاز ده — هدوّر تاني كل يوم.',
       emptyTitle: 'ملقيتش حاجة دلوقتي', widenArea: 'وسّع المنطقة', dropBudget: 'شيل الميزانية',
       // Requests list
       listTitle: 'طلباتي مع Bro', listEmpty: 'لسه مفيش طلبات. قول لـ Bro عايز إيه وهو يدوّرلك.', newRequest: 'طلب جديد',
-      statusSearching: 'بيدوّر', statusDone: 'خلص', statusExpired: 'انتهى', statusCancelled: 'اتلغى',
+      statusSearching: 'بيدوّر', statusDone: 'خلص', statusExpired: 'انتهى', statusCancelled: 'اتلغى', statusFound: 'لقيت جهاز',
       // Match facts grid
       factAvailable: 'متاح · اتأكد {ago}', factArea: 'المعاينة في {area}', factWarranty: 'الضمان: {note}',
       scratchesNone: 'سليم', scratchesMinor: 'خدش بسيط', scratchesRepaired: 'اتصلّح',
@@ -2502,10 +2508,12 @@ export const translations: Record<Locale, Translations> = {
       cheapestRibbon: '⭐ Cheapest', priceDrop: 'Down {amount}', priceEgp: 'EGP {price}',
       chatSeller: '💬 Chat with seller', viewAd: 'View ad', connecting: 'Opening the chat…',
       stopSearch: 'Stop searching', rerun: 'Search again',
+      foundButton: 'I already found a device', searchingUntil: 'Searching until {date}',
+      noCandidatesYet: 'No sellers have it yet — I’ll look again every day.',
       emptyTitle: 'Nothing found right now', widenArea: 'Widen the area', dropBudget: 'Remove the budget',
       // Requests list
       listTitle: 'My Bro requests', listEmpty: 'No requests yet. Tell Bro what you want and he will search for you.', newRequest: 'New request',
-      statusSearching: 'Searching', statusDone: 'Done', statusExpired: 'Expired', statusCancelled: 'Cancelled',
+      statusSearching: 'Searching', statusDone: 'Done', statusExpired: 'Expired', statusCancelled: 'Cancelled', statusFound: 'Found one',
       // Match facts grid
       factAvailable: 'Available · confirmed {ago}', factArea: 'Check-up in {area}', factWarranty: 'Warranty: {note}',
       scratchesNone: 'Flawless', scratchesMinor: 'Minor scratch', scratchesRepaired: 'Repaired',

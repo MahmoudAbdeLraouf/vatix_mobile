@@ -92,6 +92,7 @@ export default function BroListScreen() {
     done: b.statusDone,
     expired: b.statusExpired,
     cancelled: b.statusCancelled,
+    found: b.statusFound,
   }
   const nfmt = (n: number) => n.toLocaleString(ar ? 'ar-EG' : 'en-EG')
 

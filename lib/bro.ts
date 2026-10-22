@@ -8,7 +8,7 @@ import { authDelete, authFetch, authPost } from '@/lib/auth'
 
 export type BroWant = 'cheaper' | 'better_condition' | 'with_box'
 export type BroRequestSource = 'product' | 'product_sold' | 'search' | 'home' | 'nav'
-export type BroRequestStatus = 'searching' | 'done' | 'expired' | 'cancelled'
+export type BroRequestStatus = 'searching' | 'done' | 'expired' | 'cancelled' | 'found'
 export type BroInquiryStatus =
   | 'queued'
   | 'sent'
@@ -173,6 +173,11 @@ export function getBroRequest(id: number): Promise<BroRequestView | null> {
 
 export function cancelBroRequest(id: number): Promise<BroRequest> {
   return authPost<BroRequest>(`/bro/requests/${id}/cancel`, {})
+}
+
+/** Buyer found a device elsewhere: ends the search (idempotent if already found). */
+export function foundBroRequest(id: number): Promise<BroRequest> {
+  return authPost<BroRequest>(`/bro/requests/${id}/found`, {})
 }
 
 export function rerunBroRequest(id: number): Promise<BroCreateResult> {
