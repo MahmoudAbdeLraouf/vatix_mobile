@@ -991,6 +991,11 @@ export interface Translations {
     useThis: string
     savedUnavailableHint: string
     backToList: string
+    viewOffers: string
+    seeAll: string
+    noOffersYet: string
+    backToRequest: string
+    offersPageTitle: string
     offerTitleLabel: string
     offerTitlePlaceholder: string
     offerPriceLabel: string
@@ -1959,6 +1964,11 @@ export const translations: Record<Locale, Translations> = {
       useThis: 'استخدم ده',
       savedUnavailableHint: 'الإعلان المرتبط بالعرض ده مبقاش متاح',
       backToList: 'رجوع للقائمة',
+      viewOffers: 'العروض ({n})',
+      seeAll: 'عرض الكل',
+      noOffersYet: 'لسه مفيش عروض على الطلب ده',
+      backToRequest: 'رجوع للطلب',
+      offersPageTitle: 'عروض الطلب',
       offerTitleLabel: 'عنوان العرض',
       offerTitlePlaceholder: 'مثلاً: آيفون 15 برو 256 زي الجديد',
       offerPriceLabel: 'السعر (ج)',
@@ -2925,6 +2935,11 @@ export const translations: Record<Locale, Translations> = {
       useThis: 'Use this',
       savedUnavailableHint: 'The listing linked to this offer is no longer available',
       backToList: 'Back to list',
+      viewOffers: 'Offers ({n})',
+      seeAll: 'See all',
+      noOffersYet: 'No offers on this request yet',
+      backToRequest: 'Back to request',
+      offersPageTitle: 'Request offers',
       offerTitleLabel: 'Offer title',
       offerTitlePlaceholder: 'e.g. iPhone 15 Pro 256 like new',
       offerPriceLabel: 'Price (EGP)',

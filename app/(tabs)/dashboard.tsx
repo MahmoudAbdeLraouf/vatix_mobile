@@ -8,6 +8,7 @@ import { StoreLogoDialog } from '@/components/StoreLogoDialog'
 import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDialog'
 import { BroAvatar } from '@/components/bro/BroAvatar'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
+import { DashboardBroRequests } from '@/components/bro/DashboardBroRequests'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
@@ -259,6 +260,8 @@ export default function DashboardScreen() {
         />
         <SeeMoreTile label={t.viewMore} />
       </View>
+
+      {broEnabled && <DashboardBroRequests />}
 
       {/* Pending InstaPay notice — iOS hides paid surfaces (App Store §3.1.1) */}
       {pendingInstapay && PAID_UI_ENABLED && (
