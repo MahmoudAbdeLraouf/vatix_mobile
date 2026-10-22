@@ -68,6 +68,12 @@ export default function NotificationsScreen() {
     }
   }
 
+  // Links are website paths; only the Bro request ones have a matching mobile screen, so follow those.
+  function open(item: Notification) {
+    if (!item.isRead) markRead(item.id)
+    if (item.link?.startsWith('/bro/requests/')) router.push(item.link as never)
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Header */}
@@ -118,7 +124,7 @@ export default function NotificationsScreen() {
                   !item.isRead && styles.itemUnread,
                   pressed && { opacity: 0.75 },
                 ]}
-                onPress={() => markRead(item.id)}
+                onPress={() => open(item)}
               >
                 <View style={[styles.iconWrap, !item.isRead && styles.iconWrapUnread]}>
                   <Ionicons

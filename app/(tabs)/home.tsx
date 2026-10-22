@@ -49,7 +49,7 @@ import { ProductCard } from '@/components/ProductCard'
 import { StoreCard } from '@/components/StoreCard'
 import { MessagesBell } from '@/components/MessagesBell'
 import { RateAppDialog } from '@/components/RateAppDialog'
-import { BroEntryCard } from '@/components/bro/BroEntryCard'
+import { BroEntryCard, useBroEnabled } from '@/components/bro/BroEntryCard'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Logo } from '@/components/ui/Logo'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
@@ -410,6 +410,7 @@ interface CategoryItem {
 
 export default function HomeScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
+  const broEnabled = useBroEnabled()
   const { user } = useAuth()
 
   const [stores, setStores] = useState<Store[]>([])
@@ -614,6 +615,19 @@ export default function HomeScreen() {
             "can't find it?" fallback, and away from the carousel so it isn't read as a navy promo slide. */}
         <BroEntryCard variant="home" />
 
+        {/* Sellers' way into the buy-requests board — mirrors the website's home CTA. */}
+        {broEnabled && (
+          <TouchableOpacity
+            style={styles.requestsCta}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            onPress={() => router.push('/(tabs)/requests')}
+          >
+            <Ionicons name="megaphone-outline" size={18} color={colors.dk} />
+            <Text style={styles.requestsCtaText}>{t.bro.checkClientRequests}</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Featured Stores */}
         {stores.length > 0 && (
           <Section title={t.featuredStores} onMore={() => router.push('/(tabs)/stores')}>
@@ -803,6 +817,21 @@ export default function HomeScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  requestsCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    alignSelf: 'center',
+    marginTop: spacing.md,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.y,
+    backgroundColor: colors.white,
+  },
+  requestsCtaText: { fontFamily: fonts.bold, fontSize: 14, color: colors.dk },
   safe: { flex: 1, backgroundColor: colors.dk },
   container: { flex: 1 },
   content: {

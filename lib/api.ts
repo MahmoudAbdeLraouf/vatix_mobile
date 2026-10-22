@@ -668,6 +668,7 @@ export interface Notification {
   body: string
   isRead: boolean
   createdAt: string
+  link?: string | null
 }
 
 export interface Message {

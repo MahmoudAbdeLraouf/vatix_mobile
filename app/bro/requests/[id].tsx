@@ -7,6 +7,7 @@ import { apiFetch, type LocationNode } from '@/lib/api'
 import {
   cancelBroRequest,
   connectBroInquiry,
+  connectBroOffer,
   foundBroRequest,
   getBroRequest,
   rerunBroRequest,
@@ -16,26 +17,15 @@ import {
 import { BroButton } from '@/components/bro/BroButton'
 import { BroCountPills } from '@/components/bro/BroCountPills'
 import { BroMatchCard } from '@/components/bro/BroMatchCard'
+import { BroOfferCard } from '@/components/bro/BroOfferCard'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
 
 const POLL_MS = 15_000
-
-type PrefillParams = Record<string, string>
-
-/** Params for /bro/new carrying the request's own values, in the format the intake parses. */
-function prefillParams(r: BroRequest, opts: { locationId?: number | null; withBudget: boolean }): PrefillParams {
-  const q: PrefillParams = { categoryId: String(r.categoryId) }
-  if (r.brandId) q.brandId = String(r.brandId)
-  if (r.modelText) q.model = r.modelText
-  if (r.storage) q.storage = r.storage
-  if (r.wants.length > 0) q.wants = r.wants.join(',')
-  if (opts.withBudget && r.budgetMax != null && Number(r.budgetMax) > 0) q.budgetMax = String(Number(r.budgetMax))
-  if (opts.locationId) q.locationId = String(opts.locationId)
-  return q
-}
+// Once Geeko is done the request may still sit on the board collecting offers; poll slower.
+const BOARD_POLL_MS = 60_000
 
 export default function BroRequestScreen() {
   const { t } = useLocale()
@@ -53,7 +43,7 @@ export default function BroRequestScreen() {
       </SafeAreaView>
     )
   }
-  // Keyed on id so a rerun (same route, new id) starts from a clean state.
+  // Keyed on id so navigating between requests starts from a clean state.
   return <RequestView key={rawId} id={Number(rawId)} />
 }
 
@@ -71,6 +61,8 @@ function RequestView({ id }: { id: number }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [connectingId, setConnectingId] = useState<number | null>(null)
+  // Separate from connectingId: offer ids and inquiry ids can collide.
+  const [connectingOfferId, setConnectingOfferId] = useState<number | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [now, setNow] = useState(0)
   const [reloadKey, setReloadKey] = useState(0)
@@ -129,11 +121,13 @@ function RequestView({ id }: { id: number }) {
     setReloadKey(k => k + 1)
   }
 
-  // Poll only while searching and focused; cleared on blur and unmount.
+  // Poll while searching (or still on the board collecting offers) and focused; cleared on blur and unmount.
   const searching = view?.request.status === 'searching'
+  const onBoard = view?.onBoard ?? false
+  const pollMs = searching ? POLL_MS : onBoard ? BOARD_POLL_MS : 0
   useFocusEffect(
     useCallback(() => {
-      if (!searching) return
+      if (!pollMs) return
       let cancelled = false
       const timer = setInterval(async () => {
         if (pollInFlight.current) return // skip the tick while the previous fetch is pending
@@ -151,12 +145,12 @@ function RequestView({ id }: { id: number }) {
         } finally {
           pollInFlight.current = false
         }
-      }, POLL_MS)
+      }, pollMs)
       return () => {
         cancelled = true
         clearInterval(timer)
       }
-    }, [searching, fetchLatest]),
+    }, [pollMs, fetchLatest]),
   )
 
   // Resolve the parent location once, so the widen chip is only offered when it can actually widen.
@@ -214,12 +208,27 @@ function RequestView({ id }: { id: number }) {
   const stop = () => endSearch(cancelBroRequest)
   const found = () => endSearch(foundBroRequest)
 
-  function rerun() {
+  // Reruns this same request in place, optionally loosening the area or dropping the budget.
+  function rerunWith(overrides?: { locationId?: number; clearBudget?: boolean }) {
     void run(async () => {
-      const result = await rerunBroRequest(id)
-      router.push(`/bro/requests/${result.request.id}` as never)
+      await rerunBroRequest(id, overrides)
+      const { v, current } = await fetchLatest()
+      if (!current) return
+      if (v) {
+        setNow(Date.now())
+        setView(v)
+        setPollError(false)
+      } else {
+        setError(b.errGeneric)
+      }
     }, setBusy)
   }
+
+  const rerun = () => rerunWith()
+  const widenArea = () => {
+    if (parentLocationId != null) rerunWith({ locationId: parentLocationId })
+  }
+  const dropBudget = () => rerunWith({ clearBudget: true })
 
   function connect(inquiryId: number) {
     void run(async () => {
@@ -228,16 +237,11 @@ function RequestView({ id }: { id: number }) {
     }, on => setConnectingId(on ? inquiryId : null))
   }
 
-  function widenArea(r: BroRequest) {
+  function connectOffer(offerId: number) {
     void run(async () => {
-      router.push({ pathname: '/bro/new', params: prefillParams(r, { locationId: parentLocationId, withBudget: true }) } as never)
-    }, setBusy)
-  }
-
-  function dropBudget(r: BroRequest) {
-    void run(async () => {
-      router.push({ pathname: '/bro/new', params: prefillParams(r, { locationId: r.locationId, withBudget: false }) } as never)
-    }, setBusy)
+      const { conversationId } = await connectBroOffer(offerId)
+      router.push(`/dashboard/messages/${conversationId}` as never)
+    }, on => setConnectingOfferId(on ? offerId : null))
   }
 
   const header = <Stack.Screen options={{ headerShown: true, title: b.listTitle }} />
@@ -266,13 +270,22 @@ function RequestView({ id }: { id: number }) {
     )
   }
 
-  const { request, counts, matches, soldCount } = view
+  const { request, counts, matches, soldCount, offers, offerCount } = view
   const status = request.status
-  const canRerun = status === 'expired' || status === 'done'
+  // A rerun needs the request still live on the board; found/cancelled ones are closed.
+  const canRerun = onBoard && (status === 'expired' || status === 'done')
+  const canFound = status === 'searching' || status === 'done' || status === 'expired'
+  const anyConnecting = busy || connectingId !== null || connectingOfferId !== null
+  const firstAvailableOffer = offers.findIndex(o => o.available)
   // Nobody was asked and the run is over, or it expired: offer to loosen the search.
   const showWiden = status === 'expired' || (status !== 'searching' && status !== 'cancelled' && status !== 'found' && counts.asked === 0)
   const untilDate = new Date(request.expiresAt).toLocaleDateString(ar ? 'ar-EG' : 'en-GB', {
     weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Africa/Cairo',
+  })
+  const boardUntilDate = new Date(view.boardExpiresAt).toLocaleDateString(ar ? 'ar-EG' : 'en-GB', {
     day: 'numeric',
     month: 'long',
     timeZone: 'Africa/Cairo',
@@ -316,27 +329,56 @@ function RequestView({ id }: { id: number }) {
           </Text>
         ) : null}
 
+        {onBoard && !searching ? <Text style={[styles.until, dirStyle]}>{b.stripDone.replace('{date}', boardUntilDate)}</Text> : null}
+
         {pollError ? <Text style={[styles.errSmall, dirStyle]}>{b.errGeneric}</Text> : null}
 
         {matches.length > 0 ? (
           <View style={styles.list}>
-            <Text style={[styles.h2, dirStyle]}>{b.sectionAvailable}</Text>
+            <Text style={[styles.h2, dirStyle]}>{b.broFoundSection}</Text>
             {matches.map(m => (
-              <BroMatchCard key={m.inquiryId} match={m} busy={connectingId === m.inquiryId} now={now} onConnect={connect} />
+              <BroMatchCard
+                key={m.inquiryId}
+                match={m}
+                busy={connectingId === m.inquiryId}
+                disabled={anyConnecting}
+                now={now}
+                showBroTag
+                onConnect={connect}
+              />
             ))}
           </View>
-        ) : !searching ? (
+        ) : null}
+
+        {offers.length > 0 ? (
+          <View style={styles.list}>
+            <Text style={[styles.h2, dirStyle]}>{b.offersSection.replace('{n}', String(offerCount))}</Text>
+            {offers.map((o, i) => (
+              <BroOfferCard
+                key={o.offerId}
+                offer={o}
+                cheapest={i === firstAvailableOffer}
+                busy={connectingOfferId === o.offerId}
+                disabled={anyConnecting}
+                now={now}
+                onConnect={connectOffer}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {matches.length === 0 && offers.length === 0 && !searching ? (
           <View style={[styles.card, styles.centerCard]}>
             <Text style={[styles.emptyTitle, dirStyle]}>{b.emptyTitle}</Text>
           </View>
         ) : null}
 
-        {showWiden ? (
+        {showWiden && canRerun ? (
           <View style={[styles.chips, rowDir]}>
             {parentLocationId != null ? (
-              <BroButton label={b.widenArea} disabled={busy} onPress={() => widenArea(request)} dirStyle={dirStyle} />
+              <BroButton label={b.widenArea} disabled={busy} onPress={widenArea} dirStyle={dirStyle} />
             ) : null}
-            <BroButton label={b.dropBudget} disabled={busy} onPress={() => dropBudget(request)} dirStyle={dirStyle} />
+            <BroButton label={b.dropBudget} disabled={busy} onPress={dropBudget} dirStyle={dirStyle} />
           </View>
         ) : null}
 
@@ -347,8 +389,10 @@ function RequestView({ id }: { id: number }) {
 
         <View style={[styles.chips, rowDir]}>
           {searching ? <Button label={b.stopSearch} variant="outline" size="md" disabled={busy} onPress={stop} /> : null}
-          {searching ? <Button label={b.foundButton} variant="dk" size="md" disabled={busy} onPress={found} /> : null}
+          {canFound ? <Button label={b.foundButton} variant="dk" size="md" disabled={busy} onPress={found} /> : null}
           {canRerun ? <Button label={b.rerun} variant="dk" size="md" disabled={busy} onPress={rerun} /> : null}
+          {/* A way out of a finished request: the buyer can't open another action here, so send them shopping. */}
+          <Button label={b.browseProducts} variant="outline" size="md" onPress={() => router.push('/(tabs)/products' as never)} />
         </View>
       </ScrollView>
     </SafeAreaView>
