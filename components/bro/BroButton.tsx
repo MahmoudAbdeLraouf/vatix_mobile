@@ -3,13 +3,13 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, fonts, radius } from '@/constants/theme'
 
-type Variant = 'outline' | 'dark'
+type Variant = 'outline' | 'dark' | 'yellow'
 type Size = 'sm' | 'md'
 export type BroIconName = React.ComponentProps<typeof Ionicons>['name']
 
 /**
  * Bro action button.
- * - Button mode (default): outline = secondary, dark = primary. `size="md"` is the 44pt tap target.
+ * - Button mode (default): outline = secondary, dark = primary, yellow = accent CTA. `size="md"` is the 44pt tap target.
  * - Chip mode (`chip`): rounded selectable pill; `selected` switches to the yellow-tint state.
  */
 export function BroButton({
@@ -36,6 +36,7 @@ export function BroButton({
   dirStyle?: object
 }) {
   const dark = !chip && variant === 'dark'
+  const yellow = !chip && variant === 'yellow'
   const on = !!chip && !!selected
   const fg = chip ? (on ? colors.dk : colors.g700) : dark ? colors.white : colors.dk
   return (
@@ -47,7 +48,7 @@ export function BroButton({
       style={({ pressed }) => [
         styles.btn,
         chip ? styles.chip : size === 'md' ? styles.btnMd : styles.btnSm,
-        chip ? (on ? styles.chipOn : styles.chipOff) : dark ? styles.btnDark : styles.btnOutline,
+        chip ? (on ? styles.chipOn : styles.chipOff) : dark ? styles.btnDark : yellow ? styles.btnYellow : styles.btnOutline,
         fullWidth && styles.fullWidth,
         pressed && !disabled && styles.pressed,
         disabled && styles.disabled,
@@ -78,6 +79,7 @@ const styles = StyleSheet.create({
   chip: { minHeight: 36, paddingHorizontal: 14, paddingVertical: 6, borderRadius: radius.full },
   btnOutline: { backgroundColor: colors.white, borderColor: colors.g200 },
   btnDark: { backgroundColor: colors.dk, borderColor: colors.dk },
+  btnYellow: { backgroundColor: colors.y, borderColor: colors.y },
   chipOff: { backgroundColor: colors.white, borderColor: colors.g200 },
   chipOn: { backgroundColor: colors.yl, borderColor: colors.y, borderWidth: 1.5 },
   fullWidth: { alignSelf: 'stretch' },
