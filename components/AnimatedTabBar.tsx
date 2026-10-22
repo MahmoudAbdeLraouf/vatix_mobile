@@ -16,7 +16,7 @@ const NOTCH_DEPTH = 34
 const NOTCH_HALF = 46
 const BUBBLE_TOP = NOTCH_DEPTH - 5 - BUBBLE // bubble floats 5px above the notch floor
 const CORNER = 24
-const LABEL_GAP = 6 // breathing room under the labels, above the safe-area inset
+const LABEL_GAP = 12 // breathing room under the labels, above the safe-area inset
 
 // White strip 2× the screen width with the notch at its middle; sliding it sideways moves the notch
 // without re-drawing the path, so the native driver can animate it.
