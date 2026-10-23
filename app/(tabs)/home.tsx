@@ -203,7 +203,10 @@ function PromoCard({ item, onPress }: { item: PromoSlide; onPress: () => void })
     <TouchableOpacity
       activeOpacity={0.88}
       onPress={onPress}
-      style={[promoStyles.card, { width: PROMO_W, direction: isRtl ? 'rtl' : 'ltr' }]}
+      style={[
+        promoStyles.card,
+        { width: PROMO_W, direction: isRtl ? 'rtl' : 'ltr', backgroundColor: theme.from },
+      ]}
     >
       {/* Inner layer clips the rounded corners; the outer one keeps the shadow. */}
       <View style={promoStyles.inner}>
@@ -217,24 +220,27 @@ function PromoCard({ item, onPress }: { item: PromoSlide; onPress: () => void })
           <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
         </Svg>
 
-        <View style={promoStyles.textCol}>
-          <Text style={[promoStyles.title, { color: theme.title }]} numberOfLines={1}>
-            {t[item.titleKey]}
-          </Text>
-          <Text style={[promoStyles.sub, { color: theme.sub }]} numberOfLines={1}>
-            {t[item.subKey]}
-          </Text>
-          <View style={[promoStyles.btn, { backgroundColor: theme.btnBg }]}>
-            <Text style={[promoStyles.btnText, { color: theme.btnText }]}>{t[item.btnKey]}</Text>
-            <Ionicons
-              name={isRtl ? 'arrow-back-outline' : 'arrow-forward-outline'}
-              size={13}
-              color={theme.btnText}
-            />
+        {/* Padding lives on this row, not the clip layer, so the gradient spans the full card. */}
+        <View style={promoStyles.row}>
+          <View style={promoStyles.textCol}>
+            <Text style={[promoStyles.title, { color: theme.title }]} numberOfLines={1}>
+              {t[item.titleKey]}
+            </Text>
+            <Text style={[promoStyles.sub, { color: theme.sub }]} numberOfLines={1}>
+              {t[item.subKey]}
+            </Text>
+            <View style={[promoStyles.btn, { backgroundColor: theme.btnBg }]}>
+              <Text style={[promoStyles.btnText, { color: theme.btnText }]}>{t[item.btnKey]}</Text>
+              <Ionicons
+                name={isRtl ? 'arrow-back-outline' : 'arrow-forward-outline'}
+                size={13}
+                color={theme.btnText}
+              />
+            </View>
           </View>
-        </View>
 
-        <SvgXml xml={item.art} width={128} height={128} />
+          <SvgXml xml={item.art} width={128} height={128} />
+        </View>
       </View>
     </TouchableOpacity>
   )
@@ -244,7 +250,6 @@ const promoStyles = StyleSheet.create({
   card: {
     height: PROMO_H,
     borderRadius: 20,
-    backgroundColor: colors.dk,
     elevation: 4,
     shadowColor: colors.dk,
     shadowOffset: { width: 0, height: 4 },
@@ -255,6 +260,9 @@ const promoStyles = StyleSheet.create({
     flex: 1,
     borderRadius: 20,
     overflow: 'hidden',
+  },
+  row: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -956,11 +964,14 @@ const styles = StyleSheet.create({
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
+  // The list pads vertically so card shadows are not clipped by the scroller
+  // (a clipped shadow shows as a grey band); marginTop absorbs that padding.
   promoSection: {
-    marginTop: spacing.lg,
+    marginTop: spacing.lg - spacing.md,
   },
   promoList: {
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
 
