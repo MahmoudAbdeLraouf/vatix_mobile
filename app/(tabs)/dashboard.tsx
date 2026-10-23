@@ -367,6 +367,7 @@ export default function MoreScreen() {
             icon="list-outline"
             label={t.myAds}
             value={adsValue}
+            colDir={colDir}
             dirStyle={dirStyle}
             onPress={() => router.push('/dashboard/my-ads')}
           />
@@ -375,6 +376,7 @@ export default function MoreScreen() {
             label={t.messages}
             value={msgError ? '—' : null}
             badge={msgUnread && msgUnread > 0 ? msgUnread : null}
+            colDir={colDir}
             dirStyle={dirStyle}
             onPress={() => router.push('/dashboard/messages')}
           />
@@ -576,6 +578,7 @@ function QuickCard({
   label,
   value,
   badge,
+  colDir,
   dirStyle,
   onPress,
 }: {
@@ -583,6 +586,7 @@ function QuickCard({
   label: string
   value: string | null
   badge?: number | null
+  colDir: DirProps['colDir']
   dirStyle: DirProps['dirStyle']
   onPress: () => void
 }) {
@@ -590,7 +594,7 @@ function QuickCard({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      style={({ pressed }) => [styles.quickCard, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [styles.quickCard, colDir, pressed && { opacity: 0.85 }]}
     >
       <View style={styles.quickIcon}>
         <Ionicons name={icon} size={20} color={colors.dk} />
