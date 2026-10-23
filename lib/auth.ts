@@ -355,14 +355,20 @@ async function _authFetchImpl<T>(
     throw new AuthFetchError(AUTH_ERR.SESSION_EXPIRED, 401)
   }
 
+  // Authenticated reads are live data (offers, chats, balances): skip the native
+  // HTTP cache, which can otherwise replay a stale copy on the next open.
+  const noCache = isIdempotentMethod(init)
+
   let res: Response
   try {
     res = await fetch(`${BASE}${path}`, {
+      ...(noCache ? { cache: 'no-store' as RequestCache } : null),
       ...init,
       headers: {
         'Content-Type': 'application/json',
         'X-Client-Platform': CLIENT_PLATFORM,
         Authorization: `Bearer ${token}`,
+        ...(noCache ? { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } : null),
         ...(init?.headers as Record<string, string> | undefined),
       },
     })
