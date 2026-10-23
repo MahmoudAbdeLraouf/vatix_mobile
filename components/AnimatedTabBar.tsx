@@ -16,7 +16,7 @@ const NOTCH_DEPTH = 34
 const NOTCH_HALF = 46
 const BUBBLE_TOP = NOTCH_DEPTH - 5 - BUBBLE // bubble floats 5px above the notch floor
 const CORNER = 24
-const LABEL_GAP = 6 // breathing room under the labels, above the safe-area inset
+const INSET_OVERLAP = 12 // labels may sit over the top of the home-indicator area; the full inset left a tall empty band
 
 // White strip 2× the screen width with the notch at its middle; sliding it sideways moves the notch
 // without re-drawing the path, so the native driver can animate it.
@@ -50,7 +50,7 @@ export function AnimatedTabBar({
   fabLabel: string
 }) {
   const { width } = useWindowDimensions()
-  const height = BAR_H + LABEL_GAP + Math.max(bottomInset, 8)
+  const height = BAR_H + Math.max(bottomInset - INSET_OVERLAP, 8)
   const routes = visible
     .map(name => state.routes.find(r => r.name === name))
     .filter((r): r is (typeof state.routes)[number] => !!r)
