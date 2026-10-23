@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { Stack, router } from 'expo-router'
-import { broHeader } from '@/components/bro/BroStackHeader'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { isLoggedIn } from '@/lib/auth'
 import { getBroRequest, listBroRequests, type BroRequest, type BroRequestView } from '@/lib/bro'
@@ -22,6 +22,7 @@ type Counts = BroRequestView['counts']
 export default function BroListScreen() {
   const { t } = useLocale()
   const b = t.bro
+  const insets = useSafeAreaInsets()
 
   const [requests, setRequests] = useState<BroRequest[] | null>(null)
   const [loading, setLoading] = useState(true)
@@ -119,10 +120,11 @@ export default function BroListScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <Stack.Screen options={broHeader(b.listTitle)} />
+    <DashboardLayout title={b.listTitle} scroll={false} contentPadding={false}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
-        contentContainerStyle={styles.content}
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.y]} tintColor={colors.y} />
         }
@@ -134,12 +136,12 @@ export default function BroListScreen() {
         ) : null}
         {body}
       </ScrollView>
-    </SafeAreaView>
+    </DashboardLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
-  content: { padding: spacing.md, paddingBottom: spacing.xl },
+  scroll: { flex: 1 },
+  content: { padding: spacing.md },
   head: { marginBottom: spacing.md },
 })
