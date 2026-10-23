@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
-import { broHeader } from '@/components/bro/BroStackHeader'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { isLoggedIn } from '@/lib/auth'
 import { connectBroOffer, getBroRequest, type BroRequestView } from '@/lib/bro'
@@ -21,12 +21,10 @@ export default function BroRequestOffersScreen() {
   // A non-numeric id is a dead link: show the error state without calling the API.
   if (!rawId || !/^[1-9]\d*$/.test(rawId)) {
     return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <Stack.Screen options={broHeader(t.bro.offersPageTitle)} />
-        <ScrollView contentContainerStyle={styles.content}>
-          <ErrorState title={t.bro.errGeneric} />
-        </ScrollView>
-      </SafeAreaView>
+      <DashboardLayout title={t.bro.offersPageTitle}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <ErrorState title={t.bro.errGeneric} />
+      </DashboardLayout>
     )
   }
   return <OffersView key={rawId} id={Number(rawId)} />
@@ -37,6 +35,7 @@ function OffersView({ id }: { id: number }) {
   const b = t.bro
   const ar = locale === 'ar'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
+  const insets = useSafeAreaInsets()
 
   const [view, setView] = useState<BroRequestView | null>(null)
   const [loading, setLoading] = useState(true)
@@ -117,28 +116,26 @@ function OffersView({ id }: { id: number }) {
     }
   }
 
-  const header = <Stack.Screen options={broHeader(b.offersPageTitle)} />
+  const header = <Stack.Screen options={{ headerShown: false }} />
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <DashboardLayout title={b.offersPageTitle}>
         {header}
-        <View style={styles.content}>
+        <View style={styles.list}>
           <SkeletonCard />
           <SkeletonCard />
         </View>
-      </SafeAreaView>
+      </DashboardLayout>
     )
   }
 
   if (failed || !view) {
     return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <DashboardLayout title={b.offersPageTitle}>
         {header}
-        <ScrollView contentContainerStyle={styles.content}>
-          <ErrorState title={b.errGeneric} retryLabel={b.retry} onRetry={retry} />
-        </ScrollView>
-      </SafeAreaView>
+        <ErrorState title={b.errGeneric} retryLabel={b.retry} onRetry={retry} />
+      </DashboardLayout>
     )
   }
 
@@ -148,10 +145,11 @@ function OffersView({ id }: { id: number }) {
   const cheapestIndex = offers.findIndex(o => o.available)
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <DashboardLayout title={b.offersPageTitle} scroll={false} contentPadding={false}>
       {header}
       <ScrollView
-        contentContainerStyle={styles.content}
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[colors.y]} tintColor={colors.y} />}
       >
         <Pressable
@@ -191,13 +189,13 @@ function OffersView({ id }: { id: number }) {
 
         {error ? <Text style={[styles.err, dirStyle]}>{error}</Text> : null}
       </ScrollView>
-    </SafeAreaView>
+    </DashboardLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
-  content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
+  scroll: { flex: 1 },
+  content: { padding: spacing.md, gap: spacing.md },
   card: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,
