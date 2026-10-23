@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Dimensions,
@@ -14,9 +14,9 @@ import {
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { SvgXml } from 'react-native-svg'
+import Svg, { Defs, LinearGradient, Rect, Stop, SvgXml } from 'react-native-svg'
 import * as Sentry from '@sentry/react-native'
 import * as Application from 'expo-application'
 import Constants from 'expo-constants'
@@ -35,7 +35,7 @@ import {
   Product,
   Store,
 } from '@/lib/api'
-import { markActionSeen } from '@/lib/auth'
+import { markActionSeen, type StoredUser } from '@/lib/auth'
 import {
   bumpEngagement,
   markShown as markRateAppShown,
@@ -49,10 +49,13 @@ import { ProductCard } from '@/components/ProductCard'
 import { StoreCard } from '@/components/StoreCard'
 import { MessagesBell } from '@/components/MessagesBell'
 import { RateAppDialog } from '@/components/RateAppDialog'
-import { BroEntryCard } from '@/components/bro/BroEntryCard'
+import { BroEntryCard, useBroEnabled } from '@/components/bro/BroEntryCard'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Logo } from '@/components/ui/Logo'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { geekoXml, requestXml } from '@/assets/promo/art'
+import { slide2Xml } from '@/assets/onboarding/slide-2'
+import { slide3Xml } from '@/assets/onboarding/slide-3'
 
 const { width: SCREEN_W } = Dimensions.get('window')
 const CARD_W = Math.floor((SCREEN_W - spacing.lg * 2 - spacing.md) / 2)
@@ -64,126 +67,174 @@ const APP_BUILD = Application.nativeBuildVersion ?? '—'
 
 type IoniconName = SharedIoniconName
 
-// ─── Promo Carousel Data ──────────────────────────────────────────────────────
+// ─── Promo Carousel ───────────────────────────────────────────────────────────
 
-interface PromoBanner {
-  id: number
-  bg: string
-  titleColor: string
-  subColor: string
-  accentColor: string
+const PROMO_H = 150
+const PROMO_INTERVAL = PROMO_W + spacing.md
+const PROMO_AUTO_MS = 5000
+
+interface PromoTheme {
+  from: string
+  to: string
+  title: string
+  sub: string
   btnBg: string
   btnText: string
-  iconBg: string
-  icon: IoniconName
-  badgeAr: string
-  badgeEn: string
-  titleKey: 'promoAddTitle' | 'promoDealsTitle' | 'promoStoresTitle'
-  subKey: 'promoAddSubtitle' | 'promoDealsSubtitle' | 'promoStoresSubtitle'
-  btnKey: 'promoAddCta' | 'promoDealsCta' | 'promoStoresCta'
-  onPress: () => void
+  artMap: Record<string, string>
 }
 
-const PROMO_BANNERS: PromoBanner[] = [
+const PROMO_NAVY: PromoTheme = {
+  from: '#1A437E',
+  to: colors.dk,
+  title: colors.white,
+  sub: 'rgba(255,255,255,0.72)',
+  btnBg: colors.y,
+  btnText: colors.dk,
+  artMap: {
+    '#eaecf0': 'rgba(255,255,255,0.12)',
+    '#c9d1de': 'rgba(255,255,255,0.35)',
+    '#062b5b': colors.y,
+  },
+}
+
+const PROMO_GOLD: PromoTheme = {
+  from: '#FFD24D',
+  to: colors.y,
+  title: colors.dk,
+  sub: 'rgba(6,43,91,0.72)',
+  btnBg: colors.dk,
+  btnText: colors.white,
+  artMap: {
+    '#eaecf0': 'rgba(255,255,255,0.35)',
+    '#c9d1de': 'rgba(255,255,255,0.6)',
+  },
+}
+
+// Onboarding art is drawn in navy/grey; remap so it reads on the card colour.
+function recolorArt(xml: string, map: Record<string, string>) {
+  return Object.entries(map).reduce(
+    (out, [from, to]) => out.split(from).join(to).split(from.toUpperCase()).join(to),
+    xml,
+  )
+}
+
+type PromoId = 'geeko' | 'ask' | 'add' | 'open'
+
+interface PromoSlide {
+  id: PromoId
+  theme: PromoTheme
+  art: string
+  titleKey: 'promoGeekoTitle' | 'promoAskTitle' | 'promoAddTitle' | 'promoOpenTitle'
+  subKey: 'promoGeekoSubtitle' | 'promoAskSubtitle' | 'promoAddSubtitle' | 'promoOpenSubtitle'
+  btnKey: 'promoGeekoCta' | 'promoAskCta' | 'promoAddCta' | 'promoOpenCta'
+}
+
+// Same slides for every user type; only the tap destination differs.
+const PROMO_SLIDES: PromoSlide[] = [
   {
-    id: 1,
-    bg: colors.dk,
-    titleColor: colors.y,
-    subColor: 'rgba(255,255,255,0.65)',
-    accentColor: colors.y,
-    btnBg: colors.y,
-    btnText: colors.dk,
-    iconBg: 'rgba(245,184,0,0.15)',
-    icon: 'add-circle-outline',
-    badgeAr: 'بائع',
-    badgeEn: 'Seller',
+    id: 'geeko',
+    theme: PROMO_NAVY,
+    art: recolorArt(geekoXml, PROMO_NAVY.artMap),
+    titleKey: 'promoGeekoTitle',
+    subKey: 'promoGeekoSubtitle',
+    btnKey: 'promoGeekoCta',
+  },
+  {
+    id: 'ask',
+    theme: PROMO_GOLD,
+    art: recolorArt(requestXml(colors.dk, colors.white, colors.y), PROMO_GOLD.artMap),
+    titleKey: 'promoAskTitle',
+    subKey: 'promoAskSubtitle',
+    btnKey: 'promoAskCta',
+  },
+  {
+    id: 'add',
+    theme: PROMO_NAVY,
+    art: recolorArt(slide2Xml, PROMO_NAVY.artMap),
     titleKey: 'promoAddTitle',
     subKey: 'promoAddSubtitle',
     btnKey: 'promoAddCta',
-    onPress: () => router.push('/products/new'),
   },
   {
-    id: 2,
-    bg: colors.y,
-    titleColor: colors.dk,
-    subColor: 'rgba(26,37,64,0.65)',
-    accentColor: colors.dk,
-    btnBg: colors.dk,
-    btnText: colors.y,
-    iconBg: 'rgba(26,37,64,0.12)',
-    icon: 'grid-outline',
-    badgeAr: 'تسوّق',
-    badgeEn: 'Shop',
-    titleKey: 'promoDealsTitle',
-    subKey: 'promoDealsSubtitle',
-    btnKey: 'promoDealsCta',
-    onPress: () => router.push('/(tabs)/products'),
-  },
-  {
-    id: 3,
-    bg: colors.dk3,
-    titleColor: colors.white,
-    subColor: 'rgba(255,255,255,0.6)',
-    accentColor: colors.y,
-    btnBg: colors.y,
-    btnText: colors.dk,
-    iconBg: 'rgba(245,184,0,0.15)',
-    icon: 'storefront-outline',
-    badgeAr: 'موثوق',
-    badgeEn: 'Trusted',
-    titleKey: 'promoStoresTitle',
-    subKey: 'promoStoresSubtitle',
-    btnKey: 'promoStoresCta',
-    onPress: () => router.push('/(tabs)/stores'),
+    id: 'open',
+    theme: PROMO_GOLD,
+    art: recolorArt(slide3Xml, PROMO_GOLD.artMap),
+    titleKey: 'promoOpenTitle',
+    subKey: 'promoOpenSubtitle',
+    btnKey: 'promoOpenCta',
   },
 ]
 
+const BRO_SLIDES: PromoId[] = ['geeko', 'ask']
+
+function openPromo(id: PromoId, user: StoredUser | null) {
+  switch (id) {
+    case 'geeko':
+    case 'ask':
+      // /bro/new sends guests to login itself and keeps their draft.
+      router.push({
+        pathname: '/bro/new',
+        params: { source: 'home' },
+      } as never)
+      return
+    case 'add':
+      if (user) router.push('/products/new')
+      else
+        router.push({
+          pathname: '/(auth)/login',
+          params: { redirect: '/products/new' },
+        })
+      return
+    case 'open':
+      if (!user) router.push('/(auth)/login')
+      else if (user.isStore) router.push(`/store/${user.id}`)
+      else router.push('/dashboard/subscription')
+      return
+  }
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function PromoCard({ item }: { item: PromoBanner }) {
+function PromoCard({ item, onPress }: { item: PromoSlide; onPress: () => void }) {
   const { t, isRtl } = useLocale()
+  const { theme } = item
+  const gradientId = `promo-${item.id}`
   return (
     <TouchableOpacity
       activeOpacity={0.88}
-      onPress={item.onPress}
-      style={[promoStyles.card, { backgroundColor: item.bg, width: PROMO_W }]}
+      onPress={onPress}
+      style={[promoStyles.card, { width: PROMO_W, direction: isRtl ? 'rtl' : 'ltr' }]}
     >
-      {/* Background decorative circles */}
-      <View style={[promoStyles.bgCircle, { backgroundColor: item.accentColor }]} />
-      <View style={[promoStyles.bgCircleSmall, { backgroundColor: item.accentColor }]} />
+      {/* Inner layer clips the rounded corners; the outer one keeps the shadow. */}
+      <View style={promoStyles.inner}>
+        <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+          <Defs>
+            <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor={theme.from} />
+              <Stop offset="1" stopColor={theme.to} />
+            </LinearGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
+        </Svg>
 
-      <View style={promoStyles.row}>
-        {/* Text column */}
         <View style={promoStyles.textCol}>
-          <View style={[promoStyles.badge, { backgroundColor: item.btnBg }]}>
-            <Text style={[promoStyles.badgeText, { color: item.btnText }]}>
-              {isRtl ? item.badgeAr : item.badgeEn}
-            </Text>
-          </View>
-          <Text style={[promoStyles.title, { color: item.titleColor }]} numberOfLines={2}>
+          <Text style={[promoStyles.title, { color: theme.title }]} numberOfLines={1}>
             {t[item.titleKey]}
           </Text>
-          <Text style={[promoStyles.sub, { color: item.subColor }]} numberOfLines={2}>
+          <Text style={[promoStyles.sub, { color: theme.sub }]} numberOfLines={1}>
             {t[item.subKey]}
           </Text>
-          <View style={[promoStyles.btn, { backgroundColor: item.btnBg }]}>
-            <Text style={[promoStyles.btnText, { color: item.btnText }]}>
-              {t[item.btnKey]}
-            </Text>
+          <View style={[promoStyles.btn, { backgroundColor: theme.btnBg }]}>
+            <Text style={[promoStyles.btnText, { color: theme.btnText }]}>{t[item.btnKey]}</Text>
             <Ionicons
               name={isRtl ? 'arrow-back-outline' : 'arrow-forward-outline'}
               size={13}
-              color={item.btnText}
+              color={theme.btnText}
             />
           </View>
         </View>
 
-        {/* Icon column */}
-        <View style={promoStyles.iconCol}>
-          <View style={[promoStyles.iconCircle, { backgroundColor: item.iconBg }]}>
-            <Ionicons name={item.icon} size={38} color={item.titleColor} />
-          </View>
-        </View>
+        <SvgXml xml={item.art} width={128} height={128} />
       </View>
     </TouchableOpacity>
   )
@@ -191,94 +242,151 @@ function PromoCard({ item }: { item: PromoBanner }) {
 
 const promoStyles = StyleSheet.create({
   card: {
-    borderRadius: radius.xl,
-    height: 190,
-    overflow: 'hidden',
-    elevation: 6,
-    shadowColor: '#000',
+    height: PROMO_H,
+    borderRadius: 20,
+    backgroundColor: colors.dk,
+    elevation: 4,
+    shadowColor: colors.dk,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 10,
   },
-  bgCircle: {
-    position: 'absolute',
-    width: 230,
-    height: 230,
-    borderRadius: radius.full,
-    top: -70,
-    end: -70,
-    opacity: 0.1,
-  },
-  bgCircleSmall: {
-    position: 'absolute',
-    width: 110,
-    height: 110,
-    borderRadius: radius.full,
-    bottom: -40,
-    start: -30,
-    opacity: 0.07,
-  },
-  row: {
+  inner: {
     flex: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingStart: spacing.lg,
-    paddingEnd: spacing.md,
-    paddingVertical: spacing.lg,
-    gap: spacing.md,
+    gap: 8,
+    paddingStart: 20,
+    paddingEnd: 4,
   },
   textCol: {
     flex: 1,
-    gap: 8,
-  },
-  badge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.full,
-  },
-  badgeText: {
-    fontFamily: fonts.bold,
-    fontSize: 10,
-    letterSpacing: 0.4,
+    alignItems: 'flex-start',
   },
   title: {
     fontFamily: fonts.black,
-    fontSize: 19,
-    lineHeight: 26,
+    fontSize: 21,
+    lineHeight: 28,
   },
   sub: {
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    lineHeight: 16,
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
   },
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 7,
+    marginTop: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
     borderRadius: radius.full,
-    marginTop: 2,
   },
   btnText: {
     fontFamily: fonts.bold,
-    fontSize: 12,
-  },
-  iconCol: {
-    width: 86,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontSize: 11,
   },
 })
+
+// ScrollView + map instead of FlatList to avoid Android RTL ANR: horizontal
+// FlatList's batched item mount fires repeated onContentSizeChange, and each
+// one recurses through ReactHorizontalScrollView.adjustPositionForContentChangeRTL
+// → scrollTo → new layout → another content-size change. See Sentry
+// VATIX-MOBILE-33. The scroller itself is pinned LTR (cards restore their own
+// direction) so offsets map to slide indexes the same way on both platforms.
+function PromoCarousel() {
+  const { user } = useAuth()
+  const broEnabled = useBroEnabled()
+  const slides = useMemo(
+    () => (broEnabled ? PROMO_SLIDES : PROMO_SLIDES.filter(s => !BRO_SLIDES.includes(s.id))),
+    [broEnabled],
+  )
+
+  const scrollRef = useRef<ScrollView>(null)
+  const [active, setActive] = useState(0)
+  const activeRef = useRef(0)
+  const touchingRef = useRef(false)
+  const lastMoveRef = useRef(Date.now())
+
+  const setIndex = useCallback((i: number) => {
+    activeRef.current = i
+    setActive(i)
+  }, [])
+
+  // Slide list changes once Bro status resolves — start over from the first.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ x: 0, animated: false })
+    setIndex(0)
+  }, [slides.length, setIndex])
+
+  // Auto-advance while the home tab is focused: moves on once a slide has been
+  // showing for PROMO_AUTO_MS, never while a finger is on the carousel. Polls
+  // each second so a swipe restarts the countdown instead of skipping a tick.
+  useFocusEffect(
+    useCallback(() => {
+      if (slides.length < 2) return
+      lastMoveRef.current = Date.now()
+      const timer = setInterval(() => {
+        if (touchingRef.current) return
+        if (Date.now() - lastMoveRef.current < PROMO_AUTO_MS) return
+        const next = (activeRef.current + 1) % slides.length
+        scrollRef.current?.scrollTo({
+          x: next * PROMO_INTERVAL,
+          animated: true,
+        })
+        setIndex(next)
+        lastMoveRef.current = Date.now()
+      }, 1000)
+      return () => clearInterval(timer)
+    }, [slides.length, setIndex]),
+  )
+
+  const onScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const i = Math.round(e.nativeEvent.contentOffset.x / PROMO_INTERVAL)
+      const clamped = Math.max(0, Math.min(slides.length - 1, i))
+      if (clamped !== activeRef.current) setIndex(clamped)
+    },
+    [slides.length, setIndex],
+  )
+
+  const holdStart = useCallback(() => {
+    touchingRef.current = true
+  }, [])
+  const holdEnd = useCallback(() => {
+    touchingRef.current = false
+    lastMoveRef.current = Date.now()
+  }, [])
+
+  return (
+    <View style={styles.promoSection}>
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        style={{ direction: 'ltr' }}
+        contentContainerStyle={styles.promoList}
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={PROMO_INTERVAL}
+        decelerationRate="fast"
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        onTouchStart={holdStart}
+        onTouchEnd={holdEnd}
+        onTouchCancel={holdEnd}
+        onScrollBeginDrag={holdStart}
+        onScrollEndDrag={holdEnd}
+      >
+        {slides.map(item => (
+          <PromoCard key={item.id} item={item} onPress={() => openPromo(item.id, user)} />
+        ))}
+      </ScrollView>
+      <PromoDots count={slides.length} active={active} />
+    </View>
+  )
+}
 
 function PromoDots({ count, active }: { count: number; active: number }) {
   return (
@@ -291,7 +399,13 @@ function PromoDots({ count, active }: { count: number; active: number }) {
 }
 
 const dotStyles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 5, justifyContent: 'center', marginTop: spacing.sm },
+  row: {
+    flexDirection: 'row',
+    direction: 'ltr',
+    gap: 5,
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+  },
   dot: {
     width: 6,
     height: 6,
@@ -421,7 +535,6 @@ export default function HomeScreen() {
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const [activePromo, setActivePromo] = useState(0)
   const [search, setSearch] = useState('')
   const [showRateAppDialog, setShowRateAppDialog] = useState(false)
 
@@ -528,11 +641,6 @@ export default function HomeScreen() {
     }
   }, [user?.type])
 
-  const handlePromoScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const x = e.nativeEvent.contentOffset.x
-    setActivePromo(Math.round(x / (PROMO_W + spacing.md)))
-  }, [])
-
   const submitSearch = useCallback(() => {
     const q = search.trim()
     if (q) {
@@ -553,28 +661,7 @@ export default function HomeScreen() {
   const listHeader = useMemo(
     () => (
       <>
-        {/* Promo Carousel — ScrollView + map instead of FlatList to avoid
-            Android RTL ANR: horizontal FlatList's batched item mount fires
-            repeated onContentSizeChange, and each one recurses through
-            ReactHorizontalScrollView.adjustPositionForContentChangeRTL →
-            scrollTo → new layout → another content-size change. See
-            Sentry VATIX-MOBILE-33. */}
-        <View style={styles.promoSection}>
-          <ScrollView
-            horizontal
-            contentContainerStyle={styles.promoList}
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={PROMO_W + spacing.md}
-            decelerationRate="fast"
-            onScroll={handlePromoScroll}
-            scrollEventThrottle={16}
-          >
-            {PROMO_BANNERS.map(item => (
-              <PromoCard key={item.id} item={item} />
-            ))}
-          </ScrollView>
-          <PromoDots count={PROMO_BANNERS.length} active={activePromo} />
-        </View>
+        <PromoCarousel />
 
         {/* Category Icons */}
         {categories.length > 1 && (
@@ -656,12 +743,10 @@ export default function HomeScreen() {
     ),
     [
       t,
-      activePromo,
       categories,
       stores,
       featuredProducts,
       latestProducts.length,
-      handlePromoScroll,
     ],
   )
 

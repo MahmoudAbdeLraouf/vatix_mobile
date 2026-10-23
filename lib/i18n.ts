@@ -173,12 +173,15 @@ export interface Translations {
   browseStores: string
   visitStore: string
   // Promo banners
-  promoDealsTitle: string
-  promoDealsSubtitle: string
-  promoDealsCta: string
-  promoStoresTitle: string
-  promoStoresSubtitle: string
-  promoStoresCta: string
+  promoGeekoTitle: string
+  promoGeekoSubtitle: string
+  promoGeekoCta: string
+  promoAskTitle: string
+  promoAskSubtitle: string
+  promoAskCta: string
+  promoOpenTitle: string
+  promoOpenSubtitle: string
+  promoOpenCta: string
   promoAddTitle: string
   promoAddSubtitle: string
   promoAddCta: string
@@ -1216,12 +1219,15 @@ export const translations: Record<Locale, Translations> = {
     browseStores: 'تصفّح المتاجر',
     visitStore: 'زيارة المتجر',
     // Promo banners
-    promoDealsTitle: 'اكتشف أفضل العروض',
-    promoDealsSubtitle: 'إلكترونيات بأسعار تنافسية في مصر',
-    promoDealsCta: 'تسوّق الآن',
-    promoStoresTitle: 'متاجر موثوقة',
-    promoStoresSubtitle: 'تسوّق من أفضل المتاجر المصرية',
-    promoStoresCta: 'استعرض المتاجر',
+    promoGeekoTitle: 'خلّي جيكو يدوّرلك',
+    promoGeekoSubtitle: 'قوله عايز إيه وهو يسأل البياعين',
+    promoGeekoCta: 'اسأل جيكو',
+    promoAskTitle: 'اطلب أي جهاز',
+    promoAskSubtitle: 'والبياعين يبعتولك عروضهم',
+    promoAskCta: 'اطلب الآن',
+    promoOpenTitle: 'افتح متجرك',
+    promoOpenSubtitle: 'منتجات بلا حد وصفحة خاصة لمتجرك',
+    promoOpenCta: 'افتح متجرك',
     promoAddTitle: 'أضف منتجك الآن!',
     promoAddSubtitle: 'بع منتجاتك لآلاف المشترين في مصر',
     promoAddCta: 'أضف الآن',
@@ -2188,12 +2194,15 @@ export const translations: Record<Locale, Translations> = {
     browseStores: 'Browse stores',
     visitStore: 'Visit store',
     // Promo banners
-    promoDealsTitle: 'Discover Best Deals',
-    promoDealsSubtitle: 'Electronics at competitive prices in Egypt',
-    promoDealsCta: 'Shop Now',
-    promoStoresTitle: 'Trusted Stores',
-    promoStoresSubtitle: "Shop from Egypt's top stores",
-    promoStoresCta: 'Browse Stores',
+    promoGeekoTitle: 'Let Geeko find it',
+    promoGeekoSubtitle: 'Tell him what you want, he asks sellers',
+    promoGeekoCta: 'Ask Geeko',
+    promoAskTitle: 'Request any device',
+    promoAskSubtitle: 'Sellers send you their offers',
+    promoAskCta: 'Request now',
+    promoOpenTitle: 'Open your store',
+    promoOpenSubtitle: 'Unlimited products and your own store page',
+    promoOpenCta: 'Open store',
     promoAddTitle: 'List Your Product!',
     promoAddSubtitle: 'Sell to thousands of buyers across Egypt',
     promoAddCta: 'Add Now',
