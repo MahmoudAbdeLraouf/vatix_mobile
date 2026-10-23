@@ -62,6 +62,7 @@ export interface Translations {
   products: string
   stores: string
   dashboard: string
+  moreTab: string
   // Home
   featured: string
   featuredStores: string
@@ -1104,6 +1105,7 @@ export const translations: Record<Locale, Translations> = {
     products: 'المنتجات',
     stores: 'المتاجر',
     dashboard: 'حسابي',
+    moreTab: 'المزيد',
     // Home
     featured: 'مميز',
     featuredStores: 'متاجر مميزة',
@@ -2075,6 +2077,7 @@ export const translations: Record<Locale, Translations> = {
     products: 'Products',
     stores: 'Stores',
     dashboard: 'My Account',
+    moreTab: 'More',
     // Home
     featured: 'Featured',
     featuredStores: 'Featured Stores',

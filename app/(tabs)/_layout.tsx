@@ -75,7 +75,7 @@ export default function TabsLayout() {
       {/* Hidden from the bar; still reachable from notifications and the requests flow. */}
       <Tabs.Screen name="bro-finds" options={{ title: t.bro.tabLabel, href: null }} />
       {/* Open to guests too — the screen shows its own sign-in card. */}
-      <Tabs.Screen name="dashboard" options={{ title: t.dashboard }} />
+      <Tabs.Screen name="dashboard" options={{ title: t.moreTab }} />
     </Tabs>
     <Modal visible={chooserOpen} transparent animationType="fade" onRequestClose={() => setChooserOpen(false)}>
       <Pressable style={styles.backdrop} onPress={() => setChooserOpen(false)}>
