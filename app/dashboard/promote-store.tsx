@@ -42,6 +42,20 @@ import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload
 import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
 
+// Unicode first-strong isolate: keeps a price like "EGP 500.00" in one piece
+// inside Arabic text instead of letting bidi reorder its number and currency.
+function isolate(text: string): string {
+  return `\u2068${text}\u2069`
+}
+
+function formatEgp(amount: number | string, ar: boolean): string {
+  return `${amount} ${ar ? 'ج.م' : 'EGP'}`
+}
+
+function formatOfferSummary(template: string, price: string, days: number): string {
+  return template.replace('{price}', isolate(price)).replace('{days}', String(days))
+}
+
 function useDir() {
   const { locale } = useLocale()
   const ar = locale === 'ar'
@@ -170,12 +184,8 @@ export default function PromoteStoreScreen() {
   }
 
   function offerSummary(o: StorePromotionOffer): string {
-    if (IS_IOS) {
-      return `${iosPrice ?? `${o.price} EGP`} · ${o.days} ${ar ? 'أيام' : 'days'}`
-    }
-    return t.promoteStore.offerSummary
-      .replace('{price}', String(o.price))
-      .replace('{days}', String(o.days))
+    const price = (IS_IOS && iosPrice) || formatEgp(o.price, ar)
+    return formatOfferSummary(t.promoteStore.offerSummary, price, o.days)
   }
 
   async function refreshAfterPurchase(): Promise<void> {
@@ -541,7 +551,7 @@ function MethodStep(props: MethodStepProps) {
       return (
         <View style={styles.methodBlock}>
           <View style={styles.emptyBox}>
-            <Text style={[styles.emptyText, dirStyle]}>{t.promoteStore.comingSoon}</Text>
+            <Text style={[styles.emptyText, dirStyle]}>{t.promoteStore.unavailable}</Text>
           </View>
         </View>
       )
@@ -673,13 +683,13 @@ function WalletStep(props: WalletStepProps) {
       <View style={[styles.summaryBox, colDir]}>
         <Text style={[styles.summaryLabel, dirStyle]}>{t.promoteStoreNav}</Text>
         <Text style={[styles.summaryValue, dirStyle]}>
-          {offer.price} EGP · {offer.days} {ar ? 'أيام' : 'days'}
+          {formatOfferSummary(t.promoteStore.offerSummary, formatEgp(offer.price, ar), offer.days)}
         </Text>
         <Text style={[styles.summaryLabel, dirStyle]}>
           {t.buySlots.walletBalance}
         </Text>
         <Text style={[styles.summaryValue, dirStyle]}>
-          {wallet ? `${wallet.balance} EGP` : '—'}
+          {wallet ? formatEgp(wallet.balance, ar) : '—'}
         </Text>
       </View>
 

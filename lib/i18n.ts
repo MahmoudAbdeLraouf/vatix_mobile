@@ -707,7 +707,7 @@ export interface Translations {
     retry: string
     storesOnly: string
     renewFirst: string
-    comingSoon: string
+    unavailable: string
     promoteAgain: string
     promotedUntilLabel: string
     withinHours: string
@@ -1753,14 +1753,14 @@ export const translations: Record<Locale, Translations> = {
     promoteStore: {
       heading: 'ترويج المتجر ⭐',
       description: 'يظهر متجرك المميز في أول قائمة المتاجر مع شارة «مميز» طوال مدة الترويج، ويظهر متجرك أولاً في شريط المتاجر المميزة بصفحات المنتجات. الشراء مرة أخرى يمدّد المدة.',
-      offerSummary: '{price} ج.م · {days} أيام',
+      offerSummary: '{price} لمدة {days} أيام',
       activeUntil: 'متجرك مميز حتى {date}',
       notPromoted: 'متجرك غير مميز حالياً',
       loadError: 'تعذّر تحميل عرض الترويج. حاول مرة أخرى.',
       retry: 'إعادة المحاولة',
       storesOnly: 'ترويج المتجر متاح للمتاجر فقط.',
       renewFirst: 'جدّد اشتراكك أولاً قبل ترويج متجرك.',
-      comingSoon: 'قريباً',
+      unavailable: 'الشراء غير متاح حالياً، حاول مرة أخرى لاحقاً.',
       promoteAgain: 'مدّد الترويج ←',
       promotedUntilLabel: 'مميز حتى:',
       withinHours: 'سيقوم فريق Vatix بمراجعة التحويل وتفعيل ترويج متجرك خلال 24 ساعة.',
@@ -2728,14 +2728,14 @@ export const translations: Record<Locale, Translations> = {
     promoteStore: {
       heading: 'Promote my store ⭐',
       description: 'Your store is listed first in the stores list with a "Featured" badge for the whole promotion period. Your store appears first in the featured stores strip on product pages. Buying again extends it.',
-      offerSummary: '{price} EGP · {days} days',
+      offerSummary: '{price} for {days} days',
       activeUntil: 'Your store is featured until {date}',
       notPromoted: 'Your store is not featured right now',
       loadError: "Couldn't load the promotion offer. Please try again.",
       retry: 'Retry',
       storesOnly: 'Store promotion is available to stores only.',
       renewFirst: 'Renew your subscription before promoting your store.',
-      comingSoon: 'Coming soon',
+      unavailable: "Purchase isn't available right now. Please try again later.",
       promoteAgain: 'Extend promotion →',
       promotedUntilLabel: 'Featured until:',
       withinHours: 'Vatix team will review the transfer and activate your store promotion within 24 hours.',
