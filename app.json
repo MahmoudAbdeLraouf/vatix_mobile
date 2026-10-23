@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vatix",
     "slug": "vatix_mobile",
-    "version": "1.3.3",
+    "version": "1.3.4",
     "scheme": "vatix",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
