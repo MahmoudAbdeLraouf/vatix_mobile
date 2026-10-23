@@ -15,7 +15,7 @@ const TAB_ICONS: TabIcons = {
   products: { active: 'grid', inactive: 'grid-outline' },
   requests: { active: 'megaphone', inactive: 'megaphone-outline' },
   stores: { active: 'storefront', inactive: 'storefront-outline' },
-  dashboard: { active: 'person', inactive: 'person-outline' },
+  dashboard: { active: 'menu', inactive: 'menu-outline' },
 }
 
 export default function TabsLayout() {
@@ -74,15 +74,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="stores" options={{ title: t.stores, href: broEnabled ? null : undefined }} />
       {/* Hidden from the bar; still reachable from notifications and the requests flow. */}
       <Tabs.Screen name="bro-finds" options={{ title: t.bro.tabLabel, href: null }} />
-      <Tabs.Screen
-        name="dashboard"
-        options={{ title: t.dashboard }}
-        listeners={{
-          tabPress: e => {
-            if (!requireLogin()) e.preventDefault()
-          },
-        }}
-      />
+      {/* Open to guests too — the screen shows its own sign-in card. */}
+      <Tabs.Screen name="dashboard" options={{ title: t.dashboard }} />
     </Tabs>
     <Modal visible={chooserOpen} transparent animationType="fade" onRequestClose={() => setChooserOpen(false)}>
       <Pressable style={styles.backdrop} onPress={() => setChooserOpen(false)}>
