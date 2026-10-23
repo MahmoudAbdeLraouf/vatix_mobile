@@ -11,7 +11,6 @@ import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDia
 import { NotificationBell } from '@/components/NotificationBell'
 import { BroAvatar } from '@/components/bro/BroAvatar'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
-import { DashboardBroRequests } from '@/components/bro/DashboardBroRequests'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
@@ -411,7 +410,6 @@ export default function MoreScreen() {
             </View>
           </View>
         )}
-        {broEnabled && <DashboardBroRequests />}
 
         {/* Dashboard */}
         <Section title={ar ? 'لوحة التحكم' : 'Dashboard'} dirStyle={dirStyle}>
