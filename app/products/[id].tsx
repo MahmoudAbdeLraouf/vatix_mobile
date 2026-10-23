@@ -1126,9 +1126,9 @@ const styles = StyleSheet.create({
   // ── Content card ──
   card: {
     backgroundColor: colors.white,
-    borderTopStartRadius: radius.xl + 4,
-    borderTopEndRadius: radius.xl + 4,
-    marginTop: -(radius.xl + 4),
+    borderTopStartRadius: radius.xl,
+    borderTopEndRadius: radius.xl,
+    marginTop: -(radius.xl),
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,

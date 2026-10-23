@@ -843,8 +843,8 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: colors.white,
-    borderTopStartRadius: 28,
-    borderTopEndRadius: 28,
+    borderTopStartRadius: radius.xl,
+    borderTopEndRadius: radius.xl,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
     minHeight: 600,
@@ -1230,8 +1230,8 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: colors.white,
-    borderTopStartRadius: 24,
-    borderTopEndRadius: 24,
+    borderTopStartRadius: radius.xl,
+    borderTopEndRadius: radius.xl,
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
