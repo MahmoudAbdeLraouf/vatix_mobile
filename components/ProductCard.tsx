@@ -18,6 +18,11 @@ interface ProductCardProps {
 // 1:1 image, 12px body padding, 13/700 title (2 lines), 18/900 navy price,
 // --ss shadow, 12px radius, 1.5px g200 border.
 
+// Thumbs that already finished loading this session. iOS expo-image replays the
+// fade transition even on memory-cache hits, so a fast fling back over old rows
+// would flash every image white again — skip the fade for anything seen before.
+const loadedThumbs = new Set<string>()
+
 export const ProductCard = React.memo(function ProductCard({
   product,
   style,
@@ -64,7 +69,8 @@ export const ProductCard = React.memo(function ProductCard({
             style={styles.image}
             contentFit="contain"
             cachePolicy="memory-disk"
-            transition={150}
+            transition={loadedThumbs.has(thumb) ? 0 : 150}
+            onLoad={() => loadedThumbs.add(thumb)}
             recyclingKey={String(product.id)}
           />
         ) : (
@@ -152,6 +158,8 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     aspectRatio: 1,
+    borderRadius: radius.sm,
+    backgroundColor: colors.g100,
   },
   // Category-icon fallback: neutral g100 bg + soft g400 glyph — reads as a clean
   // monochrome placeholder rather than competing with the yellow price/tag accents.

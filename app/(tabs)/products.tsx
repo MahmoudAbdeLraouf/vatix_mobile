@@ -1,14 +1,21 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ActivityIndicator,
+  Animated,
+  Dimensions,
   FlatList,
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  StyleProp,
   View,
+  ViewStyle,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Image } from 'expo-image'
@@ -35,12 +42,28 @@ import { CategoryBar } from '@/components/CategoryBar'
 import { FilterCombobox, ComboOption } from '@/components/FilterCombobox'
 import { trackSearch } from '@/lib/analytics'
 import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
-import { SkeletonGrid } from '@/components/ui/Skeleton'
+import { SkeletonProductRow } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { BroEntryCard } from '@/components/bro/BroEntryCard'
 import { ErrorState } from '@/components/ui/ErrorState'
 
 type SortValue = 'newest' | 'oldest' | 'price_asc' | 'price_desc'
+
+// Height of one product row cell (131px card + spacing.md gap). Re-measured from
+// the first real cell at runtime; this is just the starting guess.
+const DEFAULT_ROW_PITCH = 147
+const BACKDROP_ROWS = Math.ceil(Dimensions.get('window').height / 131) + 2
+
+type CellLayout = { index: number; y: number; height: number }
+
+type ProductCellProps = {
+  cellKey: string
+  index: number
+  children: React.ReactNode
+  style?: StyleProp<ViewStyle>
+  onLayout?: (e: LayoutChangeEvent) => void
+  onFocusCapture?: (e: any) => void
+}
 
 function queryKey(
   q: string,
@@ -203,6 +226,99 @@ export default function ProductsScreen() {
     [],
   )
 
+  // ── Fast-fling handling ───────────────────────────────────────────────
+  // A hard fling can outrun how fast the list mounts rows, leaving blank
+  // space. Two layers deal with it:
+  //  1. A skeleton backdrop sits behind the list and scrolls in step with
+  //     the rows, so any not-yet-mounted area shows row placeholders.
+  //  2. If the fling still runs past the last mounted row, momentum is
+  //     stopped so the rows can catch up before the user keeps scrolling.
+  const listRef = useRef<FlatList<Product>>(null)
+  const scrollY = useRef(new Animated.Value(0)).current
+  const headerH = useRef(new Animated.Value(0)).current
+  const [rowPitch, setRowPitch] = useState(DEFAULT_ROW_PITCH)
+  const cellLayouts = useRef(new Map<string, CellLayout>()).current
+  const momentumRef = useRef(false)
+  const lastYRef = useRef(0)
+  const productCountRef = useRef(0)
+  productCountRef.current = products.length
+
+  // Stable cell wrapper: records each mounted row's position so onScroll knows
+  // where the rendered area ends. Also makes every row (and the gap under it)
+  // opaque so the skeleton backdrop only shows through unmounted space.
+  const CellRenderer = useMemo(
+    () =>
+      function ProductCell({ cellKey, index, children, style, onLayout, onFocusCapture }: ProductCellProps) {
+        useEffect(() => () => {
+          cellLayouts.delete(cellKey)
+        }, [cellKey])
+        return (
+          <View
+            style={[style, styles.cell]}
+            // RN's View types omit onFocusCapture, but VirtualizedList relies on it.
+            {...({ onFocusCapture } as object)}
+            onLayout={e => {
+              const { y, height } = e.nativeEvent.layout
+              cellLayouts.set(cellKey, { index, y, height })
+              if (index === 0 && height > 0) {
+                setRowPitch(prev => (Math.abs(prev - height) > 0.5 ? height : prev))
+              }
+              onLayout?.(e)
+            }}
+          >
+            {children}
+          </View>
+        )
+      },
+    [cellLayouts],
+  )
+
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = e.nativeEvent.contentOffset.y
+      const goingDown = y > lastYRef.current
+      lastYRef.current = y
+      if (!momentumRef.current || cellLayouts.size === 0) return
+
+      let first: CellLayout | undefined
+      let last: CellLayout | undefined
+      for (const c of cellLayouts.values()) {
+        if (!first || c.index < first.index) first = c
+        if (!last || c.index > last.index) last = c
+      }
+      if (!first || !last) return
+
+      const viewportBottom = y + e.nativeEvent.layoutMeasurement.height
+      const outranDown =
+        goingDown && last.index < productCountRef.current - 1 && viewportBottom > last.y + last.height
+      const outranUp = !goingDown && first.index > 0 && y < first.y
+      if (outranDown || outranUp) {
+        momentumRef.current = false
+        listRef.current?.scrollToOffset({ offset: y, animated: false })
+      }
+    },
+    [cellLayouts],
+  )
+
+  const onScroll = useMemo(
+    () =>
+      Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+        useNativeDriver: true,
+        listener: handleScroll,
+      }),
+    [scrollY, handleScroll],
+  )
+
+  // Shift the backdrop so its placeholders line up with where real rows sit.
+  const backdropShift = useMemo(
+    () =>
+      Animated.multiply(
+        Animated.modulo(Animated.subtract(scrollY, headerH), rowPitch),
+        -1,
+      ),
+    [scrollY, headerH, rowPitch],
+  )
+
   // Memoize the list header so unrelated re-renders (products loading, pagination,
   // errors) don't rebuild the header JSX — which would otherwise force the FlatList
   // to reconcile & re-measure it, producing the "items scroll up and down" jitter.
@@ -212,7 +328,12 @@ export default function ProductsScreen() {
       textAlign: 'auto' as const,
     }
     return (
-    <View style={styles.listHeader}>
+    <View
+      style={styles.listHeader}
+      onLayout={e => headerH.setValue(e.nativeEvent.layout.height)}
+    >
+      {/* Covers the iOS pull-down bounce so the skeleton backdrop never peeks above the header. */}
+      <View style={styles.bounceTop} pointerEvents="none" />
       {/* ─── Spotlight stores rail ─────────────────────────────────
           Mirrors website /products placement: directly below the sticky
           category strip, above the hero block. Bleeds to the screen edges
@@ -539,10 +660,12 @@ export default function ProductsScreen() {
           // Only show the skeleton on the initial load. On subsequent filter
           // changes we keep the existing list mounted so scroll position, header
           // measurements, and virtualization state are preserved (swapping
-          // between SkeletonGrid and FlatList caused the "items jumping up and
+          // between the skeleton and FlatList caused the "items jumping up and
           // down" jitter as the list re-mounted and re-measured every row).
           <View style={styles.list}>
-            <SkeletonGrid count={6} />
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonProductRow key={i} />
+            ))}
           </View>
         ) : error ? (
           <ErrorState
@@ -552,10 +675,22 @@ export default function ProductsScreen() {
             }
           />
         ) : (
-          <FlatList
+          <>
+          {products.length > 0 && (
+            <View style={styles.backdrop} pointerEvents="none">
+              <Animated.View style={{ gap: spacing.md, transform: [{ translateY: backdropShift }] }}>
+                {Array.from({ length: BACKDROP_ROWS }).map((_, i) => (
+                  <SkeletonProductRow key={i} />
+                ))}
+              </Animated.View>
+            </View>
+          )}
+          <Animated.FlatList
+            ref={listRef}
             data={products}
             keyExtractor={p => String(p.id)}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={styles.listContent}
+            CellRendererComponent={CellRenderer}
             ListHeaderComponent={listHeader}
             ListEmptyComponent={
               <>
@@ -578,14 +713,39 @@ export default function ProductsScreen() {
             onEndReached={loadMore}
             onEndReachedThreshold={0.4}
             ListFooterComponent={
-              loadingMore ? <ActivityIndicator color={colors.y} style={styles.more} /> : null
+              products.length > 0 ? (
+                <View style={styles.footer}>
+                  {(loadingMore || page < totalPages) && (
+                    <>
+                      <SkeletonProductRow />
+                      <SkeletonProductRow />
+                    </>
+                  )}
+                  <View style={styles.bounceBottom} pointerEvents="none" />
+                </View>
+              ) : null
             }
+            ListFooterComponentStyle={styles.footerWrap}
             keyboardShouldPersistTaps="handled"
-            initialNumToRender={8}
-            maxToRenderPerBatch={8}
-            windowSize={7}
-            updateCellsBatchingPeriod={50}
+            initialNumToRender={10}
+            maxToRenderPerBatch={12}
+            windowSize={15}
+            updateCellsBatchingPeriod={30}
+            // Slightly shorter iOS flings (default 0.998); Android keeps its default.
+            decelerationRate={Platform.OS === 'ios' ? 0.995 : 'normal'}
+            scrollEventThrottle={16}
+            onScroll={onScroll}
+            onScrollBeginDrag={() => {
+              momentumRef.current = false
+            }}
+            onMomentumScrollBegin={() => {
+              momentumRef.current = true
+            }}
+            onMomentumScrollEnd={() => {
+              momentumRef.current = false
+            }}
           />
+          </>
         )}
       </View>
     </SafeAreaView>
@@ -650,9 +810,20 @@ const styles = StyleSheet.create({
   },
 
   // ── List header (hero + filters) ────────────────────────────────────
+  // Opaque so the skeleton backdrop never shows through the header area.
   listHeader: {
     gap: spacing.md,
-    marginBottom: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.g100,
+  },
+  bounceTop: {
+    position: 'absolute',
+    top: -1000,
+    height: 1000,
+    left: -spacing.lg,
+    right: -spacing.lg,
+    backgroundColor: colors.g100,
   },
 
   // Hero block — mirrors the website's dark→light transition band.
@@ -789,7 +960,35 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     gap: spacing.md,
   },
-  more: { paddingVertical: spacing.lg },
+  listContent: {
+    paddingHorizontal: spacing.lg,
+    flexGrow: 1,
+  },
+  cell: {
+    paddingBottom: spacing.md,
+    backgroundColor: colors.g100,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    paddingHorizontal: spacing.lg,
+    overflow: 'hidden',
+  },
+  footerWrap: {
+    flexGrow: 1,
+    backgroundColor: colors.g100,
+  },
+  footer: {
+    gap: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  bounceBottom: {
+    position: 'absolute',
+    bottom: -1000,
+    height: 1000,
+    left: -spacing.lg,
+    right: -spacing.lg,
+    backgroundColor: colors.g100,
+  },
 
   // Height/border/radius mirror FilterCombobox.chip so min/max match the dropdowns.
   priceInput: {

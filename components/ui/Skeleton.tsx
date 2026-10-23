@@ -71,6 +71,41 @@ export function SkeletonRow() {
   )
 }
 
+// Placeholder that mirrors ProductCard's `row` variant (128px image column,
+// title/category/store/price stack) so blank list areas read as rows still
+// loading. One pulse per row instead of one per bar keeps it cheap to stack.
+export function SkeletonProductRow() {
+  const pulse = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ]),
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [pulse])
+
+  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] })
+
+  return (
+    <View style={s.productRow}>
+      <View style={s.productImageWrap}>
+        <Animated.View style={[s.productImage, { opacity }]} />
+      </View>
+      <Animated.View style={[s.productInfo, { opacity }]}>
+        <View style={[s.bar, { height: 14, width: '85%' }]} />
+        <View style={[s.bar, { height: 14, width: '60%' }]} />
+        <View style={[s.bar, { height: 11, width: '40%', marginTop: 2 }]} />
+        <View style={[s.bar, { height: 11, width: '35%' }]} />
+        <View style={[s.bar, { height: 20, width: '45%', marginTop: 4 }]} />
+      </Animated.View>
+    </View>
+  )
+}
+
 export function SkeletonGrid({ count = 4 }: { count?: number }) {
   return (
     <View style={s.grid}>
@@ -107,5 +142,34 @@ const s = StyleSheet.create({
   },
   gridItem: {
     width: '48%',
+  },
+  productRow: {
+    flexDirection: 'row',
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.g200,
+    backgroundColor: colors.white,
+    overflow: 'hidden',
+  },
+  productImageWrap: {
+    width: 128,
+    padding: 12,
+  },
+  productImage: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: radius.sm,
+    backgroundColor: colors.g200,
+  },
+  productInfo: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 5,
+    justifyContent: 'center',
+  },
+  bar: {
+    borderRadius: radius.sm,
+    backgroundColor: colors.g200,
   },
 })
