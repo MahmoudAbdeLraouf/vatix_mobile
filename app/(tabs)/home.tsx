@@ -20,7 +20,6 @@ import { SvgXml } from 'react-native-svg'
 import * as Sentry from '@sentry/react-native'
 import * as Application from 'expo-application'
 import Constants from 'expo-constants'
-import * as Updates from 'expo-updates'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import {
@@ -62,8 +61,6 @@ const PROMO_W = SCREEN_W - spacing.lg * 2
 
 const APP_VERSION = Constants.expoConfig?.version ?? '—'
 const APP_BUILD = Application.nativeBuildVersion ?? '—'
-// Short id of the downloaded update the app is running; empty on the bundle inside the binary.
-const APP_UPDATE = !Updates.isEmbeddedLaunch && Updates.updateId ? ` · ${Updates.updateId.slice(0, 8)}` : ''
 
 type IoniconName = SharedIoniconName
 
@@ -697,7 +694,7 @@ export default function HomeScreen() {
         )}
 
         <Text style={styles.versionText}>
-          v{APP_VERSION} ({APP_BUILD}){APP_UPDATE}
+          v{APP_VERSION} ({APP_BUILD})
         </Text>
       </>
     ),
