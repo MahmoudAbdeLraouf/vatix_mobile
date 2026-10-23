@@ -9,7 +9,6 @@ import { AddProductDialog } from '@/components/AddProductDialog'
 import { StoreLogoDialog } from '@/components/StoreLogoDialog'
 import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDialog'
 import { NotificationBell } from '@/components/NotificationBell'
-import { Logo } from '@/components/ui/Logo'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
@@ -192,7 +191,6 @@ export default function MoreScreen() {
           <View style={[styles.guestTop, rowDir]}>{langButton}</View>
 
           <View style={styles.loginCard}>
-            <Logo size="md" />
             <Text style={styles.loginTitle}>{t.signIn}</Text>
             <Text style={styles.loginSub}>
               {ar
