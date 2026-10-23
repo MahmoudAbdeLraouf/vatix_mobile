@@ -242,18 +242,6 @@ export default function ConversationScreen() {
     <DashboardLayout title={otherName} scroll={false} contentPadding={false}>
         {/* Custom header row with avatar + role */}
         <View style={[styles.headerRow, rowDir]}>
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={10}
-            style={({ pressed }) => [styles.backBtn, pressed && styles.backBtnPressed]}
-          >
-            <Ionicons
-              name={ar ? 'chevron-forward' : 'chevron-back'}
-              size={22}
-              color={colors.dk}
-            />
-          </Pressable>
-
           {otherIsBro ? (
             <BroAvatar size={44} radius={14} />
           ) : (
@@ -495,17 +483,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.g200,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.g100,
-  },
-  backBtnPressed: {
-    backgroundColor: colors.g200,
   },
   headerAvatarWrap: {
     width: 44,

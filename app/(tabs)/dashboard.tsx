@@ -437,7 +437,8 @@ export default function MoreScreen() {
           </Section>
         )}
 
-        {/* My activity */}
+        {/* My activity — "My ads" lives in the quick cards above, not here. */}
+        {(broEnabled || PROMOTION_UI_ENABLED || isClient) && (
         <Section title={ar ? 'نشاطي' : 'My activity'} dirStyle={dirStyle}>
           {broEnabled && (
             <MoreRow
@@ -445,16 +446,9 @@ export default function MoreScreen() {
               iconNode={<BroAvatar size={28} radius={14} />}
               label={t.bro.listTitle}
               onPress={() => router.push('/bro' as never)}
+              last={!PROMOTION_UI_ENABLED && !isClient}
             />
           )}
-          <MoreRow
-            {...rowProps}
-            icon="list-outline"
-            label={t.myAds}
-            trailing={adsValue}
-            onPress={() => router.push('/dashboard/my-ads')}
-            last={!PROMOTION_UI_ENABLED && !isClient}
-          />
           {PROMOTION_UI_ENABLED && (
             <MoreRow
               {...rowProps}
@@ -469,6 +463,7 @@ export default function MoreScreen() {
             <MoreRow {...rowProps} icon="ticket-outline" label={t.buySlotsNav} onPress={() => router.push('/dashboard/buy-slots')} last />
           )}
         </Section>
+        )}
 
         {/* Following */}
         <Section title={ar ? 'المتابعة' : 'Following'} dirStyle={dirStyle}>
