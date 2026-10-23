@@ -1,0 +1,6 @@
+# Local Gradle output inside the expo-updates gradle plugin (left behind by
+# `expo run:android` / local builds). EAS builds never have it, so hashing it
+# makes the local runtimeVersion diverge from the one baked into the binary.
+node_modules/expo-updates/expo-updates-gradle-plugin/build/**
+node_modules/expo-updates/expo-updates-gradle-plugin/.gradle/**
+node_modules/expo-updates/expo-updates-gradle-plugin/.kotlin/**
