@@ -731,11 +731,6 @@ export default function HomeScreen() {
                   <MessagesBell color={colors.white} style={styles.iconBtn} />
                 </View>
               </View>
-              {user?.displayName ? (
-                <Text style={styles.welcomeText} numberOfLines={1}>
-                  {t.welcomeBack} {user.displayName} 👋
-                </Text>
-              ) : null}
               <View style={styles.heroSearchRow}>
                 <View style={styles.heroSearchBar}>
                   <Ionicons name="search-outline" size={20} color={colors.g500} />
@@ -822,12 +817,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
     gap: spacing.sm,
-  },
-  welcomeText: {
-    fontFamily: fonts.bold,
-    fontSize: 16,
-    color: colors.white,
-    marginTop: spacing.xs,
   },
   heroSearchRow: {
     flexDirection: 'row',
