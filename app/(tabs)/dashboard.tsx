@@ -9,6 +9,9 @@ import { AddProductDialog } from '@/components/AddProductDialog'
 import { StoreLogoDialog } from '@/components/StoreLogoDialog'
 import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDialog'
 import { NotificationBell } from '@/components/NotificationBell'
+import { BroAvatar } from '@/components/bro/BroAvatar'
+import { useBroEnabled } from '@/components/bro/BroEntryCard'
+import { DashboardBroRequests } from '@/components/bro/DashboardBroRequests'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
@@ -72,6 +75,7 @@ export default function MoreScreen() {
   const { t, locale, setLocale } = useLocale()
   const { user, isAuthenticated, loading, logout } = useAuth()
   const ar = locale === 'ar'
+  const broEnabled = useBroEnabled()
   const insets = useSafeAreaInsets()
   const { rowDir, colDir, dirStyle } = useDir(ar)
 
@@ -407,6 +411,7 @@ export default function MoreScreen() {
             </View>
           </View>
         )}
+        {broEnabled && <DashboardBroRequests />}
 
         {/* Dashboard */}
         <Section title={ar ? 'لوحة التحكم' : 'Dashboard'} dirStyle={dirStyle}>
@@ -433,8 +438,17 @@ export default function MoreScreen() {
         )}
 
         {/* My activity — "My ads" lives in the quick cards above, not here. */}
-        {(PROMOTION_UI_ENABLED || isClient) && (
+        {(broEnabled || PROMOTION_UI_ENABLED || isClient) && (
         <Section title={ar ? 'نشاطي' : 'My activity'} dirStyle={dirStyle}>
+          {broEnabled && (
+            <MoreRow
+              {...rowProps}
+              iconNode={<BroAvatar size={28} radius={14} />}
+              label={t.bro.listTitle}
+              onPress={() => router.push('/bro' as never)}
+              last={!PROMOTION_UI_ENABLED && !isClient}
+            />
+          )}
           {PROMOTION_UI_ENABLED && (
             <MoreRow
               {...rowProps}
