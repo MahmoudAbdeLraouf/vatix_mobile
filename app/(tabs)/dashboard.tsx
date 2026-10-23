@@ -710,6 +710,7 @@ const styles = StyleSheet.create({
 
   guestTop: { flexDirection: 'row' },
   loginCard: {
+    marginTop: spacing.xl,
     backgroundColor: colors.white,
     borderRadius: radius.xl,
     padding: spacing.lg,
