@@ -16,6 +16,7 @@ import * as SecureStore from 'expo-secure-store'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
+import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { MultiImageUpload, ImageItem } from '@/components/MultiImageUpload'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
@@ -53,6 +54,7 @@ interface Draft {
 type IonName = React.ComponentProps<typeof Ionicons>['name']
 
 export default function AddProductScreen() {
+  const broEnabled = useBroEnabled()
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
   const dirStyle = {
@@ -305,6 +307,11 @@ export default function AddProductScreen() {
   const goMyAds = useCallback(() => {
     setPublishedId(null)
     router.replace('/dashboard/my-ads')
+  }, [])
+
+  const goRequests = useCallback(() => {
+    setPublishedId(null)
+    router.replace('/(tabs)/requests' as never)
   }, [])
 
   return (
@@ -641,6 +648,13 @@ export default function AddProductScreen() {
                 onPress={goPromote}
                 variant="cta"
               />
+              {broEnabled && (
+                <Button
+                  label={`🤝  ${ar ? 'اعرض منتجك على طلبات العملاء' : 'Offer your product to buyers'}`}
+                  onPress={goRequests}
+                  variant="outline"
+                />
+              )}
               <Button
                 label={ar ? 'لاحقاً — عرض إعلاناتي' : 'Later — View my ads'}
                 onPress={goMyAds}
