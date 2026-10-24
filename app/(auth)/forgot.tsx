@@ -16,6 +16,7 @@ import { authErrorMessage } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Logo } from '@/components/ui/Logo'
+import { OtpChannelHint } from '@/components/OtpChannelHint'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 import { validatePassword } from '@/lib/password-policy'
 
@@ -144,6 +145,7 @@ export default function ForgotScreen() {
 
           {step === 'otp' && (
             <>
+              <OtpChannelHint />
               <Input
                 label={t.otpCode}
                 value={code}

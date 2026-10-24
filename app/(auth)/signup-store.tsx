@@ -31,6 +31,7 @@ import { track } from '@/lib/analytics'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { OtpChannelHint } from '@/components/OtpChannelHint'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 import { validatePassword } from '@/lib/password-policy'
 
@@ -330,6 +331,7 @@ export default function SignupStoreScreen() {
 
           {step === 'otp' && (
             <>
+              <OtpChannelHint />
               <Pressable style={styles.codeBox} onPress={() => codeRef.current?.focus()}>
                 <Text style={styles.codeText}>{code || '------'}</Text>
                 <TextInput
