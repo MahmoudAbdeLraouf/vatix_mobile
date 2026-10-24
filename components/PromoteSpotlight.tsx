@@ -112,24 +112,38 @@ function Grad({
   r?: string
 }) {
   const id = useGradId('g')
+  // Measure instead of width/height="100%": on iOS a percentage-sized Svg
+  // doesn't track a content-sized parent, so the fill came out short.
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null)
   const stopEls = stops.map((s) => (
     <Stop key={s.offset} offset={s.offset} stopColor={s.color} stopOpacity={s.opacity ?? 1} />
   ))
   return (
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
-      <Defs>
-        {radial ? (
-          <RadialGradient id={id} cx={cx} cy={cy} rx={r} ry={r} fx={cx} fy={cy}>
-            {stopEls}
-          </RadialGradient>
-        ) : (
-          <LinearGradient id={id} x1="0" y1="0" x2={x2} y2={y2}>
-            {stopEls}
-          </LinearGradient>
-        )}
-      </Defs>
-      <Rect x="0" y="0" width="100%" height="100%" rx={rx} ry={rx} fill={`url(#${id})`} />
-    </Svg>
+    <View
+      style={StyleSheet.absoluteFill}
+      pointerEvents="none"
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout
+        setSize((prev) => (prev && prev.w === width && prev.h === height ? prev : { w: width, h: height }))
+      }}
+    >
+      {size ? (
+        <Svg width={size.w} height={size.h}>
+          <Defs>
+            {radial ? (
+              <RadialGradient id={id} cx={cx} cy={cy} rx={r} ry={r} fx={cx} fy={cy}>
+                {stopEls}
+              </RadialGradient>
+            ) : (
+              <LinearGradient id={id} x1="0" y1="0" x2={x2} y2={y2}>
+                {stopEls}
+              </LinearGradient>
+            )}
+          </Defs>
+          <Rect x="0" y="0" width={size.w} height={size.h} rx={rx} ry={rx} fill={`url(#${id})`} />
+        </Svg>
+      ) : null}
+    </View>
   )
 }
 
