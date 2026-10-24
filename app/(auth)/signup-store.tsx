@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { OtpChannelHint } from '@/components/OtpChannelHint'
+import { OtpCodeInput } from '@/components/OtpCodeInput'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 import { validatePassword } from '@/lib/password-policy'
 
@@ -332,18 +333,7 @@ export default function SignupStoreScreen() {
           {step === 'otp' && (
             <>
               <OtpChannelHint />
-              <Pressable style={styles.codeBox} onPress={() => codeRef.current?.focus()}>
-                <Text style={styles.codeText}>{code || '------'}</Text>
-                <TextInput
-                  ref={codeRef}
-                  value={code}
-                  onChangeText={v => setCode(v.replace(/\D/g, '').slice(0, 6))}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  style={styles.hiddenInput}
-                  autoFocus
-                />
-              </Pressable>
+              <OtpCodeInput ref={codeRef} value={code} onChange={setCode} />
               {!!error && (
                 <View style={styles.errorBox}>
                   <Ionicons name="alert-circle-outline" size={16} color="#C53030" />
@@ -506,28 +496,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
 
-  codeBox: {
-    height: 72,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.g300,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-    backgroundColor: colors.g100,
-  },
-  codeText: {
-    fontFamily: fonts.black,
-    fontSize: 32,
-    color: colors.dk,
-    letterSpacing: 8,
-  },
-  hiddenInput: {
-    position: 'absolute',
-    opacity: 0,
-    width: 1,
-    height: 1,
-  },
 
   errorBox: {
     flexDirection: 'row',

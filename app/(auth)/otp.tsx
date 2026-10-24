@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
+import { OtpCodeInput } from '@/components/OtpCodeInput'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { checkOtp, sendOtp } from '@/lib/api'
@@ -75,18 +76,7 @@ export default function OtpScreen() {
 
       {/* White card */}
       <View style={styles.card}>
-        <Pressable style={styles.codeBox} onPress={() => inputRef.current?.focus()}>
-          <Text style={styles.codeText}>{code || '------'}</Text>
-          <TextInput
-            ref={inputRef}
-            value={code}
-            onChangeText={v => setCode(v.replace(/\D/g, '').slice(0, 6))}
-            keyboardType="number-pad"
-            maxLength={6}
-            style={styles.hiddenInput}
-            autoFocus
-          />
-        </Pressable>
+        <OtpCodeInput ref={inputRef} value={code} onChange={setCode} />
 
         {!!error && <Text style={styles.error}>{error}</Text>}
 
@@ -145,28 +135,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
 
-  codeBox: {
-    height: 72,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.g300,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-    backgroundColor: colors.g100,
-  },
-  codeText: {
-    fontFamily: fonts.black,
-    fontSize: 32,
-    color: colors.dk,
-    letterSpacing: 8,
-  },
-  hiddenInput: {
-    position: 'absolute',
-    opacity: 0,
-    width: 1,
-    height: 1,
-  },
 
   error: {
     fontFamily: fonts.regular,

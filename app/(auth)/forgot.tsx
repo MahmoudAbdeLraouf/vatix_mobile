@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Logo } from '@/components/ui/Logo'
 import { OtpChannelHint } from '@/components/OtpChannelHint'
+import { OtpCodeInput } from '@/components/OtpCodeInput'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 import { validatePassword } from '@/lib/password-policy'
 
@@ -146,13 +147,7 @@ export default function ForgotScreen() {
           {step === 'otp' && (
             <>
               <OtpChannelHint />
-              <Input
-                label={t.otpCode}
-                value={code}
-                onChangeText={setCode}
-                keyboardType="number-pad"
-                placeholder="------"
-              />
+              <OtpCodeInput value={code} onChange={setCode} />
               {!!error && <Text style={styles.error}>{error}</Text>}
               <Button label={t.verify} onPress={handleVerifyOtp} loading={loading} />
               <Pressable style={styles.resendBtn} onPress={handleSendOtp}>
