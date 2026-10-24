@@ -26,9 +26,10 @@ interface Props {
   scroll?: boolean
   contentPadding?: boolean
   bottomBar?: React.ReactNode
+  bodyColor?: string
 }
 
-export function DashboardLayout({ title, children, scroll = true, contentPadding = true, bottomBar }: Props) {
+export function DashboardLayout({ title, children, scroll = true, contentPadding = true, bottomBar, bodyColor }: Props) {
   const { user, isAuthenticated, loading } = useAuth()
   const { t, isRtl, locale, setLocale } = useLocale()
   const dirText = {
@@ -37,6 +38,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
   }
   const dirContainer = isRtl ? { direction: 'rtl' as const } : null
   const insets = useSafeAreaInsets()
+  const bodyBg = bodyColor ? { backgroundColor: bodyColor } : null
 
   // Sub-pages are reached from the More tab, so fall back there on a cold deep link.
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/dashboard'))
@@ -48,7 +50,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
 
   const Body = scroll ? (
     <ScrollView
-      style={[styles.body, dirContainer]}
+      style={[styles.body, dirContainer, bodyBg]}
       contentContainerStyle={[
         contentPadding && styles.bodyPadding,
         { paddingBottom: insets.bottom + spacing.xl },
@@ -58,7 +60,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.body, dirContainer, contentPadding && styles.bodyPadding]}>{children}</View>
+    <View style={[styles.body, dirContainer, bodyBg, contentPadding && styles.bodyPadding]}>{children}</View>
   )
 
   return (
@@ -111,7 +113,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
       </View>
 
       <KeyboardAvoidingView
-        style={styles.body}
+        style={[styles.body, bodyBg]}
         behavior="padding"
         enabled={Platform.OS === 'ios'}
         keyboardVerticalOffset={insets.top + 52}

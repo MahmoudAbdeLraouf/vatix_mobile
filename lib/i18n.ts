@@ -714,6 +714,52 @@ export interface Translations {
     walletDeductedBody: string
     appleSuccessBody: string
     backToDashboard: string
+    productsCount: string
+    firstBadge: string
+    featuredBadge: string
+    stageTitle: string
+    stageTitleEm: string
+    stageSub: string
+    equationTitle: string
+    last30: string
+    eqViews: string
+    eqContact: string
+    eqSales: string
+    eqProfit: string
+    eqBoost: string
+    eqBoostGeneric: string
+    viewsTitle: string
+    axisFrom: string
+    axisToday: string
+    viewsToday: string
+    whereTitle: string
+    swipeHint: string
+    place1Title: string
+    place1Sub: string
+    place2Title: string
+    place2Sub: string
+    place3Title: string
+    place3Sub: string
+    ticketTitle: string
+    perDayUnit: string
+    dayUnit: string
+    ticketHint: string
+    ctaPromote: string
+    trustLine: string
+    liveNow: string
+    daysLeft: string
+    promotedTitle: string
+    promotedTitleEm: string
+    runningUntil: string
+    extendTitle: string
+    extendPlus: string
+    legendElapsed: string
+    legendLeft: string
+    legendAdded: string
+    extendNote: string
+    ctaExtend: string
+    newEndLine: string
+    reviewNote: string
   }
   expiredRecovery: {
     title: string
@@ -1767,6 +1813,52 @@ export const translations: Record<Locale, Translations> = {
       walletDeductedBody: 'تم خصم المبلغ من محفظتك وتفعيل ترويج متجرك فوراً.',
       appleSuccessBody: 'تم تأكيد الدفع عبر App Store وتفعيل ترويج متجرك فوراً.',
       backToDashboard: 'العودة للوحة التحكم',
+      productsCount: '{n} منتج',
+      firstBadge: 'في الأول',
+      featuredBadge: 'مميز ⭐',
+      stageTitle: 'حط متجرك',
+      stageTitleEm: 'تحت الأضواء',
+      stageSub: 'أول متجر يشوفه كل عميل بيدوّر على إلكترونيات',
+      equationTitle: 'معادلة الربح بتاعتك',
+      last30: 'آخر 30 يوم',
+      eqViews: 'مشاهدة',
+      eqContact: 'عميل كلّمك',
+      eqSales: 'مبيعات',
+      eqProfit: 'وأرباح',
+      eqBoost: 'كل **{n} مشاهدة** بتجيبلك عميل. الترويج بيكبّر أول خطوة في المعادلة — والباقي بييجي وراها.',
+      eqBoostGeneric: 'مشاهدات أكتر يعني عملاء أكتر. الترويج بيكبّر أول خطوة في المعادلة — والباقي بييجي وراها.',
+      viewsTitle: 'مشاهدات متجرك',
+      axisFrom: 'من 30 يوم',
+      axisToday: 'النهارده',
+      viewsToday: '{n} مشاهدة النهارده',
+      whereTitle: 'هتظهر فين؟',
+      swipeHint: 'اسحب ←',
+      place1Title: 'أول متجر في القائمة',
+      place1Sub: 'بشارة «مميز» ⭐',
+      place2Title: 'في كل صفحة منتج',
+      place2Sub: 'شريط المتاجر المميزة',
+      place3Title: 'الصفحة الرئيسية',
+      place3Sub: 'أول المتاجر المميزة',
+      ticketTitle: 'تذكرة الترويج',
+      perDayUnit: 'ج.م / يوم',
+      dayUnit: 'يوم',
+      ticketHint: '💡 بيعة واحدة زيادة ممكن تغطي التكلفة كلها',
+      ctaPromote: 'روّج متجري الآن ←',
+      trustLine: '🔒 دفع آمن · مرة واحدة · بدون اشتراك',
+      liveNow: 'تحت الأضواء الآن',
+      daysLeft: 'أيام باقية',
+      promotedTitle: 'متجرك',
+      promotedTitleEm: 'في المقدمة',
+      runningUntil: 'الترويج شغّال لحد {date}',
+      extendTitle: 'مدّد قبل ما ينتهي',
+      extendPlus: '+{days} أيام',
+      legendElapsed: 'اللي فات',
+      legendLeft: 'باقي {n} أيام',
+      legendAdded: '+{days} أيام جديدة',
+      extendNote: 'الأيام الجديدة بتتضاف **بعد {end}** — مش هتخسر ولا يوم، ومتجرك يفضل في المقدمة لحد **{newEnd}**.',
+      ctaExtend: 'مدّد {days} أيام ←',
+      newEndLine: 'ينتهي الترويج الجديد {date}',
+      reviewNote: 'تحويل + صورة الإيصال · التفعيل بعد المراجعة خلال 24 ساعة',
     },
     expiredRecovery: {
       title: 'انتهى اشتراكك',
@@ -2742,6 +2834,52 @@ export const translations: Record<Locale, Translations> = {
       walletDeductedBody: 'Amount deducted from your wallet and your store promotion is active.',
       appleSuccessBody: 'App Store payment confirmed and your store promotion is active.',
       backToDashboard: 'Back to dashboard',
+      productsCount: '{n} products',
+      firstBadge: 'First',
+      featuredBadge: 'Featured ⭐',
+      stageTitle: 'Put your store',
+      stageTitleEm: 'in the spotlight',
+      stageSub: 'The first store shoppers see when browsing electronics',
+      equationTitle: 'Your profit equation',
+      last30: 'Last 30 days',
+      eqViews: 'views',
+      eqContact: 'contacts',
+      eqSales: 'Sales',
+      eqProfit: '& profit',
+      eqBoost: 'Every **{n} views** bring you a customer. Promotion grows the first step of the equation — the rest follows.',
+      eqBoostGeneric: 'More views means more customers. Promotion grows the first step of the equation — the rest follows.',
+      viewsTitle: 'Your store views',
+      axisFrom: '30 days ago',
+      axisToday: 'Today',
+      viewsToday: '{n} views today',
+      whereTitle: 'Where will you appear?',
+      swipeHint: 'Swipe →',
+      place1Title: 'Top of the stores list',
+      place1Sub: 'With the «Featured» ⭐ badge',
+      place2Title: 'On every product page',
+      place2Sub: 'Featured stores strip',
+      place3Title: 'Home page',
+      place3Sub: 'First among featured stores',
+      ticketTitle: 'Promotion ticket',
+      perDayUnit: 'EGP / day',
+      dayUnit: 'Day',
+      ticketHint: '💡 One extra sale can cover the whole cost',
+      ctaPromote: 'Promote my store now →',
+      trustLine: '🔒 Secure payment · One-time · No subscription',
+      liveNow: 'In the spotlight now',
+      daysLeft: 'days left',
+      promotedTitle: 'Your store is',
+      promotedTitleEm: 'up front',
+      runningUntil: 'Promotion runs until {date}',
+      extendTitle: 'Extend before it ends',
+      extendPlus: '+{days} days',
+      legendElapsed: 'Elapsed',
+      legendLeft: '{n} days left',
+      legendAdded: '+{days} new days',
+      extendNote: 'New days are added **after {end}** — you lose nothing, and your store stays up front until **{newEnd}**.',
+      ctaExtend: 'Extend {days} days →',
+      newEndLine: 'New promotion ends {date}',
+      reviewNote: 'Transfer + receipt photo · Activated after review within 24 hours',
     },
     expiredRecovery: {
       title: 'Your subscription has expired',

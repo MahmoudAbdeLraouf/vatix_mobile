@@ -7,18 +7,22 @@ import {
   View,
 } from 'react-native'
 import { router } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
+  LocationNode,
   SiteSettings,
+  StoreProfile,
   StorePromotionOffer,
   UserProfile,
   WalletBalance,
+  getLocations,
   getSiteSettings,
   getStorePromotionOffer,
+  imgUrl,
+  localeName,
 } from '@/lib/api'
 import { authFetch, authPost, authErrorMessage, updateStoredUser, AUTH_ERR } from '@/lib/auth'
 import { finalizePaymentSuccess, verifyIapPurchase } from '@/lib/payment'
@@ -41,6 +45,19 @@ import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
+import {
+  P,
+  ExtendTimeline,
+  PayMethodCard,
+  PlacementsCarousel,
+  PriceTicket,
+  ProfitEquation,
+  PromoDock,
+  PromoSection,
+  PromotedStage,
+  SpotlightStage,
+  ViewsSparkline,
+} from '@/components/PromoteSpotlight'
 
 // Unicode first-strong isolate: keeps a price like "EGP 500.00" in one piece
 // inside Arabic text instead of letting bidi reorder its number and currency.
@@ -72,8 +89,9 @@ function useDir() {
   }
 }
 
-function LegalLinks() {
+function LegalLinks({ dark }: { dark?: boolean }) {
   const { ar, rowDir } = useDir()
+  const linkStyle = [styles.legalLink, dark && { color: P.g400 }]
   const termsLabel = ar ? 'شروط الاستخدام' : 'Terms of Use (EULA)'
   const privacyLabel = ar ? 'سياسة الخصوصية' : 'Privacy Policy'
   return (
@@ -84,7 +102,7 @@ function LegalLinks() {
         accessibilityRole="link"
         accessibilityLabel={termsLabel}
       >
-        <Text style={styles.legalLink}>{termsLabel}</Text>
+        <Text style={linkStyle}>{termsLabel}</Text>
       </Pressable>
       <Text style={styles.legalDot}> · </Text>
       <Pressable
@@ -93,7 +111,7 @@ function LegalLinks() {
         accessibilityRole="link"
         accessibilityLabel={privacyLabel}
       >
-        <Text style={styles.legalLink}>{privacyLabel}</Text>
+        <Text style={linkStyle}>{privacyLabel}</Text>
       </Pressable>
     </View>
   )
@@ -109,6 +127,19 @@ type Step =
   | 'wallet-done'
   | 'apple-iap'
   | 'apple-iap-done'
+
+type AndroidMethod = 'wallet' | 'instapay' | 'mobile-wallet'
+
+// Subset of GET /user/analytics used by the promotion pitch.
+type PromoAnalytics = {
+  totalViews: number
+  totalPhoneClicks: number
+  totalContacts?: number
+  totalProducts?: number
+  viewsByDay: Array<{ date: string; count: number }>
+}
+
+const DAY_MS = 86_400_000
 
 export default function PromoteStoreScreen() {
   const { t, locale } = useLocale()
@@ -132,6 +163,10 @@ export default function PromoteStoreScreen() {
   const [buyerPhone, setBuyerPhone] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [storeProfile, setStoreProfile] = useState<StoreProfile | null>(null)
+  const [analytics, setAnalytics] = useState<PromoAnalytics | null>(null)
+  const [locationName, setLocationName] = useState<string | null>(null)
+  const [payMethod, setPayMethod] = useState<AndroidMethod | null>(null)
 
   useEffect(() => {
     if (blocked) return
@@ -142,17 +177,25 @@ export default function PromoteStoreScreen() {
       try {
         // The offer is the primary data: let a failure surface as an error
         // state with retry instead of rendering a made-up price.
-        const [o, s, w, profile] = await Promise.all([
+        // Analytics and locations only decorate the pitch; the screen works without them.
+        const [o, s, w, profile, stats, locations] = await Promise.all([
           getStorePromotionOffer(),
           getSiteSettings().catch(() => null),
           authFetch<WalletBalance>('/payments/wallet/balance').catch(() => null),
           authFetch<UserProfile>('/user/profile').catch(() => null),
+          authFetch<PromoAnalytics>('/user/analytics').catch(() => null),
+          getLocations().catch(() => [] as LocationNode[]),
         ])
         if (cancelled) return
         setOffer(o)
         setSettings(s)
         setWallet(w)
         setPromotedUntil(profile ? (profile.storeProfile?.promotedUntil ?? null) : undefined)
+        setStoreProfile(profile?.storeProfile ?? null)
+        setAnalytics(stats)
+        const locId = profile?.storeProfile?.locationId
+        const loc = locId != null ? locations.find((l) => l.id === locId) : undefined
+        setLocationName(loc ? localeName(loc.translations, locale) || null : null)
 
         if (IS_IOS && o.appleProductId) {
           const products = await fetchIosProducts([o.appleProductId], 'in-app').catch(() => [])
@@ -171,7 +214,7 @@ export default function PromoteStoreScreen() {
     return () => {
       cancelled = true
     }
-  }, [blocked, reloadKey])
+  }, [blocked, reloadKey, locale])
 
   const isPromoted = promotedUntil != null && Date.parse(promotedUntil) > Date.now()
 
@@ -339,6 +382,268 @@ export default function PromoteStoreScreen() {
       </View>
     ) : null
 
+  const canWallet = !!offer && wallet !== null && Number(wallet.balance) >= Number(offer.price)
+  const instapayEnabled = settings?.instapayEnabled !== false
+  const mobileWalletEnabled = settings?.mobileWalletEnabled !== false
+  const defaultMethod: AndroidMethod = canWallet
+    ? 'wallet'
+    : instapayEnabled
+      ? 'instapay'
+      : 'mobile-wallet'
+  const chosenMethod = payMethod ?? defaultMethod
+  const showPitch = step === 'method' && !blocked && !loading && !loadFailed && !!offer
+
+  function fmtNum(n: number): string {
+    return n.toLocaleString('en-US')
+  }
+
+  // Buying again while active extends from the current end date.
+  function newEndFor(o: StorePromotionOffer): string {
+    const nowMs = Date.now()
+    const untilMs = isPromoted && promotedUntil ? Date.parse(promotedUntil) : nowMs
+    return new Date(Math.max(nowMs, untilMs) + o.days * DAY_MS).toISOString()
+  }
+
+  function pitchSections(o: StorePromotionOffer): React.ReactNode[] {
+    const p = t.promoteStore
+    const nowMs = Date.now()
+    const untilMs = isPromoted && promotedUntil ? Date.parse(promotedUntil) : nowMs
+    const daysLeft = Math.max(0, Math.ceil((untilMs - nowMs) / DAY_MS))
+    const newEnd = newEndFor(o)
+
+    const series = (analytics?.viewsByDay ?? []).slice(-30).map((d) => Number(d.count) || 0)
+    const views = Math.max(analytics?.totalViews ?? 0, series.reduce((a, b) => a + b, 0))
+    const contacts = analytics ? (analytics.totalContacts ?? analytics.totalPhoneClicks ?? 0) : 0
+    const hasStats = !!analytics && views > 0
+
+    const equation = hasStats ? (
+      <PromoSection key="eq" ar={ar} title={p.equationTitle} side={p.last30}>
+        <ProfitEquation
+          ar={ar}
+          views={fmtNum(views)}
+          contacts={fmtNum(contacts)}
+          viewsLabel={p.eqViews}
+          contactsLabel={p.eqContact}
+          salesLabel={p.eqSales}
+          profitLabel={p.eqProfit}
+          boost={
+            contacts > 0
+              ? p.eqBoost.replace('{n}', fmtNum(Math.max(1, Math.round(views / contacts))))
+              : p.eqBoostGeneric
+          }
+        />
+      </PromoSection>
+    ) : null
+
+    const sparkline =
+      hasStats && series.length > 1 ? (
+        <PromoSection key="views" ar={ar} title={p.viewsTitle}>
+          <ViewsSparkline
+            ar={ar}
+            data={series}
+            todayLabel={p.viewsToday.replace('{n}', fmtNum(series[series.length - 1]))}
+            axisFrom={p.axisFrom}
+            axisToday={p.axisToday}
+          />
+        </PromoSection>
+      ) : null
+
+    const price = Number(o.price)
+    const ticket = (
+      <PriceTicket
+        key="ticket"
+        ar={ar}
+        label={p.ticketTitle}
+        amount={IS_IOS && iosPrice ? iosPrice : fmtNum(price)}
+        currency={IS_IOS && iosPrice ? undefined : ar ? 'ج.م' : 'EGP'}
+        perDay={IS_IOS && iosPrice ? undefined : fmtNum(Math.round(price / Math.max(1, o.days)))}
+        perDayUnit={p.perDayUnit}
+        days={o.days}
+        dayUnit={p.dayUnit}
+        hint={p.ticketHint}
+      />
+    )
+
+    const errorBanner = submitError ? (
+      <View style={[styles.errorBanner, styles.darkInset]}>
+        <Text style={styles.errorBannerText}>{submitError}</Text>
+      </View>
+    ) : null
+
+    let payment: React.ReactNode
+    if (IS_IOS) {
+      // Apple guideline 3.1.1: digital goods on iOS are sold only through IAP.
+      payment = o.appleProductId ? (
+        <View key="pay" style={styles.darkInset}>
+          {errorBanner}
+          <LegalLinks dark />
+        </View>
+      ) : (
+        <View key="pay" style={[styles.darkNotice, styles.darkInset]}>
+          <Text style={[styles.darkNoticeText, dirStyle]}>{p.unavailable}</Text>
+        </View>
+      )
+    } else {
+      payment = (
+        <View key="pay">
+          <View style={[styles.darkInset, colDir]}>
+            <Text style={[styles.darkSectionTitle, dirStyle]}>{t.buySlots.choosePaymentMethod}</Text>
+          </View>
+          <PayMethodCard
+            ar={ar}
+            icon="wallet-outline"
+            title={t.buySlots.payWithWallet}
+            note={`${t.buySlots.payWithWalletNote} · ${
+              wallet ? isolate(formatEgp(wallet.balance, ar)) : '—'
+            }`}
+            warn={canWallet ? null : t.buySlots.insufficientWallet}
+            selected={chosenMethod === 'wallet'}
+            disabled={!canWallet}
+            onPress={() => setPayMethod('wallet')}
+          />
+          {instapayEnabled ? (
+            <PayMethodCard
+              ar={ar}
+              icon="flash-outline"
+              title="InstaPay"
+              note={`${t.buySlots.instantTransfer} · ${p.reviewNote}`}
+              selected={chosenMethod === 'instapay'}
+              onPress={() => setPayMethod('instapay')}
+            />
+          ) : null}
+          {mobileWalletEnabled ? (
+            <PayMethodCard
+              ar={ar}
+              icon="phone-portrait-outline"
+              title={t.buySlots.mobileWallet}
+              note={`${t.buySlots.walletsListed} · ${p.reviewNote}`}
+              selected={chosenMethod === 'mobile-wallet'}
+              onPress={() => setPayMethod('mobile-wallet')}
+            />
+          ) : null}
+          {errorBanner}
+        </View>
+      )
+    }
+
+    if (isPromoted && promotedUntil) {
+      return [
+          <PromotedStage
+            key="stage"
+            ar={ar}
+            daysLeft={daysLeft}
+            days={o.days}
+            liveLabel={p.liveNow}
+            daysLeftLabel={p.daysLeft}
+            title={p.promotedTitle}
+            titleEm={p.promotedTitleEm}
+            sub={p.runningUntil.replace('{date}', formatDate(promotedUntil))}
+          />,
+          <PromoSection
+            key="extend"
+            ar={ar}
+            title={p.extendTitle}
+            side={p.extendPlus.replace('{days}', String(o.days))}
+          >
+            <ExtendTimeline
+              ar={ar}
+              elapsed={Math.max(0, o.days - daysLeft)}
+              left={daysLeft}
+              added={o.days}
+              legendElapsed={p.legendElapsed}
+              legendLeft={p.legendLeft.replace('{n}', String(daysLeft))}
+              legendAdded={p.legendAdded.replace('{days}', String(o.days))}
+              note={p.extendNote
+                .replace('{end}', formatDate(promotedUntil))
+                .replace('{newEnd}', formatDate(newEnd))}
+            />
+          </PromoSection>,
+          sparkline,
+          equation,
+          ticket,
+          payment,
+      ]
+    }
+
+    const name = storeProfile?.name || user?.displayName || ''
+    const subLine = [
+      locationName,
+      analytics?.totalProducts != null
+        ? p.productsCount.replace('{n}', fmtNum(analytics.totalProducts))
+        : null,
+    ]
+      .filter(Boolean)
+      .join(' · ')
+
+    return [
+        <SpotlightStage
+          key="stage"
+          ar={ar}
+          name={name}
+          logoUrl={storeProfile?.logo ? imgUrl(storeProfile.logo, { w: 160 }) : null}
+          subLine={subLine}
+          firstBadge={p.firstBadge}
+          featuredBadge={p.featuredBadge}
+          title={p.stageTitle}
+          titleEm={p.stageTitleEm}
+          sub={p.stageSub}
+        />,
+        equation,
+        sparkline,
+        <PromoSection key="where" ar={ar} title={p.whereTitle} side={p.swipeHint}>
+          <PlacementsCarousel
+            ar={ar}
+            items={[
+              { title: p.place1Title, sub: p.place1Sub },
+              { title: p.place2Title, sub: p.place2Sub },
+              { title: p.place3Title, sub: p.place3Sub },
+            ]}
+          />
+        </PromoSection>,
+        ticket,
+        payment,
+    ]
+  }
+
+  function renderPitch(o: StorePromotionOffer) {
+    return <View style={styles.pitch}>{pitchSections(o)}</View>
+  }
+
+  function renderDock(o: StorePromotionOffer) {
+    const p = t.promoteStore
+    const newEnd = newEndFor(o)
+    const label = isPromoted
+      ? p.ctaExtend.replace('{days}', String(o.days))
+      : p.ctaPromote
+    const trust = isPromoted ? p.newEndLine.replace('{date}', formatDate(newEnd)) : p.trustLine
+    const price = (IS_IOS && iosPrice) || formatEgp(o.price, ar)
+    if (IS_IOS) {
+      return (
+        <PromoDock
+          ar={ar}
+          label={label}
+          price={price}
+          trust={trust}
+          loading={submitting}
+          disabled={!o.appleProductId}
+          onPress={handleAppleIapPurchase}
+        />
+      )
+    }
+    return (
+      <PromoDock
+        ar={ar}
+        label={label}
+        price={price}
+        trust={trust}
+        onPress={() => {
+          setSubmitError(null)
+          setStep(chosenMethod)
+        }}
+      />
+    )
+  }
+
   function renderBody() {
     if (blocked) {
       return (
@@ -373,40 +678,7 @@ export default function PromoteStoreScreen() {
 
     switch (step) {
       case 'method':
-        return (
-          <>
-            <View style={[styles.statusBox, colDir]}>
-              {promotedUntil !== undefined ? (
-                <Text style={[styles.statusText, isPromoted && styles.statusTextOn, dirStyle]}>
-                  {isPromoted && promotedUntil
-                    ? t.promoteStore.activeUntil.replace('{date}', formatDate(promotedUntil))
-                    : t.promoteStore.notPromoted}
-                </Text>
-              ) : null}
-              <Text style={[styles.summaryValue, dirStyle]}>{offerSummary(offer)}</Text>
-            </View>
-            <MethodStep
-              offer={offer}
-              settings={settings}
-              wallet={wallet}
-              submitError={submitError}
-              isPromoted={isPromoted}
-              onPickWallet={() => {
-                setSubmitError(null)
-                setStep('wallet')
-              }}
-              onPickInstapay={() => {
-                setSubmitError(null)
-                setStep('instapay')
-              }}
-              onPickMobileWallet={() => {
-                setSubmitError(null)
-                setStep('mobile-wallet')
-              }}
-              onPickApple={handleAppleIapPurchase}
-            />
-          </>
-        )
+        return renderPitch(offer)
       case 'apple-iap':
         return (
           <AppleIapPanel
@@ -483,6 +755,19 @@ export default function PromoteStoreScreen() {
     }
   }
 
+  if (showPitch && offer) {
+    return (
+      <DashboardLayout
+        title={t.promoteStoreNav}
+        bodyColor={P.ink}
+        contentPadding={false}
+        bottomBar={renderDock(offer)}
+      >
+        {renderBody()}
+      </DashboardLayout>
+    )
+  }
+
   return (
     <DashboardLayout title={t.promoteStoreNav}>
       <View style={colDir}>
@@ -491,177 +776,6 @@ export default function PromoteStoreScreen() {
       </View>
       {renderBody()}
     </DashboardLayout>
-  )
-}
-
-type MethodStepProps = {
-  offer: StorePromotionOffer
-  settings: SiteSettings | null
-  wallet: WalletBalance | null
-  submitError: string | null
-  isPromoted: boolean
-  onPickWallet: () => void
-  onPickInstapay: () => void
-  onPickMobileWallet: () => void
-  onPickApple: () => void
-}
-
-type AndroidMethod = 'wallet' | 'instapay' | 'mobile-wallet'
-
-function MethodStep(props: MethodStepProps) {
-  const { t } = useLocale()
-  const { ar, rowDir, colDir, dirStyle } = useDir()
-  const {
-    offer,
-    settings,
-    wallet,
-    submitError,
-    isPromoted,
-    onPickWallet,
-    onPickInstapay,
-    onPickMobileWallet,
-    onPickApple,
-  } = props
-
-  const canWallet = wallet !== null && wallet.balance >= offer.price
-  const instapayEnabled = settings?.instapayEnabled !== false
-  const mobileWalletEnabled = settings?.mobileWalletEnabled !== false
-
-  const [method, setMethod] = useState<AndroidMethod>(
-    canWallet ? 'wallet' : instapayEnabled ? 'instapay' : 'mobile-wallet',
-  )
-
-  function proceed() {
-    if (method === 'wallet') onPickWallet()
-    else if (method === 'instapay') onPickInstapay()
-    else onPickMobileWallet()
-  }
-
-  const ctaLabel = isPromoted ? t.promoteStore.promoteAgain : t.buySlots.buyArrow
-
-  const errorBanner = submitError ? (
-    <View style={styles.errorBanner}>
-      <Text style={styles.errorBannerText}>{submitError}</Text>
-    </View>
-  ) : null
-
-  if (IS_IOS) {
-    // Apple guideline 3.1.1: digital goods on iOS are sold only through IAP.
-    if (!offer.appleProductId) {
-      return (
-        <View style={styles.methodBlock}>
-          <View style={styles.emptyBox}>
-            <Text style={[styles.emptyText, dirStyle]}>{t.promoteStore.unavailable}</Text>
-          </View>
-        </View>
-      )
-    }
-    return (
-      <View style={styles.methodBlock}>
-        {errorBanner}
-        <Pressable
-          style={styles.primaryCta}
-          onPress={onPickApple}
-          accessibilityRole="button"
-        >
-          <Ionicons name="logo-apple" size={18} color={colors.dk} />
-          <Text style={styles.primaryCtaText}>{t.buySlots.applePayCta}</Text>
-        </Pressable>
-        <LegalLinks />
-      </View>
-    )
-  }
-
-  return (
-    <View style={styles.methodBlock}>
-      <View style={colDir}>
-        <Text style={[styles.sectionTitle, dirStyle]}>
-          {t.buySlots.choosePaymentMethod}
-        </Text>
-      </View>
-
-      <Pressable
-        onPress={() => setMethod('wallet')}
-        style={[
-          styles.methodCard,
-          method === 'wallet' && styles.methodCardSelected,
-          !canWallet && styles.methodCardDisabled,
-        ]}
-        disabled={!canWallet}
-        accessibilityRole="radio"
-        accessibilityState={{ selected: method === 'wallet', disabled: !canWallet }}
-      >
-        <View style={[styles.methodHeader, rowDir]}>
-          <View style={[styles.radioDot, method === 'wallet' && styles.radioDotOn]} />
-          <Text style={[styles.methodTitle, dirStyle]}>
-            {t.buySlots.payWithWallet}
-          </Text>
-        </View>
-        <Text style={[styles.methodNote, dirStyle]}>
-          {t.buySlots.payWithWalletNote} · {wallet ? `${wallet.balance} EGP` : '—'}
-        </Text>
-        {!canWallet ? (
-          <Text style={[styles.methodWarn, dirStyle]}>
-            {t.buySlots.insufficientWallet}
-          </Text>
-        ) : null}
-      </Pressable>
-
-      {instapayEnabled ? (
-        <Pressable
-          onPress={() => setMethod('instapay')}
-          style={[
-            styles.methodCard,
-            method === 'instapay' && styles.methodCardSelected,
-          ]}
-          accessibilityRole="radio"
-          accessibilityState={{ selected: method === 'instapay' }}
-        >
-          <View style={[styles.methodHeader, rowDir]}>
-            <View style={[styles.radioDot, method === 'instapay' && styles.radioDotOn]} />
-            <Text style={[styles.methodTitle, dirStyle]}>InstaPay</Text>
-          </View>
-          <Text style={[styles.methodNote, dirStyle]}>
-            {t.buySlots.instantTransfer}
-          </Text>
-        </Pressable>
-      ) : null}
-
-      {mobileWalletEnabled ? (
-        <Pressable
-          onPress={() => setMethod('mobile-wallet')}
-          style={[
-            styles.methodCard,
-            method === 'mobile-wallet' && styles.methodCardSelected,
-          ]}
-          accessibilityRole="radio"
-          accessibilityState={{ selected: method === 'mobile-wallet' }}
-        >
-          <View style={[styles.methodHeader, rowDir]}>
-            <View style={[styles.radioDot, method === 'mobile-wallet' && styles.radioDotOn]} />
-            <Text style={[styles.methodTitle, dirStyle]}>
-              {t.buySlots.mobileWallet}
-            </Text>
-          </View>
-          <Text style={[styles.methodNote, dirStyle]}>
-            {t.buySlots.walletsListed}
-          </Text>
-        </Pressable>
-      ) : null}
-
-      <Pressable
-        style={styles.primaryCta}
-        onPress={proceed}
-        accessibilityRole="button"
-      >
-        <Text style={styles.primaryCtaText}>{ctaLabel}</Text>
-        <Ionicons
-          name={ar ? 'chevron-back' : 'chevron-forward'}
-          size={18}
-          color={colors.dk}
-        />
-      </Pressable>
-    </View>
   )
 }
 
@@ -910,38 +1024,6 @@ const styles = StyleSheet.create({
     color: colors.g500,
     textAlign: 'center',
   },
-  statusBox: {
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.g200,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: 4,
-  },
-  statusText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 13,
-    color: colors.g600,
-  },
-  statusTextOn: {
-    color: colors.dk,
-  },
-  primaryCta: {
-    marginTop: spacing.md,
-    backgroundColor: colors.y,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  primaryCtaText: {
-    fontFamily: fonts.bold,
-    fontSize: 15,
-    color: colors.dk,
-  },
   legalLinks: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -979,55 +1061,6 @@ const styles = StyleSheet.create({
     color: colors.dk,
     marginBottom: spacing.sm,
   },
-  methodCard: {
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.g200,
-    padding: spacing.md,
-  },
-  methodCardSelected: {
-    borderColor: colors.y,
-    backgroundColor: '#FFFBEA',
-  },
-  methodCardDisabled: {
-    opacity: 0.55,
-  },
-  methodHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
-  },
-  radioDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colors.g300,
-    backgroundColor: colors.white,
-  },
-  radioDotOn: {
-    borderColor: colors.y,
-    backgroundColor: colors.y,
-  },
-  methodTitle: {
-    fontFamily: fonts.semiBold,
-    fontSize: 15,
-    color: colors.dk,
-  },
-  methodNote: {
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    color: colors.g500,
-    lineHeight: 18,
-  },
-  methodWarn: {
-    marginTop: 4,
-    fontFamily: fonts.semiBold,
-    fontSize: 11,
-    color: colors.red,
-  },
   backBtn: {
     marginTop: spacing.sm,
     alignSelf: 'center',
@@ -1053,6 +1086,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FECACA',
     padding: spacing.sm,
+  },
+  pitch: {
+    paddingBottom: 24,
+  },
+  darkInset: {
+    marginHorizontal: 14,
+    marginTop: 14,
+  },
+  darkSectionTitle: {
+    fontFamily: fonts.extraBold,
+    fontSize: 15,
+    color: '#FFFFFF',
+  },
+  darkNotice: {
+    borderRadius: 18,
+    padding: 16,
+    backgroundColor: P.glass,
+    borderWidth: 1,
+    borderColor: P.line,
+  },
+  darkNoticeText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    lineHeight: 20,
+    color: P.g400,
   },
   errorBannerText: {
     fontFamily: fonts.semiBold,
