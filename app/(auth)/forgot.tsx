@@ -147,7 +147,7 @@ export default function ForgotScreen() {
           {step === 'otp' && (
             <>
               <OtpChannelHint />
-              <OtpCodeInput value={code} onChange={setCode} />
+              <OtpCodeInput value={code} onChange={setCode} onComplete={() => { if (!loading) handleVerifyOtp() }} />
               {!!error && <Text style={styles.error}>{error}</Text>}
               <Button label={t.verify} onPress={handleVerifyOtp} loading={loading} />
               <Pressable style={styles.resendBtn} onPress={handleSendOtp}>

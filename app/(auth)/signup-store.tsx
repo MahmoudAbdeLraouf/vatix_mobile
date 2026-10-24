@@ -333,7 +333,7 @@ export default function SignupStoreScreen() {
           {step === 'otp' && (
             <>
               <OtpChannelHint />
-              <OtpCodeInput ref={codeRef} value={code} onChange={setCode} />
+              <OtpCodeInput ref={codeRef} value={code} onChange={setCode} onComplete={() => { if (!loading) handleVerify() }} />
               {!!error && (
                 <View style={styles.errorBox}>
                   <Ionicons name="alert-circle-outline" size={16} color="#C53030" />

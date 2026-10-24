@@ -7,11 +7,12 @@ import { colors, fonts, radius, spacing } from '@/constants/theme'
 const WA_GREEN = '#25D366'
 
 export function OtpChannelHint() {
-  const { t } = useLocale()
+  const { t, isRtl } = useLocale()
+  const dirStyle = { writingDirection: isRtl ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
   return (
     <View style={styles.box}>
       <Ionicons name="logo-whatsapp" size={20} color={WA_GREEN} />
-      <Text style={styles.text}>{t.otpViaWhatsapp}</Text>
+      <Text style={[styles.text, dirStyle]}>{t.otpViaWhatsapp}</Text>
     </View>
   )
 }

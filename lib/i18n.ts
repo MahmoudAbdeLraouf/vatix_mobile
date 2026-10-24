@@ -57,7 +57,6 @@ export interface Translations {
   otpCode: string
   resendCode: string
   otpViaWhatsapp: string
-  pasteCode: string
   verify: string
   // Tabs
   home: string
@@ -1151,7 +1150,6 @@ export const translations: Record<Locale, Translations> = {
     otpCode: 'رمز التحقق',
     resendCode: 'إعادة الإرسال',
     otpViaWhatsapp: 'سيصلك رمز التحقق في رسالة على واتساب',
-    pasteCode: 'لصق الرمز',
     verify: 'تحقق',
     // Tabs
     home: 'الرئيسية',
@@ -2174,7 +2172,6 @@ export const translations: Record<Locale, Translations> = {
     otpCode: 'Verification Code',
     resendCode: 'Resend',
     otpViaWhatsapp: 'The code will arrive as a WhatsApp message',
-    pasteCode: 'Paste code',
     verify: 'Verify',
     // Tabs
     home: 'Home',

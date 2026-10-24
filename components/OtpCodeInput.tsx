@@ -1,8 +1,5 @@
-import React, { forwardRef } from 'react'
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import * as Clipboard from 'expo-clipboard'
-import { useLocale } from '@/contexts/locale'
+import React, { forwardRef, useEffect, useRef, useState } from 'react'
+import { Platform, StyleSheet, Text, TextInput, View } from 'react-native'
 import { colors, fonts, radius, spacing } from '@/constants/theme'
 
 const OTP_LENGTH = 6
@@ -16,23 +13,40 @@ function extractCode(raw: string): string {
 interface Props {
   value: string
   onChange: (code: string) => void
+  // Fired once the 6th digit lands (typing, paste, or keyboard suggestion).
+  onComplete?: () => void
   autoFocus?: boolean
 }
 
 export const OtpCodeInput = forwardRef<TextInput, Props>(function OtpCodeInput(
-  { value, onChange, autoFocus = true },
+  { value, onChange, onComplete, autoFocus = true },
   ref,
 ) {
-  const { t } = useLocale()
+  const [focused, setFocused] = useState(false)
 
-  async function paste() {
-    const text = await Clipboard.getStringAsync().catch(() => '')
-    const code = extractCode(text)
-    if (code) onChange(code)
-  }
+  // Read the latest handler after the parent re-renders with the new code,
+  // so the screen's verify function sees the full value instead of a stale one.
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
+  const prevLength = useRef(value.length)
+  useEffect(() => {
+    if (value.length === OTP_LENGTH && prevLength.current < OTP_LENGTH) onCompleteRef.current?.()
+    prevLength.current = value.length
+  }, [value])
+
+  const active = Math.min(value.length, OTP_LENGTH - 1)
 
   return (
     <View style={styles.wrap}>
+      <View style={styles.row}>
+        {Array.from({ length: OTP_LENGTH }, (_, i) => (
+          <View key={i} style={[styles.box, focused && i === active && styles.boxActive]}>
+            <Text style={styles.digit}>{value[i] ?? ''}</Text>
+          </View>
+        ))}
+      </View>
+      {/* The real input sits invisibly over the boxes so taps, long-press paste
+          and the keyboard's code suggestion all go straight to it. */}
       <TextInput
         ref={ref}
         value={value}
@@ -41,46 +55,37 @@ export const OtpCodeInput = forwardRef<TextInput, Props>(function OtpCodeInput(
         keyboardType="number-pad"
         textContentType="oneTimeCode"
         autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
-        placeholder="------"
-        placeholderTextColor={colors.g400}
+        caretHidden
+        selectionColor="transparent"
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         style={styles.input}
         autoFocus={autoFocus}
       />
-      <Pressable style={styles.pasteBtn} onPress={paste} hitSlop={8}>
-        <Ionicons name="clipboard-outline" size={16} color={colors.g700} />
-        <Text style={styles.pasteText}>{t.pasteCode}</Text>
-      </Pressable>
     </View>
   )
 })
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: spacing.lg },
-  input: {
-    height: 72,
+  // Digits always read left-to-right, even in Arabic.
+  row: { flexDirection: 'row', direction: 'ltr', gap: spacing.sm },
+  box: {
+    flex: 1,
+    height: 60,
     borderRadius: radius.md,
     borderWidth: 1.5,
     borderColor: colors.g300,
     backgroundColor: colors.g100,
-    textAlign: 'center',
-    writingDirection: 'ltr',
-    fontFamily: fonts.black,
-    fontSize: 32,
-    letterSpacing: 8,
-    color: colors.dk,
-    paddingVertical: 0,
-  },
-  pasteBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'center',
-    gap: 6,
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.g200,
+    justifyContent: 'center',
   },
-  pasteText: { fontFamily: fonts.bold, fontSize: 13, color: colors.g700 },
+  boxActive: { borderColor: colors.y, backgroundColor: colors.white },
+  digit: { fontFamily: fonts.black, fontSize: 26, color: colors.dk },
+  input: {
+    ...StyleSheet.absoluteFillObject,
+    color: 'transparent',
+    backgroundColor: 'transparent',
+    fontSize: 1,
+  },
 })

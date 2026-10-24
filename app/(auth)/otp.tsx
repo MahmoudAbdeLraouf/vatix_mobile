@@ -76,7 +76,7 @@ export default function OtpScreen() {
 
       {/* White card */}
       <View style={styles.card}>
-        <OtpCodeInput ref={inputRef} value={code} onChange={setCode} />
+        <OtpCodeInput ref={inputRef} value={code} onChange={setCode} onComplete={() => { if (!loading) handleVerify() }} />
 
         {!!error && <Text style={styles.error}>{error}</Text>}
 
