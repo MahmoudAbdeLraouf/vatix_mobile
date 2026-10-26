@@ -207,7 +207,7 @@ export default function StoreDetailScreen() {
   const logo = imgUrl(storeProfile.logo)
   const cover = imgUrl(storeProfile.cover)
   const storeIdent = storeProfile.slug ?? store.id
-  const storefrontUrl = storeProfile.websiteUrl || `https://vatix.store/s/${storeIdent}`
+  const storefrontUrl = storeProfile.websiteUrl || `https://vatix.store/stores/${encodeURIComponent(String(storeIdent))}`
 
   const socialLinks = (Object.keys(SOCIAL_ICONS) as SocialKey[]).filter(
     k => !!(storeProfile as unknown as Record<string, unknown>)[k],
