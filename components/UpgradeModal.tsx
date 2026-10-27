@@ -24,6 +24,7 @@ import {
   getSubscriptionPlans,
   PlanData,
   SiteSettings,
+  UserProfile,
   WalletBalance,
 } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
@@ -92,6 +93,9 @@ interface Props {
 
 // Store subscriptions are monthly-only.
 const STORE_PLAN = { code: 'subscription_store', fallbackPrice: 450 }
+// Substring of the backend's "trial already used" rejection from
+// POST /user/upgrade-to-store (users.service.ts upgradeToStore).
+const TRIAL_USED_MARKER = 'استخدمت تجربتك المجانية'
 
 // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
 // RTL, `textAlign: 'right'` and `flexDirection: 'row-reverse'` resolve visually
@@ -136,6 +140,9 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   )
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  // Clients who already used their free trial must pay to become a store, so
+  // store-info continues to pay-method instead of starting a trial.
+  const [trialUsed, setTrialUsed] = useState(false)
 
   // Cancellation reason capture (mirrors website upgrade-modal).
   // Two-step in-modal flow: pick reason → confirm. Native Alert would push it
@@ -185,18 +192,24 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
     if (!visible) return
     let live = true
     ;(async () => {
-      const [p, s, w] = await Promise.all([
+      const [p, s, w, profile] = await Promise.all([
         getSubscriptionPlans().catch(() => [] as PlanData[]),
         getSiteSettings().catch(() => null),
         // Wallet balance is peripheral: user can still pick InstaPay / mobile
         // wallet / IAP if this fails. Failing loudly here would take down the
         // whole modal.
         authFetch<WalletBalance>('/payments/wallet/balance').catch(() => null),
+        // If this fails we still offer the trial; handleTrialSignup falls
+        // back to payment when the backend rejects it.
+        needsStoreCreation
+          ? authFetch<UserProfile>('/user/profile').catch(() => null)
+          : Promise.resolve(null),
       ])
       if (!live) return
       setPlans(p)
       setSettings(s)
       setWallet(w)
+      setTrialUsed(profile?.trialUsed === true)
       if (IS_IOS) {
         try {
           const products = await fetchIosProducts(SUBSCRIPTION_SKUS, 'subs')
@@ -285,6 +298,8 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   }
 
   // Materialize a store profile on the 14-day trial without any payment.
+  // When the trial is already used, go to payment instead; the store is then
+  // created from buildStoreMetadata() once the payment succeeds.
   async function handleTrialSignup() {
     if (!storeName.trim()) {
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
@@ -292,6 +307,11 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
     }
     if (!logo) {
       setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
+      return
+    }
+    if (trialUsed) {
+      setErr('')
+      setStep('pay-method')
       return
     }
     setBusy(true)
@@ -310,6 +330,14 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       onClose()
       router.replace('/dashboard')
     } catch (e: unknown) {
+      // Older backends don't send `trialUsed` on /user/profile, so detect the
+      // trial-used rejection and continue to payment with the same store info.
+      if (e instanceof Error && e.message.includes(TRIAL_USED_MARKER)) {
+        setTrialUsed(true)
+        setErr('')
+        setStep('pay-method')
+        return
+      }
       setErr(authErrorMessage(e, t))
     } finally {
       setBusy(false)
@@ -606,6 +634,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
                   onCoverChange={setCover}
                   err={err}
                   busy={busy}
+                  trialUsed={trialUsed}
                   onBack={onClose}
                   onSubmit={handleTrialSignup}
                 />
@@ -751,6 +780,7 @@ function StoreInfoPanel(props: {
   onCoverChange: (v: string) => void
   err: string
   busy: boolean
+  trialUsed: boolean
   onBack: () => void
   onSubmit: () => void
 }) {
@@ -804,7 +834,11 @@ function StoreInfoPanel(props: {
         </View>
         <View style={{ flex: 2 }}>
           <Button
-            label={ar ? 'ابدأ التجربة ←' : 'Start Trial →'}
+            label={
+              props.trialUsed
+                ? (ar ? 'متابعة للدفع ←' : 'Continue to payment →')
+                : (ar ? 'ابدأ التجربة ←' : 'Start Trial →')
+            }
             variant="y"
             size="md"
             onPress={props.onSubmit}

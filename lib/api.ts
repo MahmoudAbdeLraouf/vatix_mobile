@@ -194,6 +194,8 @@ export interface UserProfile {
   storeShareCount?: number
   flags?: UserActionFlags
   pendingUpgrade?: PendingUpgradeRequest | null
+  // True once the user consumed their one free store trial.
+  trialUsed?: boolean
   extraProductSlots?: number
   walletBalance?: number
 }
