@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -6,12 +6,15 @@ import { router, useLocalSearchParams } from 'expo-router'
 
 import { Button } from '@/components/ui/Button'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import type { PaymentContext } from '@/lib/payment'
 
 export default function PaymentFailedScreen() {
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   const params = useLocalSearchParams<{
     context?: PaymentContext
@@ -65,8 +68,8 @@ export default function PaymentFailedScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   container: {
     flex: 1,
     padding: spacing.md,
@@ -76,14 +79,14 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.xl,
     alignItems: 'center',
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.sm,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.sm),
   },
   iconWrap: {
     width: 96,
@@ -91,18 +94,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
   },
   title: {
     fontFamily: fonts.extraBold,
     fontSize: 20,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
   },
   body: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
     textAlign: 'center',
     lineHeight: 22,
   },

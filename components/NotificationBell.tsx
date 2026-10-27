@@ -8,13 +8,16 @@ import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
 import { authFetch } from '@/lib/auth'
 import type { Notification } from '@/lib/api'
-import { colors, fonts, radius } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 interface NotificationBellProps {
   color?: string
 }
 
-export function NotificationBell({ color = colors.dk }: NotificationBellProps = {}) {
+export function NotificationBell({ color }: NotificationBellProps = {}) {
+  const { colors, mode } = useTheme()
+  const styles = themedStyles[mode]
   const { isAuthenticated } = useAuth()
   const { t } = useLocale()
   const { requireLogin } = useLoginGate()
@@ -60,7 +63,7 @@ export function NotificationBell({ color = colors.dk }: NotificationBellProps = 
       style={styles.btn}
     >
       <View style={styles.iconWrap}>
-        <Ionicons name="notifications-outline" size={22} color={color} />
+        <Ionicons name="notifications-outline" size={22} color={color ?? colors.heading} />
         {unread > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText} numberOfLines={1}>
@@ -73,7 +76,7 @@ export function NotificationBell({ color = colors.dk }: NotificationBellProps = 
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   btn: {
     width: 36,
     height: 36,
@@ -103,7 +106,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: colors.white,
+    borderColor: colors.card,
   },
   badgeText: {
     fontFamily: fonts.bold,
@@ -112,3 +115,5 @@ const styles = StyleSheet.create({
     lineHeight: 12,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }

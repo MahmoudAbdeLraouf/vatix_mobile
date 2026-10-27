@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, TextInput, View } from 'react-native'
-import { colors, fonts, radius } from '@/constants/theme'
+import { fonts, radius, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { submitBroDetails, type BroScratches } from '@/lib/bro'
 import { BroButton } from '@/components/bro/BroButton'
@@ -38,6 +39,8 @@ export function BroDetailsForm({
   onSubmitted: () => void
 }) {
   const { t, locale } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const b = t.bro
   const ar = locale === 'ar'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
@@ -103,7 +106,7 @@ export function BroDetailsForm({
         onChangeText={setPrice}
         editable={!locked}
         keyboardType="decimal-pad"
-        placeholderTextColor={colors.g400}
+        placeholderTextColor={colors.subtle}
         style={[styles.input, priceInvalid && styles.inputInvalid, dirStyle]}
       />
       {priceInvalid && <Text style={[styles.error, dirStyle]}>{b.errPrice}</Text>}
@@ -114,7 +117,7 @@ export function BroDetailsForm({
         onChangeText={setArea}
         editable={!locked}
         maxLength={120}
-        placeholderTextColor={colors.g400}
+        placeholderTextColor={colors.subtle}
         style={[styles.input, dirStyle]}
       />
 
@@ -172,7 +175,7 @@ export function BroDetailsForm({
             onChangeText={setWarrantyNote}
             editable={!locked}
             maxLength={60}
-            placeholderTextColor={colors.g400}
+            placeholderTextColor={colors.subtle}
             style={[styles.input, dirStyle]}
           />
         </>
@@ -185,7 +188,7 @@ export function BroDetailsForm({
         editable={!locked}
         maxLength={280}
         multiline
-        placeholderTextColor={colors.g400}
+        placeholderTextColor={colors.subtle}
         style={[styles.input, styles.multiline, dirStyle]}
       />
 
@@ -208,19 +211,19 @@ export function BroDetailsForm({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   form: { marginTop: 10, gap: 6 },
-  label: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.g600, marginTop: 4 },
+  label: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.muted, marginTop: 4 },
   input: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.inputBg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.sm,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g900,
+    color: colors.text,
   },
   inputInvalid: { borderColor: colors.red },
   multiline: { minHeight: 64, textAlignVertical: 'top' },

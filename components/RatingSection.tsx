@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Link } from 'expo-router'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { StarRating } from '@/components/StarRating'
@@ -19,6 +20,8 @@ interface Props {
 export function RatingSection({ productId, initialAvg, initialCount, ownerId }: Props) {
   const { t, locale, isRtl } = useLocale()
   const { user } = useAuth()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const [avg, setAvg] = useState(initialAvg)
   const [count, setCount] = useState(initialCount)
@@ -184,7 +187,7 @@ export function RatingSection({ productId, initialAvg, initialCount, ownerId }: 
             multiline
             numberOfLines={3}
             placeholder={t.reviewCommentPlaceholder}
-            placeholderTextColor={colors.g400}
+            placeholderTextColor={colors.subtle}
             value={comment}
             onChangeText={setComment}
           />
@@ -264,12 +267,12 @@ export function RatingSection({ productId, initialAvg, initialCount, ownerId }: 
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     marginTop: spacing.md,
   },
@@ -288,7 +291,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: fonts.extraBold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   summary: {
     flexDirection: 'row',
@@ -303,13 +306,13 @@ const styles = StyleSheet.create({
   avgValue: {
     fontFamily: fonts.black,
     fontSize: 42,
-    color: colors.dk,
+    color: colors.heading,
     lineHeight: 46,
   },
   summaryMeta: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     marginTop: 4,
   },
   summaryRight: {
@@ -325,7 +328,7 @@ const styles = StyleSheet.create({
   barLabel: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     width: 12,
     textAlign: 'center',
   },
@@ -336,7 +339,7 @@ const styles = StyleSheet.create({
   barTrack: {
     flex: 1,
     height: 6,
-    backgroundColor: colors.g200,
+    backgroundColor: colors.dot,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -348,20 +351,20 @@ const styles = StyleSheet.create({
   barCount: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     width: 22,
     textAlign: 'center',
   },
   formBlock: {
     borderTopWidth: 1,
-    borderTopColor: colors.g100,
+    borderTopColor: colors.border,
     paddingTop: spacing.md,
     marginBottom: spacing.md,
   },
   formTitle: {
     fontFamily: fonts.extraBold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.sm + 4,
   },
   formStarsRow: {
@@ -373,19 +376,19 @@ const styles = StyleSheet.create({
   descriptor: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
   },
   textArea: {
     borderWidth: 1,
-    borderColor: colors.g300,
+    borderColor: colors.border,
     borderRadius: radius.sm,
     padding: 10,
     minHeight: 76,
     textAlignVertical: 'top',
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.dk,
-    backgroundColor: colors.white,
+    color: colors.text,
+    backgroundColor: colors.inputBg,
     marginBottom: spacing.sm,
   },
   errorText: {
@@ -410,14 +413,14 @@ const styles = StyleSheet.create({
   },
   signInBlock: {
     borderTopWidth: 1,
-    borderTopColor: colors.g100,
+    borderTopColor: colors.border,
     paddingTop: spacing.sm + 4,
     marginBottom: spacing.md,
   },
   signInText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
   },
   signInLink: {
     fontFamily: fonts.bold,
@@ -425,7 +428,7 @@ const styles = StyleSheet.create({
   },
   reviewsList: {
     borderTopWidth: 1,
-    borderTopColor: colors.g100,
+    borderTopColor: colors.border,
     paddingTop: spacing.md,
   },
   listStatus: {
@@ -435,7 +438,7 @@ const styles = StyleSheet.create({
   emptyListText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
     paddingVertical: spacing.sm,
   },
@@ -443,7 +446,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
+    borderBottomColor: colors.border,
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -455,7 +458,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -470,12 +473,12 @@ const styles = StyleSheet.create({
   reviewTime: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
   },
   reviewComment: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 20,
     marginStart: 42,
   },

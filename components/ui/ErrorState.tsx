@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { StyleSheet, Text, View, ViewStyle } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, fonts, spacing } from '@/constants/theme'
+import { fonts, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { Button } from './Button'
 import { useLocale } from '@/contexts/locale'
 
@@ -32,6 +33,8 @@ export function ErrorState({
   style,
 }: ErrorStateProps) {
   const { t } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const defaults: Record<ErrorKind, { title: string; subtitle: string }> = {
     network: { title: t.networkError, subtitle: t.errorRetryHint },
@@ -47,7 +50,7 @@ export function ErrorState({
   return (
     <View style={[styles.wrap, style as ViewStyle]}>
       <View style={styles.icon}>
-        <Ionicons name={ICON_FOR[kind]} size={28} color={colors.g500} />
+        <Ionicons name={ICON_FOR[kind]} size={28} color={colors.muted} />
       </View>
       <Text style={styles.title}>{finalTitle}</Text>
       {finalSubtitle ? <Text style={styles.subtitle}>{finalSubtitle}</Text> : null}
@@ -60,7 +63,7 @@ export function ErrorState({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   wrap: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -71,7 +74,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
@@ -79,13 +82,13 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.bold,
     fontSize: 16,
-    color: colors.g900,
+    color: colors.text,
     textAlign: 'center',
   },
   subtitle: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 20,
   },

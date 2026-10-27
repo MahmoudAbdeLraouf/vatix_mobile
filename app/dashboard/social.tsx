@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   ScrollView,
@@ -14,7 +14,8 @@ import { Input } from '@/components/ui/Input'
 import { useLocale } from '@/contexts/locale'
 import { authErrorMessage, authFetch, authPatch } from '@/lib/auth'
 import type { UserProfile } from '@/lib/api'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 type Msg = { ok: boolean; text: string } | null
 
@@ -38,6 +39,8 @@ const SOCIALS: {
 export default function SocialScreen() {
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const dirContainer = ar ? { direction: 'rtl' as const } : null
   // Canonical RTL pattern (see settings.tsx / FileUpload.tsx): under inherited
   // RTL, `textAlign: 'right'` double-flips. `textAlign: 'auto'` resolves to the
@@ -163,7 +166,7 @@ export default function SocialScreen() {
                   keyboardType="url"
                   // Social URLs render LTR regardless of UI locale.
                   style={{ textAlign: 'left', writingDirection: 'ltr' }}
-                  leftIcon={<Ionicons name={icon} size={18} color={color} />}
+                  leftIcon={<Ionicons name={icon} size={18} color={isDark && color.startsWith('#0') ? colors.text : color} />}
                 />
               ))}
 
@@ -173,7 +176,7 @@ export default function SocialScreen() {
                     styles.msgBox,
                     dirContainer,
                     {
-                      backgroundColor: msg.ok ? colors.gl : colors.rl,
+                      backgroundColor: msg.ok ? colors.greenBg : colors.redBg,
                       borderColor: msg.ok ? colors.green : colors.red,
                     },
                   ]}
@@ -201,7 +204,7 @@ export default function SocialScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   scrollContent: {
     paddingBottom: spacing.xxl,
   },
@@ -212,26 +215,26 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
     maxWidth: 600,
     width: '100%',
     alignSelf: 'center',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   cardTitle: {
     fontFamily: fonts.black,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
   },
   hint: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     marginBottom: spacing.lg,
   },
   emptyBox: {
@@ -245,7 +248,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g500,
+    color: colors.muted,
     paddingHorizontal: spacing.md,
   },
   msgBox: {

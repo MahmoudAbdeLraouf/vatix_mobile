@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const MAX_THUMBS = 3
 
@@ -38,6 +39,8 @@ export function ImportRowCard({
   onRemove,
 }: Props) {
   const { t, locale } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ip = t.importProducts
   const ar = locale === 'ar'
   const dirStyle = {
@@ -106,32 +109,32 @@ export function ImportRowCard({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   card: {
     gap: spacing.sm,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.ss,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.ss),
   },
-  cardMissing: { backgroundColor: colors.rl, borderColor: '#FED7D7' },
+  cardMissing: { backgroundColor: colors.redBg, borderColor: dark ? 'rgba(229,62,62,0.35)' : '#FED7D7' },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  rowLabel: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.g500 },
+  rowLabel: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.muted },
   removeBtn: {
     width: 28,
     height: 28,
     borderRadius: radius.full,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   removeGlyph: { fontSize: 13, color: colors.red, fontFamily: fonts.bold },
-  title: { fontFamily: fonts.bold, fontSize: 14, color: colors.dk },
-  price: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.g600 },
+  title: { fontFamily: fonts.bold, fontSize: 14, color: colors.heading },
+  price: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.muted },
   thumbs: { flexDirection: 'row', gap: spacing.xs },
-  thumb: { width: 52, height: 52, borderRadius: 8, backgroundColor: colors.g100 },
-  moreChip: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.g200 },
-  moreText: { fontFamily: fonts.bold, fontSize: 12, color: colors.g600 },
+  thumb: { width: 52, height: 52, borderRadius: 8, backgroundColor: colors.placeholder },
+  moreChip: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  moreText: { fontFamily: fonts.bold, fontSize: 12, color: colors.muted },
 })

@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, TextInput, View } from 'react-native'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { translations } from '@/lib/i18n'
 import {
@@ -80,6 +81,8 @@ export function BroMessage({
   onAnswered: () => void
 }) {
   const { t, locale } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const b = t.bro
   const ar = locale === 'ar'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
@@ -205,7 +208,7 @@ export function BroMessage({
               multiline
               maxLength={2000}
               placeholder={b.freeTextPlaceholder}
-              placeholderTextColor={colors.g400}
+              placeholderTextColor={colors.subtle}
               style={[styles.input, dirStyle]}
             />
             <View style={[styles.sendRow, rowDir]}>
@@ -255,7 +258,7 @@ export function BroMessage({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   // Bro messages align like the other party's bubbles in this screen.
   row: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 2 },
   bubble: {
@@ -266,25 +269,25 @@ const styles = StyleSheet.create({
     borderTopEndRadius: 4,
     borderWidth: 1,
   },
-  bubblePlain: { backgroundColor: colors.white, borderColor: colors.g200 },
-  bubblePrompt: { backgroundColor: colors.yl, borderColor: colors.y },
+  bubblePlain: { backgroundColor: colors.card, borderColor: colors.border },
+  bubblePrompt: { backgroundColor: colors.yellowBg, borderColor: colors.y },
   header: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  name: { fontFamily: fonts.bold, fontSize: 12, color: colors.dk },
+  name: { fontFamily: fonts.bold, fontSize: 12, color: colors.heading },
   banner: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.sm,
     paddingHorizontal: 10,
     paddingVertical: 6,
     marginBottom: 8,
   },
-  bannerText: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 18, color: colors.g500 },
-  body: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 22, color: colors.g900 },
+  bannerText: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 18, color: colors.muted },
+  body: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 22, color: colors.text },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   reply: { marginTop: 8, gap: 6 },
   input: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.inputBg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.sm,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -292,7 +295,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g900,
+    color: colors.text,
   },
   sendRow: { flexDirection: 'row' },
   optOut: {
@@ -302,7 +305,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 10,
   },
-  optOutText: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500, flexShrink: 1 },
+  optOutText: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted, flexShrink: 1 },
   error: { fontFamily: fonts.regular, fontSize: 12, color: colors.red, marginTop: 6 },
-  time: { fontFamily: fonts.regular, fontSize: 10, color: colors.g500, opacity: 0.6, marginTop: 4 },
+  time: { fontFamily: fonts.regular, fontSize: 10, color: colors.muted, opacity: 0.6, marginTop: 4 },
 })

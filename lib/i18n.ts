@@ -195,6 +195,7 @@ export interface Translations {
   allStores: string
   // Settings
   language: string
+  darkMode: string
   // Messages
   typeMessage: string
   send: string
@@ -1288,6 +1289,7 @@ export const translations: Record<Locale, Translations> = {
     allStores: 'جميع المتاجر',
     // Settings
     language: 'اللغة',
+    darkMode: 'الوضع الداكن',
     // Messages
     typeMessage: 'اكتب رسالة...',
     send: 'إرسال',
@@ -2310,6 +2312,7 @@ export const translations: Record<Locale, Translations> = {
     allStores: 'All Stores',
     // Settings
     language: 'Language',
+    darkMode: 'Dark mode',
     // Messages
     typeMessage: 'Type a message...',
     send: 'Send',

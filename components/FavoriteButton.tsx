@@ -8,6 +8,7 @@ import { authDelete, authFetch, authPost } from '@/lib/auth'
 import { FavoriteProduct } from '@/lib/api'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 interface FavoriteButtonProps {
   productId: number
@@ -23,11 +24,13 @@ export function FavoriteButton({
   productId,
   initialFaved,
   size = 22,
-  color = colors.g800,
+  color,
   activeColor = colors.red,
   style,
   onChange,
 }: FavoriteButtonProps) {
+  const { colors: theme } = useTheme()
+  const idleColor = color ?? theme.text
   const { isAuthenticated } = useAuth()
   const { t } = useLocale()
   const { requireLogin } = useLoginGate()
@@ -92,12 +95,12 @@ export function FavoriteButton({
       style={({ pressed }) => [styles.btn, style, pressed && { opacity: 0.7 }]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={faved ? activeColor : color} />
+        <ActivityIndicator size="small" color={faved ? activeColor : idleColor} />
       ) : (
         <Ionicons
           name={faved ? 'heart' : 'heart-outline'}
           size={size}
-          color={faved ? activeColor : color}
+          color={faved ? activeColor : idleColor}
         />
       )}
     </Pressable>

@@ -8,11 +8,14 @@ import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
 import { PAID_UI_ENABLED } from '@/lib/platform'
 import { PaymentRecord, WalletBalance } from '@/lib/api'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 export default function WalletScreen() {
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
   // RTL, `textAlign: 'right'` and `flexDirection: 'row-reverse'` resolve visually
@@ -97,13 +100,13 @@ export default function WalletScreen() {
   }
 
   const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-    success: { label: ar ? 'مكتمل' : 'Completed', color: colors.green, bg: colors.gl },
-    pending: { label: ar ? 'معلّق' : 'Pending', color: colors.yd, bg: colors.yl },
-    failed: { label: ar ? 'فشل' : 'Failed', color: colors.red, bg: colors.rl },
+    success: { label: ar ? 'مكتمل' : 'Completed', color: colors.green, bg: colors.greenBg },
+    pending: { label: ar ? 'معلّق' : 'Pending', color: colors.yd, bg: colors.yellowBg },
+    failed: { label: ar ? 'فشل' : 'Failed', color: colors.red, bg: colors.redBg },
     pending_verification: {
       label: ar ? 'قيد المراجعة' : 'Under Review',
       color: colors.yd,
-      bg: colors.yl,
+      bg: colors.yellowBg,
     },
   }
 
@@ -111,7 +114,7 @@ export default function WalletScreen() {
     <DashboardLayout title={t.wallet}>
       {loading ? (
         <View style={styles.loader}>
-          <ActivityIndicator color={colors.dk} />
+          <ActivityIndicator color={colors.heading} />
         </View>
       ) : loadError ? (
         <ErrorState kind="network" onRetry={load} />
@@ -144,8 +147,8 @@ export default function WalletScreen() {
 
           {/* Stat cards */}
           <View style={styles.statsRow}>
-            <View style={[styles.statCard, colDir, { borderColor: colors.gl }]}>
-              <View style={[styles.statIcon, { backgroundColor: colors.gl }]}>
+            <View style={[styles.statCard, colDir, { borderColor: colors.greenBg }]}>
+              <View style={[styles.statIcon, { backgroundColor: colors.greenBg }]}>
                 <Ionicons name="arrow-up-circle" size={20} color={colors.green} />
               </View>
               <Text style={[styles.statLabel, dirStyle]}>{t.totalToppedUp}</Text>
@@ -153,12 +156,12 @@ export default function WalletScreen() {
                 {fmt(totalTopup)} {currency}
               </Text>
             </View>
-            <View style={[styles.statCard, colDir, { borderColor: colors.g200 }]}>
-              <View style={[styles.statIcon, { backgroundColor: colors.yl }]}>
-                <Ionicons name="arrow-down-circle" size={20} color={colors.dk} />
+            <View style={[styles.statCard, colDir, { borderColor: colors.border }]}>
+              <View style={[styles.statIcon, { backgroundColor: colors.yellowBg }]}>
+                <Ionicons name="arrow-down-circle" size={20} color={colors.seeAllText} />
               </View>
               <Text style={[styles.statLabel, dirStyle]}>{t.totalSpent}</Text>
-              <Text style={[styles.statValue, dirStyle, { color: colors.dk }]}>
+              <Text style={[styles.statValue, dirStyle, { color: colors.heading }]}>
                 {fmt(totalSpend)} {currency}
               </Text>
             </View>
@@ -179,21 +182,21 @@ export default function WalletScreen() {
                   const isTopup = p.type === 'wallet_topup'
                   const status = STATUS_LABELS[p.status] ?? {
                     label: p.status,
-                    color: colors.g600,
-                    bg: colors.g100,
+                    color: colors.muted,
+                    bg: colors.placeholder,
                   }
                   return (
                     <View key={p.id} style={[styles.historyRow, rowDir]}>
                       <View
                         style={[
                           styles.dirIcon,
-                          { backgroundColor: isTopup ? colors.gl : colors.yl },
+                          { backgroundColor: isTopup ? colors.greenBg : colors.yellowBg },
                         ]}
                       >
                         <Ionicons
                           name={isTopup ? 'arrow-up' : 'arrow-down'}
                           size={18}
-                          color={isTopup ? colors.green : colors.dk}
+                          color={isTopup ? colors.green : colors.seeAllText}
                         />
                       </View>
                       <View style={[styles.actionBody, colDir]}>
@@ -211,7 +214,7 @@ export default function WalletScreen() {
                           style={[
                             styles.historyAmount,
                             dirStyle,
-                            { color: isTopup ? colors.green : colors.dk },
+                            { color: isTopup ? colors.green : colors.heading },
                           ]}
                         >
                           {isTopup ? '+' : '−'}
@@ -246,16 +249,16 @@ export default function WalletScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   loader: {
     paddingVertical: spacing.xxl,
     alignItems: 'center',
   },
   balanceCard: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     borderRadius: radius.lg,
     padding: spacing.lg,
-    ...shadow.md,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.md),
   },
   balanceHead: {
     flexDirection: 'row',
@@ -304,11 +307,11 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.md,
     borderWidth: 1,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   statIcon: {
     width: 36,
@@ -321,7 +324,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
   statValue: {
     fontFamily: fonts.extraBold,
@@ -329,23 +332,23 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   historyCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.sm,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.sm),
   },
   historyTitle: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md,
   },
   emptyText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     paddingVertical: spacing.md,
   },
   historyRow: {
@@ -354,7 +357,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
+    borderBottomColor: colors.border,
   },
   actionBody: {
     flex: 1,
@@ -372,12 +375,12 @@ const styles = StyleSheet.create({
   historyType: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
   },
   historyDate: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
     marginTop: 2,
   },
   historyAmount: {

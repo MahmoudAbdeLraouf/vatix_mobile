@@ -21,6 +21,7 @@ import * as Sentry from '@sentry/react-native'
 import { AuthProvider } from '@/contexts/auth'
 import { LocaleProvider, useLocale } from '@/contexts/locale'
 import { LoginGateProvider } from '@/contexts/loginGate'
+import { ThemeProvider, useTheme } from '@/contexts/theme'
 import { trackHomepageView, trackPulse } from '@/lib/analytics'
 import { attachNotificationTapHandler } from '@/lib/notifications'
 import { getSiteSettings, type SiteSettings } from '@/lib/api'
@@ -123,16 +124,18 @@ function RootLayout() {
   const tree = (
     <SafeAreaProvider style={{ backgroundColor: '#1A2540' }}>
       <LocaleProvider>
-        <AuthProvider>
-          <LoginGateProvider>
-            <StatusBar style="auto" />
-            <RootStack />
-            <UpdatePrompt settings={siteSettings} />
-            <StoreShareDialogTrigger />
-            <UsePromoCreditsDialogTrigger />
-            <CategoriesBrandsDialogTrigger />
-          </LoginGateProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <LoginGateProvider>
+              <ThemedStatusBar />
+              <RootStack />
+              <UpdatePrompt settings={siteSettings} />
+              <StoreShareDialogTrigger />
+              <UsePromoCreditsDialogTrigger />
+              <CategoriesBrandsDialogTrigger />
+            </LoginGateProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </LocaleProvider>
     </SafeAreaProvider>
   )
@@ -149,13 +152,19 @@ export default Sentry.wrap(RootLayout)
 // `key={locale}` re-mounts the whole nav on language change.
 function RootStack() {
   const { locale, isRtl } = useLocale()
+  const { isDark, colors } = useTheme()
   return (
     <Stack
       key={locale}
       screenOptions={{
         headerShown: false,
-        contentStyle: { direction: isRtl ? 'rtl' : 'ltr', backgroundColor: '#1A2540' },
+        contentStyle: { direction: isRtl ? 'rtl' : 'ltr', backgroundColor: isDark ? colors.bg : '#1A2540' },
       }}
     />
   )
+}
+
+function ThemedStatusBar() {
+  const { isDark } = useTheme()
+  return <StatusBar style={isDark ? 'light' : 'auto'} />
 }

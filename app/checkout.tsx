@@ -40,7 +40,8 @@ import {
   payWithWalletForSubscription,
 } from '@/lib/payment'
 import { PAID_UI_ENABLED } from '@/lib/platform'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 type Panel = 'pick' | 'instapay' | 'mobile-wallet'
 
@@ -81,6 +82,8 @@ export default function CheckoutScreen() {
   const { t, locale } = useLocale()
   const { user } = useAuth()
   const insets = useSafeAreaInsets()
+  const { colors, isDark } = useTheme()
+  const styles = useStyles()
   const ar = locale === 'ar'
   const currency = t.egp
 
@@ -271,7 +274,7 @@ export default function CheckoutScreen() {
           <Ionicons
             name={ar ? 'chevron-forward' : 'chevron-back'}
             size={22}
-            color={colors.dk}
+            color={colors.heading}
           />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
@@ -282,7 +285,7 @@ export default function CheckoutScreen() {
 
       {pageLoading ? (
         <View style={styles.loader}>
-          <ActivityIndicator color={colors.dk} />
+          <ActivityIndicator color={colors.heading} />
         </View>
       ) : loadError ? (
         <ErrorState kind="network" onRetry={load} style={styles.loader} />
@@ -328,7 +331,7 @@ export default function CheckoutScreen() {
                   <MethodCard
                     icon="phone-portrait"
                     color={'#7B2FBE'}
-                    bg={'#F5EDFA'}
+                    bg={isDark ? 'rgba(123,47,190,0.18)' : '#F5EDFA'}
                     title={t.payWithInstapay}
                     subtitle={ar ? 'تحويل بنكي مع إيصال' : 'Bank transfer with receipt'}
                     onPress={() => {
@@ -342,7 +345,7 @@ export default function CheckoutScreen() {
                   <MethodCard
                     icon="wallet-outline"
                     color={'#10b981'}
-                    bg={'#ECFDF5'}
+                    bg={colors.greenBg}
                     title={t.payWithMobileWallet}
                     subtitle={ar ? 'تحويل من محفظة الموبايل مع إيصال' : 'Mobile wallet transfer with receipt'}
                     onPress={() => {
@@ -356,7 +359,7 @@ export default function CheckoutScreen() {
                   <MethodCard
                     icon="wallet"
                     color={colors.green}
-                    bg={colors.gl}
+                    bg={colors.greenBg}
                     title={t.payWithWallet}
                     subtitle={
                       canWallet
@@ -371,7 +374,7 @@ export default function CheckoutScreen() {
 
               {busy ? (
                 <View style={styles.inlineLoader}>
-                  <ActivityIndicator color={colors.dk} />
+                  <ActivityIndicator color={colors.heading} />
                 </View>
               ) : null}
               {error ? <ErrorBox text={error} /> : null}
@@ -510,6 +513,8 @@ function MethodCard({
   disabled?: boolean
 }) {
   const { locale } = useLocale()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const ar = locale === 'ar'
   return (
     <Pressable
@@ -531,7 +536,7 @@ function MethodCard({
       <Ionicons
         name={ar ? 'chevron-back' : 'chevron-forward'}
         size={18}
-        color={colors.g500}
+        color={colors.muted}
       />
     </Pressable>
   )
@@ -546,6 +551,8 @@ function InstaRow({
   value: string
   highlight?: boolean
 }) {
+  const { colors } = useTheme()
+  const styles = useStyles()
   return (
     <View style={styles.instaRow}>
       <Text style={styles.instaLabel}>{label}</Text>
@@ -562,6 +569,8 @@ function InstaRow({
 }
 
 function ErrorBox({ text }: { text: string }) {
+  const { colors } = useTheme()
+  const styles = useStyles()
   return (
     <View style={styles.errorBox}>
       <Ionicons name="alert-circle" size={16} color={colors.red} />
@@ -570,16 +579,16 @@ function ErrorBox({ text }: { text: string }) {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g200,
+    borderBottomColor: colors.border,
   },
   headerBtn: {
     width: 40,
@@ -592,7 +601,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: fonts.bold,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
   },
   scroll: {
     padding: spacing.md,
@@ -604,17 +613,17 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.85 },
 
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.sm,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.sm),
   },
   cardTitle: {
     fontFamily: fonts.bold,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
   },
 
   // Summary
@@ -624,30 +633,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.md,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.md,
   },
   summaryName: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   summaryMeta: {
     marginTop: 2,
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
   summaryPrice: { alignItems: 'center' },
   summaryPriceValue: {
     fontFamily: fonts.extraBold,
     fontSize: 20,
-    color: colors.dk,
+    color: colors.price,
   },
   summaryPriceCurrency: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
   },
 
   // Method
@@ -657,9 +666,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   methodIcon: {
     width: 44,
@@ -671,13 +680,13 @@ const styles = StyleSheet.create({
   methodTitle: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   methodSub: {
     marginTop: 2,
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
 
   // InstaPay panel
@@ -719,7 +728,7 @@ const styles = StyleSheet.create({
   instructionsBox: {
     marginTop: spacing.md,
     padding: spacing.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.y,
@@ -727,13 +736,13 @@ const styles = StyleSheet.create({
   instructionsTitle: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: 6,
   },
   instructionsBody: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
     lineHeight: 20,
   },
 
@@ -744,7 +753,7 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: spacing.sm,
     padding: spacing.sm,
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.red,
@@ -756,3 +765,6 @@ const styles = StyleSheet.create({
     color: colors.red,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }
+function useStyles() { return themedStyles[useTheme().mode] }

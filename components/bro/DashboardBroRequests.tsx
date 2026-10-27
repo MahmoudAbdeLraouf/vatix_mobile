@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useLocale } from '@/contexts/locale'
@@ -8,13 +8,16 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { SkeletonRow } from '@/components/ui/Skeleton'
 import { BroRequestRow } from '@/components/bro/BroRequestRow'
-import { colors, fonts, spacing } from '@/constants/theme'
+import { fonts, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const SHOWN = 3
 
 /** Dashboard "My requests": the latest requests, each with an Offers button. Port of the website DashboardBroRequests. */
 export function DashboardBroRequests() {
   const { locale, t } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const b = t.bro
   const ar = locale === 'ar'
   const rowDir = ar ? ({ direction: 'ltr', flexDirection: 'row-reverse' } as const) : null
@@ -107,10 +110,10 @@ export function DashboardBroRequests() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   section: { marginBottom: spacing.md, gap: spacing.sm },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  title: { flexShrink: 1, fontFamily: fonts.extraBold, fontSize: 16, color: colors.dk },
+  title: { flexShrink: 1, fontFamily: fonts.extraBold, fontSize: 16, color: colors.heading },
   actions: { flexDirection: 'row', gap: spacing.xs },
   list: { gap: spacing.sm },
 })

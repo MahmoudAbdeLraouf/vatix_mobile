@@ -28,7 +28,8 @@ import { BroAvatar } from '@/components/bro/BroAvatar'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const WANTS: BroWant[] = ['cheaper', 'better_condition', 'with_box']
 const SOURCES: BroRequestSource[] = ['product', 'product_sold', 'search', 'home', 'nav']
@@ -74,6 +75,8 @@ interface Options {
 /** Feature gate: /bro/new is dark until the backend reports Bro enabled. */
 export default function BroNewScreen() {
   const { locale, t } = useLocale()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const b = t.bro
   const [state, setState] = useState<'loading' | 'error' | 'off' | 'on'>('loading')
   const [reloadKey, setReloadKey] = useState(0)
@@ -128,6 +131,8 @@ export default function BroNewScreen() {
 /** Loads the pickers' options, then mounts the form so prefill runs once on real data. */
 function IntakeLoader() {
   const { t } = useLocale()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const b = t.bro
   const params = (useLocalSearchParams() as unknown) as Record<string, Param>
   const [options, setOptions] = useState<Options | null>(null)
@@ -209,6 +214,8 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
   // pin Arabic left — align physically instead.
   const rowText = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: ar ? ('right' as const) : ('left' as const) }
   const { categories, brands, locations } = options
+  const { colors } = useTheme()
+  const styles = useStyles()
 
   // One-time prefill from the route params (search / product / login round trip).
   const init = useMemo(() => {
@@ -400,7 +407,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
   const section = (icon: IconName, title: string) => (
     <View style={[styles.sectionHead, rowDir]}>
       <View style={styles.sectionIcon}>
-        <Ionicons name={icon} size={17} color={colors.yt} />
+        <Ionicons name={icon} size={17} color={colors.yellowText} />
       </View>
       <Text style={[styles.sectionTitle, rowText]}>{title}</Text>
     </View>
@@ -413,7 +420,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
       accessibilityState={{ selected: on }}
       style={({ pressed }) => [styles.pill, rowDir, on && styles.pillOn, pressed && !on && styles.pillPressed]}
     >
-      {icon ? <Ionicons name={icon} size={14} color={on ? colors.yt : colors.g500} /> : null}
+      {icon ? <Ionicons name={icon} size={14} color={on ? colors.yellowText : colors.muted} /> : null}
       <Text style={[styles.pillText, on && styles.pillTextOn]}>{text}</Text>
     </Pressable>
   )
@@ -442,10 +449,10 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
         {known.length > 0 && !editing ? (
           <View style={styles.summary}>
             <View style={[styles.summaryHead, rowDir]}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.yt} />
+              <Ionicons name="checkmark-circle" size={18} color={colors.yellowText} />
               <Text style={[styles.summaryLabel, rowText]}>{b.knownFromSearch}</Text>
               <Pressable onPress={() => setEditing(true)} hitSlop={8} style={({ pressed }) => [styles.editBtn, rowDir, pressed && styles.pillPressed]}>
-                <Ionicons name="create-outline" size={14} color={colors.dk} />
+                <Ionicons name="create-outline" size={14} color={colors.heading} />
                 <Text style={styles.editText}>{b.edit}</Text>
               </Pressable>
             </View>
@@ -491,7 +498,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
                   value={model}
                   onChangeText={v => setModel(v.slice(0, MODEL_MAX))}
                   placeholder={b.modelPlaceholder}
-                  placeholderTextColor={colors.g400}
+                  placeholderTextColor={colors.subtle}
                   maxLength={MODEL_MAX}
                   style={[styles.input, showErrors && errModel && styles.inputErr, dirStyle]}
                 />
@@ -514,7 +521,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
                   value={storage}
                   onChangeText={v => setStorage(v.slice(0, STORAGE_MAX))}
                   placeholder={b.storagePlaceholder}
-                  placeholderTextColor={colors.g400}
+                  placeholderTextColor={colors.subtle}
                   maxLength={STORAGE_MAX}
                   style={[styles.input, dirStyle]}
                 />
@@ -549,7 +556,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
                     value={budgetMin}
                     onChangeText={v => setBudgetMin(digitsOnly(v))}
                     placeholder={b.budgetMin}
-                    placeholderTextColor={colors.g400}
+                    placeholderTextColor={colors.subtle}
                     keyboardType="number-pad"
                     style={[styles.input, styles.budgetInput, showErrors && errBudget && styles.inputErr, dirStyle]}
                   />
@@ -558,7 +565,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
                     value={budgetMax}
                     onChangeText={v => setBudgetMax(digitsOnly(v))}
                     placeholder={b.budgetMax}
-                    placeholderTextColor={colors.g400}
+                    placeholderTextColor={colors.subtle}
                     keyboardType="number-pad"
                     style={[styles.input, styles.budgetInput, showErrors && errBudget && styles.inputErr, dirStyle]}
                   />
@@ -586,8 +593,8 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: spacing.md, paddingBottom: spacing.lg, gap: spacing.md },
@@ -595,11 +602,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     borderRadius: radius.xl,
     padding: spacing.md,
     overflow: 'hidden',
-    ...shadow.ss,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
   },
   heroGlow: {
     position: 'absolute',
@@ -624,33 +631,33 @@ const styles = StyleSheet.create({
   heroTitle: { fontFamily: fonts.extraBold, fontSize: 16, lineHeight: 26, color: colors.white },
   heroHint: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 21, color: colors.g300 },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.xl,
     padding: spacing.md,
     gap: spacing.md + 2,
-    ...shadow.ss,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
   },
-  cardTitle: { fontFamily: fonts.extraBold, fontSize: 16, color: colors.dk },
-  cardBody: { fontFamily: fonts.regular, fontSize: 14, color: colors.g700, lineHeight: 22 },
+  cardTitle: { fontFamily: fonts.extraBold, fontSize: 16, color: colors.heading },
+  cardBody: { fontFamily: fonts.regular, fontSize: 14, color: colors.text, lineHeight: 22 },
   sectionHead: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm + 2,
     paddingBottom: spacing.sm + 4,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
+    borderBottomColor: colors.border,
   },
   sectionIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sectionTitle: { flex: 1, fontFamily: fonts.extraBold, fontSize: 15, lineHeight: 24, color: colors.dk },
+  sectionTitle: { flex: 1, fontFamily: fonts.extraBold, fontSize: 15, lineHeight: 24, color: colors.heading },
   summary: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderRadius: radius.xl,
     borderWidth: 1.5,
     borderColor: colors.y,
@@ -658,8 +665,8 @@ const styles = StyleSheet.create({
     gap: spacing.xs + 2,
   },
   summaryHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs + 2 },
-  summaryLabel: { flex: 1, fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: colors.yt },
-  summaryText: { fontFamily: fonts.semiBold, fontSize: 14, lineHeight: 22, color: colors.dk },
+  summaryLabel: { flex: 1, fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: colors.yellowText },
+  summaryText: { fontFamily: fonts.semiBold, fontSize: 14, lineHeight: 22, color: colors.heading },
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -667,31 +674,31 @@ const styles = StyleSheet.create({
     height: 30,
     paddingHorizontal: spacing.sm + 4,
     borderRadius: radius.full,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
-  editText: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 18, color: colors.dk },
+  editText: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 18, color: colors.heading },
   field: { gap: spacing.sm },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  label: { fontFamily: fonts.bold, fontSize: 14, lineHeight: 22, color: colors.dk },
+  label: { fontFamily: fonts.bold, fontSize: 14, lineHeight: 22, color: colors.heading },
   tag: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 1,
     borderRadius: radius.full,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
   },
-  tagText: { fontFamily: fonts.semiBold, fontSize: 11, lineHeight: 17, color: colors.g500 },
+  tagText: { fontFamily: fonts.semiBold, fontSize: 11, lineHeight: 17, color: colors.muted },
   select: { marginBottom: 0 },
   input: {
     height: 52,
     borderWidth: 1.5,
-    borderColor: colors.g300,
+    borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: 0,
     fontFamily: fonts.regular,
     fontSize: 15,
-    color: colors.g900,
-    backgroundColor: colors.white,
+    color: colors.text,
+    backgroundColor: colors.inputBg,
   },
   inputErr: { borderColor: colors.red },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
@@ -703,35 +710,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: radius.full,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.g50,
+    borderColor: colors.border,
+    backgroundColor: colors.placeholder,
   },
-  pillOn: { backgroundColor: colors.yl, borderColor: colors.y },
-  pillPressed: { backgroundColor: colors.g100 },
-  pillText: { fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 20, color: colors.g700 },
-  pillTextOn: { fontFamily: fonts.bold, color: colors.dk },
+  pillOn: { backgroundColor: colors.yellowBg, borderColor: colors.y },
+  pillPressed: { backgroundColor: colors.pressed },
+  pillText: { fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 20, color: colors.text },
+  pillTextOn: { fontFamily: fonts.bold, color: colors.heading },
   budgetRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   budgetInput: { flex: 1 },
-  budgetDash: { width: 10, height: 2, borderRadius: 1, backgroundColor: colors.g300 },
-  sub: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: colors.g700, marginTop: spacing.xs },
+  budgetDash: { width: 10, height: 2, borderRadius: 1, backgroundColor: colors.dot },
+  sub: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: colors.text, marginTop: spacing.xs },
   err: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 18, color: colors.red },
   errBox: { fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 20, color: colors.red },
   privacy: {
     padding: spacing.sm + 4,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderStyle: 'dashed',
   },
-  footer: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 20, color: colors.g500 },
+  footer: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 20, color: colors.muted },
   bar: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm + 4,
     paddingBottom: spacing.sm + 4,
     gap: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopWidth: 1,
-    borderTopColor: colors.g200,
+    borderTopColor: colors.border,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

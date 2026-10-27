@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -7,7 +7,8 @@ import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
 import { authFetch } from '@/lib/auth'
-import { colors, fonts, radius } from '@/constants/theme'
+import { fonts, radius, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 interface MessagesBellProps {
   color?: string
@@ -16,10 +17,12 @@ interface MessagesBellProps {
 }
 
 export function MessagesBell({
-  color = colors.dk,
+  color,
   size = 22,
   style,
 }: MessagesBellProps) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const { isAuthenticated } = useAuth()
   const { t } = useLocale()
   const { requireLogin } = useLoginGate()
@@ -66,7 +69,7 @@ export function MessagesBell({
       style={[styles.btn, style]}
     >
       <View style={[styles.iconWrap, wrapSize]}>
-        <Ionicons name="chatbubble-outline" size={size} color={color} />
+        <Ionicons name="chatbubble-outline" size={size} color={color ?? colors.heading} />
         {unread > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText} numberOfLines={1}>
@@ -79,7 +82,7 @@ export function MessagesBell({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   btn: {
     width: 36,
     height: 36,
@@ -104,7 +107,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: colors.white,
+    borderColor: colors.card,
   },
   badgeText: {
     fontFamily: fonts.bold,

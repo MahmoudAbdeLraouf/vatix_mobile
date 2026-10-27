@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   Pressable,
   ScrollView,
@@ -14,7 +14,8 @@ import { SvgXml } from 'react-native-svg'
 import { router } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts, spacing } from '@/constants/theme'
+import { fonts, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { Button } from '@/components/ui/Button'
 import { slide1Xml } from '@/assets/onboarding/slide-1'
 import { slide2Xml } from '@/assets/onboarding/slide-2'
@@ -24,6 +25,8 @@ const ONBOARDED_KEY = 'vatix_onboarded'
 
 export default function OnboardingScreen() {
   const { t } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const { width } = useWindowDimensions()
   const [index, setIndex] = useState(0)
   const scrollRef = useRef<ScrollView>(null)
@@ -121,10 +124,10 @@ export default function OnboardingScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.bg,
   },
   skipRow: {
     paddingHorizontal: spacing.lg,
@@ -139,7 +142,7 @@ const styles = StyleSheet.create({
   skipText: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
   },
   slide: {
     flex: 1,
@@ -161,7 +164,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.black,
     fontSize: 24,
     lineHeight: 32,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
@@ -169,7 +172,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 15,
     lineHeight: 24,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     paddingHorizontal: spacing.md,
   },
@@ -184,7 +187,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.g300,
+    backgroundColor: colors.dot,
   },
   dotActive: {
     width: 24,

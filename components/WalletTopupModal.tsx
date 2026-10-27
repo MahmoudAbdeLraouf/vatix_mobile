@@ -12,7 +12,8 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { authErrorMessage, authPost } from '@/lib/auth'
 import { getSiteSettings, SiteSettings } from '@/lib/api'
@@ -68,6 +69,8 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
   const { t } = useLocale()
   const { ar, rowDir } = useDir()
   const insets = useSafeAreaInsets()
+  const { colors } = useTheme()
+  const styles = useStyles()
 
   const [step, setStep] = useState<Step>('amount')
   const [amount, setAmount] = useState<string>('')
@@ -273,6 +276,8 @@ export function WalletTopupModal({ visible, onClose, onSuccess }: Props) {
 
 function ErrorBox({ err }: { err: string }) {
   const { rowDir, colDir, dirStyle } = useDir()
+  const { colors } = useTheme()
+  const styles = useStyles()
   if (!err) return null
   return (
     <View style={[styles.errorBox, rowDir]}>
@@ -298,6 +303,8 @@ function AmountPanel(props: {
 }) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const { amount, onAmountChange, parsedAmount, amountValid, settings } = props
   const instapayOn = settings?.instapayEnabled ?? false
   const mobileWalletOn = settings?.mobileWalletEnabled ?? false
@@ -322,13 +329,13 @@ function AmountPanel(props: {
               onPress={() => onAmountChange(String(v))}
               style={[
                 styles.presetCard,
-                active && { borderColor: colors.y, backgroundColor: colors.yl },
+                active && { borderColor: colors.y, backgroundColor: colors.yellowBg },
               ]}
             >
-              <Text style={[styles.presetValue, active && { color: colors.dk }]}>
+              <Text style={[styles.presetValue, active && { color: colors.heading }]}>
                 {v}
               </Text>
-              <Text style={[styles.presetUnit, active && { color: colors.dk }]}>
+              <Text style={[styles.presetUnit, active && { color: colors.heading }]}>
                 {ar ? 'ج.م' : 'EGP'}
               </Text>
             </Pressable>
@@ -347,7 +354,7 @@ function AmountPanel(props: {
           onChangeText={onAmountChange}
           keyboardType="numeric"
           placeholder="0"
-          placeholderTextColor={colors.g400}
+          placeholderTextColor={colors.subtle}
           style={styles.customAmountInput}
         />
         <Text style={styles.customAmountSuffix}>{ar ? 'ج.م' : 'EGP'}</Text>
@@ -436,11 +443,17 @@ function MethodCard({
   gradientBg?: 'instapay' | 'mobile-wallet'
 }) {
   const { ar, rowDir, colDir, dirStyle } = useDir()
+  const { colors, isDark } = useTheme()
+  const styles = useStyles()
   const gradientStyle =
     gradientBg === 'instapay'
-      ? { backgroundColor: '#F6EFFB', borderColor: '#D6BCEF' }
+      ? isDark
+        ? { backgroundColor: 'rgba(123,47,190,0.16)', borderColor: 'rgba(168,110,224,0.45)' }
+        : { backgroundColor: '#F6EFFB', borderColor: '#D6BCEF' }
       : gradientBg === 'mobile-wallet'
-      ? { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }
+      ? isDark
+        ? { backgroundColor: 'rgba(16,185,129,0.14)', borderColor: 'rgba(16,185,129,0.45)' }
+        : { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }
       : null
   return (
     <Pressable
@@ -454,7 +467,7 @@ function MethodCard({
         disabled && { opacity: 0.5 },
       ]}
     >
-      <View style={[styles.methodIconWrap, { backgroundColor: colors.white }]}>
+      <View style={[styles.methodIconWrap, { backgroundColor: colors.card }]}>
         <Ionicons name={icon} size={22} color={iconColor} />
       </View>
       <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
@@ -464,7 +477,7 @@ function MethodCard({
       <Ionicons
         name={ar ? 'chevron-back' : 'chevron-forward'}
         size={20}
-        color={colors.g400}
+        color={colors.subtle}
       />
     </Pressable>
   )
@@ -484,6 +497,7 @@ function InstapayPanel(props: {
 }) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
+  const styles = useStyles()
   const { amount } = props
 
   return (
@@ -558,6 +572,7 @@ function MobileWalletPanel(props: {
 }) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
+  const styles = useStyles()
   const { amount, settings } = props
 
   return (
@@ -632,6 +647,8 @@ function DonePanel({
 }) {
   const { t } = useLocale()
   const { ar } = useDir()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const heading = variant === 'mobile-wallet' ? t.mobileWalletSubmitted : t.instapaySubmitted
   return (
     <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
@@ -660,14 +677,14 @@ function DonePanel({
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6,43,91,0.32)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '92%',
@@ -677,7 +694,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderTopLeftRadius: radius.xl,
@@ -691,13 +708,13 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
   },
   stepHeading: {
     fontFamily: fonts.bold,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md,
   },
   presetGrid: {
@@ -708,8 +725,8 @@ const styles = StyleSheet.create({
   presetCard: {
     flex: 1,
     borderWidth: 2,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',
@@ -718,20 +735,20 @@ const styles = StyleSheet.create({
   presetValue: {
     fontFamily: fonts.black,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
   },
   presetUnit: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
   },
   customAmountWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.inputBg,
     paddingHorizontal: spacing.md,
     height: 52,
   },
@@ -739,21 +756,21 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.bold,
     fontSize: 20,
-    color: colors.dk,
+    color: colors.text,
     textAlign: 'left',
     writingDirection: 'ltr',
   },
   customAmountSuffix: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g500,
+    color: colors.muted,
     marginStart: spacing.sm,
   },
   confirmBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.gl,
+    backgroundColor: colors.greenBg,
     borderColor: colors.green,
     borderWidth: 1,
     borderRadius: radius.md,
@@ -777,8 +794,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   methodIconWrap: {
     width: 44,
@@ -787,17 +804,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   methodTitle: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   methodSubtitle: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     marginTop: 2,
   },
   actions: {
@@ -809,7 +826,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: '#F6EFFB',
+    backgroundColor: dark ? 'rgba(123,47,190,0.16)' : '#F6EFFB',
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -825,18 +842,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
+    borderBottomColor: colors.border,
   },
   detailLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     flex: 1,
   },
   detailValue: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   ltrValue: {
     letterSpacing: 2,
@@ -844,7 +861,7 @@ const styles = StyleSheet.create({
   helpText: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     lineHeight: 18,
     marginBottom: spacing.sm,
   },
@@ -860,7 +877,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     borderColor: colors.red,
     borderWidth: 1,
     borderRadius: radius.md,
@@ -874,3 +891,8 @@ const styles = StyleSheet.create({
     color: colors.red,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

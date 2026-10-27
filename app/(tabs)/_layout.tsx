@@ -1,5 +1,5 @@
 import { Tabs, router } from 'expo-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -8,7 +8,8 @@ import { useLoginGate } from '@/contexts/loginGate'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { BroAvatar } from '@/components/bro/BroAvatar'
 import { AnimatedTabBar, type TabIcons } from '@/components/AnimatedTabBar'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const TAB_ICONS: TabIcons = {
   home: { active: 'home', inactive: 'home-outline' },
@@ -24,6 +25,8 @@ export default function TabsLayout() {
   const { requireLogin } = useLoginGate()
   const broEnabled = useBroEnabled()
   const [chooserOpen, setChooserOpen] = useState(false)
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   // The + button: with Bro on it asks whether to post a product or a request; otherwise straight to the product flow.
   function onFabPress() {
@@ -62,7 +65,7 @@ export default function TabsLayout() {
         headerShown: false,
         // Bottom-tabs scene wrapper — direction must be set here for Yoga to
         // mirror inside each tab's native container.
-        sceneStyle: { direction: isRtl ? 'rtl' : 'ltr' },
+        sceneStyle: { direction: isRtl ? 'rtl' : 'ltr', backgroundColor: colors.bg },
       }}
     >
       <Tabs.Screen name="home" options={{ title: t.home }} />
@@ -110,35 +113,37 @@ function ChooserRow({ icon, title, sub, isRtl, onPress }: {
   isRtl: boolean
   onPress: () => void
 }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const dir = { writingDirection: isRtl ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.g100 }]}
+      style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.pressed }]}
     >
       {icon}
       <View style={styles.rowText}>
         <Text style={[styles.rowTitle, dir]}>{title}</Text>
         <Text style={[styles.rowSub, dir]}>{sub}</Text>
       </View>
-      <Ionicons name={isRtl ? 'chevron-back' : 'chevron-forward'} size={20} color={colors.g400} />
+      <Ionicons name={isRtl ? 'chevron-back' : 'chevron-forward'} size={20} color={colors.subtle} />
     </Pressable>
   )
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(6,20,40,0.45)', justifyContent: 'flex-end' },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
   },
-  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.g300, marginBottom: spacing.sm },
-  sheetTitle: { fontFamily: fonts.extraBold, fontSize: 18, color: colors.dk, marginBottom: spacing.xs, textAlign: 'auto' },
+  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.dot, marginBottom: spacing.sm },
+  sheetTitle: { fontFamily: fonts.extraBold, fontSize: 18, color: colors.heading, marginBottom: spacing.xs, textAlign: 'auto' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -146,11 +151,11 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: radius.lg,
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   rowIconY: { width: 48, height: 48, borderRadius: radius.md, backgroundColor: colors.y, alignItems: 'center', justifyContent: 'center' },
-  rowIconDk: { width: 48, height: 48, borderRadius: radius.md, backgroundColor: colors.dk, alignItems: 'center', justifyContent: 'center' },
+  rowIconDk: { width: 48, height: 48, borderRadius: radius.md, backgroundColor: colors.fab, alignItems: 'center', justifyContent: 'center' },
   rowText: { flex: 1, gap: 2 },
-  rowTitle: { fontFamily: fonts.bold, fontSize: 15, color: colors.dk },
-  rowSub: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500 },
+  rowTitle: { fontFamily: fonts.bold, fontSize: 15, color: colors.heading },
+  rowSub: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
 })

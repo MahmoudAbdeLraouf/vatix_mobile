@@ -42,7 +42,8 @@ import { RevealPhone } from '@/components/RevealPhone'
 import { StartChatButton } from '@/components/StartChatButton'
 import { StarRating } from '@/components/StarRating'
 import { RatingSection } from '@/components/RatingSection'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const { width: SCREEN_W } = Dimensions.get('window')
 const HERO_H = 420
@@ -94,6 +95,8 @@ function formatDate(iso: string, locale: 'ar' | 'en'): string {
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { t, locale, isRtl, setLocale } = useLocale()
+  const { colors } = useTheme()
+  const { styles } = useStyles()
   const { user } = useAuth()
   const { requireLogin } = useLoginGate()
   const insets = useSafeAreaInsets()
@@ -177,7 +180,7 @@ export default function ProductDetailScreen() {
   if (isExpiredResource(product)) {
     return (
       <View style={styles.center}>
-        <Ionicons name="time-outline" size={48} color={colors.g500} />
+        <Ionicons name="time-outline" size={48} color={colors.muted} />
         <Text style={[styles.expiredTitle, dir]}>{t.expiredListing}</Text>
         <Text style={[styles.expiredHint, dir]}>{t.expiredListingHint}</Text>
         <Pressable
@@ -221,8 +224,8 @@ export default function ProductDetailScreen() {
   const storeLogo = imgUrl(owner?.storeProfile?.logo, { w: THUMB_TARGET_W })
   const ownerBadge =
     isStore
-      ? { label: locale === 'ar' ? 'متجر 🏪' : 'Store 🏪', bg: colors.g100, fg: colors.g700 }
-      : { label: locale === 'ar' ? 'فرد 👤' : 'Individual 👤', bg: colors.g100, fg: colors.g700 }
+      ? { label: locale === 'ar' ? 'متجر 🏪' : 'Store 🏪', bg: colors.placeholder, fg: colors.text }
+      : { label: locale === 'ar' ? 'فرد 👤' : 'Individual 👤', bg: colors.placeholder, fg: colors.text }
 
   // Expired store owners keep their listings visible, but phone/WhatsApp CTAs are
   // hidden so buyers are routed exclusively through in-app chat (which forces
@@ -415,7 +418,7 @@ export default function ProductDetailScreen() {
               </Text>
             </View>
             <View style={styles.locationChip}>
-              <Ionicons name="location-outline" size={12} color={colors.g500} />
+              <Ionicons name="location-outline" size={12} color={colors.muted} />
               <Text style={[styles.locationText, dir]}>{locationName}</Text>
             </View>
           </View>
@@ -486,7 +489,7 @@ export default function ProductDetailScreen() {
                   </View>
                   <View style={styles.sellerCtaRow}>
                     <Text style={[styles.sellerCta, dir]}>{t.visit}</Text>
-                    <Ionicons name={forwardIcon} size={13} color={colors.dk} />
+                    <Ionicons name={forwardIcon} size={13} color={colors.heading} />
                   </View>
                 </View>
               </Pressable>
@@ -518,7 +521,7 @@ export default function ProductDetailScreen() {
           <View style={styles.safetyCard}>
             <View style={styles.safetyHeader}>
               <View style={styles.safetyIconBadge}>
-                <Ionicons name="shield-checkmark" size={18} color={colors.dk} />
+                <Ionicons name="shield-checkmark" size={18} color={colors.heading} />
               </View>
               <Text style={[styles.safetyTitle, dir]}>{t.safetyTipsTitle}</Text>
             </View>
@@ -812,13 +815,15 @@ function InfoChip({
   sublabel: string
   dir: DirStyle
 }) {
+  const { colors } = useTheme()
+  const { chipStyles } = useStyles()
   return (
     <View style={chipStyles.wrap}>
       <View style={chipStyles.iconSquare}>
         <Ionicons
           name={icon as React.ComponentProps<typeof Ionicons>['name']}
           size={18}
-          color={colors.dk}
+          color={colors.heading}
         />
       </View>
       <View style={{ flex: 1 }}>
@@ -840,13 +845,15 @@ function SafetyTip({
   text: string
   dir: DirStyle
 }) {
+  const { colors } = useTheme()
+  const { safetyStyles } = useStyles()
   return (
     <View style={safetyStyles.row}>
       <View style={safetyStyles.bullet}>
         <Ionicons
           name={icon as React.ComponentProps<typeof Ionicons>['name']}
           size={14}
-          color={colors.dk}
+          color={colors.heading}
         />
       </View>
       <Text style={[safetyStyles.text, dir]}>{text}</Text>
@@ -869,6 +876,8 @@ function SpecRow({
   dir: DirStyle
   dirEnd: DirStyle
 }) {
+  const { colors } = useTheme()
+  const { specStyles } = useStyles()
   return (
     <View style={[specStyles.row, last && specStyles.rowLast]}>
       <View style={specStyles.labelWrap}>
@@ -876,7 +885,7 @@ function SpecRow({
           <Ionicons
             name={icon as React.ComponentProps<typeof Ionicons>['name']}
             size={14}
-            color={colors.g500}
+            color={colors.muted}
           />
         </View>
         <Text style={[specStyles.label, dir]}>{label}</Text>
@@ -888,43 +897,43 @@ function SpecRow({
   )
 }
 
-const chipStyles = StyleSheet.create({
+const makeChipStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   wrap: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.sm + 2,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   iconSquare: {
     width: 38,
     height: 38,
     borderRadius: radius.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sublabel: {
     fontFamily: fonts.regular,
     fontSize: 10,
-    color: colors.g500,
+    color: colors.muted,
     letterSpacing: 0.2,
     textTransform: 'uppercase',
   },
   label: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.g900,
+    color: colors.text,
     marginTop: 2,
   },
 })
 
-const safetyStyles = StyleSheet.create({
+const makeSafetyStyles = (colors: ThemeColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -935,7 +944,7 @@ const safetyStyles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.y,
     alignItems: 'center',
@@ -946,19 +955,19 @@ const safetyStyles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g800,
+    color: colors.text,
     lineHeight: 20,
   },
 })
 
-const specStyles = StyleSheet.create({
+const makeSpecStyles = (colors: ThemeColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.g200,
+    borderBottomColor: colors.border,
     gap: spacing.md,
   },
   rowLast: {
@@ -973,43 +982,43 @@ const specStyles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 6,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   label: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
   },
   value: {
     flex: 1,
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g900,
+    color: colors.text,
   },
 })
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.hero },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: colors.bg,
   },
   missing: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g500,
+    color: colors.muted,
   },
   expiredTitle: {
     marginTop: spacing.md,
     fontFamily: fonts.semiBold,
     fontSize: 18,
-    color: colors.g900,
+    color: colors.text,
     textAlign: 'center',
     paddingHorizontal: spacing.lg,
   },
@@ -1017,7 +1026,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
     paddingHorizontal: spacing.lg,
   },
@@ -1036,7 +1045,7 @@ const styles = StyleSheet.create({
 
   // ── Image zone ──
   imageZone: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     overflow: 'hidden',
   },
   circle1: {
@@ -1125,7 +1134,7 @@ const styles = StyleSheet.create({
   },
   // ── Content card ──
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopStartRadius: radius.xl,
     borderTopEndRadius: radius.xl,
     marginTop: -(radius.xl),
@@ -1139,7 +1148,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: 3,
-    backgroundColor: colors.g300,
+    backgroundColor: colors.dot,
     marginBottom: spacing.lg,
   },
   badgeRow: {
@@ -1164,40 +1173,40 @@ const styles = StyleSheet.create({
     backgroundColor: colors.y,
   },
   conditionNew: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderColor: colors.y,
   },
   conditionUsed: {
-    backgroundColor: colors.g100,
-    borderColor: colors.g300,
+    backgroundColor: colors.placeholder,
+    borderColor: colors.dot,
   },
   conditionText: {
     fontFamily: fonts.bold,
     fontSize: 11,
     letterSpacing: 0.2,
   },
-  conditionNewText: { color: colors.dk },
-  conditionUsedText: { color: colors.g600 },
+  conditionNewText: { color: colors.heading },
+  conditionUsedText: { color: colors.muted },
   locationChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 5,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   locationText: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
   },
   title: {
     fontFamily: fonts.black,
     fontSize: 22,
-    color: colors.g900,
+    color: colors.text,
     lineHeight: 32,
     marginBottom: spacing.sm,
   },
@@ -1212,13 +1221,13 @@ const styles = StyleSheet.create({
   ratingAvg: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.g900,
+    color: colors.text,
     marginStart: spacing.xs,
   },
   ratingCount: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     marginStart: 2,
   },
 
@@ -1228,7 +1237,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
     borderRadius: radius.lg,
@@ -1236,7 +1245,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md + 2,
     marginBottom: spacing.lg,
     overflow: 'hidden',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   priceBlockGlow: {
     position: 'absolute',
@@ -1254,7 +1263,7 @@ const styles = StyleSheet.create({
   priceLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     marginBottom: 2,
@@ -1267,24 +1276,24 @@ const styles = StyleSheet.create({
   price: {
     fontFamily: fonts.black,
     fontSize: 32,
-    color: colors.dk,
+    color: colors.price,
     lineHeight: 38,
   },
   currency: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.g600,
+    color: colors.muted,
   },
   priceAccent: {
     width: 52,
     height: 52,
     borderRadius: radius.full,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.y,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow.sm,
+    ...(dark ? null : shadow.sm),
   },
 
   // Seller card
@@ -1292,19 +1301,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.lg,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   sellerLogo: {
     width: 52,
     height: 52,
     borderRadius: radius.full,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 2,
     borderColor: colors.y,
     alignItems: 'center',
@@ -1332,7 +1341,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.g900,
+    color: colors.text,
   },
   sellerBadge: {
     paddingHorizontal: spacing.sm,
@@ -1351,18 +1360,18 @@ const styles = StyleSheet.create({
   sellerCta: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
   },
 
   // Safety tips card
   safetyCard: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.lg,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   safetyHeader: {
     flexDirection: 'row',
@@ -1374,7 +1383,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.y,
     alignItems: 'center',
@@ -1384,13 +1393,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.extraBold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
     letterSpacing: 0.1,
   },
   safetyIntro: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g700,
+    color: colors.text,
     lineHeight: 20,
   },
   safetyList: {
@@ -1423,22 +1432,22 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: fonts.extraBold,
     fontSize: 15,
-    color: colors.g900,
+    color: colors.text,
     letterSpacing: 0.1,
   },
   descriptionBox: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.lg,
     padding: spacing.md,
   },
   description: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
     lineHeight: 26,
   },
   specsBox: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
   },
@@ -1451,10 +1460,10 @@ const styles = StyleSheet.create({
     end: 0,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.g200,
-    ...shadow.md,
+    borderTopColor: colors.border,
+    ...(dark ? null : shadow.md),
   },
   actionRow: {
     flexDirection: 'row',
@@ -1514,13 +1523,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.extraBold,
     fontSize: 15,
-    color: colors.g900,
+    color: colors.text,
     letterSpacing: 0.1,
   },
   railLink: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
   },
   railList: {
     paddingHorizontal: spacing.lg,
@@ -1532,15 +1541,15 @@ const styles = StyleSheet.create({
     width: 170,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     overflow: 'hidden',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   spotCover: {
     position: 'relative',
     height: 90,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
   },
   spotCoverImg: {
     width: '100%',
@@ -1602,7 +1611,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 12,
     lineHeight: 15,
-    color: colors.dk,
+    color: colors.heading,
     minHeight: 30,
   },
 
@@ -1612,3 +1621,16 @@ const styles = StyleSheet.create({
     width: 180,
   },
 })
+
+const buildStyles = (c: ThemeColors, dark: boolean) => ({
+  chipStyles: makeChipStyles(c, dark),
+  safetyStyles: makeSafetyStyles(c),
+  specStyles: makeSpecStyles(c),
+  styles: makeStyles(c, dark),
+})
+
+const themedStyles = { light: buildStyles(lightColors, false), dark: buildStyles(darkColors, true) }
+
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

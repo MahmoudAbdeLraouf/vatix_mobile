@@ -5,7 +5,8 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
 import { PaymentRecord } from '@/lib/api'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -13,6 +14,8 @@ import { ErrorState } from '@/components/ui/ErrorState'
 export default function InvoicesScreen() {
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
   // RTL, `textAlign: 'right'` and `flexDirection: 'row-reverse'` resolve visually
@@ -66,13 +69,13 @@ export default function InvoicesScreen() {
   }
 
   const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-    success: { label: ar ? 'مكتمل' : 'Completed', color: colors.green, bg: colors.gl },
-    pending: { label: ar ? 'معلّق' : 'Pending', color: colors.yd, bg: colors.yl },
-    failed: { label: ar ? 'فشل' : 'Failed', color: colors.red, bg: colors.rl },
+    success: { label: ar ? 'مكتمل' : 'Completed', color: colors.green, bg: colors.greenBg },
+    pending: { label: ar ? 'معلّق' : 'Pending', color: colors.yd, bg: colors.yellowBg },
+    failed: { label: ar ? 'فشل' : 'Failed', color: colors.red, bg: colors.redBg },
     pending_verification: {
       label: ar ? 'قيد المراجعة' : 'Under Review',
       color: colors.yd,
-      bg: colors.yl,
+      bg: colors.yellowBg,
     },
   }
 
@@ -139,14 +142,14 @@ export default function InvoicesScreen() {
                 {(history ?? []).map(p => {
                   const status = STATUS_LABELS[p.status] ?? {
                     label: p.status,
-                    color: colors.g600,
-                    bg: colors.g100,
+                    color: colors.muted,
+                    bg: colors.placeholder,
                   }
                   const method = methodLabel(p.method)
                   return (
                     <View key={p.id} style={[styles.row, rowDir]}>
                       <View style={styles.iconWrap}>
-                        <Ionicons name="receipt-outline" size={18} color={colors.dk} />
+                        <Ionicons name="receipt-outline" size={18} color={colors.seeAllText} />
                       </View>
                       <View style={[styles.actionBody, colDir, { minWidth: 0 }]}>
                         <Text style={[styles.rowType, dirStyle]} numberOfLines={1}>
@@ -185,12 +188,12 @@ export default function InvoicesScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   summaryCard: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     borderRadius: radius.lg,
     padding: spacing.lg,
-    ...shadow.md,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.md),
   },
   summaryHead: {
     flexDirection: 'row',
@@ -215,17 +218,17 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   historyCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.sm,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.sm),
   },
   historyTitle: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md,
   },
   row: {
@@ -234,7 +237,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
+    borderBottomColor: colors.border,
   },
   actionBody: {
     flex: 1,
@@ -248,28 +251,28 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
   },
   rowType: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
   },
   rowMeta: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
     marginTop: 2,
   },
   rowAmount: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   rowAmountCurrency: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
   },
   statusChip: {
     paddingVertical: 3,

@@ -24,7 +24,8 @@ import {
 } from '@/lib/api'
 import { authDelete, authErrorMessage, authFetch, authPatch, authPost } from '@/lib/auth'
 import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED } from '@/lib/platform'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -35,6 +36,8 @@ import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
 
 export default function MyAdsScreen() {
+  const { colors } = useTheme()
+  const styles = useStyles()
   const { t, locale } = useLocale()
   const { user } = useAuth()
   const ar = locale === 'ar'
@@ -271,7 +274,7 @@ export default function MyAdsScreen() {
               </Text>
               {!isStore && extraSlots > 0 && (
                 <View style={styles.extraChip}>
-                  <Ionicons name="ticket" size={12} color={colors.dk} />
+                  <Ionicons name="ticket" size={12} color={colors.heading} />
                   <Text style={styles.extraChipText}>
                     {ar ? `+${fmt(extraSlots)} إضافي` : `+${fmt(extraSlots)} extra`}
                   </Text>
@@ -293,7 +296,7 @@ export default function MyAdsScreen() {
                       ]}
                       accessibilityRole="button"
                     >
-                      <Ionicons name="ticket" size={14} color={colors.dk} />
+                      <Ionicons name="ticket" size={14} color={colors.heading} />
                       <Text style={styles.buySlotsChipText}>
                         {ar ? 'شراء خانات' : 'Buy slots'}
                       </Text>
@@ -319,12 +322,12 @@ export default function MyAdsScreen() {
                     <Ionicons
                       name={postCtaDisabled ? 'lock-closed' : 'add'}
                       size={16}
-                      color={postCtaDisabled ? colors.g500 : colors.dk}
+                      color={postCtaDisabled ? colors.muted : colors.dk}
                     />
                     <Text
                       style={[
                         styles.postCtaText,
-                        postCtaDisabled && { color: colors.g500 },
+                        postCtaDisabled && { color: colors.muted },
                       ]}
                     >
                       {ar ? 'إضافة إعلان' : 'Post Ad'}
@@ -353,21 +356,21 @@ export default function MyAdsScreen() {
             <StatChip
               icon="checkmark-circle"
               tint={colors.green}
-              tintLight={colors.gl}
+              tintLight={colors.greenBg}
               label={ar ? 'نشط' : 'Active'}
               value={stats.active}
             />
             <StatChip
               icon="rocket"
               tint={colors.yd}
-              tintLight={colors.yl}
+              tintLight={colors.yellowBg}
               label={ar ? 'مروّج' : 'Promoted'}
               value={stats.promoted}
             />
             <StatChip
               icon="layers"
-              tint={colors.dk}
-              tintLight={colors.g100}
+              tint={colors.heading}
+              tintLight={colors.placeholder}
               label={ar ? 'الإجمالي' : 'Total'}
               value={stats.total}
             />
@@ -448,7 +451,7 @@ export default function MyAdsScreen() {
                 hitSlop={12}
                 style={styles.popClose}
               >
-                <Ionicons name="close" size={18} color={colors.g500} />
+                <Ionicons name="close" size={18} color={colors.muted} />
               </Pressable>
             </View>
 
@@ -476,7 +479,7 @@ export default function MyAdsScreen() {
                     >
                       <View style={[styles.packLeft, dirContainer]}>
                         <View style={styles.packIconWrap}>
-                          <Ionicons name="rocket-outline" size={14} color={colors.dk} />
+                          <Ionicons name="rocket-outline" size={14} color={colors.heading} />
                         </View>
                         <Text style={[styles.packLabel, dirStyle]}>
                           {tName} ({b.productCount})
@@ -573,7 +576,7 @@ export default function MyAdsScreen() {
                       hitSlop={12}
                       style={styles.popClose}
                     >
-                      <Ionicons name="close" size={18} color={colors.g500} />
+                      <Ionicons name="close" size={18} color={colors.muted} />
                     </Pressable>
                   </View>
 
@@ -589,7 +592,7 @@ export default function MyAdsScreen() {
                         <Ionicons
                           name="qr-code-outline"
                           size={14}
-                          color={payMethod === 'instapay' ? colors.white : colors.g600}
+                          color={payMethod === 'instapay' ? colors.white : colors.muted}
                         />
                         <Text
                           style={[
@@ -610,7 +613,7 @@ export default function MyAdsScreen() {
                         <Ionicons
                           name="phone-portrait-outline"
                           size={14}
-                          color={payMethod === 'mobile_wallet' ? colors.white : colors.g600}
+                          color={payMethod === 'mobile_wallet' ? colors.white : colors.muted}
                         />
                         <Text
                           style={[
@@ -696,7 +699,7 @@ export default function MyAdsScreen() {
             onPress={(e) => e.stopPropagation()}
           >
             <View style={[styles.popHeader, dirContainer]}>
-              <View style={[styles.popIconWrap, { backgroundColor: colors.gl }]}>
+              <View style={[styles.popIconWrap, { backgroundColor: colors.greenBg }]}>
                 <Ionicons
                   name={soldDialogMode === 'delete' ? 'trash-outline' : 'checkmark-circle'}
                   size={20}
@@ -729,7 +732,7 @@ export default function MyAdsScreen() {
                 style={styles.popClose}
                 disabled={markingSold}
               >
-                <Ionicons name="close" size={18} color={colors.g500} />
+                <Ionicons name="close" size={18} color={colors.muted} />
               </Pressable>
             </View>
 
@@ -771,7 +774,7 @@ export default function MyAdsScreen() {
                   markingSold && { opacity: 0.6 },
                 ]}
               >
-                <View style={[styles.optionIcon, { backgroundColor: colors.dk }]}>
+                <View style={[styles.optionIcon, { backgroundColor: colors.fab }]}>
                   <Ionicons name="storefront-outline" size={16} color={colors.white} />
                 </View>
                 <View style={styles.optionTextWrap}>
@@ -872,6 +875,7 @@ function StatChip({
   label: string
   value: number
 }) {
+  const styles = useStyles()
   return (
     <View style={[styles.statChip, { backgroundColor: tintLight }]}>
       <Ionicons name={icon} size={14} color={tint} />
@@ -908,6 +912,8 @@ function ProductRow({
   onMarkSold: () => void
   onRepost: () => void
 }) {
+  const { colors } = useTheme()
+  const styles = useStyles()
   const thumb = imgUrl(product.images?.[0]?.url)
   const isPromoted =
     !!product.promotedUntil && new Date(product.promotedUntil) > new Date()
@@ -925,7 +931,7 @@ function ProductRow({
           {thumb ? (
             <Image source={{ uri: thumb }} style={styles.thumbImg} resizeMode="cover" />
           ) : (
-            <Ionicons name="image-outline" size={26} color={colors.g400} />
+            <Ionicons name="image-outline" size={26} color={colors.subtle} />
           )}
         </View>
 
@@ -997,8 +1003,8 @@ function ProductRow({
               boosting && { opacity: 0.6 },
             ]}
           >
-            <Ionicons name="rocket-outline" size={13} color={colors.dk} />
-            <Text style={[styles.actionText, { color: colors.dk }]}>
+            <Ionicons name="rocket-outline" size={13} color={colors.heading} />
+            <Text style={[styles.actionText, { color: colors.heading }]}>
               {boosting ? (ar ? 'جاري…' : 'Boosting…') : ar ? 'ترويج' : 'Boost'}
             </Text>
           </Pressable>
@@ -1011,8 +1017,8 @@ function ProductRow({
             pressed && { opacity: 0.85 },
           ]}
         >
-          <Ionicons name="eye-outline" size={13} color={colors.dk} />
-          <Text style={[styles.actionText, { color: colors.dk }]}>
+          <Ionicons name="eye-outline" size={13} color={colors.heading} />
+          <Text style={[styles.actionText, { color: colors.heading }]}>
             {ar ? 'عرض' : 'View'}
           </Text>
         </Pressable>
@@ -1026,8 +1032,8 @@ function ProductRow({
             isPromoted && { opacity: 0.5 },
           ]}
         >
-          <Ionicons name="pencil-outline" size={13} color={colors.dk} />
-          <Text style={[styles.actionText, { color: colors.dk }]}>
+          <Ionicons name="pencil-outline" size={13} color={colors.heading} />
+          <Text style={[styles.actionText, { color: colors.heading }]}>
             {ar ? 'تعديل' : 'Edit'}
           </Text>
         </Pressable>
@@ -1040,8 +1046,8 @@ function ProductRow({
               pressed && { opacity: 0.85 },
             ]}
           >
-            <Ionicons name="refresh-outline" size={13} color={colors.dk} />
-            <Text style={[styles.actionText, { color: colors.dk }]}>
+            <Ionicons name="refresh-outline" size={13} color={colors.heading} />
+            <Text style={[styles.actionText, { color: colors.heading }]}>
               {ar ? 'إعادة نشر' : 'Repost'}
             </Text>
           </Pressable>
@@ -1078,16 +1084,16 @@ function ProductRow({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
   // Summary
   summary: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     overflow: 'hidden',
     marginBottom: spacing.md,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   summaryAccent: {
     height: 4,
@@ -1108,12 +1114,12 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontFamily: fonts.black,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
   },
   summarySub: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   extraChip: {
     alignSelf: 'flex-start',
@@ -1124,12 +1130,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.full,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
   },
   extraChipText: {
     fontFamily: fonts.bold,
     fontSize: 11,
-    color: colors.dk,
+    color: colors.heading,
   },
   ctaGroup: {
     flexDirection: 'row',
@@ -1141,7 +1147,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
     paddingHorizontal: spacing.sm,
@@ -1151,7 +1157,7 @@ const styles = StyleSheet.create({
   buySlotsChipText: {
     fontFamily: fonts.bold,
     fontSize: 11,
-    color: colors.dk,
+    color: colors.heading,
   },
   postCta: {
     flexDirection: 'row',
@@ -1161,10 +1167,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     borderRadius: radius.md,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   postCtaDisabled: {
-    backgroundColor: colors.g200,
+    backgroundColor: colors.placeholder,
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -1178,7 +1184,7 @@ const styles = StyleSheet.create({
     height: 6,
     marginHorizontal: spacing.md,
     borderRadius: 3,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     overflow: 'hidden',
   },
   progressFill: {
@@ -1209,7 +1215,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
     flexShrink: 1,
   },
 
@@ -1218,15 +1224,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   row: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     paddingTop: spacing.md,
     gap: spacing.sm,
     overflow: 'hidden',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   rowAccent: {
     position: 'absolute',
@@ -1245,7 +1251,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: radius.md,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1262,7 +1268,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.black,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   price: {
     fontFamily: fonts.bold,
@@ -1291,11 +1297,11 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   pillGreen: {
-    backgroundColor: colors.gl,
+    backgroundColor: colors.greenBg,
     borderColor: colors.green,
   },
   pillRed: {
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     borderColor: colors.red,
   },
   statusPillText: {
@@ -1337,7 +1343,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingTop: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.g200,
+    borderTopColor: colors.border,
   },
   actionBtn: {
     flexDirection: 'row',
@@ -1353,30 +1359,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   boostBtn: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderColor: colors.y,
   },
   viewBtn: {
-    backgroundColor: colors.white,
-    borderColor: colors.g300,
+    backgroundColor: colors.card,
+    borderColor: colors.dot,
   },
   deleteBtn: {
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     borderColor: colors.red,
   },
   soldBtn: {
-    backgroundColor: colors.gl,
+    backgroundColor: colors.greenBg,
     borderColor: colors.green,
   },
   repostBtn: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderColor: colors.y,
   },
 
   // Popover modal
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6,43,91,0.55)',
+    backgroundColor: colors.backdrop,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
@@ -1384,13 +1390,13 @@ const styles = StyleSheet.create({
   popover: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.md,
-    ...shadow.sl,
+    ...(dark ? null : shadow.sl),
   },
   popHeader: {
     flexDirection: 'row',
@@ -1412,19 +1418,19 @@ const styles = StyleSheet.create({
   popTitle: {
     fontFamily: fonts.black,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   popSub: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     lineHeight: 18,
   },
   popClose: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1439,12 +1445,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   packRowPressed: {
     borderColor: colors.y,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
   },
   packLeft: {
     flexDirection: 'row',
@@ -1455,7 +1461,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 8,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
     alignItems: 'center',
@@ -1464,7 +1470,7 @@ const styles = StyleSheet.create({
   packLabel: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
   },
   packPrice: {
     fontFamily: fonts.black,
@@ -1474,7 +1480,7 @@ const styles = StyleSheet.create({
   packEmpty: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
     paddingVertical: spacing.md,
   },
@@ -1484,7 +1490,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     borderTopWidth: 1,
-    borderTopColor: colors.g100,
+    borderTopColor: colors.border,
     paddingTop: spacing.sm,
   },
   popFooterText: {
@@ -1507,19 +1513,19 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   optionVatix: {
-    backgroundColor: colors.gl,
+    backgroundColor: colors.greenBg,
     borderColor: colors.green,
   },
   optionOffline: {
-    backgroundColor: colors.white,
-    borderColor: colors.g300,
+    backgroundColor: colors.card,
+    borderColor: colors.dot,
   },
   optionKeep: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderColor: colors.y,
   },
   optionDelete: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderColor: colors.red,
   },
   optionIcon: {
@@ -1536,12 +1542,12 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
   },
   optionSub: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 16,
   },
 
@@ -1550,12 +1556,12 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     maxHeight: '90%',
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     overflow: 'hidden',
-    ...shadow.sl,
+    ...(dark ? null : shadow.sl),
   },
   paySheetContent: {
     padding: spacing.lg,
@@ -1580,8 +1586,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   methodChipInstapay: {
     backgroundColor: '#7B2FBE',
@@ -1594,7 +1600,7 @@ const styles = StyleSheet.create({
   methodChipText: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
   methodChipTextActive: {
     color: colors.white,
@@ -1621,12 +1627,12 @@ const styles = StyleSheet.create({
   successTitle: {
     fontFamily: fonts.black,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
   },
   successMsg: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 20,
     textAlign: 'center',
   },
@@ -1635,3 +1641,8 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

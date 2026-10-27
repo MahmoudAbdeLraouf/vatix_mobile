@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,8 @@ import {
 import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
 import * as Sentry from '@sentry/react-native'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { authErrorMessage, getToken } from '@/lib/auth'
 import { Button } from './Button'
@@ -44,6 +45,8 @@ export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect =
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [previewUri, setPreviewUri] = useState('')
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   const rowDir = ar
     ? { direction: 'ltr' as const, flexDirection: 'row-reverse' as const }
@@ -199,7 +202,7 @@ export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect =
           )}
           {uploading ? (
             <View style={styles.previewOverlay}>
-              <ActivityIndicator color={colors.dk} />
+              <ActivityIndicator color={colors.heading} />
             </View>
           ) : null}
         </View>
@@ -233,14 +236,14 @@ export function PaymentScreenshotUpload({ label, value, onChange, hint, aspect =
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   wrapper: {
     marginBottom: spacing.md,
   },
   label: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
     marginBottom: spacing.xs,
   },
   row: {
@@ -251,8 +254,8 @@ const styles = StyleSheet.create({
   preview: {
     height: 64,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.g100,
+    borderColor: colors.border,
+    backgroundColor: colors.placeholder,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -272,7 +275,7 @@ const styles = StyleSheet.create({
   },
   previewOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: dark ? 'rgba(22,33,58,0.85)' : 'rgba(255,255,255,0.85)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -286,7 +289,7 @@ const styles = StyleSheet.create({
   hint: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g400,
+    color: colors.subtle,
     lineHeight: 16,
   },
   deleteText: {

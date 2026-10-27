@@ -38,6 +38,76 @@ export const colors = {
   warning: '#F97316',
 }
 
+// Role-based colors for screens that follow the light/dark toggle (see contexts/theme.tsx).
+// Raw tokens above stay fixed; themed components read these via useTheme().
+const lightRoles = {
+  bg: colors.g100,
+  card: colors.white,
+  border: colors.g200,
+  text: colors.g900,
+  heading: colors.dk, // navy text on light surfaces
+  muted: colors.g500,
+  subtle: colors.g400,
+  hero: colors.dk,
+  tabBar: colors.white,
+  fab: colors.dk,
+  placeholder: colors.g100,
+  price: colors.dk,
+  seeAllBg: colors.yl,
+  seeAllText: colors.dk,
+  catBg: colors.bl,
+  catIcon: colors.blue,
+  catText: colors.dk,
+  searchBg: colors.white,
+  dot: colors.g300,
+  pressed: colors.g100,
+  backdrop: 'rgba(6,20,40,0.45)',
+  // Pastel tints behind status chips/banners (gl/rl/bl/ol/yl) and the amber text that sits on yl.
+  greenBg: colors.gl,
+  redBg: colors.rl,
+  blueBg: colors.bl,
+  orangeBg: colors.ol,
+  yellowBg: colors.yl,
+  yellowText: colors.yt,
+  inputBg: colors.white,
+}
+
+export type ThemeColors = typeof colors & typeof lightRoles
+
+export const lightColors: ThemeColors = { ...colors, ...lightRoles }
+
+export const darkColors: ThemeColors = {
+  ...colors,
+  bg: '#0D1526',
+  card: '#16213A',
+  border: '#24314F',
+  text: '#F2F4F7',
+  heading: '#F2F4F7',
+  muted: '#98A2B3',
+  subtle: '#667085',
+  hero: '#0A1A33',
+  tabBar: '#111B30',
+  fab: colors.dk3,
+  placeholder: '#1F2C49',
+  price: colors.y,
+  seeAllBg: 'rgba(245,184,0,0.14)',
+  seeAllText: colors.y,
+  catBg: '#1B2A4A',
+  catIcon: '#7FB0FF',
+  catText: '#D0D5DD',
+  searchBg: '#1B2A4A',
+  dot: '#344054',
+  pressed: '#1B2A4A',
+  backdrop: 'rgba(0,0,0,0.6)',
+  greenBg: 'rgba(18,184,134,0.16)',
+  redBg: 'rgba(229,62,62,0.16)',
+  blueBg: 'rgba(59,130,246,0.16)',
+  orangeBg: 'rgba(249,115,22,0.16)',
+  yellowBg: 'rgba(245,184,0,0.14)',
+  yellowText: colors.y,
+  inputBg: '#1B2A4A',
+}
+
 export const fonts = {
   regular: 'Cairo_400Regular',
   semiBold: 'Cairo_600SemiBold',

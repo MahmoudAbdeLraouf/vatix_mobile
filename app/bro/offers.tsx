@@ -39,16 +39,18 @@ import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SkeletonRow } from '@/components/ui/Skeleton'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 type Tab = 'mine' | 'saved'
 
-const STATE_COLORS: Record<MyOfferState, { bg: string; fg: string }> = {
-  active: { bg: '#e6f7ec', fg: '#1a7f3c' },
-  closed: { bg: colors.g200, fg: colors.g700 },
-  unavailable: { bg: '#fff8e1', fg: '#8a6500' },
-  withdrawn: { bg: colors.g200, fg: colors.g600 },
-}
+const makeStateColors = (colors: ThemeColors, dark: boolean): Record<MyOfferState, { bg: string; fg: string }> => ({
+  active: dark ? { bg: colors.greenBg, fg: colors.green } : { bg: '#e6f7ec', fg: '#1a7f3c' },
+  closed: { bg: colors.border, fg: colors.text },
+  unavailable: { bg: colors.yellowBg, fg: colors.yellowText },
+  withdrawn: { bg: colors.border, fg: colors.muted },
+})
+const themedStateColors = { light: makeStateColors(lightColors, false), dark: makeStateColors(darkColors, true) }
 
 function errMessage(err: unknown, fallback: string): string {
   const e = err as BroApiError
@@ -69,6 +71,7 @@ export default function BroOffersScreen() {
   const { dirStyle, rowDir } = useBroDir()
   const broEnabled = useBroEnabled()
   const [tab, setTab] = useState<Tab>('mine')
+  const styles = useStyles()
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -115,6 +118,9 @@ function MyOffersTab() {
   const [reloadKey, setReloadKey] = useState(0)
   const [busyId, setBusyId] = useState<number | null>(null)
   const [rowError, setRowError] = useState<{ id: number; msg: string } | null>(null)
+  const { colors, mode } = useTheme()
+  const styles = useStyles()
+  const STATE_COLORS = themedStateColors[mode]
 
   const loadFirst = useCallback(async (pull: boolean) => {
     const ticket = ++seq.current
@@ -210,7 +216,7 @@ function MyOffersTab() {
     >
       {items.length === 0 ? (
         <EmptyState
-          icon={<Ionicons name="pricetags-outline" size={40} color={colors.g400} />}
+          icon={<Ionicons name="pricetags-outline" size={40} color={colors.subtle} />}
           title={b.myOffersEmpty}
           actionLabel={b.browseRequests}
           onAction={() => router.push('/(tabs)/requests' as never)}
@@ -292,6 +298,8 @@ function SavedOffersTab() {
   const [busyId, setBusyId] = useState<number | null>(null)
   const [rowError, setRowError] = useState<{ id: number; msg: string } | null>(null)
   const [editing, setEditing] = useState<BroSavedOffer | null>(null)
+  const { colors } = useTheme()
+  const styles = useStyles()
 
   const load = useCallback(async (pull: boolean) => {
     const ticket = ++seq.current
@@ -359,7 +367,7 @@ function SavedOffersTab() {
         }
       >
         {items.length === 0 ? (
-          <EmptyState icon={<Ionicons name="bookmark-outline" size={40} color={colors.g400} />} title={b.noSavedOffers} />
+          <EmptyState icon={<Ionicons name="bookmark-outline" size={40} color={colors.subtle} />} title={b.noSavedOffers} />
         ) : (
           items.map(s => {
             const thumb = imgUrl(s.images[0], { w: 160 })
@@ -415,6 +423,7 @@ function EditSavedSheet({
   const b = t.bro
   const { dirStyle, rowDir } = useBroDir()
   const insets = useSafeAreaInsets()
+  const styles = useStyles()
   const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -485,43 +494,43 @@ function EditSavedSheet({
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   pad: { padding: spacing.md, gap: spacing.md },
   grow: { flexGrow: 1, justifyContent: 'center' },
   flex: { flex: 1, minWidth: 0 },
   tabs: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: spacing.md },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.md,
     gap: 10,
-    ...shadow.ss,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
   },
   dim: { opacity: 0.75 },
-  cardTitle: { fontFamily: fonts.extraBold, fontSize: 16, color: colors.dk },
-  cardBody: { fontFamily: fonts.regular, fontSize: 13, color: colors.g600 },
+  cardTitle: { fontFamily: fonts.extraBold, fontSize: 16, color: colors.heading },
+  cardBody: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  model: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.dk },
-  muted: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500, marginTop: 2 },
+  model: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.heading },
+  muted: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted, marginTop: 2 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full },
   badgeText: { fontFamily: fonts.bold, fontSize: 11 },
-  offerTitle: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.g800 },
-  price: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.dk },
+  offerTitle: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.text },
+  price: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.price },
   hint: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.red, marginTop: 2 },
   error: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.red },
   actions: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-  thumb: { width: 56, height: 56, borderRadius: radius.sm, backgroundColor: colors.g100 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  thumb: { width: 56, height: 56, borderRadius: radius.sm, backgroundColor: colors.placeholder },
+  backdrop: { flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '92%',
     overflow: 'hidden',
   },
   sheetHeader: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingVertical: 14,
     flexDirection: 'row',
@@ -532,3 +541,8 @@ const styles = StyleSheet.create({
   sheetSub: { fontFamily: fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   sheetContent: { padding: spacing.lg, gap: spacing.md },
 })
+
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

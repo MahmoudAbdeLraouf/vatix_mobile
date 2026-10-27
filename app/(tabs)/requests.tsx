@@ -17,13 +17,16 @@ import { CategoryBar } from '@/components/CategoryBar'
 import { MessagesBell } from '@/components/MessagesBell'
 import { FilterCombobox } from '@/components/FilterCombobox'
 import { Button } from '@/components/ui/Button'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 type Sort = 'newest' | 'budget'
 
 /** Public board of buyer requests that sellers can answer with an offer. Mirrors the website /requests. */
 export default function RequestsTab() {
   const { locale, t, isRtl, setLocale } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const b = t.bro
   const ar = locale === 'ar'
   const geekoHint = ar ? 'قول لجيكو عايز إيه والعروض توصلك' : 'Tell Geeko what you want and get offers'
@@ -241,7 +244,7 @@ export default function RequestsTab() {
                 <Ionicons
                   name={s === 'newest' ? 'time-outline' : 'cash-outline'}
                   size={15}
-                  color={on ? colors.y : colors.g500}
+                  color={on ? colors.y : colors.muted}
                 />
                 <Text style={[styles.sortText, on && styles.sortTextOn]}>{s === 'newest' ? b.sortNewest : b.sortBudget}</Text>
               </Pressable>
@@ -275,7 +278,7 @@ export default function RequestsTab() {
           <Text style={[styles.count, dirStyle]}>{countLabel(total)}</Text>
           {hasFilters ? (
             <Pressable onPress={clearFilters} hitSlop={8} style={styles.clearBtn}>
-              <Ionicons name="close-circle" size={15} color={colors.g500} />
+              <Ionicons name="close-circle" size={15} color={colors.muted} />
               <Text style={styles.clearText}>{b.boardClearFilters}</Text>
             </Pressable>
           ) : null}
@@ -295,13 +298,13 @@ export default function RequestsTab() {
     <View style={styles.center}><ActivityIndicator color={colors.y} /></View>
   ) : failed ? (
     <View style={styles.center}>
-      <Ionicons name="cloud-offline-outline" size={40} color={colors.g400} />
+      <Ionicons name="cloud-offline-outline" size={40} color={colors.subtle} />
       <Text style={[styles.cardBody, dirStyle]}>{b.boardLoadFailed}</Text>
       <Button label={b.retry} variant="dk" size="md" onPress={() => { resetBoard(); void loadPage(1, false) }} />
     </View>
   ) : (
     <View style={styles.center}>
-      <Ionicons name="search-outline" size={40} color={colors.g400} />
+      <Ionicons name="search-outline" size={40} color={colors.subtle} />
       <Text style={[styles.cardBody, dirStyle]}>{b.boardEmpty}</Text>
     </View>
   )
@@ -369,10 +372,10 @@ export default function RequestsTab() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.hero },
   header: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.md,
@@ -393,7 +396,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.88 },
   content: {
     flex: 1,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     overflow: 'hidden',
@@ -428,16 +431,22 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: colors.dk,
+    backgroundColor: colors.fab,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  meter: { marginBottom: 0, borderWidth: 0, borderRadius: radius.lg, ...shadow.ss },
+  meter: { marginBottom: 0, borderWidth: dark ? 1 : 0, borderRadius: radius.lg, ...(dark ? null : shadow.ss) },
 
   // Sort + brand/area filters.
-  filterCard: { backgroundColor: colors.white, borderRadius: radius.lg, padding: 10, gap: 10, ...shadow.ss },
-  sortRow: { flexDirection: 'row', backgroundColor: colors.g100, borderRadius: radius.full, padding: 4, gap: 4 },
+  filterCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: 10,
+    gap: 10,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
+  },
+  sortRow: { flexDirection: 'row', backgroundColor: colors.placeholder, borderRadius: radius.full, padding: 4, gap: 4 },
   sortBtn: {
     flex: 1,
     flexDirection: 'row',
@@ -447,8 +456,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     paddingVertical: 8,
   },
-  sortBtnOn: { backgroundColor: colors.dk },
-  sortText: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 18, color: colors.g500 },
+  sortBtnOn: { backgroundColor: colors.fab },
+  sortText: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 18, color: colors.muted },
   sortTextOn: { color: colors.white },
   filterRow: { flexDirection: 'row', alignItems: 'stretch', gap: 10 },
   filterCell: { flex: 1 },
@@ -461,23 +470,29 @@ const styles = StyleSheet.create({
     marginBottom: -spacing.xs,
   },
   clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  clearText: { fontFamily: fonts.semiBold, fontSize: 12, lineHeight: 18, color: colors.g500 },
-  count: { fontFamily: fonts.extraBold, fontSize: 14, lineHeight: 20, color: colors.dk },
+  clearText: { fontFamily: fonts.semiBold, fontSize: 12, lineHeight: 18, color: colors.muted },
+  count: { fontFamily: fonts.extraBold, fontSize: 14, lineHeight: 20, color: colors.heading },
   notice: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
     borderRadius: radius.md,
     padding: 12,
   },
-  noticeText: { flex: 1, fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 20, color: colors.dk },
+  noticeText: { flex: 1, fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 20, color: colors.heading },
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxl, gap: spacing.md },
   footer: { gap: spacing.sm, alignItems: 'stretch', marginTop: spacing.xs },
   err: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red, textAlign: 'center' },
-  card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md, ...shadow.ss },
-  cardTitle: { fontFamily: fonts.extraBold, fontSize: 17, color: colors.dk },
-  cardBody: { fontFamily: fonts.regular, fontSize: 14, color: colors.g600, textAlign: 'center' },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
+  },
+  cardTitle: { fontFamily: fonts.extraBold, fontSize: 17, color: colors.heading },
+  cardBody: { fontFamily: fonts.regular, fontSize: 14, color: colors.muted, textAlign: 'center' },
 })

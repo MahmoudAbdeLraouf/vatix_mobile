@@ -6,7 +6,8 @@ import { useLocale } from '@/contexts/locale'
 import { track } from '@/lib/analytics'
 import { getBroStatus, type BroRequestSource, type BroWant } from '@/lib/bro'
 import { BroAvatar, BroBadge } from '@/components/bro/BroAvatar'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { colors, darkColors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 export type BroEntryVariant = 'product' | 'sold' | 'search' | 'home' | 'pill'
 
@@ -106,6 +107,8 @@ export function BroEntryCard({
   context?: BroEntryContext
 }) {
   const { locale, t, isRtl } = useLocale()
+  const { mode } = useTheme()
+  const styles = themedStyles[mode]
   const b = t.bro
   const [gate, setGate] = useState<Gate>('loading')
   const [wants, setWants] = useState<BroWant[]>([])
@@ -270,16 +273,17 @@ export function BroEntryCard({
   )
 }
 
-const styles = StyleSheet.create({
+// `surface` is the navy fill in light mode; in dark the card sits on the page colour with a border instead.
+const makeStyles = (surface: string, dark: boolean) => StyleSheet.create({
   pressed: { opacity: 0.85 },
   card: {
-    backgroundColor: NAVY,
+    backgroundColor: surface,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: 'rgba(245,184,0,0.35)',
     padding: spacing.md,
     marginBottom: spacing.md,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   cardSearch: { marginTop: spacing.lg },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
@@ -326,14 +330,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: NAVY,
+    backgroundColor: surface,
     borderRadius: radius.lg,
     paddingStart: 12,
     paddingEnd: 14,
     paddingVertical: 12,
     marginHorizontal: spacing.lg,
     marginTop: spacing.lg,
-    ...shadow.ss,
+    ...(dark ? { borderWidth: 1, borderColor: darkColors.border } : shadow.ss),
   },
   bannerText: { flex: 1, minWidth: 0, gap: 2 },
   bannerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -361,8 +365,10 @@ const styles = StyleSheet.create({
     paddingStart: 7,
     paddingEnd: 14,
     borderRadius: radius.full,
-    backgroundColor: NAVY,
-    ...shadow.ss,
+    backgroundColor: surface,
+    ...(dark ? { borderWidth: 1, borderColor: darkColors.border } : shadow.ss),
   },
   pillText: { flexShrink: 1, fontFamily: fonts.extraBold, fontSize: 13, color: colors.white },
 })
+
+const themedStyles = { light: makeStyles(NAVY, false), dark: makeStyles(darkColors.card, true) }

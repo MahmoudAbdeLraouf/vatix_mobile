@@ -25,7 +25,8 @@ import {
   type EasyOrdersPreviewError,
   type EasyOrdersRow,
 } from '@/lib/import'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const GUIDE_IMAGE = require('@/assets/import-guides/easyorders-public-api.png')
 const DASHBOARD_URL = 'https://my.easy-orders.net'
@@ -36,6 +37,8 @@ type ConnState = 'loading' | 'error' | 'disconnected' | 'connected'
 // (vatix_website/app/dashboard/products/import/page.tsx).
 export default function EasyOrdersImportScreen() {
   const { t, locale } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ip = t.importProducts
   const ar = locale === 'ar'
   const dirStyle = {
@@ -238,7 +241,7 @@ export default function EasyOrdersImportScreen() {
 
         {conn === 'loading' ? (
           <View style={styles.center}>
-            <ActivityIndicator color={colors.dk} />
+            <ActivityIndicator color={colors.heading} />
             <Text style={styles.muted}>{ip.loading}</Text>
           </View>
         ) : null}
@@ -408,31 +411,31 @@ export default function EasyOrdersImportScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: { padding: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
-  title: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.dk },
+  title: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.heading },
   center: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxl },
   card: {
     gap: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.ss,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.ss),
   },
   banner: {
     borderRadius: radius.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
     padding: spacing.sm,
   },
-  bannerText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.dk },
-  heading: { fontFamily: fonts.bold, fontSize: 15, color: colors.dk },
+  bannerText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.heading },
+  heading: { fontFamily: fonts.bold, fontSize: 15, color: colors.heading },
   steps: { gap: spacing.sm },
-  stepsTitle: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.g700 },
+  stepsTitle: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.text },
   stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   stepNum: {
     width: 22,
@@ -443,31 +446,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepNumText: { fontFamily: fonts.bold, fontSize: 12, color: colors.dk },
-  stepText: { flex: 1, fontFamily: fonts.regular, fontSize: 13, color: colors.g700, lineHeight: 20 },
+  stepText: { flex: 1, fontFamily: fonts.regular, fontSize: 13, color: colors.text, lineHeight: 20 },
   guide: {
     width: '100%',
     aspectRatio: 1600 / 781,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.g300,
-    backgroundColor: colors.g100,
+    borderColor: colors.border,
+    backgroundColor: colors.placeholder,
   },
   mono: { fontFamily: 'monospace', writingDirection: 'ltr', textAlign: 'left' },
-  link: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.dk, textDecorationLine: 'underline' },
+  link: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.heading, textDecorationLine: 'underline' },
   connRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#dcfce7',
+    backgroundColor: dark ? colors.greenBg : '#dcfce7',
     borderRadius: radius.full,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  pillDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#15803d' },
-  pillText: { fontFamily: fonts.bold, fontSize: 12, color: '#15803d' },
+  pillDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: dark ? colors.green : '#15803d' },
+  pillText: { fontFamily: fonts.bold, fontSize: 12, color: dark ? colors.green : '#15803d' },
   disconnect: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red, textDecorationLine: 'underline' },
-  muted: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500 },
+  muted: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   hint: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.red },
   errorText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red },
   disabled: { opacity: 0.5 },

@@ -1,11 +1,15 @@
+import { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useLocale } from '@/contexts/locale'
 import type { BroRequestView } from '@/lib/bro'
-import { colors, fonts, radius } from '@/constants/theme'
+import { fonts, radius, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 /** Available / pending / sold counts as semantic pills: green = live, amber = waiting, struck grey = gone. */
 export function BroCountPills({ counts }: { counts: BroRequestView['counts'] }) {
   const { locale, t } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const b = t.bro
   const ar = locale === 'ar'
   const rowDir = ar ? ({ direction: 'ltr', flexDirection: 'row-reverse' } as const) : null
@@ -26,14 +30,14 @@ export function BroCountPills({ counts }: { counts: BroRequestView['counts'] }) 
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
   pill: { borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
   text: { fontFamily: fonts.bold, fontSize: 12 },
-  available: { backgroundColor: colors.gl },
+  available: { backgroundColor: colors.greenBg },
   availableText: { color: colors.green },
-  pending: { backgroundColor: colors.yl },
-  pendingText: { color: colors.yt },
-  sold: { backgroundColor: colors.g100 },
-  soldText: { color: colors.g500, textDecorationLine: 'line-through' },
+  pending: { backgroundColor: colors.yellowBg },
+  pendingText: { color: colors.yellowText },
+  sold: { backgroundColor: colors.placeholder },
+  soldText: { color: colors.muted, textDecorationLine: 'line-through' },
 })

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   Image,
   KeyboardAvoidingView,
@@ -18,7 +18,8 @@ import { useLocale } from '@/contexts/locale'
 import { Logo } from '@/components/ui/Logo'
 import { MessagesBell } from '@/components/MessagesBell'
 import { NotificationBell } from '@/components/NotificationBell'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { colors as rawColors, fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 interface Props {
   title?: string
@@ -38,6 +39,8 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
   }
   const dirContainer = isRtl ? { direction: 'rtl' as const } : null
   const insets = useSafeAreaInsets()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const bodyBg = bodyColor ? { backgroundColor: bodyColor } : null
 
   // Sub-pages are reached from the More tab, so fall back there on a cold deep link.
@@ -65,7 +68,7 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
 
   return (
     <SafeAreaView style={[styles.safe, dirContainer]} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.dk} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.hero} />
 
       {/* TOPBAR */}
       <View style={[styles.topbar, dirContainer]}>
@@ -140,7 +143,7 @@ function AvatarCircle({ name, size, uri }: { name: string; size: number; uri?: s
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: colors.dk,
+        backgroundColor: rawColors.dk,
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
@@ -151,7 +154,7 @@ function AvatarCircle({ name, size, uri }: { name: string; size: number; uri?: s
       ) : (
         <Text
           style={{
-            color: colors.white,
+            color: rawColors.white,
             fontFamily: fonts.bold,
             fontSize: size * 0.4,
           }}
@@ -163,10 +166,10 @@ function AvatarCircle({ name, size, uri }: { name: string; size: number; uri?: s
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
   },
   topbar: {
     flexDirection: 'row',
@@ -174,11 +177,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     gap: spacing.sm,
-    backgroundColor: colors.dk,
-    ...Platform.select({
-      ios: shadow.ss,
-      android: { ...shadow.ss, elevation: 2 },
-    }),
+    backgroundColor: colors.hero,
+    ...(dark
+      ? null
+      : Platform.select({
+          ios: shadow.ss,
+          android: { ...shadow.ss, elevation: 2 },
+        })),
   },
   iconBtn: {
     width: 36,
@@ -236,7 +241,7 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
   },
   bodyPadding: {
     padding: spacing.md,

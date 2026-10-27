@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +18,8 @@ import { Input } from '@/components/ui/Input'
 import { Logo } from '@/components/ui/Logo'
 import { OtpChannelHint } from '@/components/OtpChannelHint'
 import { OtpCodeInput } from '@/components/OtpCodeInput'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { validatePassword } from '@/lib/password-policy'
 
 type Step = 'phone' | 'otp' | 'password'
@@ -31,6 +32,8 @@ const STEP_ICONS: Record<Step, React.ComponentProps<typeof Ionicons>['name']> = 
 
 export default function ForgotScreen() {
   const { t, locale } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const [step, setStep] = useState<Step>('phone')
   const [phone, setPhone] = useState('')
@@ -167,7 +170,7 @@ export default function ForgotScreen() {
                   <Ionicons
                     name={showPass ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
-                    color={colors.g500}
+                    color={colors.muted}
                   />
                 }
                 onRightIconPress={() => setShowPass(v => !v)}
@@ -188,8 +191,8 @@ export default function ForgotScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: colors.hero },
 
   hero: {
     alignItems: 'center',
@@ -234,7 +237,7 @@ const styles = StyleSheet.create({
 
   card: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopStartRadius: radius.xl,
     borderTopEndRadius: radius.xl,
     paddingTop: spacing.lg,

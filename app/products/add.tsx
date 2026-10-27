@@ -35,7 +35,8 @@ import {
 } from '@/lib/api'
 import { authErrorMessage, authPost } from '@/lib/auth'
 import { track } from '@/lib/analytics'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const DRAFT_KEY = 'vatix_product_draft'
 
@@ -56,6 +57,8 @@ type IonName = React.ComponentProps<typeof Ionicons>['name']
 export default function AddProductScreen() {
   const broEnabled = useBroEnabled()
   const { t, locale } = useLocale()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const ar = locale === 'ar'
   const dirStyle = {
     textAlign: ar ? ('right' as const) : ('left' as const),
@@ -333,7 +336,7 @@ export default function AddProductScreen() {
             style={[styles.backLink, rowDir]}
             accessibilityRole="link"
           >
-            <Ionicons name={ar ? 'arrow-forward' : 'arrow-back'} size={16} color={colors.g600} />
+            <Ionicons name={ar ? 'arrow-forward' : 'arrow-back'} size={16} color={colors.muted} />
             <Text style={[styles.backLinkText, dirStyle]}>{t.importProducts.backToOptions}</Text>
           </Pressable>
 
@@ -441,7 +444,7 @@ export default function AddProductScreen() {
                       styles.conditionTile,
                       rowDir,
                       active && styles.conditionTileActive,
-                      pressed && !active && { backgroundColor: colors.g50 },
+                      pressed && !active && { backgroundColor: colors.pressed },
                     ]}
                   >
                     <View
@@ -453,7 +456,7 @@ export default function AddProductScreen() {
                       <Ionicons
                         name={c.icon}
                         size={18}
-                        color={active ? colors.dk : colors.g500}
+                        color={active ? colors.dk : colors.muted}
                       />
                     </View>
                     <View style={styles.conditionTextWrap}>
@@ -558,7 +561,7 @@ export default function AddProductScreen() {
             />
             <View style={[styles.toggleRow, rowDir]}>
               <View style={styles.toggleIcon}>
-                <Ionicons name="phone-portrait-outline" size={18} color={colors.dk} />
+                <Ionicons name="phone-portrait-outline" size={18} color={colors.heading} />
               </View>
               <View style={styles.toggleTextWrap}>
                 <Text style={[styles.toggleTitle, dirStyle]}>{t.showPhone}</Text>
@@ -571,9 +574,9 @@ export default function AddProductScreen() {
               <Switch
                 value={showPhone}
                 onValueChange={setShowPhone}
-                trackColor={{ false: colors.g300, true: colors.y }}
+                trackColor={{ false: colors.dot, true: colors.y }}
                 thumbColor={colors.white}
-                ios_backgroundColor={colors.g300}
+                ios_backgroundColor={colors.dot}
               />
             </View>
           </View>
@@ -677,10 +680,12 @@ interface SectionHeaderProps {
 }
 
 function SectionHeader({ icon, title, subtitle, dirStyle, rowDir }: SectionHeaderProps) {
+  const styles = useStyles()
+  const { colors } = useTheme()
   return (
     <View style={[styles.sectionHeader, rowDir]}>
       <View style={styles.sectionIcon}>
-        <Ionicons name={icon} size={16} color={colors.dk} />
+        <Ionicons name={icon} size={16} color={colors.heading} />
       </View>
       <View style={styles.sectionTextWrap}>
         <Text style={[styles.sectionTitle, dirStyle]} numberOfLines={1}>
@@ -696,7 +701,7 @@ function SectionHeader({ icon, title, subtitle, dirStyle, rowDir }: SectionHeade
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: {
     padding: spacing.md,
@@ -704,16 +709,16 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   backLink: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, alignSelf: 'stretch' },
-  backLinkText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.g600 },
+  backLinkText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.muted },
 
   /* HERO */
   hero: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     borderRadius: radius.xl,
     padding: spacing.md,
     overflow: 'hidden',
     position: 'relative',
-    ...shadow.sm,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.sm),
   },
   heroAccent: {
     position: 'absolute',
@@ -788,12 +793,12 @@ const styles = StyleSheet.create({
 
   /* CARDS */
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.xl,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.ss,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.ss),
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -802,13 +807,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingBottom: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.g200,
+    borderBottomColor: colors.border,
   },
   sectionIcon: {
     width: 28,
     height: 28,
     borderRadius: radius.sm,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -816,13 +821,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: fonts.black,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   sectionSubtitle: {
     marginTop: 1,
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     lineHeight: 15,
   },
 
@@ -835,7 +840,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
     marginBottom: spacing.xs,
   },
 
@@ -850,7 +855,7 @@ const styles = StyleSheet.create({
     minWidth: 62,
     height: 52,
     borderRadius: radius.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1.5,
     borderColor: colors.y,
     alignItems: 'center',
@@ -860,7 +865,7 @@ const styles = StyleSheet.create({
   egpText: {
     fontFamily: fonts.extraBold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   priceInputWrap: {
     flex: 1,
@@ -868,7 +873,7 @@ const styles = StyleSheet.create({
   priceInputInner: {
     fontFamily: fonts.bold,
     fontSize: 17,
-    color: colors.dk,
+    color: colors.text,
     // Numeric prices render LTR regardless of UI locale.
     textAlign: 'left',
     writingDirection: 'ltr',
@@ -883,20 +888,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
     padding: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   conditionTileActive: {
     borderColor: colors.y,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
   },
   conditionIcon: {
     width: 36,
     height: 36,
     borderRadius: radius.sm,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -909,24 +914,24 @@ const styles = StyleSheet.create({
   conditionLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
   },
   conditionLabelActive: {
     fontFamily: fonts.black,
-    color: colors.dk,
+    color: colors.heading,
   },
   conditionHint: {
     marginTop: 1,
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
   },
   radio: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: colors.g300,
+    borderColor: colors.dot,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -945,7 +950,7 @@ const styles = StyleSheet.create({
     marginTop: -spacing.xs,
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g400,
+    color: colors.subtle,
   },
 
   /* TOGGLE */
@@ -953,9 +958,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.g50,
+    backgroundColor: colors.placeholder,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
@@ -964,7 +969,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: radius.sm,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -974,13 +979,13 @@ const styles = StyleSheet.create({
   toggleTitle: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   toggleHint: {
     marginTop: 1,
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     lineHeight: 15,
   },
 
@@ -989,7 +994,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     borderWidth: 1,
     borderColor: colors.red,
     borderRadius: radius.md,
@@ -1016,13 +1021,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g400,
+    color: colors.subtle,
   },
 
   /* SUCCESS MODAL */
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6,43,91,0.55)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.md,
@@ -1030,15 +1035,15 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 460,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.xl,
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     overflow: 'hidden',
-    ...shadow.sl,
+    ...(dark ? null : shadow.sl),
   },
   modalHeader: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg + 4,
     paddingBottom: spacing.md,
@@ -1057,21 +1062,21 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: fonts.black,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
     marginBottom: 4,
   },
   modalSubtitle: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 19,
   },
   promoteBox: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1.5,
     borderColor: colors.y,
     borderRadius: radius.md,
@@ -1090,13 +1095,13 @@ const styles = StyleSheet.create({
   promoteTitle: {
     fontFamily: fonts.extraBold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: 3,
   },
   promoteHint: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g700,
+    color: colors.text,
     lineHeight: 17,
   },
   modalActions: {
@@ -1104,3 +1109,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm + 2,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { getLocations, imgUrl, localeName, type LocationNode } from '@/lib/api'
 import { uploadBroOfferImages, type BroScratches, type OfferContent } from '@/lib/bro'
@@ -37,6 +38,8 @@ export function BroOfferForm({
   submitLabel?: { idle: string; busy: string }
 }) {
   const { t, locale } = useLocale()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const b = t.bro
   const { ar, dirStyle, rowDir } = useBroDir()
   // Inputs use explicit alignment: TextInput gravity is absolute on Android, so 'right' is right either way.
@@ -168,7 +171,7 @@ export function BroOfferForm({
           value={title}
           onChangeText={setTitle}
           placeholder={b.offerTitlePlaceholder}
-          placeholderTextColor={colors.g400}
+          placeholderTextColor={colors.subtle}
           maxLength={150}
           editable={!locked}
           style={[styles.input, inputDir, showErrors && !titleOk && styles.inputError]}
@@ -183,7 +186,7 @@ export function BroOfferForm({
           onChangeText={v => setPrice(v.replace(/[^\d.]/g, ''))}
           keyboardType="decimal-pad"
           placeholder="0"
-          placeholderTextColor={colors.g400}
+          placeholderTextColor={colors.subtle}
           editable={!locked}
           style={[styles.input, inputDir, showErrors && !priceOk && styles.inputError]}
         />
@@ -317,6 +320,8 @@ function CheckRow({
   onToggle: () => void
 }) {
   const { ar, rowDir } = useBroDir()
+  const { colors } = useTheme()
+  const styles = useStyles()
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -325,26 +330,26 @@ function CheckRow({
       onPress={onToggle}
       style={[styles.checkRow, rowDir]}
     >
-      <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={22} color={checked ? colors.dk : colors.g400} />
+      <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={22} color={checked ? colors.heading : colors.subtle} />
       <Text style={[styles.checkLabel, { writingDirection: ar ? 'rtl' : 'ltr', textAlign: ar ? 'right' : 'left' }]}>{label}</Text>
     </Pressable>
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   wrap: { gap: spacing.md },
   field: { gap: 6 },
-  label: { fontFamily: fonts.bold, fontSize: 13, color: colors.g700 },
+  label: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
   input: {
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.dk,
-    backgroundColor: colors.white,
+    color: colors.heading,
+    backgroundColor: colors.inputBg,
   },
   inputError: { borderColor: colors.red },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
@@ -352,7 +357,7 @@ const styles = StyleSheet.create({
   submitErr: { fontSize: 13 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   photos: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  thumb: { width: 64, height: 64, borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.g100 },
+  thumb: { width: 64, height: 64, borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.placeholder },
   thumbImg: { width: '100%', height: '100%' },
   thumbRemove: {
     position: 'absolute',
@@ -366,5 +371,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 2 },
-  checkLabel: { fontFamily: fonts.semiBold, fontSize: 14, color: colors.dk, flexShrink: 1 },
+  checkLabel: { fontFamily: fonts.semiBold, fontSize: 14, color: colors.heading, flexShrink: 1 },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Modal,
@@ -15,7 +15,8 @@ import { router } from 'expo-router'
 import { useLocale } from '@/contexts/locale'
 import { markActionDismissed, markActionSeen } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 interface Props {
   visible: boolean
@@ -40,6 +41,8 @@ export function CategoriesBrandsDialog({ visible, onClose }: Props) {
   const { rowDir, dirStyle } = useDir()
   const insets = useSafeAreaInsets()
   const [busy, setBusy] = useState(false)
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   function handleDismiss() {
     if (busy) return
@@ -123,22 +126,22 @@ export function CategoriesBrandsDialog({ visible, onClose }: Props) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6,43,91,0.32)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '92%',
     overflow: 'hidden',
-    ...shadow.sl,
+    ...(dark ? null : shadow.sl),
   },
   sheetHeader: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     flexDirection: 'row',
@@ -161,7 +164,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
   hookBox: {
     borderWidth: 2,
     borderColor: colors.y,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderRadius: radius.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
@@ -181,14 +184,14 @@ const styles = StyleSheet.create({
   hookText: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
     lineHeight: 22,
   },
   description: {
     fontFamily: fonts.regular,
     fontSize: 15,
-    color: colors.g700,
+    color: colors.text,
     lineHeight: 24,
     textAlign: 'center',
   },

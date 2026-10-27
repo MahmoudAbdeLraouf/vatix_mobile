@@ -3,7 +3,8 @@ import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
 import Svg, { Path } from 'react-native-svg'
-import { colors, fonts } from '@/constants/theme'
+import { fonts, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -50,6 +51,8 @@ export function AnimatedTabBar({
   fabLabel: string
 }) {
   const { width } = useWindowDimensions()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const height = BAR_H + Math.max(bottomInset - INSET_OVERLAP, 8)
   const routes = visible
     .map(name => state.routes.find(r => r.name === name))
@@ -95,7 +98,7 @@ export function AnimatedTabBar({
           pointerEvents="none"
         >
           <Svg width={width * 2} height={height}>
-            <Path d={hasBubble ? notchPath(width, height) : `M0 0 H${width * 2} V${height} H0 Z`} fill={colors.white} stroke={colors.g200} strokeWidth={1} />
+            <Path d={hasBubble ? notchPath(width, height) : `M0 0 H${width * 2} V${height} H0 Z`} fill={colors.tabBar} stroke={colors.border} strokeWidth={1} />
           </Svg>
         </Animated.View>
 
@@ -141,7 +144,7 @@ export function AnimatedTabBar({
                 onLayout={onLayout}
               >
                 <View style={[styles.iconBox, focused && { opacity: 0 }]}>
-                  {set && <Ionicons name={set.inactive} size={23} color={colors.g500} />}
+                  {set && <Ionicons name={set.inactive} size={23} color={colors.muted} />}
                 </View>
                 <Text numberOfLines={1} maxFontSizeMultiplier={1.2} style={[styles.label, focused && styles.labelActive]}>
                   {label}
@@ -164,9 +167,9 @@ export function AnimatedTabBar({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   // Page-grey behind the rounded corners and the notch so they read against the screen above.
-  wrap: { backgroundColor: colors.g100, direction: 'ltr' },
+  wrap: { backgroundColor: colors.bg, direction: 'ltr' },
   bar: {
     borderTopLeftRadius: CORNER,
     borderTopRightRadius: CORNER,
@@ -177,13 +180,13 @@ const styles = StyleSheet.create({
   // Top-aligned with a fixed label line box: Cairo's tall line height used to overflow a centred item and eat the gap below.
   item: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 8, gap: 3 },
   iconBox: { height: 26, alignItems: 'center', justifyContent: 'center' },
-  label: { fontFamily: fonts.semiBold, fontSize: 11, lineHeight: 16, color: colors.g500 },
-  labelActive: { fontFamily: fonts.bold, color: colors.dk, marginTop: 4 },
+  label: { fontFamily: fonts.semiBold, fontSize: 11, lineHeight: 16, color: colors.muted },
+  labelActive: { fontFamily: fonts.bold, color: colors.heading, marginTop: 4 },
   fab: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: colors.dk,
+    backgroundColor: colors.fab,
     alignItems: 'center',
     justifyContent: 'center',
   },

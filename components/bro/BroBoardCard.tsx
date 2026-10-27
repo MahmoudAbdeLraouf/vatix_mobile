@@ -3,7 +3,8 @@ import { useLocale } from '@/contexts/locale'
 import { hasActiveOffer, type BroBoardItem } from '@/lib/bro'
 import { BroButton } from '@/components/bro/BroButton'
 import { useBroCardFormat, useBroDir } from '@/components/bro/BroCardParts'
-import { colors, fonts, radius, shadow } from '@/constants/theme'
+import { colors, darkColors, fonts, lightColors, radius, shadow, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 /** Emoji + tint per category, matched on the localised category name (ar or en). */
 const CATEGORY_ICONS: { re: RegExp; emoji: string; bg: string }[] = [
@@ -29,6 +30,8 @@ const GREEN = '#16a34a'
 export function BroBoardCard({ item, onMakeOffer }: { item: BroBoardItem; onMakeOffer: () => void }) {
   const { t, locale } = useLocale()
   const { dirStyle, rowDir, colDir } = useBroDir()
+  const { colors, isDark } = useTheme()
+  const styles = themedStyles[isDark ? 'dark' : 'light']
   const b = t.bro
   const nf = (n: number) => n.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')
 
@@ -65,7 +68,7 @@ export function BroBoardCard({ item, onMakeOffer }: { item: BroBoardItem; onMake
   return (
     <View style={styles.card}>
       <View style={[styles.top, rowDir]}>
-        <View style={[styles.tile, { backgroundColor: icon.bg }]}>
+        <View style={[styles.tile, { backgroundColor: isDark ? colors.placeholder : icon.bg }]}>
           <Text style={styles.tileEmoji}>{icon.emoji}</Text>
         </View>
         <View style={[styles.headText, colDir]}>
@@ -84,7 +87,7 @@ export function BroBoardCard({ item, onMakeOffer }: { item: BroBoardItem; onMake
         </View>
       </View>
 
-      <View style={[styles.budget, { backgroundColor: budget ? colors.yl : colors.g100 }]}>
+      <View style={[styles.budget, { backgroundColor: budget ? colors.yellowBg : colors.placeholder }]}>
         <Text style={[styles.budgetLabel, dirStyle]}>{b.budgetLabel}</Text>
         {budget ? (
           <Text style={[styles.budgetAmt, dirStyle]}>
@@ -134,43 +137,45 @@ export function BroBoardCard({ item, onMakeOffer }: { item: BroBoardItem; onMake
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g100,
+    borderColor: dark ? colors.border : colors.g100,
     padding: 14,
     marginBottom: 12,
     gap: 10,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   tile: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   tileEmoji: { fontSize: 22 },
   headText: { flex: 1, gap: 2 },
-  title: { fontFamily: fonts.bold, fontSize: 15, color: colors.dk, lineHeight: 22 },
-  meta: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500 },
+  title: { fontFamily: fonts.bold, fontSize: 15, color: colors.heading, lineHeight: 22 },
+  meta: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   time: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 2 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: GREEN },
-  timeText: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.g500 },
+  timeText: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.muted },
   budget: { borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 12 },
-  budgetLabel: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.g600 },
-  budgetAmt: { fontFamily: fonts.black, fontSize: 19, color: colors.dk },
-  budgetCur: { fontFamily: fonts.bold, fontSize: 13, color: colors.g700 },
-  budgetOpen: { fontFamily: fonts.bold, fontSize: 15, color: colors.g700 },
+  budgetLabel: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.muted },
+  budgetAmt: { fontFamily: fonts.black, fontSize: 19, color: colors.price },
+  budgetCur: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
+  budgetOpen: { fontFamily: fonts.bold, fontSize: 15, color: colors.text },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   pill: {
-    backgroundColor: colors.g50,
+    backgroundColor: colors.placeholder,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.full,
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
-  pillText: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.g700 },
-  loc: { fontFamily: fonts.regular, fontSize: 12, color: colors.g600 },
+  pillText: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.text },
+  loc: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   action: { marginTop: 2 },
-  count: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.g600, textAlign: 'center' },
-  firstHint: { color: '#c2410c' },
+  count: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.muted, textAlign: 'center' },
+  firstHint: { color: dark ? colors.orange : '#c2410c' },
 })
+
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }

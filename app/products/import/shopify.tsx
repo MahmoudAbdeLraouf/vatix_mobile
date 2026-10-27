@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, AppState, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import { DashboardLayout } from '@/components/DashboardLayout'
@@ -24,7 +24,8 @@ import {
   type ImportPreviewError,
   type ShopifyRow,
 } from '@/lib/import'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const SHOP_SUFFIX = '.myshopify.com'
 const RETURN_URL = 'vatix://import/shopify'
@@ -35,6 +36,8 @@ type ConnState = 'loading' | 'error' | 'disconnected' | 'connected'
 // (vatix_website/app/dashboard/products/import/page.tsx).
 export default function ShopifyImportScreen() {
   const { t, locale } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ip = t.importProducts
   const ar = locale === 'ar'
   const dirStyle = {
@@ -246,7 +249,7 @@ export default function ShopifyImportScreen() {
 
         {conn === 'loading' ? (
           <View style={styles.center}>
-            <ActivityIndicator color={colors.dk} />
+            <ActivityIndicator color={colors.heading} />
             <Text style={styles.muted}>{ip.loading}</Text>
           </View>
         ) : null}
@@ -277,7 +280,7 @@ export default function ShopifyImportScreen() {
                     if (connectError) setConnectError(null)
                   }}
                   placeholder={ip.shopPlaceholder}
-                  placeholderTextColor={colors.g400}
+                  placeholderTextColor={colors.subtle}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="url"
@@ -404,39 +407,39 @@ export default function ShopifyImportScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: { padding: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
-  title: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.dk },
+  title: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.heading },
   center: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxl },
   card: {
     gap: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.ss,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.ss),
   },
   banner: {
     borderRadius: radius.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
     padding: spacing.sm,
   },
-  bannerText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.dk },
-  heading: { fontFamily: fonts.bold, fontSize: 15, color: colors.dk },
+  bannerText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.heading },
+  heading: { fontFamily: fonts.bold, fontSize: 15, color: colors.heading },
   field: { gap: spacing.xs },
-  label: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.g700 },
+  label: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.text },
   domainBox: {
     flexDirection: 'row',
     direction: 'ltr',
     alignItems: 'stretch',
     borderWidth: 1.5,
-    borderColor: colors.g300,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.inputBg,
     overflow: 'hidden',
   },
   domainBoxError: { borderColor: colors.red },
@@ -446,33 +449,33 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.text,
     textAlign: 'left',
     writingDirection: 'ltr',
   },
   suffix: {
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderLeftWidth: 1,
-    borderLeftColor: colors.g300,
+    borderLeftColor: colors.border,
   },
-  suffixText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.g600 },
+  suffixText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.muted },
   connRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   pill: {
     flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#dcfce7',
+    backgroundColor: dark ? colors.greenBg : '#dcfce7',
     borderRadius: radius.full,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  pillDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#15803d' },
-  pillText: { flexShrink: 1, fontFamily: fonts.bold, fontSize: 12, color: '#15803d' },
+  pillDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: dark ? colors.green : '#15803d' },
+  pillText: { flexShrink: 1, fontFamily: fonts.bold, fontSize: 12, color: dark ? colors.green : '#15803d' },
   disconnect: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red, textDecorationLine: 'underline' },
-  muted: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500 },
+  muted: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   hint: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.red },
   errorText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red },
   disabled: { opacity: 0.5 },

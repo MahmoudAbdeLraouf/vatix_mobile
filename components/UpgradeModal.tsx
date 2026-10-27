@@ -14,7 +14,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import type { EventSubscription, Purchase, PurchaseError } from 'react-native-iap'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { AUTH_ERR, authErrorMessage, authFetch, authPost, updateStoredUser } from '@/lib/auth'
@@ -117,6 +118,8 @@ function useDir() {
 }
 
 export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
+  const styles = useStyles()
+  const { colors } = useTheme()
   const { t } = useLocale()
   const { ar, rowDir } = useDir()
   const insets = useSafeAreaInsets()
@@ -723,6 +726,8 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
 // ─── Sub-panels ──────────────────────────────────────────────────────────────
 
 function ErrorBox({ err }: { err: string }) {
+  const styles = useStyles()
+  const { colors } = useTheme()
   const { rowDir, colDir, dirStyle } = useDir()
   if (!err) return null
   return (
@@ -749,6 +754,7 @@ function StoreInfoPanel(props: {
   onBack: () => void
   onSubmit: () => void
 }) {
+  const styles = useStyles()
   const { storeName, onStoreNameChange } = props
   const { t } = useLocale()
   const { ar, rowDir } = useDir()
@@ -825,6 +831,8 @@ function PayMethodPanel(props: {
   onPickWallet: () => void
   onPickAppleIap: () => void
 }) {
+  const styles = useStyles()
+  const { colors, isDark } = useTheme()
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
   const { settings, walletBalance, price } = props
@@ -854,7 +862,7 @@ function PayMethodPanel(props: {
           // path for digital goods. InstaPay + mobile wallet are hidden here.
           <MethodCard
             icon="logo-apple"
-            iconColor={colors.dk}
+            iconColor={isDark ? colors.y : colors.dk}
             title={ar ? 'الدفع عبر Apple' : 'Pay with Apple'}
             subtitle={ar ? 'App Store · اشتراك آمن' : 'App Store · Secure subscription'}
             onPress={props.onPickAppleIap}
@@ -943,6 +951,8 @@ function MethodCard({
   gradientBg?: boolean
   mobileWalletBg?: boolean
 }) {
+  const styles = useStyles()
+  const { colors, isDark } = useTheme()
   const { ar, rowDir, colDir, dirStyle } = useDir()
   return (
     <Pressable
@@ -951,13 +961,17 @@ function MethodCard({
       style={({ pressed }) => [
         styles.methodCard,
         rowDir,
-        gradientBg && { backgroundColor: '#F6EFFB', borderColor: '#D6BCEF' },
-        mobileWalletBg && { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' },
+        gradientBg && (isDark
+          ? { backgroundColor: 'rgba(123,47,190,0.16)', borderColor: 'rgba(168,110,224,0.45)' }
+          : { backgroundColor: '#F6EFFB', borderColor: '#D6BCEF' }),
+        mobileWalletBg && (isDark
+          ? { backgroundColor: 'rgba(16,185,129,0.14)', borderColor: 'rgba(16,185,129,0.45)' }
+          : { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }),
         pressed && !disabled && { opacity: 0.95, transform: [{ scale: 0.99 }] },
         disabled && { opacity: 0.5, shadowOpacity: 0, elevation: 0 },
       ]}
     >
-      <View style={[styles.methodIconWrap, { backgroundColor: colors.white }]}>
+      <View style={[styles.methodIconWrap, { backgroundColor: colors.card }]}>
         <Ionicons name={icon} size={22} color={iconColor} />
       </View>
       <View style={[{ flex: 1, minWidth: 0 }, colDir]}>
@@ -970,7 +984,7 @@ function MethodCard({
       <Ionicons
         name={ar ? 'chevron-back' : 'chevron-forward'}
         size={20}
-        color={colors.g400}
+        color={colors.subtle}
       />
     </Pressable>
   )
@@ -988,6 +1002,7 @@ function InstapayPanel(props: {
   onBack: () => void
   onSubmit: () => void
 }) {
+  const styles = useStyles()
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
   const { price } = props
@@ -1062,6 +1077,7 @@ function MobileWalletPanel(props: {
   onBack: () => void
   onSubmit: () => void
 }) {
+  const styles = useStyles()
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
   const { price, settings } = props
@@ -1136,6 +1152,8 @@ function WalletPanel(props: {
   onBack: () => void
   onPay: () => void
 }) {
+  const styles = useStyles()
+  const { colors } = useTheme()
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
   const { price, walletBalance } = props
@@ -1199,10 +1217,12 @@ function WalletPanel(props: {
 }
 
 function AppleIapPanel({ err }: { err: string }) {
+  const styles = useStyles()
+  const { colors, isDark } = useTheme()
   const { ar, colDir, dirStyle } = useDir()
   return (
     <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
-      <ActivityIndicator size="large" color={colors.dk} />
+      <ActivityIndicator size="large" color={isDark ? colors.y : colors.dk} />
       <View style={[colDir, { marginTop: spacing.md, alignSelf: 'stretch' }]}>
         <Text style={[styles.stepHeading, dirStyle, { textAlign: 'center' }]}>
           {ar ? 'جارٍ الاتصال بـ App Store...' : 'Connecting to App Store...'}
@@ -1222,6 +1242,7 @@ function AppleIapPanel({ err }: { err: string }) {
 // method step and on the Apple IAP confirmation step so a reviewer can reach
 // them from any surface that leads to a subscription purchase.
 function LegalLinks() {
+  const styles = useStyles()
   const { ar, rowDir } = useDir()
   const termsLabel = ar ? 'شروط الاستخدام' : 'Terms of Use (EULA)'
   const privacyLabel = ar ? 'سياسة الخصوصية' : 'Privacy Policy'
@@ -1259,6 +1280,8 @@ function DonePanel({
   onClose: () => void
   ctaLabel: string
 }) {
+  const styles = useStyles()
+  const { colors } = useTheme()
   return (
     <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
       <View style={styles.successCircle}>
@@ -1306,6 +1329,8 @@ function CancelStorePanel({
   detail: string
   onDetailChange: (v: string) => void
 }) {
+  const styles = useStyles()
+  const { colors } = useTheme()
   const { ar, rowDir, colDir, dirStyle } = useDir()
   const { t } = useLocale()
 
@@ -1341,7 +1366,7 @@ function CancelStorePanel({
                   style={[
                     styles.typeCard,
                     styles.reasonCard,
-                    active && { borderColor: colors.y, backgroundColor: colors.yl },
+                    active && { borderColor: colors.y, backgroundColor: colors.yellowBg },
                   ]}
                   disabled={busy}
                 >
@@ -1453,14 +1478,14 @@ function CancelStorePanel({
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6,43,91,0.32)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '92%',
@@ -1470,7 +1495,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderTopLeftRadius: radius.xl,
@@ -1486,20 +1511,20 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
   },
   stepHeading: {
     fontFamily: fonts.bold,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md,
   },
   typeCard: {
     flex: 1,
     borderWidth: 2,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     padding: spacing.md,
     alignItems: 'center',
@@ -1522,7 +1547,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   reasonSummary: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -1530,18 +1555,18 @@ const styles = StyleSheet.create({
   reasonSummaryLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
     marginBottom: 4,
   },
   reasonSummaryValue: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   reasonSummaryDetail: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     marginTop: 4,
   },
   typeIcon: {
@@ -1550,14 +1575,14 @@ const styles = StyleSheet.create({
   typeLabel: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -1567,17 +1592,17 @@ const styles = StyleSheet.create({
   priceLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
   },
   priceValue: {
     fontFamily: fonts.black,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
   },
   priceUnit: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   actions: {
     flexDirection: 'row',
@@ -1595,9 +1620,9 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
-    ...shadow.ss,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    ...(dark ? null : shadow.ss),
   },
   methodIconWrap: {
     width: 44,
@@ -1606,17 +1631,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   methodTitle: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   methodSubtitle: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     marginTop: 2,
   },
   methodWarn: {
@@ -1629,7 +1654,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: '#F6EFFB',
+    backgroundColor: dark ? 'rgba(123,47,190,0.16)' : '#F6EFFB',
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -1637,13 +1662,13 @@ const styles = StyleSheet.create({
   instapayBannerText: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: '#7B2FBE',
+    color: dark ? '#C89BEF' : '#7B2FBE',
   },
   walletBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -1651,12 +1676,12 @@ const styles = StyleSheet.create({
   walletBannerLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
   walletBannerValue: {
     fontFamily: fonts.black,
     fontSize: 20,
-    color: colors.dk,
+    color: colors.heading,
   },
   detailRow: {
     flexDirection: 'row',
@@ -1664,22 +1689,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
+    borderBottomColor: colors.border,
   },
   detailLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
   },
   detailValue: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   helpText: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     lineHeight: 18,
     marginBottom: spacing.sm,
   },
@@ -1693,13 +1718,13 @@ const styles = StyleSheet.create({
   legalLink: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
     textDecorationLine: 'underline',
   },
   legalDot: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   successCircle: {
     width: 72,
@@ -1713,7 +1738,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     borderColor: colors.red,
     borderWidth: 1.5,
     borderRadius: radius.md,
@@ -1730,7 +1755,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     borderColor: colors.red,
     borderWidth: 1,
     borderRadius: radius.md,
@@ -1743,3 +1768,8 @@ const styles = StyleSheet.create({
     color: colors.red,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

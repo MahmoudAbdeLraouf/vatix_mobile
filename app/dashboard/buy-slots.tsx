@@ -9,7 +9,8 @@ import {
 import { router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
@@ -69,6 +70,7 @@ function useDir() {
 
 function LegalLinks() {
   const { ar, rowDir } = useDir()
+  const styles = useStyles()
   const termsLabel = ar ? 'شروط الاستخدام' : 'Terms of Use (EULA)'
   const privacyLabel = ar ? 'سياسة الخصوصية' : 'Privacy Policy'
   return (
@@ -110,6 +112,8 @@ export default function BuySlotsScreen() {
   const { t, locale } = useLocale()
   const { user, refetchUser } = useAuth()
   const { ar, rowDir, colDir, dirStyle } = useDir()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const params = useLocalSearchParams<{
     resumeProductId?: string
     resumeTo?: string
@@ -385,7 +389,7 @@ export default function BuySlotsScreen() {
 
       {loading ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator color={colors.dk} />
+            <ActivityIndicator color={colors.heading} />
             <Text style={[styles.loadingText, dirStyle]}>{t.buySlots.loading}</Text>
           </View>
         ) : bundles.length === 0 ? (
@@ -618,6 +622,8 @@ type PickStepProps = {
 function PickStep(props: PickStepProps) {
   const { t } = useLocale()
   const { ar, rowDir, dirStyle } = useDir()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const { bundles, selectedId, setSelectedId, displayPriceFor, perSlotLabel, translatedBundle, onContinue, selected } = props
   return (
     <View style={styles.bundleList}>
@@ -690,6 +696,8 @@ type AndroidMethod = 'wallet' | 'instapay' | 'mobile-wallet'
 function MethodStep(props: MethodStepProps) {
   const { t } = useLocale()
   const { ar, rowDir, colDir, dirStyle } = useDir()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const {
     selected,
     settings,
@@ -867,6 +875,7 @@ type WalletStepProps = {
 function WalletStep(props: WalletStepProps) {
   const { t } = useLocale()
   const { ar, colDir, dirStyle } = useDir()
+  const styles = useStyles()
   const { selected, wallet, submitting, submitError, onBack, onPay } = props
   const price = selected ? Number(selected.price) : 0
   const slotCount = selected?.slotCount ?? 0
@@ -931,6 +940,7 @@ type InstapayStepProps = {
 function InstapayStep(props: InstapayStepProps) {
   const { t } = useLocale()
   const { ar, colDir, dirStyle } = useDir()
+  const styles = useStyles()
   const {
     selected,
     screenshotKey,
@@ -1012,6 +1022,7 @@ type MobileWalletStepProps = {
 function MobileWalletStep(props: MobileWalletStepProps) {
   const { t } = useLocale()
   const { ar, colDir, dirStyle } = useDir()
+  const styles = useStyles()
   const {
     selected,
     settings,
@@ -1095,6 +1106,8 @@ type AppleIapPanelProps = {
 
 function AppleIapPanel(props: AppleIapPanelProps) {
   const { ar, colDir, dirStyle } = useDir()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const { selected, submitting, submitError, onBack } = props
   const slotCount = selected?.slotCount ?? 0
   return (
@@ -1110,7 +1123,7 @@ function AppleIapPanel(props: AppleIapPanelProps) {
 
       {submitting ? (
         <View style={styles.iapLoadingBox}>
-          <ActivityIndicator color={colors.dk} />
+          <ActivityIndicator color={colors.heading} />
           <Text style={[styles.iapLoadingText, dirStyle]}>
             {ar ? 'جارٍ معالجة الدفع عبر Apple…' : 'Processing Apple payment…'}
           </Text>
@@ -1140,17 +1153,17 @@ function AppleIapPanel(props: AppleIapPanelProps) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark?: boolean) => StyleSheet.create({
   heading: {
     fontFamily: fonts.bold,
     fontSize: 22,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
   },
   sub: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 20,
     marginBottom: spacing.lg,
   },
@@ -1162,7 +1175,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
   },
   iapLoadingBox: {
     paddingVertical: spacing.lg,
@@ -1172,7 +1185,7 @@ const styles = StyleSheet.create({
   iapLoadingText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
   },
   emptyBox: {
     paddingVertical: spacing.xxl,
@@ -1181,21 +1194,21 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g500,
+    color: colors.muted,
   },
   bundleList: {
     gap: spacing.sm,
   },
   bundleCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
   },
   bundleCardSelected: {
     borderColor: colors.y,
-    backgroundColor: '#FFFBEA',
+    backgroundColor: colors.yellowBg,
   },
   bundleTop: {
     flexDirection: 'row',
@@ -1206,17 +1219,17 @@ const styles = StyleSheet.create({
   bundleName: {
     fontFamily: fonts.semiBold,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: 2,
   },
   bundleDesc: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     lineHeight: 18,
   },
   bundleSlotsPill: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.fab,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
@@ -1234,12 +1247,12 @@ const styles = StyleSheet.create({
   bundlePrice: {
     fontFamily: fonts.bold,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.price,
   },
   bundlePerSlot: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
   },
   primaryCta: {
     marginTop: spacing.md,
@@ -1268,13 +1281,13 @@ const styles = StyleSheet.create({
   legalLink: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
     textDecorationLine: 'underline',
   },
   legalDot: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g400,
+    color: colors.subtle,
   },
   methodBlock: {
     gap: spacing.sm,
@@ -1282,30 +1295,30 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: fonts.semiBold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: 4,
   },
   summaryLabel: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   summaryValue: {
     fontFamily: fonts.bold,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.sm,
   },
   methodCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
   },
   methodCardSelected: {
     borderColor: colors.y,
-    backgroundColor: '#FFFBEA',
+    backgroundColor: colors.yellowBg,
   },
   methodCardDisabled: {
     opacity: 0.55,
@@ -1321,8 +1334,8 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: colors.g300,
-    backgroundColor: colors.white,
+    borderColor: colors.dot,
+    backgroundColor: colors.card,
   },
   radioDotOn: {
     borderColor: colors.y,
@@ -1331,12 +1344,12 @@ const styles = StyleSheet.create({
   methodTitle: {
     fontFamily: fonts.semiBold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   methodNote: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     lineHeight: 18,
   },
   methodWarn: {
@@ -1354,21 +1367,21 @@ const styles = StyleSheet.create({
   backBtnText: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
   },
   summaryBox: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: 4,
   },
   errorBanner: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.redBg,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: dark ? 'rgba(239,68,68,0.35)' : '#FECACA',
     padding: spacing.sm,
   },
   errorBannerText: {
@@ -1390,13 +1403,13 @@ const styles = StyleSheet.create({
   doneTitle: {
     fontFamily: fonts.bold,
     fontSize: 22,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
   },
   doneBody: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing.sm,
@@ -1406,27 +1419,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
   },
   doneStatLabel: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
   },
   doneStatValue: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   doneRedirect: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
     marginTop: spacing.xs,
   },
@@ -1436,3 +1449,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

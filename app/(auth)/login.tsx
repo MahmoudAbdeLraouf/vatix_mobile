@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,11 +20,14 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { ExpiredStoreDialog } from '@/components/ExpiredStoreDialog'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 export default function LoginScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
   const { login } = useAuth()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
   const dirStyle = { writingDirection: isRtl ? 'rtl' as const : 'ltr' as const }
 
@@ -144,7 +147,7 @@ export default function LoginScreen() {
                 <Ionicons
                   name={showPass ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color={colors.g500}
+                  color={colors.muted}
                 />
               }
               onRightIconPress={() => setShowPass(v => !v)}
@@ -156,7 +159,7 @@ export default function LoginScreen() {
 
             {!!error && (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle-outline" size={16} color="#C53030" />
+                <Ionicons name="alert-circle-outline" size={16} color={isDark ? '#FC8181' : '#C53030'} />
                 <Text style={[styles.errorText, dirStyle]}>{error}</Text>
               </View>
             )}
@@ -202,8 +205,8 @@ export default function LoginScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: colors.hero },
 
   hero: {
     alignItems: 'center',
@@ -282,7 +285,7 @@ const styles = StyleSheet.create({
 
   card: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingTop: spacing.lg,
@@ -308,9 +311,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: '#FFF5F5',
+    backgroundColor: colors.redBg,
     borderWidth: 1,
-    borderColor: '#FED7D7',
+    borderColor: dark ? 'rgba(229,62,62,0.35)' : '#FED7D7',
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -320,7 +323,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: '#C53030',
+    color: dark ? '#FC8181' : '#C53030',
   },
 
   divider: {
@@ -332,12 +335,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.g200,
+    backgroundColor: colors.border,
   },
   dividerText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g400,
+    color: colors.subtle,
   },
 
   footer: {
@@ -347,7 +350,7 @@ const styles = StyleSheet.create({
   footerText: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
   },
   link: {
     fontFamily: fonts.bold,
@@ -362,7 +365,7 @@ const styles = StyleSheet.create({
   guestText: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     textDecorationLine: 'underline',
   },
 })

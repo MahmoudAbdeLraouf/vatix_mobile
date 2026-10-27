@@ -14,7 +14,8 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { useLocale } from '@/contexts/locale'
 import { authErrorMessage, authFetch, authPatch } from '@/lib/auth'
 import { localeName, type Brand, type Category } from '@/lib/api'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 type Msg = { ok: boolean; text: string } | null
 
@@ -26,6 +27,8 @@ type StoreProfileRelations = {
 export default function CategoriesBrandsScreen() {
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
+  const { colors } = useTheme()
+  const styles = useStyles()
   const dirContainer = ar ? { direction: 'rtl' as const } : null
   const dirStyle = {
     writingDirection: ar ? ('rtl' as const) : ('ltr' as const),
@@ -183,7 +186,7 @@ export default function CategoriesBrandsScreen() {
                   styles.msgBox,
                   dirContainer,
                   {
-                    backgroundColor: msg.ok ? colors.gl : colors.rl,
+                    backgroundColor: msg.ok ? colors.greenBg : colors.redBg,
                     borderColor: msg.ok ? colors.green : colors.red,
                   },
                 ]}
@@ -226,6 +229,7 @@ function Section({
   dirStyle: { writingDirection: 'rtl' | 'ltr'; textAlign: 'auto' }
   children: React.ReactNode
 }) {
+  const styles = useStyles()
   return (
     <View style={styles.section}>
       <View style={[styles.sectionHead, dirContainer]}>
@@ -248,6 +252,8 @@ function Pill({
   label: string
   onPress: () => void
 }) {
+  const { colors } = useTheme()
+  const styles = useStyles()
   return (
     <Pressable
       onPress={onPress}
@@ -255,13 +261,13 @@ function Pill({
         styles.pill,
         active
           ? { backgroundColor: colors.y, borderColor: colors.y }
-          : { backgroundColor: 'transparent', borderColor: colors.g300 },
+          : { backgroundColor: 'transparent', borderColor: colors.dot },
       ]}
     >
       <Text
         style={[
           styles.pillText,
-          { color: active ? colors.dk : colors.g700 },
+          { color: active ? colors.dk : colors.text },
         ]}
       >
         {active ? '✓ ' : ''}{label}
@@ -270,7 +276,7 @@ function Pill({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
   scrollContent: {
     paddingBottom: spacing.xxl,
   },
@@ -281,26 +287,26 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
     maxWidth: 600,
     width: '100%',
     alignSelf: 'center',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   cardTitle: {
     fontFamily: fonts.black,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
   },
   hint: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     marginBottom: spacing.lg,
   },
   section: {
@@ -315,10 +321,10 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   countPill: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderColor: colors.y,
     borderWidth: 1,
     borderRadius: radius.full,
@@ -328,7 +334,7 @@ const styles = StyleSheet.create({
   countPillText: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.dk,
+    color: colors.seeAllText,
   },
   pillWrap: {
     flexDirection: 'row',
@@ -348,7 +354,7 @@ const styles = StyleSheet.create({
   emptyInline: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     paddingVertical: spacing.sm,
   },
   msgBox: {
@@ -367,3 +373,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

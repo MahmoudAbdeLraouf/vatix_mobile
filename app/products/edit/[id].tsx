@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -29,12 +29,15 @@ import {
   localeName,
 } from '@/lib/api'
 import { authErrorMessage, authPatch } from '@/lib/auth'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 export default function EditProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const productId = Number(id)
   const { t, locale } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const ar = locale === 'ar'
 
   const [title, setTitle] = useState('')
@@ -199,7 +202,7 @@ export default function EditProductScreen() {
               value={title}
               onChangeText={setTitle}
               placeholder={t.productTitle}
-              placeholderTextColor={colors.g400}
+              placeholderTextColor={colors.subtle}
             />
           </View>
 
@@ -212,7 +215,7 @@ export default function EditProductScreen() {
               value={price}
               onChangeText={setPrice}
               placeholder="0"
-              placeholderTextColor={colors.g400}
+              placeholderTextColor={colors.subtle}
               keyboardType="numeric"
             />
           </View>
@@ -285,7 +288,7 @@ export default function EditProductScreen() {
               value={description}
               onChangeText={setDescription}
               placeholder={t.description}
-              placeholderTextColor={colors.g400}
+              placeholderTextColor={colors.subtle}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -299,7 +302,7 @@ export default function EditProductScreen() {
             <Switch
               value={showPhone}
               onValueChange={setShowPhone}
-              trackColor={{ false: colors.g300, true: colors.y }}
+              trackColor={{ false: colors.dot, true: colors.y }}
               thumbColor={colors.white}
             />
           </View>
@@ -320,7 +323,7 @@ export default function EditProductScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
   center: {
     flex: 1,
@@ -336,19 +339,19 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g700,
+    color: colors.text,
     marginBottom: spacing.xs,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.g300,
+    borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontFamily: fonts.regular,
     fontSize: 15,
-    color: colors.g900,
-    backgroundColor: colors.white,
+    color: colors.text,
+    backgroundColor: colors.inputBg,
   },
   textarea: {
     height: 100,
@@ -356,10 +359,10 @@ const styles = StyleSheet.create({
   },
   conditionList: {
     borderWidth: 1,
-    borderColor: colors.g300,
+    borderColor: colors.border,
     borderRadius: radius.md,
     overflow: 'hidden',
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   conditionRow: {
     flexDirection: 'row',
@@ -367,17 +370,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
-  conditionRowActive: { backgroundColor: colors.yl },
-  conditionRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.g200 },
+  conditionRowActive: { backgroundColor: colors.yellowBg },
+  conditionRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   conditionRowText: {
     fontFamily: fonts.regular,
     fontSize: 15,
-    color: colors.g700,
+    color: colors.text,
     flex: 1,
   },
-  conditionRowTextActive: { fontFamily: fonts.semiBold, color: colors.dk },
+  conditionRowTextActive: { fontFamily: fonts.semiBold, color: colors.heading },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -385,16 +388,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     gap: spacing.md,
   },
   switchLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
     flex: 1,
   },
   error: {

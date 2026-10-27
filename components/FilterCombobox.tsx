@@ -11,7 +11,8 @@ import {
   ViewStyle,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 
 // Mirrors vatix_website/components/filter-combobox.tsx.
@@ -37,6 +38,8 @@ export function FilterCombobox({ options, value, onChange, placeholder, style }:
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const insets = useSafeAreaInsets()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   // Modal on Android doesn't always inherit I18nManager.isRTL, so when the locale
   // direction differs from the native mirror state, flip rows manually.
@@ -117,7 +120,7 @@ export function FilterCombobox({ options, value, onChange, placeholder, style }:
                 value={query}
                 onChangeText={setQuery}
                 placeholder={searchPlaceholder}
-                placeholderTextColor={colors.g400}
+                placeholderTextColor={colors.subtle}
                 style={[styles.searchInput, textDirStyle]}
                 autoFocus
                 autoCorrect={false}
@@ -179,7 +182,7 @@ export function FilterCombobox({ options, value, onChange, placeholder, style }:
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   // Filter chip trigger — matches the priceInput dimensions on the products page
   // so brand / location / min / max all share the same 42-tall, --g200 bordered look.
   chip: {
@@ -188,67 +191,67 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBg,
     paddingHorizontal: spacing.sm,
   },
   chipActive: {
     borderColor: colors.y,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
   },
   chipPressed: {
-    borderColor: colors.g300,
+    borderColor: colors.dot,
   },
   chipLabel: {
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g900,
+    color: colors.text,
   },
   chipLabelActive: {
     fontFamily: fonts.bold,
-    color: colors.yd,
+    color: dark ? colors.y : colors.yd,
   },
   chipLabelPlaceholder: {
-    color: colors.g500,
+    color: colors.muted,
     fontFamily: fonts.semiBold,
   },
   clearBtn: {
     width: 22,
     height: 22,
     borderRadius: 6,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
     marginStart: spacing.xs,
   },
   clearGlyph: {
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   caret: {
     marginStart: spacing.xs,
     fontSize: 9,
-    color: colors.g400,
+    color: colors.subtle,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(6,43,91,0.32)',
+    backgroundColor: colors.backdrop,
   },
   sheet: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     overflow: 'hidden',
-    ...shadow.sl,
+    ...(dark ? null : shadow.sl),
   },
   searchWrap: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
-    backgroundColor: colors.g50,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.bg,
   },
   searchRow: {
     alignItems: 'center',
@@ -259,12 +262,12 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: radius.sm,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBg,
     paddingHorizontal: spacing.md,
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g900,
+    color: colors.text,
   },
   sheetClearBtn: {
     flexDirection: 'row',
@@ -274,27 +277,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.sm,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   sheetClearBtnPressed: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.pressed,
   },
   sheetClearGlyph: {
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   sheetClearText: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.g700,
+    color: colors.text,
   },
   empty: {
     padding: spacing.md,
     textAlign: 'center',
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g400,
+    color: colors.subtle,
   },
   // Website active option: bg --yl, color --yd, bold, borderInlineStart 3px --y
   option: {
@@ -303,14 +306,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
-    backgroundColor: colors.white,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.card,
   },
   optionActive: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
   },
   optionPressed: {
-    backgroundColor: colors.g50,
+    backgroundColor: colors.pressed,
   },
   optionAccent: {
     width: 3,
@@ -324,11 +327,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g800,
+    color: colors.text,
   },
   optionLabelActive: {
     fontFamily: fonts.bold,
-    color: colors.yd,
+    color: dark ? colors.y : colors.yd,
   },
   optionCheck: {
     fontSize: 14,

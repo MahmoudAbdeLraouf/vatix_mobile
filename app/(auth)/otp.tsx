@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -15,10 +15,13 @@ import { useLocale } from '@/contexts/locale'
 import { checkOtp, sendOtp } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Logo } from '@/components/ui/Logo'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 export default function OtpScreen() {
   const { t, isRtl } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const { phone, redirect } = useLocalSearchParams<{ phone: string; redirect?: string }>()
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -90,8 +93,8 @@ export default function OtpScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: colors.hero },
 
   hero: {
     alignItems: 'center',
@@ -127,7 +130,7 @@ const styles = StyleSheet.create({
 
   card: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopStartRadius: radius.xl,
     borderTopEndRadius: radius.xl,
     paddingTop: spacing.xl,

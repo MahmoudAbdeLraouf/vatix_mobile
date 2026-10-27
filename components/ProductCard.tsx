@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { Product, imgUrl, localeName } from '@/lib/api'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { getCategoryIcon } from '@/lib/category-icons'
 
 interface ProductCardProps {
@@ -29,6 +30,8 @@ export const ProductCard = React.memo(function ProductCard({
   variant = 'grid',
 }: ProductCardProps) {
   const { locale, t, isRtl } = useLocale()
+  const { mode, colors } = useTheme()
+  const styles = themedStyles[mode]
   // Request a ~400px thumbnail from the resize endpoint — grid cells are ~180-
   // 220px wide on mobile so 400px covers @2x/@3x displays without downloading
   // the original 2-4MB upload.
@@ -78,7 +81,7 @@ export const ProductCard = React.memo(function ProductCard({
             <Ionicons
               name={getCategoryIcon(categoryName)}
               size={isRow ? 40 : 48}
-              color={colors.g400}
+              color={colors.subtle}
             />
           </View>
         )}
@@ -127,16 +130,17 @@ export const ProductCard = React.memo(function ProductCard({
   )
 })
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   // Sizing is deferred to the parent (fixed width in a wrap grid,
   // or flex:1 in a FlatList numColumns row) via the style prop.
   card: {
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     overflow: 'hidden',
-    ...shadow.ss,
+    // Dark cards separate by border alone; navy shadows vanish on a navy page.
+    ...(dark ? null : shadow.ss),
   },
   // Horizontal marketplace-row variant: fixed square image on start, info flex:1.
   cardRow: {
@@ -149,7 +153,7 @@ const styles = StyleSheet.create({
   },
   imageWrap: {
     position: 'relative',
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     padding: 12,
   },
   imageWrapRow: {
@@ -159,12 +163,12 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     borderRadius: radius.sm,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
   },
   // Category-icon fallback: neutral g100 bg + soft g400 glyph — reads as a clean
   // monochrome placeholder rather than competing with the yellow price/tag accents.
   placeholder: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -197,7 +201,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 13,
     lineHeight: 17,
-    color: colors.g900,
+    color: colors.text,
     minHeight: 34,
   },
   titleLarge: {
@@ -209,7 +213,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 11,
     lineHeight: 15,
-    color: colors.g500,
+    color: colors.muted,
     flexShrink: 1,
   },
   metaRow: {
@@ -232,13 +236,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 11,
     lineHeight: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   ratingCount: {
     fontFamily: fonts.regular,
     fontSize: 10,
     lineHeight: 15,
-    color: colors.g500,
+    color: colors.muted,
   },
   storeRow: {
     flexDirection: 'row',
@@ -254,14 +258,14 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semiBold,
     fontSize: 11,
     lineHeight: 15,
-    color: colors.dk,
+    color: colors.heading,
     flexShrink: 1,
   },
   price: {
     fontFamily: fonts.black,
     fontSize: 16,
     lineHeight: 22,
-    color: colors.dk,
+    color: colors.price,
     marginTop: 2,
   },
   priceLarge: {
@@ -271,6 +275,9 @@ const styles = StyleSheet.create({
   priceUnit: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
 })
+
+// Built once per theme — this card renders in long lists.
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }

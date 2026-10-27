@@ -9,11 +9,12 @@ import {
   BroSellerNote,
   BroTagRow,
   BroThumb,
-  cardStyles,
+  useCardStyles,
   useBroCardFormat,
   useBroDir,
 } from '@/components/bro/BroCardParts'
-import { colors, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 /** One seller offer. Same look as BroMatchCard; greyed with no connect button once unavailable. */
 export function BroOfferCard({
@@ -37,6 +38,8 @@ export function BroOfferCard({
   const { t } = useLocale()
   const b = t.bro
   const { dirStyle, rowDir } = useBroDir()
+  const cardStyles = useCardStyles()
+  const styles = themedStyles[useTheme().mode]
   const { ago, buildFacts } = useBroCardFormat(now)
   const facts = buildFacts({
     area: offer.locationName,
@@ -88,15 +91,17 @@ export function BroOfferCard({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: 10,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   cardOff: { opacity: 0.55 },
 })
+
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }

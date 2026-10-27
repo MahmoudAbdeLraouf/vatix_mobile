@@ -4,7 +4,8 @@ import { router, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts } from '@/constants/theme'
+import { darkColors, fonts, lightColors, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -59,6 +60,8 @@ export function BottomTabBar() {
   const { t } = useLocale()
   const insets = useSafeAreaInsets()
   const pathname = usePathname() ?? ''
+  const { colors, mode } = useTheme()
+  const styles = themedStyles[mode]
 
   const onAddPress = () => {
     if (pathname !== '/products/new' && pathname !== '/products/add') router.push('/products/new')
@@ -114,8 +117,10 @@ function TabButton({
   pathname: string
   onPress: (href: string) => void
 }) {
+  const { colors, mode } = useTheme()
+  const styles = themedStyles[mode]
   const focused = tab.matches(pathname)
-  const color = focused ? colors.y : colors.g500
+  const color = focused ? colors.y : colors.muted
   return (
     <Pressable
       onPress={() => onPress(tab.href)}
@@ -131,12 +136,12 @@ function TabButton({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
-    borderTopColor: colors.g200,
+    backgroundColor: colors.tabBar,
+    borderTopColor: colors.border,
     borderTopWidth: 1,
     paddingTop: 6,
   },
@@ -163,7 +168,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
-    borderColor: colors.white,
+    borderColor: colors.tabBar,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -181,3 +186,5 @@ const styles = StyleSheet.create({
     top: 10,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }

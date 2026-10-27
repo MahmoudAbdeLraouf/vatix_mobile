@@ -20,7 +20,8 @@ import {
   PlanData,
   SiteSettings,
 } from '@/lib/api'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { PAID_UI_ENABLED } from '@/lib/platform'
 
 const AR_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩']
@@ -45,6 +46,8 @@ interface PromotionOffer {
 export default function PricingScreen() {
   const { locale } = useLocale()
   const ar = locale === 'ar'
+  const { colors, isDark } = useTheme()
+  const s = useStyles()
 
   const [plans, setPlans] = useState<PlanData[]>([])
   const [bundles, setBundles] = useState<Bundle[]>([])
@@ -96,9 +99,9 @@ export default function PricingScreen() {
         options={{
           headerShown: true,
           title: ar ? 'الأسعار' : 'Pricing',
-          headerStyle: { backgroundColor: colors.white },
-          headerTitleStyle: { fontFamily: fonts.black, color: colors.dk },
-          headerTintColor: colors.dk,
+          headerStyle: { backgroundColor: colors.card },
+          headerTitleStyle: { fontFamily: fonts.black, color: colors.heading },
+          headerTintColor: colors.heading,
         }}
       />
       <ScrollView contentContainerStyle={s.scroll}>
@@ -130,7 +133,7 @@ export default function PricingScreen() {
             }
             price={ar ? 'مجاناً' : 'Free'}
             unit={ar ? 'للأبد' : 'forever'}
-            accent={colors.g400}
+            accent={colors.subtle}
             ctaLabel={ar ? 'ابدأ الآن' : 'Get started'}
             ctaVariant="outline"
             onPress={() => router.push('/(auth)/signup-client')}
@@ -204,7 +207,7 @@ export default function PricingScreen() {
                     key={ri}
                     style={[
                       s.compareRow,
-                      ri % 2 === 1 && { backgroundColor: colors.g50 },
+                      ri % 2 === 1 && { backgroundColor: isDark ? colors.pressed : colors.g50 },
                     ]}
                   >
                     <View style={s.compareFeatureCol}>
@@ -256,7 +259,7 @@ export default function PricingScreen() {
 
           {loading ? (
             <View style={{ paddingVertical: spacing.xl }}>
-              <ActivityIndicator color={colors.dk} />
+              <ActivityIndicator color={colors.heading} />
             </View>
           ) : bundles.length === 0 ? (
             <Text style={s.emptyText}>
@@ -288,7 +291,7 @@ export default function PricingScreen() {
                     style={[
                       s.bundleCard,
                       isFeatured && {
-                        backgroundColor: colors.dk,
+                        backgroundColor: colors.fab,
                         borderColor: colors.y,
                         borderWidth: 2,
                       },
@@ -401,7 +404,7 @@ export default function PricingScreen() {
                           s.bundleCta,
                           isFeatured
                             ? { backgroundColor: colors.y }
-                            : { backgroundColor: colors.dk },
+                            : { backgroundColor: colors.fab },
                         ]}
                       >
                         <Text
@@ -500,20 +503,22 @@ function PlanCard({
   ctaVariant,
   onPress,
 }: PlanCardProps) {
+  const { colors } = useTheme()
+  const s = useStyles()
   const ctaStyle: ViewStyle =
     ctaVariant === 'dk'
-      ? { backgroundColor: colors.dk }
+      ? { backgroundColor: colors.fab }
       : {
-          backgroundColor: colors.white,
+          backgroundColor: colors.card,
           borderWidth: 1.5,
-          borderColor: colors.g300,
+          borderColor: colors.border,
         }
-  const ctaTextColor = ctaVariant === 'dk' ? colors.white : colors.dk
+  const ctaTextColor = ctaVariant === 'dk' ? colors.white : colors.heading
 
   return (
     <View style={s.planCard}>
       {badge && (
-        <View style={[s.planBadge, { backgroundColor: colors.dk }]}>
+        <View style={[s.planBadge, { backgroundColor: colors.fab }]}>
           <Text style={[s.planBadgeText, { color: colors.white }]}>{badge}</Text>
         </View>
       )}
@@ -536,6 +541,7 @@ function PlanCard({
 // ─── Cell renderer ────────────────────────────────────────────────────────────
 
 function Cell({ value, ar }: { value: CellValue; ar: boolean }) {
+  const s = useStyles()
   if (value === true) {
     return <Text style={s.cellCheck}>✓</Text>
   }
@@ -723,13 +729,13 @@ const FAQ_EN = () => [
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   scroll: { paddingBottom: spacing.xxl },
 
   // Hero
   hero: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingVertical: 48,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
@@ -769,12 +775,12 @@ const s = StyleSheet.create({
     gap: spacing.md,
   },
   planCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   planBadge: {
     alignSelf: 'flex-start',
@@ -794,12 +800,12 @@ const s = StyleSheet.create({
   planTitle: {
     fontFamily: fonts.extraBold,
     fontSize: 20,
-    color: colors.dk,
+    color: colors.heading,
   },
   planSubtitle: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     marginTop: 4,
     marginBottom: spacing.md,
   },
@@ -816,7 +822,7 @@ const s = StyleSheet.create({
   planUnit: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
   },
   planCta: {
     marginTop: spacing.md,
@@ -832,7 +838,7 @@ const s = StyleSheet.create({
 
   // Store promotion
   promoCard: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderColor: colors.y,
     borderWidth: 2,
     borderRadius: radius.lg,
@@ -843,13 +849,13 @@ const s = StyleSheet.create({
   promoTitle: {
     fontFamily: fonts.black,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
   },
   promoSub: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     marginTop: spacing.xs,
   },
@@ -861,21 +867,21 @@ const s = StyleSheet.create({
   compareHeading: {
     fontFamily: fonts.black,
     fontSize: 20,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md,
     textAlign: 'center',
   },
   compareCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     overflow: 'hidden',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   compareHeaderRow: {
     flexDirection: 'row',
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingVertical: spacing.sm,
   },
   compareFeatureCol: {
@@ -900,27 +906,27 @@ const s = StyleSheet.create({
     color: colors.white,
   },
   sectionHeader: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     paddingVertical: 8,
     paddingHorizontal: spacing.sm,
   },
   sectionHeaderText: {
     fontFamily: fonts.extraBold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
   },
   compareRow: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.g100,
+    borderTopColor: dark ? colors.border : colors.g100,
     alignItems: 'center',
     minHeight: 44,
   },
   compareFeatureText: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g700,
+    color: colors.text,
   },
   cellCheck: {
     fontFamily: fonts.bold,
@@ -930,16 +936,16 @@ const s = StyleSheet.create({
   cellCross: {
     fontFamily: fonts.regular,
     fontSize: 16,
-    color: colors.g300,
+    color: colors.dot,
   },
   cellString: {
     fontFamily: fonts.extraBold,
     fontSize: 12,
-    color: colors.g700,
+    color: colors.text,
     textAlign: 'center',
   },
   comingPill: {
-    backgroundColor: colors.ol,
+    backgroundColor: colors.orangeBg,
     paddingVertical: 3,
     paddingHorizontal: 6,
     borderRadius: radius.full,
@@ -954,14 +960,14 @@ const s = StyleSheet.create({
     padding: spacing.sm,
     gap: 6,
     borderTopWidth: 1,
-    borderTopColor: colors.g200,
-    backgroundColor: colors.g50,
+    borderTopColor: colors.border,
+    backgroundColor: dark ? colors.placeholder : colors.g50,
   },
   footerBtnOutline: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: colors.g300,
+    borderColor: colors.border,
     paddingVertical: 10,
     borderRadius: radius.sm,
     alignItems: 'center',
@@ -969,11 +975,11 @@ const s = StyleSheet.create({
   footerBtnOutlineText: {
     fontFamily: fonts.bold,
     fontSize: 11,
-    color: colors.dk,
+    color: colors.heading,
   },
   footerBtnDk: {
     flex: 1,
-    backgroundColor: colors.dk,
+    backgroundColor: colors.fab,
     paddingVertical: 10,
     borderRadius: radius.sm,
     alignItems: 'center',
@@ -992,24 +998,24 @@ const s = StyleSheet.create({
   bundlesSubtitle: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     marginBottom: spacing.md,
   },
   emptyText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     paddingVertical: spacing.xl,
   },
   bundleCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   bundleBadge: {
     alignSelf: 'flex-start',
@@ -1027,12 +1033,12 @@ const s = StyleSheet.create({
   bundleName: {
     fontFamily: fonts.extraBold,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
   },
   bundleDesc: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
     marginTop: 4,
   },
   slotRow: {
@@ -1046,30 +1052,30 @@ const s = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: radius.sm,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   slotIcon: {
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
   },
   slotOverflow: {
     height: 30,
     paddingHorizontal: 8,
     borderRadius: radius.sm,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   slotOverflowText: {
     fontFamily: fonts.bold,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
   },
   bundlePriceRow: {
     flexDirection: 'row',
@@ -1080,12 +1086,12 @@ const s = StyleSheet.create({
   bundleCount: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
     marginBottom: 4,
   },
   perAdPill: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.gl,
+    backgroundColor: colors.greenBg,
     paddingVertical: 2,
     paddingHorizontal: 6,
     borderRadius: radius.full,
@@ -1098,12 +1104,12 @@ const s = StyleSheet.create({
   bundlePrice: {
     fontFamily: fonts.black,
     fontSize: 26,
-    color: colors.dk,
+    color: colors.price,
   },
   bundleCurrency: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
   },
   bundleCta: {
     paddingVertical: 12,
@@ -1121,30 +1127,30 @@ const s = StyleSheet.create({
     gap: spacing.sm,
   },
   faqCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   faqQ: {
     fontFamily: fonts.extraBold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
   },
   faqA: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 22,
   },
 
   // Final CTA
   finalCta: {
     margin: spacing.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderRadius: radius.lg,
     padding: spacing.xl,
     alignItems: 'center',
@@ -1158,13 +1164,13 @@ const s = StyleSheet.create({
   finalTitle: {
     fontFamily: fonts.black,
     fontSize: 22,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
   },
   finalSub: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g700,
+    color: colors.text,
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
@@ -1175,9 +1181,9 @@ const s = StyleSheet.create({
   },
   finalBtnOutline: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: colors.dk,
+    borderColor: colors.heading,
     paddingVertical: 12,
     borderRadius: radius.md,
     alignItems: 'center',
@@ -1185,11 +1191,11 @@ const s = StyleSheet.create({
   finalBtnOutlineText: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
   },
   finalBtnY: {
     flex: 1,
-    backgroundColor: colors.dk,
+    backgroundColor: colors.fab,
     paddingVertical: 12,
     borderRadius: radius.md,
     alignItems: 'center',
@@ -1200,3 +1206,8 @@ const s = StyleSheet.create({
     color: colors.white,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

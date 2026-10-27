@@ -13,7 +13,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '@/components/ui/Button'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import type { SiteSettings } from '@/lib/api'
 
 interface Props {
@@ -64,6 +65,8 @@ export function UpdatePrompt({ settings }: Props) {
   const insets = useSafeAreaInsets()
   const { t } = useLocale()
   const [dismissed, setDismissed] = useState(false)
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const mode: Mode = useMemo(() => {
     if (!settings) return null
@@ -113,7 +116,7 @@ export function UpdatePrompt({ settings }: Props) {
             <Ionicons
               name={forced ? 'alert-circle' : 'cloud-download'}
               size={44}
-              color={colors.dk}
+              color={isDark ? colors.y : colors.dk}
             />
           </View>
 
@@ -148,14 +151,14 @@ export function UpdatePrompt({ settings }: Props) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6,43,91,0.45)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingHorizontal: spacing.lg,
@@ -167,7 +170,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: radius.full,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
@@ -175,14 +178,14 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.extraBold,
     fontSize: 20,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   body: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing.lg,

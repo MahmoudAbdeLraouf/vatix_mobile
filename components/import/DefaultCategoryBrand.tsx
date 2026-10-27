@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 interface Props {
   categoryOptions: SelectOption[]
@@ -24,6 +25,8 @@ export function DefaultCategoryBrand({
   onBrandChange,
 }: Props) {
   const { t, locale } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const ip = t.importProducts
   const ar = locale === 'ar'
   const dirStyle = {
@@ -54,14 +57,14 @@ export function DefaultCategoryBrand({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   box: {
     gap: spacing.sm,
     borderRadius: radius.md,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
-  hint: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500 },
+  hint: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
 })

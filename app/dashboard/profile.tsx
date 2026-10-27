@@ -15,13 +15,16 @@ import { getSiteSettings, type Product, type SiteSettings, type UserProfile } fr
 import { authFetch, authPost } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 type Msg = { ok: boolean; text: string } | null
 
 export default function ProfileScreen() {
   const { t, locale } = useLocale()
   const { user, updateDisplayName } = useAuth()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const ar = locale === 'ar'
   const isStore = user?.isStore ?? false
 
@@ -212,7 +215,7 @@ export default function ProfileScreen() {
                   </Text>
                   {extraSlots > 0 && (
                     <View style={styles.extraChip}>
-                      <Ionicons name="ticket" size={12} color={colors.dk} />
+                      <Ionicons name="ticket" size={12} color={colors.heading} />
                       <Text style={styles.extraChipText}>
                         {ar ? `+${fmtNum(extraSlots)} إضافي` : `+${fmtNum(extraSlots)} extra`}
                       </Text>
@@ -259,7 +262,7 @@ export default function ProfileScreen() {
                   value={storeName}
                   onChangeText={setStoreName}
                   placeholder={t.storeName}
-                  leftIcon={<Ionicons name="business-outline" size={18} color={colors.g400} />}
+                  leftIcon={<Ionicons name="business-outline" size={18} color={colors.subtle} />}
                 />
               ) : (
                 <View style={[styles.row2, dirContainer]}>
@@ -296,14 +299,14 @@ export default function ProfileScreen() {
                 <View style={styles.labelRow}>
                   <Text style={[styles.label, dirStyle]}>{t.phone}</Text>
                   <View style={styles.lockPill}>
-                    <Ionicons name="lock-closed" size={10} color={colors.g500} />
+                    <Ionicons name="lock-closed" size={10} color={colors.muted} />
                     <Text style={styles.lockPillText}>
                       {ar ? 'محمي' : 'Protected'}
                     </Text>
                   </View>
                 </View>
                 <View style={styles.readonly}>
-                  <Ionicons name="call-outline" size={16} color={colors.g400} />
+                  <Ionicons name="call-outline" size={16} color={colors.subtle} />
                   <Text style={[styles.readonlyText, dirStyle]}>
                     {user?.phone ?? ''}
                   </Text>
@@ -344,7 +347,7 @@ export default function ProfileScreen() {
                 style={[
                   styles.msgBox,
                   {
-                    backgroundColor: msg.ok ? colors.gl : colors.rl,
+                    backgroundColor: msg.ok ? colors.greenBg : colors.redBg,
                     borderColor: msg.ok ? colors.green : colors.red,
                   },
                 ]}
@@ -395,10 +398,12 @@ function SectionHeader({
   title: string
   dirStyle: { textAlign: 'right' | 'left'; writingDirection: 'rtl' | 'ltr' }
 }) {
+  const { colors } = useTheme()
+  const styles = useStyles()
   return (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionIcon}>
-        <Ionicons name={icon} size={14} color={colors.dk} />
+        <Ionicons name={icon} size={14} color={colors.heading} />
       </View>
       <Text style={[styles.sectionTitle, dirStyle]} numberOfLines={1}>
         {title}
@@ -407,7 +412,7 @@ function SectionHeader({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
   center: {
     flex: 1,
     alignItems: 'center',
@@ -424,9 +429,9 @@ const styles = StyleSheet.create({
   // Hero
   hero: {
     borderRadius: radius.xl,
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     overflow: 'hidden',
-    ...shadow.sm,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.sm),
   },
   heroAccent: {
     height: 4,
@@ -461,7 +466,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: colors.white,
     borderWidth: 2,
-    borderColor: colors.dk,
+    borderColor: colors.hero,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -504,12 +509,12 @@ const styles = StyleSheet.create({
 
   // Cards
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
 
   // Section header
@@ -520,13 +525,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingBottom: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.g200,
+    borderBottomColor: colors.border,
   },
   sectionIcon: {
     width: 28,
     height: 28,
     borderRadius: 10,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
     alignItems: 'center',
@@ -536,7 +541,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontFamily: fonts.black,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
 
   // Fields
@@ -561,24 +566,24 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g700,
+    color: colors.text,
     flexShrink: 1,
   },
   lockPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.full,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   lockPillText: {
     fontFamily: fonts.bold,
     fontSize: 10,
-    color: colors.g500,
+    color: colors.muted,
   },
   readonly: {
     flexDirection: 'row',
@@ -586,16 +591,16 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     height: 52,
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     paddingHorizontal: spacing.md,
   },
   readonlyText: {
     flexShrink: 1,
     fontFamily: fonts.semiBold,
     fontSize: 15,
-    color: colors.g700,
+    color: colors.text,
   },
   hintRow: {
     flexDirection: 'row',
@@ -606,7 +611,7 @@ const styles = StyleSheet.create({
   hint: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
   },
   waEmoji: {
     fontSize: 16,
@@ -623,23 +628,23 @@ const styles = StyleSheet.create({
   capUsed: {
     fontFamily: fonts.black,
     fontSize: 22,
-    color: colors.dk,
+    color: colors.heading,
   },
   capSep: {
     fontFamily: fonts.semiBold,
     fontSize: 18,
-    color: colors.g400,
+    color: colors.subtle,
   },
   capLimit: {
     fontFamily: fonts.semiBold,
     fontSize: 18,
-    color: colors.g500,
+    color: colors.muted,
   },
   extraChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderRadius: radius.full,
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
@@ -649,12 +654,12 @@ const styles = StyleSheet.create({
   extraChipText: {
     fontFamily: fonts.bold,
     fontSize: 11,
-    color: colors.dk,
+    color: colors.heading,
   },
   capTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     overflow: 'hidden',
   },
   capFill: {
@@ -664,7 +669,7 @@ const styles = StyleSheet.create({
   capHint: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     marginTop: spacing.sm,
   },
   capCtaWrap: {
@@ -693,3 +698,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

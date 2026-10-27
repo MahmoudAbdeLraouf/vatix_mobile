@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Animated, DimensionValue, StyleSheet, View, ViewStyle } from 'react-native'
-import { colors, radius, spacing } from '@/constants/theme'
+import { darkColors, lightColors, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 interface SkeletonProps {
   width?: DimensionValue
@@ -15,6 +16,7 @@ export function Skeleton({
   radius: r = radius.sm,
   style,
 }: SkeletonProps) {
+  const { colors } = useTheme()
   const pulse = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function Skeleton({
           width,
           height,
           borderRadius: r,
-          backgroundColor: colors.g200,
+          backgroundColor: colors.border,
           opacity,
         },
         style as ViewStyle,
@@ -47,6 +49,7 @@ export function Skeleton({
 }
 
 export function SkeletonCard() {
+  const s = useStyles()
   return (
     <View style={s.card}>
       <Skeleton height={140} radius={12} />
@@ -60,6 +63,7 @@ export function SkeletonCard() {
 }
 
 export function SkeletonRow() {
+  const s = useStyles()
   return (
     <View style={s.row}>
       <Skeleton width={56} height={56} radius={12} />
@@ -75,6 +79,7 @@ export function SkeletonRow() {
 // title/category/store/price stack) so blank list areas read as rows still
 // loading. One pulse per row instead of one per bar keeps it cheap to stack.
 export function SkeletonProductRow() {
+  const s = useStyles()
   const pulse = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
@@ -107,6 +112,7 @@ export function SkeletonProductRow() {
 }
 
 export function SkeletonGrid({ count = 4 }: { count?: number }) {
+  const s = useStyles()
   return (
     <View style={s.grid}>
       {Array.from({ length: count }).map((_, i) => (
@@ -118,22 +124,22 @@ export function SkeletonGrid({ count = 4 }: { count?: number }) {
   )
 }
 
-const s = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     padding: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   grid: {
     flexDirection: 'row',
@@ -147,8 +153,8 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     overflow: 'hidden',
   },
   productImageWrap: {
@@ -159,7 +165,7 @@ const s = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     borderRadius: radius.sm,
-    backgroundColor: colors.g200,
+    backgroundColor: colors.border,
   },
   productInfo: {
     flex: 1,
@@ -170,6 +176,9 @@ const s = StyleSheet.create({
   },
   bar: {
     borderRadius: radius.sm,
-    backgroundColor: colors.g200,
+    backgroundColor: colors.border,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }
+function useStyles() { return themedStyles[useTheme().mode] }

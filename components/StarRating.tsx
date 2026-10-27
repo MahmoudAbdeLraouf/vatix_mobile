@@ -1,6 +1,6 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { colors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 // Mirrors vatix_website/components/star-rating.tsx.
 // Supports half stars for display; interactive mode is whole-star only.
@@ -14,6 +14,7 @@ interface Props {
 }
 
 export function StarRating({ value, max = 5, interactive = false, size = 16, onChange }: Props) {
+  const { colors } = useTheme()
   return (
     <View style={styles.row}>
       {Array.from({ length: max }, (_, i) => {
@@ -21,7 +22,7 @@ export function StarRating({ value, max = 5, interactive = false, size = 16, onC
         const full = value >= n
         const half = !full && value >= n - 0.5
         const glyph = full ? '★' : half ? '★' : '☆'
-        const color = full || half ? colors.y : colors.g300
+        const color = full || half ? colors.y : colors.dot
 
         const star = (
           <Text

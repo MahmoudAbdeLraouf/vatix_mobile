@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Image,
   Pressable,
@@ -12,7 +12,8 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { imgUrl, type Store } from '@/lib/api'
 import { authDelete, authFetch } from '@/lib/auth'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -20,6 +21,8 @@ import { ErrorState } from '@/components/ui/ErrorState'
 export default function FollowingScreen() {
   const { t, isRtl } = useLocale()
   const dirContainer = isRtl ? { direction: 'rtl' as const } : null
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   const [stores, setStores] = useState<Store[] | null>(null)
   const [error, setError] = useState<Error | null>(null)
@@ -56,7 +59,7 @@ export default function FollowingScreen() {
       {/* Hero header */}
       <View style={[styles.hero, dirContainer]}>
         <View style={styles.heroIcon}>
-          <Ionicons name="storefront" size={22} color={colors.dk} />
+          <Ionicons name="storefront" size={22} color={colors.seeAllText} />
         </View>
         <View style={styles.heroBody}>
           <Text style={[styles.heroTitle, textDirStyle]} numberOfLines={1}>
@@ -79,7 +82,7 @@ export default function FollowingScreen() {
         <ErrorState kind="network" onRetry={load} />
       ) : stores && stores.length === 0 ? (
         <EmptyState
-          icon={<Ionicons name="storefront-outline" size={30} color={colors.dk} />}
+          icon={<Ionicons name="storefront-outline" size={30} color={colors.heading} />}
           title={t.followingEmptyTitle}
           subtitle={t.followingEmptySubtitle}
           actionLabel={t.browseStores}
@@ -106,7 +109,7 @@ export default function FollowingScreen() {
                     <Image source={{ uri: coverUrl }} style={styles.coverImg} />
                   ) : (
                     <View style={styles.coverPlaceholder}>
-                      <Ionicons name="storefront-outline" size={26} color={colors.g300} />
+                      <Ionicons name="storefront-outline" size={26} color={colors.dot} />
                     </View>
                   )}
 
@@ -162,7 +165,7 @@ export default function FollowingScreen() {
                     <Ionicons
                       name={isRtl ? 'chevron-back' : 'chevron-forward'}
                       size={14}
-                      color={colors.dk}
+                      color={colors.heading}
                     />
                   </View>
                 </View>
@@ -177,24 +180,24 @@ export default function FollowingScreen() {
 
 const CARD_MIN = 200
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   hero: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.sm,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   heroIcon: {
     width: 44,
     height: 44,
     borderRadius: radius.full,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 2,
     borderColor: colors.y,
     alignItems: 'center',
@@ -208,12 +211,12 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontFamily: fonts.black,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
   },
   heroSubtitle: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
   countPill: {
     minWidth: 32,
@@ -239,12 +242,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: CARD_MIN,
     maxWidth: '48%',
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     overflow: 'hidden',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   cardPressed: {
     opacity: 0.92,
@@ -266,7 +269,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.g200,
+    backgroundColor: colors.placeholder,
   },
   unfollowBtn: {
     position: 'absolute',
@@ -275,12 +278,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.rl,
+    borderColor: colors.redBg,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
 
   logoWrap: {
@@ -316,14 +319,14 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: fonts.black,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
   },
   desc: {
     fontFamily: fonts.regular,
     fontSize: 11,
     lineHeight: 15,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
     minHeight: 30,
   },
@@ -339,11 +342,11 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: colors.g100,
+    borderTopColor: colors.border,
   },
   visitText: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
   },
 })

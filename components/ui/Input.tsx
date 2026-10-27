@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react'
+import React, { forwardRef, useMemo, useState } from 'react'
 import {
   StyleSheet,
   Text,
@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 interface InputProps extends TextInputProps {
   label?: string
@@ -23,6 +24,8 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
   ref,
 ) {
   const [focused, setFocused] = useState(false)
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const { isRtl } = useLocale()
   const wrapperDir = isRtl ? { direction: 'rtl' as const } : null
   // Rely on the parent's `direction: rtl` to place flex-start on the right in
@@ -62,7 +65,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
             multiline && styles.inputMultiline,
             style,
           ]}
-          placeholderTextColor={colors.g400}
+          placeholderTextColor={colors.subtle}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           multiline={multiline}
@@ -84,7 +87,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
   )
 })
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   wrapper: {
     width: '100%',
     marginBottom: spacing.md,
@@ -95,7 +98,7 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
   },
   errorRow: {
     marginTop: 4,
@@ -106,8 +109,8 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g300,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBg,
     paddingHorizontal: spacing.md,
   },
   containerMultiline: {
@@ -126,7 +129,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 15,
-    color: colors.g900,
+    color: colors.text,
   },
   inputMultiline: {
     minHeight: 112,

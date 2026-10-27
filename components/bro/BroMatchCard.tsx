@@ -10,11 +10,12 @@ import {
   BroSellerNote,
   BroTagRow,
   BroThumb,
-  cardStyles,
+  useCardStyles,
   useBroCardFormat,
   useBroDir,
 } from '@/components/bro/BroCardParts'
-import { colors, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 /** One seller-confirmed match. The parent owns the connect call and its in-flight guard. */
 export function BroMatchCard({
@@ -37,6 +38,8 @@ export function BroMatchCard({
   const { t } = useLocale()
   const b = t.bro
   const { dirStyle, rowDir } = useBroDir()
+  const cardStyles = useCardStyles()
+  const styles = themedStyles[useTheme().mode]
   const { ago, buildFacts } = useBroCardFormat(now)
   const { product } = match
 
@@ -103,16 +106,18 @@ export function BroMatchCard({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: 10,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   actions: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 2 },
   primary: { flex: 1 },
 })
+
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }

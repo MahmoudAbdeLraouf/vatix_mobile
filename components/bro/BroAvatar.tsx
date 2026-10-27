@@ -1,7 +1,8 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Svg, { Circle, Path, Rect } from 'react-native-svg'
-import { colors, fonts } from '@/constants/theme'
+import { colors, darkColors, fonts, lightColors, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const NAVY = colors.dk
 
@@ -63,6 +64,7 @@ export function BroGlyph({ size = 24, color, focused }: { size?: number; color: 
 }
 
 export function BroBadge({ label }: { label: string }) {
+  const styles = themedStyles[useTheme().mode]
   return (
     <View style={styles.badge}>
       <Text style={styles.badgeText} numberOfLines={1}>
@@ -76,9 +78,12 @@ const styles = StyleSheet.create({
   avatar: {
     flexShrink: 0,
   },
+})
+
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
     borderRadius: 6,
@@ -88,6 +93,8 @@ const styles = StyleSheet.create({
   badgeText: {
     fontFamily: fonts.bold,
     fontSize: 10,
-    color: colors.dk,
+    color: dark ? colors.y : colors.dk,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }

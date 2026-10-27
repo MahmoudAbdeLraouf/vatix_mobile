@@ -10,7 +10,8 @@ import {
   ViewStyle,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 
 // Mirrors vatix_website/components/searchable-select.tsx.
@@ -52,6 +53,8 @@ export function SearchableSelect({ options, value, onChange, placeholder, label,
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const insets = useSafeAreaInsets()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   const selected = options.find(o => o.value === value)
 
@@ -117,7 +120,7 @@ export function SearchableSelect({ options, value, onChange, placeholder, label,
               value={query}
               onChangeText={setQuery}
               placeholder={searchPlaceholder}
-              placeholderTextColor={colors.g400}
+              placeholderTextColor={colors.subtle}
               style={[styles.searchInput, dirStyle]}
               autoFocus
               autoCorrect={false}
@@ -155,7 +158,7 @@ export function SearchableSelect({ options, value, onChange, placeholder, label,
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   wrapper: {
     width: '100%',
     marginBottom: spacing.md,
@@ -169,7 +172,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
   },
   // Mirrors .fi input styling (Input.tsx container)
   trigger: {
@@ -178,8 +181,8 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g300,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBg,
     paddingHorizontal: spacing.md,
   },
   triggerPressed: {
@@ -189,87 +192,87 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 15,
-    color: colors.g900,
+    color: colors.text,
   },
   triggerPlaceholder: {
-    color: colors.g400,
+    color: colors.subtle,
   },
   clearBtn: {
     marginStart: spacing.sm,
   },
   clearGlyph: {
     fontSize: 14,
-    color: colors.g400,
+    color: colors.subtle,
   },
   caret: {
     marginStart: spacing.sm,
     fontSize: 10,
-    color: colors.g400,
+    color: colors.subtle,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(6,43,91,0.32)',
+    backgroundColor: colors.backdrop,
   },
   sheet: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     overflow: 'hidden',
-    ...shadow.sl,
+    ...(dark ? null : shadow.sl),
   },
   searchWrap: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
+    borderBottomColor: colors.border,
   },
   searchInput: {
     height: 44,
     borderRadius: radius.sm,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBg,
     paddingHorizontal: spacing.md,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g900,
+    color: colors.text,
   },
   empty: {
     padding: spacing.md,
     textAlign: 'center',
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g400,
+    color: colors.subtle,
   },
   option: {
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
-    backgroundColor: colors.white,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.card,
   },
   optionActive: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
   },
   optionPressed: {
-    backgroundColor: colors.g50,
+    backgroundColor: colors.pressed,
   },
   optionLabel: {
     width: '100%',
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
   },
   optionLabelActive: {
     fontFamily: fonts.bold,
-    color: colors.yd,
+    color: dark ? colors.y : colors.yd,
   },
   optionSub: {
     width: '100%',
     marginTop: 2,
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g400,
+    color: colors.subtle,
   },
 })

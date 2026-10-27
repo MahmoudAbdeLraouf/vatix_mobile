@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Modal,
@@ -16,7 +16,8 @@ import * as Clipboard from 'expo-clipboard'
 import { useLocale } from '@/contexts/locale'
 import { authPost, logShare } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 interface Props {
   visible: boolean
@@ -53,6 +54,8 @@ export function StoreShareDialog({ visible, storeId, storeSlug, storeName, onClo
 
   const [copied, setCopied] = useState(false)
   const [shared, setShared] = useState(false)
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   async function handleCopy() {
     try {
@@ -163,22 +166,22 @@ export function StoreShareDialog({ visible, storeId, storeSlug, storeName, onClo
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6,43,91,0.32)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '92%',
     overflow: 'hidden',
-    ...shadow.sl,
+    ...(dark ? null : shadow.sl),
   },
   sheetHeader: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     flexDirection: 'row',
@@ -199,13 +202,13 @@ const styles = StyleSheet.create({
   description: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
     lineHeight: 22,
   },
   urlLabel: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -213,7 +216,7 @@ const styles = StyleSheet.create({
   urlBox: {
     borderWidth: 2,
     borderColor: colors.y,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
@@ -223,7 +226,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.select({ ios: 'Courier', android: 'monospace', default: 'monospace' }),
     fontSize: 15,
     fontWeight: '700',
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
     writingDirection: 'ltr',
   },

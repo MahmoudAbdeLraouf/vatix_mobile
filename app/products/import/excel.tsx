@@ -27,7 +27,8 @@ import {
   type ImportPreviewError,
   type InternalField,
 } from '@/lib/import'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const TEMPLATE_URL = 'https://vatix.store/csv-templates/products-import-template.csv'
 const PICK_TYPES = [
@@ -114,6 +115,8 @@ async function readSheetAsCsvText(file: File, ip: { excelXlsUnsupported: string;
 // (vatix_website/app/dashboard/products/import/page.tsx).
 export default function ExcelImportScreen() {
   const { t, locale } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ip = t.importProducts
   const ar = locale === 'ar'
   const dirStyle = {
@@ -396,33 +399,33 @@ export default function ExcelImportScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: { padding: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
-  title: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.dk },
+  title: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.heading },
   card: {
     gap: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.ss,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.ss),
   },
-  heading: { fontFamily: fonts.bold, fontSize: 15, color: colors.dk },
+  heading: { fontFamily: fonts.bold, fontSize: 15, color: colors.heading },
   fileRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: radius.md,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
-  fileName: { flex: 1, fontFamily: fonts.semiBold, fontSize: 13, color: colors.g700 },
-  link: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.dk, textDecorationLine: 'underline' },
-  muted: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500 },
+  fileName: { flex: 1, fontFamily: fonts.semiBold, fontSize: 13, color: colors.text },
+  link: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.heading, textDecorationLine: 'underline' },
+  muted: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   hint: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.red },
   errorText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red },
   disabled: { opacity: 0.5 },

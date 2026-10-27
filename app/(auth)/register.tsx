@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   Pressable,
   StyleSheet,
@@ -13,7 +13,8 @@ import { Link, router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { BottomTabBar } from '@/components/BottomTabBar'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { accountTypeXml } from '@/assets/auth/account-type'
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
@@ -28,6 +29,8 @@ interface AccountTypeCard {
 export default function RegisterScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const { width } = useWindowDimensions()
   const dirStyle = { writingDirection: isRtl ? 'rtl' as const : 'ltr' as const }
   const artSize = Math.min(width * 0.6, 220)
@@ -105,7 +108,7 @@ export default function RegisterScreen() {
               }
             >
               <View style={styles.typeIconWrap}>
-                <Ionicons name={item.icon} size={22} color={colors.dk} />
+                <Ionicons name={item.icon} size={22} color={isDark ? colors.y : colors.dk} />
               </View>
               <Text style={[styles.typeLabel, dirStyle]}>{item.label}</Text>
               {!!item.description && (
@@ -133,8 +136,8 @@ export default function RegisterScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: colors.hero },
 
   hero: {
     alignItems: 'center',
@@ -177,7 +180,7 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopStartRadius: radius.xl,
     borderTopEndRadius: radius.xl,
     paddingTop: spacing.xl,
@@ -198,34 +201,34 @@ const styles = StyleSheet.create({
   typeCard: {
     flex: 1,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.sm,
     gap: spacing.xs,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.ss,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.ss),
   },
   typeIconWrap: {
     width: 44,
     height: 44,
     borderRadius: radius.full,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   typeLabel: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
   },
   typeDesc: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
   },
 
@@ -237,7 +240,7 @@ const styles = StyleSheet.create({
   footerText: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
   },
   link: {
     fontFamily: fonts.bold,

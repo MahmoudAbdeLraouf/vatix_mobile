@@ -24,7 +24,8 @@ import { ConversationDetail, ConversationListItem, imgUrl, Message } from '@/lib
 import { authFetch, authPatch, authPost } from '@/lib/auth'
 import { BroMessage } from '@/components/bro/BroMessage'
 import { BroAvatar, BroBadge } from '@/components/bro/BroAvatar'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 function timeLabel(iso: string, ar: boolean): string {
   if (!iso) return ''
@@ -83,6 +84,8 @@ export default function ConversationScreen() {
   const { user } = useAuth()
   const { id } = useLocalSearchParams<{ id: string }>()
   const insets = useSafeAreaInsets()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   const [detail, setDetail] = useState<ConversationDetail | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -430,7 +433,7 @@ export default function ConversationScreen() {
                 value={text}
                 onChangeText={setText}
                 placeholder={t.typeMessage}
-                placeholderTextColor={colors.g400}
+                placeholderTextColor={colors.subtle}
                 multiline
                 maxLength={2000}
                 editable={!sending}
@@ -447,14 +450,14 @@ export default function ConversationScreen() {
             >
               {sending ? (
                 <ActivityIndicator
-                  color={!text.trim() ? colors.g400 : colors.dk}
+                  color={!text.trim() ? colors.subtle : colors.dk}
                   size="small"
                 />
               ) : (
                 <Ionicons
                   name="send"
                   size={20}
-                  color={!text.trim() ? colors.g400 : colors.dk}
+                  color={!text.trim() ? colors.subtle : colors.dk}
                   style={ar ? { transform: [{ scaleX: -1 }] } : undefined}
                 />
               )}
@@ -466,7 +469,8 @@ export default function ConversationScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark = false) =>
+  StyleSheet.create({
   flex: { flex: 1 },
   center: {
     flex: 1,
@@ -480,9 +484,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.g200,
+    borderBottomColor: colors.border,
   },
   headerAvatarWrap: {
     width: 44,
@@ -498,21 +502,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   headerAvatarStore: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 2,
     borderColor: colors.y,
   },
   headerAvatarUser: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderWidth: 2,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   headerAvatarImg: { width: '100%', height: '100%', resizeMode: 'cover' },
   headerAvatarInitial: {
     fontFamily: fonts.black,
     fontSize: 18,
     lineHeight: 22,
-    color: colors.dk,
+    color: colors.heading,
   },
   headerTypeBadge: {
     position: 'absolute',
@@ -523,13 +527,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.white,
+    borderColor: colors.card,
   },
   headerTypeBadgeStore: {
     backgroundColor: colors.y,
   },
   headerTypeBadgeUser: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.fab,
   },
   headerText: {
     flexShrink: 1,
@@ -538,7 +542,7 @@ const styles = StyleSheet.create({
   headerName: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   headerBadgeWrap: {
     marginTop: 2,
@@ -547,14 +551,14 @@ const styles = StyleSheet.create({
   headerRole: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     marginTop: 1,
   },
 
   productBarWrap: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   productBar: {
     flexDirection: 'row',
@@ -562,11 +566,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.y,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   productBarPressed: {
     opacity: 0.85,
@@ -583,7 +587,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.y,
     alignItems: 'center',
@@ -600,7 +604,7 @@ const styles = StyleSheet.create({
   productTitle: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     marginTop: 2,
   },
   viewBtn: {
@@ -628,7 +632,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1.5,
     borderColor: colors.y,
     alignItems: 'center',
@@ -638,14 +642,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontFamily: fonts.bold,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
     marginBottom: 6,
   },
   emptyText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -659,12 +663,12 @@ const styles = StyleSheet.create({
   dateSepLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.g200,
+    backgroundColor: colors.border,
   },
   dateSepText: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
   },
 
   bubbleRow: {
@@ -682,16 +686,16 @@ const styles = StyleSheet.create({
     borderTopEndRadius: 14,
     borderBottomStartRadius: 14,
     borderBottomEndRadius: 14,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   bubbleTheirs: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.card,
     borderTopStartRadius: 14,
     borderTopEndRadius: 4,
     borderBottomStartRadius: 14,
     borderBottomEndRadius: 14,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   bubbleText: {
     fontFamily: fonts.regular,
@@ -699,7 +703,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   bubbleTextMine: { color: colors.white },
-  bubbleTextTheirs: { color: colors.g900 },
+  bubbleTextTheirs: { color: colors.text },
   bubbleTime: {
     fontFamily: fonts.regular,
     fontSize: 10,
@@ -711,19 +715,19 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   bubbleTimeTheirs: {
-    color: colors.g500,
+    color: colors.muted,
   },
 
   inputBarWrap: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.g200,
-    ...shadow.sm,
+    borderTopColor: colors.border,
+    ...(dark ? null : shadow.sm),
   },
   broFormHint: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
@@ -739,10 +743,10 @@ const styles = StyleSheet.create({
   },
   inputPill: {
     flex: 1,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.inputBg,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
     minHeight: 48,
@@ -752,7 +756,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 15,
     lineHeight: 20,
-    color: colors.dk,
+    color: colors.text,
     paddingVertical: Platform.OS === 'ios' ? 13 : 9,
     padding: 0,
     margin: 0,
@@ -764,12 +768,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.y,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow.sm,
+    ...(dark ? null : shadow.sm),
   },
   sendBtnDisabled: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     shadowOpacity: 0,
     elevation: 0,
   },

@@ -5,7 +5,8 @@ import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { Store, imgUrl } from '@/lib/api'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const COVER_H = 80
 const LOGO_SIZE = 44
@@ -18,6 +19,8 @@ interface StoreCardProps {
 
 function StoreCardImpl({ store, style }: StoreCardProps) {
   const { t } = useLocale()
+  const { mode } = useTheme()
+  const styles = themedStyles[mode]
   if (!store.storeProfile) return null
   // Logo is 44px, cover is 80px tall in a full-width card — request modest
   // widths so the resize endpoint returns thumbnails, not originals.
@@ -90,12 +93,12 @@ function StoreCardImpl({ store, style }: StoreCardProps) {
 
 export const StoreCard = React.memo(StoreCardImpl)
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     overflow: 'hidden',
-    ...shadow.sm,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.sm),
   },
 
   coverWrap: {
@@ -145,9 +148,9 @@ const styles = StyleSheet.create({
     height: LOGO_SIZE,
     borderRadius: LOGO_HALF,
     borderWidth: 2.5,
-    borderColor: colors.white,
+    borderColor: colors.card,
     overflow: 'hidden',
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     ...shadow.sm,
   },
   logoImg: {
@@ -176,14 +179,16 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.g800,
+    color: colors.text,
     textAlign: 'center',
   },
   description: {
     fontFamily: fonts.regular,
     fontSize: 10,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 14,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }

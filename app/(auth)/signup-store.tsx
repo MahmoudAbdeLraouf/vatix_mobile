@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -33,7 +33,8 @@ import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { OtpChannelHint } from '@/components/OtpChannelHint'
 import { OtpCodeInput } from '@/components/OtpCodeInput'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { validatePassword } from '@/lib/password-policy'
 
 type Step = 'phone' | 'otp' | 'info'
@@ -48,6 +49,8 @@ export default function SignupStoreScreen() {
   const { t, isRtl, locale } = useLocale()
   const { login } = useAuth()
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   const [step, setStep] = useState<Step>('phone')
   // null = settings not loaded yet. The OTP step stays hidden unless OTP is
@@ -311,7 +314,7 @@ export default function SignupStoreScreen() {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPass}
-                rightIcon={<Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.g500} />}
+                rightIcon={<Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} />}
                 onRightIconPress={() => setShowPass(v => !v)}
               />
               <Input
@@ -322,7 +325,7 @@ export default function SignupStoreScreen() {
               />
               {!!error && (
                 <View style={styles.errorBox}>
-                  <Ionicons name="alert-circle-outline" size={16} color="#C53030" />
+                  <Ionicons name="alert-circle-outline" size={16} color={isDark ? '#FC8181' : '#C53030'} />
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               )}
@@ -336,7 +339,7 @@ export default function SignupStoreScreen() {
               <OtpCodeInput ref={codeRef} value={code} onChange={setCode} onComplete={() => { if (!loading) handleVerify() }} />
               {!!error && (
                 <View style={styles.errorBox}>
-                  <Ionicons name="alert-circle-outline" size={16} color="#C53030" />
+                  <Ionicons name="alert-circle-outline" size={16} color={isDark ? '#FC8181' : '#C53030'} />
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               )}
@@ -371,11 +374,11 @@ export default function SignupStoreScreen() {
                   {logoUri ? (
                     <Image source={{ uri: logoUri }} style={styles.logoImage} contentFit="cover" />
                   ) : (
-                    <Ionicons name="image-outline" size={26} color={colors.g400} />
+                    <Ionicons name="image-outline" size={26} color={colors.subtle} />
                   )}
                   {logoUploading ? (
                     <View style={styles.logoOverlay}>
-                      <ActivityIndicator color={colors.dk} />
+                      <ActivityIndicator color={colors.heading} />
                     </View>
                   ) : null}
                 </Pressable>
@@ -408,7 +411,7 @@ export default function SignupStoreScreen() {
 
               {!!error && (
                 <View style={styles.errorBox}>
-                  <Ionicons name="alert-circle-outline" size={16} color="#C53030" />
+                  <Ionicons name="alert-circle-outline" size={16} color={isDark ? '#FC8181' : '#C53030'} />
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               )}
@@ -423,8 +426,8 @@ export default function SignupStoreScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: colors.hero },
 
   hero: {
     alignItems: 'center',
@@ -486,7 +489,7 @@ const styles = StyleSheet.create({
 
   card: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopStartRadius: radius.xl,
     borderTopEndRadius: radius.xl,
     paddingTop: spacing.lg,
@@ -501,9 +504,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: '#FFF5F5',
+    backgroundColor: colors.redBg,
     borderWidth: 1,
-    borderColor: '#FED7D7',
+    borderColor: dark ? 'rgba(229,62,62,0.35)' : '#FED7D7',
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -513,7 +516,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: '#C53030',
+    color: dark ? '#FC8181' : '#C53030',
   },
 
   resendBtn: {
@@ -529,7 +532,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
     marginBottom: spacing.xs,
     marginTop: spacing.sm,
     textAlign: 'auto',
@@ -540,14 +543,14 @@ const styles = StyleSheet.create({
   textarea: {
     minHeight: 80,
     borderWidth: 1.5,
-    borderColor: colors.g300,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.inputBg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md,
     textAlign: 'auto',
   },
@@ -563,8 +566,8 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.g100,
+    borderColor: colors.border,
+    backgroundColor: colors.placeholder,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -576,7 +579,7 @@ const styles = StyleSheet.create({
   },
   logoOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: dark ? 'rgba(13,21,38,0.75)' : 'rgba(255,255,255,0.85)',
     alignItems: 'center',
     justifyContent: 'center',
   },

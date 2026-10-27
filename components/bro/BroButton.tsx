@@ -1,7 +1,8 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, fonts, radius } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 type Variant = 'outline' | 'dark' | 'yellow'
 type Size = 'sm' | 'md'
@@ -35,10 +36,12 @@ export function BroButton({
   fullWidth?: boolean
   dirStyle?: object
 }) {
+  const { colors, isDark } = useTheme()
+  const styles = themedStyles[isDark ? 'dark' : 'light']
   const dark = !chip && variant === 'dark'
   const yellow = !chip && variant === 'yellow'
   const on = !!chip && !!selected
-  const fg = chip ? (on ? colors.dk : colors.g700) : dark ? colors.white : colors.dk
+  const fg = chip ? (on ? (isDark ? colors.y : colors.dk) : colors.text) : dark ? colors.white : yellow ? colors.dk : colors.heading
   return (
     <Pressable
       accessibilityRole="button"
@@ -55,7 +58,7 @@ export function BroButton({
       ]}
     >
       <View style={styles.inner}>
-        {icon ? <Ionicons name={icon} size={size === 'md' ? 18 : 15} color={on ? colors.yt : fg} /> : null}
+        {icon ? <Ionicons name={icon} size={size === 'md' ? 18 : 15} color={on ? colors.yellowText : fg} /> : null}
         <Text
           style={[
             styles.label,
@@ -72,16 +75,16 @@ export function BroButton({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   btn: { borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   btnSm: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: radius.sm },
   btnMd: { minHeight: 44, paddingHorizontal: 16, paddingVertical: 10, borderRadius: radius.md },
   chip: { minHeight: 36, paddingHorizontal: 14, paddingVertical: 6, borderRadius: radius.full },
-  btnOutline: { backgroundColor: colors.white, borderColor: colors.g200 },
-  btnDark: { backgroundColor: colors.dk, borderColor: colors.dk },
+  btnOutline: { backgroundColor: colors.card, borderColor: colors.border },
+  btnDark: { backgroundColor: colors.fab, borderColor: colors.fab },
   btnYellow: { backgroundColor: colors.y, borderColor: colors.y },
-  chipOff: { backgroundColor: colors.white, borderColor: colors.g200 },
-  chipOn: { backgroundColor: colors.yl, borderColor: colors.y, borderWidth: 1.5 },
+  chipOff: { backgroundColor: colors.card, borderColor: colors.border },
+  chipOn: { backgroundColor: colors.yellowBg, borderColor: colors.y, borderWidth: 1.5 },
   fullWidth: { alignSelf: 'stretch' },
   inner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pressed: { opacity: 0.8 },
@@ -90,3 +93,5 @@ const styles = StyleSheet.create({
   labelMd: { fontFamily: fonts.bold, fontSize: 14 },
   labelOn: { fontFamily: fonts.bold },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }

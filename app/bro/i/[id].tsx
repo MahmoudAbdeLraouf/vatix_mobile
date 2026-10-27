@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
 import { broHeader } from '@/components/bro/BroStackHeader'
@@ -17,7 +17,8 @@ import { BroButton } from '@/components/bro/BroButton'
 import { BroDetailsForm } from '@/components/bro/BroDetailsForm'
 import { Button } from '@/components/ui/Button'
 import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 // Mirrors the backend `assertAnswerable`: only queued and skipped inquiries cannot be answered.
 // `available` and `sold` stay answerable too (a correction), but the page shows their current answer instead.
@@ -26,6 +27,8 @@ const AWAITING_ANSWER = ['sent', 'free_text', 'no_reply']
 /** Seller landing page for a Bro ask (`/bro/i/<inquiryId>`). Port of the website seller page. */
 export default function BroSellerScreen() {
   const { locale, t } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const b = t.bro
   const ar = locale === 'ar'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
@@ -216,7 +219,7 @@ export default function BroSellerScreen() {
                     maxLength={2000}
                     editable={!busy}
                     placeholder={b.freeTextPlaceholder}
-                    placeholderTextColor={colors.g400}
+                    placeholderTextColor={colors.subtle}
                     style={[styles.input, dirStyle]}
                   />
                   <View style={[styles.chips, rowDir]}>
@@ -289,39 +292,39 @@ export default function BroSellerScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.dk },
+  name: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.heading },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: 12,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
-  h1: { fontFamily: fonts.extraBold, fontSize: 17, color: colors.dk },
-  strong: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.dk },
-  muted: { fontFamily: fonts.regular, fontSize: 13, color: colors.g500 },
-  body: { fontFamily: fonts.regular, fontSize: 13, color: colors.g700 },
+  h1: { fontFamily: fonts.extraBold, fontSize: 17, color: colors.heading },
+  strong: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.heading },
+  muted: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted },
+  body: { fontFamily: fonts.regular, fontSize: 13, color: colors.text },
   product: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  thumb: { width: 64, height: 64, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.g100 },
+  thumb: { width: 64, height: 64, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.placeholder },
   thumbImg: { width: 64, height: 64 },
-  productTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.dk },
+  productTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.heading },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
   input: {
     minHeight: 64,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.sm,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g900,
+    color: colors.text,
     textAlignVertical: 'top',
   },
   err: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.red },

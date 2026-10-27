@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   FlatList,
@@ -14,7 +14,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { Notification } from '@/lib/api'
 import { authFetch, authPatch } from '@/lib/auth'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { SkeletonRow } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -22,6 +23,8 @@ import { ErrorState } from '@/components/ui/ErrorState'
 export default function NotificationsScreen() {
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const dirContainer = ar ? { direction: 'rtl' as const } : null
   const dirStyle = {
     textAlign: ar ? ('right' as const) : ('left' as const),
@@ -111,7 +114,7 @@ export default function NotificationsScreen() {
             }
             ListEmptyComponent={
               <EmptyState
-                icon={<Ionicons name="notifications-off-outline" size={28} color={colors.g400} />}
+                icon={<Ionicons name="notifications-off-outline" size={28} color={colors.subtle} />}
                 title={t.notifications}
                 subtitle={t.noNotifications}
               />
@@ -130,7 +133,7 @@ export default function NotificationsScreen() {
                   <Ionicons
                     name="notifications-outline"
                     size={20}
-                    color={item.isRead ? colors.g400 : colors.dk}
+                    color={item.isRead ? colors.subtle : colors.seeAllText}
                   />
                 </View>
                 <View style={styles.itemContent}>
@@ -157,8 +160,8 @@ export default function NotificationsScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.hero },
 
   header: {
     flexDirection: 'row',
@@ -189,7 +192,7 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
     borderTopStartRadius: radius.xl,
     borderTopEndRadius: radius.xl,
     overflow: 'hidden',
@@ -211,21 +214,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     gap: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
-  itemUnread: { backgroundColor: '#fffcee' },
+  itemUnread: { backgroundColor: dark ? colors.yellowBg : '#fffcee' },
 
   iconWrap: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
   iconWrapUnread: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
   },
 
   itemContent: { flex: 1 },
@@ -239,10 +242,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
   },
   itemTitleUnread: {
-    color: colors.g900,
+    color: colors.text,
     fontFamily: fonts.bold,
   },
   dot: {
@@ -255,18 +258,18 @@ const styles = StyleSheet.create({
   itemBody: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     lineHeight: 19,
     marginBottom: 4,
   },
   itemDate: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g400,
+    color: colors.subtle,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.g200,
+    backgroundColor: colors.border,
     marginStart: spacing.lg + 42 + spacing.md,
   },
 

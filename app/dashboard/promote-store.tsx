@@ -8,7 +8,8 @@ import {
 } from 'react-native'
 import { router } from 'expo-router'
 import { DashboardLayout } from '@/components/DashboardLayout'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
@@ -91,6 +92,7 @@ function useDir() {
 
 function LegalLinks({ dark }: { dark?: boolean }) {
   const { ar, rowDir } = useDir()
+  const styles = useStyles()
   const linkStyle = [styles.legalLink, dark && { color: P.g400 }]
   const termsLabel = ar ? 'شروط الاستخدام' : 'Terms of Use (EULA)'
   const privacyLabel = ar ? 'سياسة الخصوصية' : 'Privacy Policy'
@@ -145,6 +147,8 @@ export default function PromoteStoreScreen() {
   const { t, locale } = useLocale()
   const { user, refetchUser } = useAuth()
   const { ar, rowDir, colDir, dirStyle } = useDir()
+  const { colors } = useTheme()
+  const styles = useStyles()
 
   const isStoreUser = (user?.type ?? '').toLowerCase() === 'store'
   const blocked = user != null && !isStoreUser
@@ -655,7 +659,7 @@ export default function PromoteStoreScreen() {
     if (loading) {
       return (
         <View style={styles.loadingBox}>
-          <ActivityIndicator color={colors.dk} />
+          <ActivityIndicator color={colors.heading} />
           <Text style={[styles.loadingText, dirStyle]}>{t.buySlots.loading}</Text>
         </View>
       )
@@ -791,6 +795,7 @@ type WalletStepProps = {
 function WalletStep(props: WalletStepProps) {
   const { t } = useLocale()
   const { ar, colDir, dirStyle } = useDir()
+  const styles = useStyles()
   const { offer, wallet, submitting, submitError, onBack, onPay } = props
   return (
     <View style={styles.methodBlock}>
@@ -854,6 +859,7 @@ type ReceiptStepProps = {
 function ReceiptStep(props: ReceiptStepProps) {
   const { t } = useLocale()
   const { ar, colDir, dirStyle } = useDir()
+  const styles = useStyles()
   const {
     kind,
     offer,
@@ -940,6 +946,8 @@ type AppleIapPanelProps = {
 function AppleIapPanel(props: AppleIapPanelProps) {
   const { t } = useLocale()
   const { ar, colDir, dirStyle } = useDir()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const { summary, submitting, submitError, onBack } = props
   return (
     <View style={styles.methodBlock}>
@@ -950,7 +958,7 @@ function AppleIapPanel(props: AppleIapPanelProps) {
 
       {submitting ? (
         <View style={styles.iapLoadingBox}>
-          <ActivityIndicator color={colors.dk} />
+          <ActivityIndicator color={colors.heading} />
           <Text style={[styles.iapLoadingText, dirStyle]}>
             {ar ? 'جارٍ معالجة الدفع عبر Apple…' : 'Processing Apple payment…'}
           </Text>
@@ -980,17 +988,17 @@ function AppleIapPanel(props: AppleIapPanelProps) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark?: boolean) => StyleSheet.create({
   heading: {
     fontFamily: fonts.bold,
     fontSize: 22,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
   },
   sub: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 20,
     marginBottom: spacing.lg,
   },
@@ -1002,7 +1010,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
   },
   iapLoadingBox: {
     paddingVertical: spacing.lg,
@@ -1012,7 +1020,7 @@ const styles = StyleSheet.create({
   iapLoadingText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
   },
   emptyBox: {
     paddingVertical: spacing.xl,
@@ -1021,7 +1029,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
   },
   legalLinks: {
@@ -1033,13 +1041,13 @@ const styles = StyleSheet.create({
   legalLink: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
     textDecorationLine: 'underline',
   },
   legalDot: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g400,
+    color: colors.subtle,
   },
   methodBlock: {
     gap: spacing.sm,
@@ -1047,18 +1055,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: fonts.semiBold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: 4,
   },
   summaryLabel: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   summaryValue: {
     fontFamily: fonts.bold,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.sm,
   },
   backBtn: {
@@ -1070,21 +1078,21 @@ const styles = StyleSheet.create({
   backBtnText: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
   },
   summaryBox: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: 4,
   },
   errorBanner: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.redBg,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: dark ? 'rgba(239,68,68,0.35)' : '#FECACA',
     padding: spacing.sm,
   },
   pitch: {
@@ -1131,13 +1139,13 @@ const styles = StyleSheet.create({
   doneTitle: {
     fontFamily: fonts.bold,
     fontSize: 22,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
   },
   doneBody: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing.sm,
@@ -1147,22 +1155,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
   },
   doneStatLabel: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
   },
   doneStatValue: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   doneCtaRow: {
     width: '100%',
@@ -1170,3 +1178,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

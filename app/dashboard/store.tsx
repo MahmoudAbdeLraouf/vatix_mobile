@@ -17,7 +17,8 @@ import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableS
 import { useLocale } from '@/contexts/locale'
 import { authErrorMessage, authFetch, authPatch } from '@/lib/auth'
 import { getLocations, imgUrl, localeName, type LocationNode, type UserProfile } from '@/lib/api'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 type Msg = { ok: boolean; text: string } | null
 
@@ -32,6 +33,8 @@ function locationSubLabel(type: string, ar: boolean): string {
 export default function StoreInfoScreen() {
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const dirContainer = ar ? { direction: 'rtl' as const } : null
   // Canonical RTL pattern (see settings.tsx / FileUpload.tsx): under inherited
   // RTL, `textAlign: 'right'` double-flips. `textAlign: 'auto'` resolves to the
@@ -158,7 +161,7 @@ export default function StoreInfoScreen() {
                 value={name}
                 onChangeText={setName}
                 placeholder={t.storeName}
-                leftIcon={<Ionicons name="business-outline" size={18} color={colors.g400} />}
+                leftIcon={<Ionicons name="business-outline" size={18} color={colors.subtle} />}
               />
 
               <View style={styles.field}>
@@ -174,7 +177,7 @@ export default function StoreInfoScreen() {
                       ? 'نبذة عن متجرك، المنتجات التي تبيعها...'
                       : 'About your store, products you sell...'
                   }
-                  placeholderTextColor={colors.g400}
+                  placeholderTextColor={colors.subtle}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
@@ -199,7 +202,7 @@ export default function StoreInfoScreen() {
                   value={websiteUrl}
                   onChangeText={setWebsiteUrl}
                   placeholder="https://example.com"
-                  placeholderTextColor={colors.g400}
+                  placeholderTextColor={colors.subtle}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="url"
@@ -237,7 +240,7 @@ export default function StoreInfoScreen() {
                     styles.msgBox,
                     dirContainer,
                     {
-                      backgroundColor: msg.ok ? colors.gl : colors.rl,
+                      backgroundColor: msg.ok ? colors.greenBg : colors.redBg,
                       borderColor: msg.ok ? colors.green : colors.red,
                     },
                   ]}
@@ -319,7 +322,7 @@ export default function StoreInfoScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   center: {
     flex: 1,
     alignItems: 'center',
@@ -329,19 +332,19 @@ const styles = StyleSheet.create({
   pageHeading: {
     fontFamily: fonts.extraBold,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md,
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
     maxWidth: 520,
     width: '100%',
     alignSelf: 'center',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   emptyState: {
     alignItems: 'center',
@@ -354,7 +357,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
   },
   field: {
@@ -363,36 +366,36 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
     marginBottom: spacing.xs,
   },
   input: {
     height: 52,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g300,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBg,
     paddingHorizontal: spacing.md,
     fontFamily: fonts.regular,
     fontSize: 15,
-    color: colors.g900,
+    color: colors.text,
   },
   textarea: {
     minHeight: 96,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g300,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontFamily: fonts.regular,
     fontSize: 15,
-    color: colors.g900,
+    color: colors.text,
   },
   hint: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     marginTop: 4,
   },
   msgBox: {
@@ -413,7 +416,7 @@ const styles = StyleSheet.create({
   previewHeading: {
     fontFamily: fonts.bold,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     letterSpacing: 0.4,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
@@ -422,15 +425,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   previewCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     overflow: 'hidden',
     maxWidth: 520,
     width: '100%',
     alignSelf: 'center',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   previewCover: {
     height: 90,
@@ -471,18 +474,18 @@ const styles = StyleSheet.create({
   previewName: {
     fontFamily: fonts.extraBold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   previewBadge: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     marginTop: 2,
   },
   previewDescription: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 20,
   },
 })

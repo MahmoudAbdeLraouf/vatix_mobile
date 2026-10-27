@@ -2,11 +2,14 @@ import React, { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useLocale } from '@/contexts/locale'
 import type { ImportPreviewError } from '@/lib/import'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 // Preview errors grouped by row number.
 export function ImportErrors({ errors }: { errors: ImportPreviewError[] }) {
   const { t, locale } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ip = t.importProducts
   const ar = locale === 'ar'
   const dirStyle = {
@@ -48,17 +51,17 @@ export function ImportErrors({ errors }: { errors: ImportPreviewError[] }) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   box: {
     gap: spacing.sm,
     borderRadius: radius.md,
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: '#FED7D7',
+    borderColor: dark ? 'rgba(229,62,62,0.35)' : '#FED7D7',
   },
   heading: { fontFamily: fonts.bold, fontSize: 14, color: colors.red },
   group: { gap: 2 },
-  row: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.dk },
-  msg: { fontFamily: fonts.regular, fontSize: 12, color: colors.g700 },
+  row: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.heading },
+  msg: { fontFamily: fonts.regular, fontSize: 12, color: colors.text },
 })

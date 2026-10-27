@@ -40,7 +40,8 @@ import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { FollowButton } from '@/components/FollowButton'
 import { ProductCard } from '@/components/ProductCard'
 import { BottomTabBar } from '@/components/BottomTabBar'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const COVER_HEIGHT = 180
 const LOGO_SIZE = 76
@@ -84,6 +85,8 @@ export default function StoreDetailScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
   const { requireLogin } = useLoginGate()
   const insets = useSafeAreaInsets()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const dir = {
     writingDirection: (isRtl ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
@@ -311,7 +314,7 @@ export default function StoreDetailScreen() {
           <Ionicons
             name={icon}
             size={20}
-            color={opts.primary ? colors.dk : (opts.iconColor ?? colors.dk)}
+            color={opts.primary ? colors.dk : (opts.iconColor ?? colors.heading)}
           />
         )}
       </View>
@@ -348,7 +351,7 @@ export default function StoreDetailScreen() {
         )}
       {canWebsite &&
         renderActionPill('web', 'globe-outline', t.storeWebsite, () => Linking.openURL(storefrontUrl), {
-          iconColor: colors.dk,
+          iconColor: colors.heading,
         })}
     </View>
   )
@@ -497,11 +500,11 @@ export default function StoreDetailScreen() {
             <View style={styles.tabPanel}>
               {products.length > 0 && (
                 <View style={styles.searchWrap}>
-                  <Ionicons name="search-outline" size={18} color={colors.g500} />
+                  <Ionicons name="search-outline" size={18} color={colors.muted} />
                   <TextInput
                     style={[styles.searchInput, dir]}
                     placeholder={searchPlaceholder}
-                    placeholderTextColor={colors.g400}
+                    placeholderTextColor={colors.subtle}
                     value={query}
                     onChangeText={setQuery}
                     autoCorrect={false}
@@ -510,7 +513,7 @@ export default function StoreDetailScreen() {
                   />
                   {query.length > 0 && (
                     <Pressable style={styles.searchClearBtn} onPress={() => setQuery('')} hitSlop={8}>
-                      <Ionicons name="close-circle" size={18} color={colors.g500} />
+                      <Ionicons name="close-circle" size={18} color={colors.muted} />
                     </Pressable>
                   )}
                 </View>
@@ -589,7 +592,7 @@ export default function StoreDetailScreen() {
                               {isRevealed ? entry.phone : maskPhone(entry.phone)}
                             </Text>
                           </View>
-                          <Ionicons name={forwardIcon} size={16} color={colors.g400} />
+                          <Ionicons name={forwardIcon} size={16} color={colors.subtle} />
                         </Pressable>
                       )
                     })}
@@ -617,7 +620,7 @@ export default function StoreDetailScreen() {
                           ]}
                           onPress={() => Linking.openURL(url)}
                         >
-                          <Ionicons name={SOCIAL_ICONS[key]} size={20} color={brandColor} />
+                          <Ionicons name={SOCIAL_ICONS[key]} size={20} color={isDark && key === 'tiktok' ? colors.text : brandColor} />
                         </Pressable>
                       )
                     })}
@@ -641,13 +644,13 @@ export default function StoreDetailScreen() {
                         <Text style={[styles.branchName, dir]} numberOfLines={1}>{branch.name}</Text>
                         {!!location && (
                           <View style={styles.branchMetaRow}>
-                            <Ionicons name="pin-outline" size={11} color={colors.g500} />
+                            <Ionicons name="pin-outline" size={11} color={colors.muted} />
                             <Text style={[styles.branchPhone, dir]} numberOfLines={1}>{location}</Text>
                           </View>
                         )}
                         {!!branch.phone && (
                           <View style={styles.branchMetaRow}>
-                            <Ionicons name="call-outline" size={11} color={colors.g500} />
+                            <Ionicons name="call-outline" size={11} color={colors.muted} />
                             <Text style={[styles.branchPhone, dir]} numberOfLines={1}>{branch.phone}</Text>
                           </View>
                         )}
@@ -708,7 +711,7 @@ export default function StoreDetailScreen() {
                     {entry.phone}
                   </Text>
                 </View>
-                <Ionicons name={forwardIcon} size={16} color={colors.g400} />
+                <Ionicons name={forwardIcon} size={16} color={colors.subtle} />
               </Pressable>
             ))}
             <Pressable style={styles.sheetCancel} onPress={() => setPhoneSheetOpen(false)}>
@@ -721,14 +724,14 @@ export default function StoreDetailScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.hero },
 
   loadingWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
   },
   missing: {
     fontFamily: fonts.regular,
@@ -772,7 +775,7 @@ const styles = StyleSheet.create({
     end: 0,
     height: COVER_HEIGHT,
     overflow: 'hidden',
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
   },
   coverImg: { width: '100%', height: '100%' },
   coverPlaceholder: { flex: 1, backgroundColor: colors.dk2 },
@@ -842,7 +845,7 @@ const styles = StyleSheet.create({
 
   card: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopStartRadius: radius.xl,
     borderTopEndRadius: radius.xl,
     paddingTop: spacing.sm,
@@ -858,7 +861,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.g300,
+    backgroundColor: colors.dot,
     alignSelf: 'center',
     marginBottom: spacing.md,
   },
@@ -881,7 +884,7 @@ const styles = StyleSheet.create({
     height: LOGO_SIZE,
     borderRadius: LOGO_SIZE / 2,
     borderWidth: 3,
-    borderColor: colors.white,
+    borderColor: colors.card,
     backgroundColor: colors.g100,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -890,7 +893,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   logoFallback: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.fab,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -913,7 +916,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.black,
     fontSize: 18,
     lineHeight: 22,
-    color: colors.g900,
+    color: colors.text,
   },
   metaRow: {
     flexDirection: 'row',
@@ -924,7 +927,7 @@ const styles = StyleSheet.create({
   metaText: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     flexShrink: 1,
   },
 
@@ -937,14 +940,14 @@ const styles = StyleSheet.create({
   description: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 20,
   },
   descToggleBtn: { alignSelf: 'flex-start' },
   descToggleText: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
   },
 
   // ── Action pills ─────────────────────────────────────────────────────────────
@@ -960,9 +963,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 68,
     borderRadius: radius.lg,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
@@ -995,7 +998,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontFamily: fonts.bold,
     fontSize: 11,
-    color: colors.g700,
+    color: colors.text,
     textAlign: 'center',
   },
   actionLabelPrimary: {
@@ -1007,11 +1010,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.full,
     padding: 4,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   tabBtn: {
     flex: 1,
@@ -1021,7 +1024,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabBtnActive: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     shadowColor: '#062B5B',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -1031,11 +1034,11 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
   },
   tabLabelActive: {
     fontFamily: fonts.bold,
-    color: colors.dk,
+    color: colors.heading,
   },
   tabPanel: {},
 
@@ -1048,7 +1051,7 @@ const styles = StyleSheet.create({
   aboutBlockTitle: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
@@ -1056,7 +1059,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 22,
-    color: colors.g700,
+    color: colors.text,
   },
   phoneList: { gap: spacing.sm },
 
@@ -1065,18 +1068,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.lg,
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   contactIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1087,12 +1090,12 @@ const styles = StyleSheet.create({
   contactLabel: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
   },
   contactText: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g800,
+    color: colors.text,
   },
 
   // ── Social ───────────────────────────────────────────────────────────────────
@@ -1104,9 +1107,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1124,16 +1127,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.inputBg,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   searchInput: {
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g900,
+    color: colors.text,
     padding: 0,
   },
   searchClearBtn: {
@@ -1152,14 +1155,14 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyText: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g500,
+    color: colors.muted,
   },
 
   // ── Branches ─────────────────────────────────────────────────────────────────
@@ -1171,18 +1174,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.md,
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   branchIconWrap: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1190,7 +1193,7 @@ const styles = StyleSheet.create({
   branchName: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g900,
+    color: colors.text,
   },
   branchMetaRow: {
     flexDirection: 'row',
@@ -1201,13 +1204,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   branchCallBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -1225,11 +1228,11 @@ const styles = StyleSheet.create({
   // ── Bottom sheet (phone chooser) ─────────────────────────────────────────────
   sheetBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6,43,91,0.45)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopStartRadius: radius.xl,
     borderTopEndRadius: radius.xl,
     paddingTop: spacing.sm,
@@ -1239,14 +1242,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.g300,
+    backgroundColor: colors.dot,
     alignSelf: 'center',
     marginBottom: spacing.md,
   },
   sheetTitle: {
     fontFamily: fonts.bold,
     fontSize: 16,
-    color: colors.g900,
+    color: colors.text,
     marginBottom: spacing.md,
   },
   sheetItem: {
@@ -1255,13 +1258,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g200,
+    borderBottomColor: colors.border,
   },
   sheetIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1272,23 +1275,23 @@ const styles = StyleSheet.create({
   sheetItemLabel: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   sheetItemPhone: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.g900,
+    color: colors.text,
   },
   sheetCancel: {
     marginTop: spacing.md,
     paddingVertical: 12,
     borderRadius: radius.full,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
   },
   sheetCancelText: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.g700,
+    color: colors.text,
   },
 })

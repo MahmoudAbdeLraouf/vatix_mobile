@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
   Easing,
@@ -17,7 +17,8 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { imgUrl, localeName, type FavoriteProduct } from '@/lib/api'
 import { authDelete, authFetch } from '@/lib/auth'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -25,6 +26,8 @@ import { ErrorState } from '@/components/ui/ErrorState'
 export default function FavoritesScreen() {
   const { t, locale, isRtl } = useLocale()
   const insets = useSafeAreaInsets()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   const [favs, setFavs] = useState<FavoriteProduct[] | null>(null)
   const [error, setError] = useState<Error | null>(null)
@@ -181,7 +184,7 @@ export default function FavoritesScreen() {
                         <Image source={{ uri: thumb }} style={styles.thumb} />
                       ) : (
                         <View style={styles.thumbPlaceholder}>
-                          <Ionicons name="image-outline" size={28} color={colors.g300} />
+                          <Ionicons name="image-outline" size={28} color={colors.dot} />
                         </View>
                       )}
 
@@ -250,7 +253,7 @@ export default function FavoritesScreen() {
 
 const CARD_MIN = 160
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   scroll: {
     flex: 1,
   },
@@ -262,19 +265,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.sm,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   heroIcon: {
     width: 44,
     height: 44,
     borderRadius: radius.full,
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -286,12 +289,12 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontFamily: fonts.black,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
   },
   heroSubtitle: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
   countPill: {
     minWidth: 32,
@@ -319,12 +322,12 @@ const styles = StyleSheet.create({
     maxWidth: '48%',
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     overflow: 'hidden',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   cardPressed: {
     opacity: 0.92,
@@ -334,7 +337,7 @@ const styles = StyleSheet.create({
   thumbWrap: {
     position: 'relative',
     aspectRatio: 1,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
   },
   thumb: {
     width: '100%',
@@ -345,7 +348,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.g200,
+    backgroundColor: colors.placeholder,
   },
   badge: {
     position: 'absolute',
@@ -370,12 +373,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.rl,
+    borderColor: colors.redBg,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
 
   body: {
@@ -387,35 +390,35 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   categoryChip: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   categoryChipText: {
     fontFamily: fonts.semiBold,
     fontSize: 10,
-    color: colors.g700,
+    color: colors.text,
     letterSpacing: 0.1,
   },
   title: {
     fontFamily: fonts.bold,
     fontSize: 13,
     lineHeight: 18,
-    color: colors.g900,
+    color: colors.text,
     minHeight: 36,
   },
   price: {
     fontFamily: fonts.black,
     fontSize: 17,
-    color: colors.dk,
+    color: colors.price,
     marginTop: 2,
   },
   priceUnit: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
 })

@@ -1,10 +1,12 @@
+import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { useLocale } from '@/contexts/locale'
 import type { BroRequest, BroRequestStatus, BroRequestView } from '@/lib/bro'
 import { Button } from '@/components/ui/Button'
 import { BroCountPills } from '@/components/bro/BroCountPills'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 /** One request: the card opens the request, the Offers button opens its offers list. Port of the website BroRequestCard. */
 export function BroRequestRow({
@@ -18,6 +20,8 @@ export function BroRequestRow({
   offerCount: number | null
 }) {
   const { locale, t } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const b = t.bro
   const ar = locale === 'ar'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
@@ -46,7 +50,7 @@ export function BroRequestRow({
             {r.storage ? ` · ${r.storage}` : ''}
           </Text>
           <View style={[styles.pill, searching ? styles.pillSearching : styles.pillIdle]}>
-            <Text style={[styles.pillText, { color: searching ? colors.yt : colors.g700 }]}>{statusLabel[r.status]}</Text>
+            <Text style={[styles.pillText, { color: searching ? colors.yellowText : colors.text }]}>{statusLabel[r.status]}</Text>
           </View>
         </View>
         <Text style={[styles.date, dirStyle]}>{new Date(r.createdAt).toLocaleDateString(ar ? 'ar-EG' : 'en-EG')}</Text>
@@ -67,23 +71,23 @@ export function BroRequestRow({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   row: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: spacing.sm,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   main: { gap: spacing.xs },
   rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  rowTitle: { flex: 1, fontFamily: fonts.bold, fontSize: 15, color: colors.dk },
+  rowTitle: { flex: 1, fontFamily: fonts.bold, fontSize: 15, color: colors.heading },
   pill: { borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
-  pillSearching: { backgroundColor: colors.yl },
-  pillIdle: { backgroundColor: colors.g100 },
+  pillSearching: { backgroundColor: colors.yellowBg },
+  pillIdle: { backgroundColor: colors.placeholder },
   pillText: { fontFamily: fonts.bold, fontSize: 11 },
-  date: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500 },
+  date: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   countRow: { marginTop: 4 },
 })

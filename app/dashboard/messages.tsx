@@ -18,7 +18,8 @@ import { useAuth } from '@/contexts/auth'
 import { imgUrl, type ConversationListItem } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
 import { BroAvatar, BroBadge } from '@/components/bro/BroAvatar'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -53,6 +54,7 @@ function timeLabel(iso: string, ar: boolean): string {
 }
 
 function MessageSkeletonItem() {
+  const styles = useStyles()
   return (
     <View style={styles.skelItem}>
       <Skeleton width={52} height={52} radius={16} />
@@ -77,6 +79,7 @@ interface FilterChipProps {
 }
 
 function FilterChip({ label, count, active, onPress, tone = 'default' }: FilterChipProps) {
+  const styles = useStyles()
   const isWarn = tone === 'warn' && count > 0
   return (
     <Pressable
@@ -120,6 +123,8 @@ function FilterChip({ label, count, active, onPress, tone = 'default' }: FilterC
 }
 
 export default function MessagesScreen() {
+  const { colors } = useTheme()
+  const styles = useStyles()
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
   // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
@@ -254,13 +259,13 @@ export default function MessagesScreen() {
               onPress={() => searchRef.current?.focus()}
               style={[styles.searchBox]}
             >
-              <Ionicons name="search" size={16} color={colors.g500} />
+              <Ionicons name="search" size={16} color={colors.muted} />
               <TextInput
                 ref={searchRef}
                 value={query}
                 onChangeText={setQuery}
                 placeholder={ar ? 'ابحث في المحادثات...' : 'Search conversations...'}
-                placeholderTextColor={colors.g400}
+                placeholderTextColor={colors.subtle}
                 style={[styles.searchInput, dirStyle]}
                 returnKeyType="search"
                 autoCorrect={false}
@@ -268,7 +273,7 @@ export default function MessagesScreen() {
               />
               {query.length > 0 ? (
                 <Pressable onPress={() => setQuery('')} hitSlop={8} style={styles.searchClear}>
-                  <Ionicons name="close-circle" size={18} color={colors.g400} />
+                  <Ionicons name="close-circle" size={18} color={colors.subtle} />
                 </Pressable>
               ) : null}
             </Pressable>
@@ -322,7 +327,7 @@ export default function MessagesScreen() {
         ) : counts.all === 0 ? (
           <View style={styles.emptyWrap}>
             <EmptyState
-              icon={<Ionicons name="chatbubbles-outline" size={28} color={colors.g400} />}
+              icon={<Ionicons name="chatbubbles-outline" size={28} color={colors.subtle} />}
               title={t.noConversations}
               subtitle={
                 ar
@@ -336,7 +341,7 @@ export default function MessagesScreen() {
         ) : showSearchEmpty ? (
           <View style={styles.emptyWrap}>
             <EmptyState
-              icon={<Ionicons name="search-outline" size={26} color={colors.g400} />}
+              icon={<Ionicons name="search-outline" size={26} color={colors.subtle} />}
               title={t.noResults}
               subtitle={
                 ar
@@ -457,7 +462,7 @@ export default function MessagesScreen() {
                       </View>
                     ) : (
                       <View style={[styles.generalChip]}>
-                        <Ionicons name="chatbubble-ellipses-outline" size={10} color={colors.g500} />
+                        <Ionicons name="chatbubble-ellipses-outline" size={10} color={colors.muted} />
                         <Text
                           style={[
                             styles.generalChipText,
@@ -497,7 +502,7 @@ export default function MessagesScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
   container: { flex: 1, paddingTop: spacing.md },
 
   hero: {
@@ -514,7 +519,7 @@ const styles = StyleSheet.create({
   h2: {
     fontFamily: fonts.black,
     fontSize: 22,
-    color: colors.dk,
+    color: colors.heading,
     letterSpacing: -0.3,
     flexShrink: 1,
   },
@@ -522,7 +527,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.dk,
+    backgroundColor: colors.fab,
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: radius.full,
@@ -541,7 +546,7 @@ const styles = StyleSheet.create({
   heroSub: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
 
   toolbar: {
@@ -553,9 +558,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.inputBg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md - 2,
     height: 40,
@@ -564,7 +569,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g900,
+    color: colors.text,
     paddingVertical: 0,
   },
   searchClear: {
@@ -586,22 +591,22 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: radius.full,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   chipActive: {
-    backgroundColor: colors.dk,
-    borderColor: colors.dk,
+    backgroundColor: colors.fab,
+    borderColor: colors.fab,
   },
   chipWarn: {
     borderColor: colors.y,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
   },
   chipLabel: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.g700,
+    color: colors.text,
   },
   chipLabelActive: {
     color: colors.white,
@@ -614,7 +619,7 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     paddingHorizontal: 5,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -627,7 +632,7 @@ const styles = StyleSheet.create({
   chipBadgeText: {
     fontFamily: fonts.black,
     fontSize: 10,
-    color: colors.g600,
+    color: colors.muted,
   },
   chipBadgeTextActive: {
     color: colors.white,
@@ -644,10 +649,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 2,
   },
@@ -688,19 +693,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 2,
     overflow: 'hidden',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   itemUnread: {
     borderColor: colors.y,
-    backgroundColor: colors.yl,
-    ...shadow.sm,
+    backgroundColor: colors.yellowBg,
+    ...(dark ? null : shadow.sm),
   },
   itemPressed: {
     opacity: 0.9,
@@ -722,19 +727,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarStore: {
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderColor: colors.y,
   },
   avatarUser: {
-    backgroundColor: colors.g100,
-    borderColor: colors.g300,
+    backgroundColor: colors.placeholder,
+    borderColor: colors.dot,
   },
   avatarImg: { width: '100%', height: '100%', resizeMode: 'cover' },
   avatarInitial: {
     fontFamily: fonts.black,
     fontSize: 20,
     lineHeight: 24,
-    color: colors.dk,
+    color: colors.heading,
   },
   typeBadge: {
     position: 'absolute',
@@ -745,13 +750,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: colors.white,
+    borderColor: colors.card,
   },
   typeBadgeStore: {
     backgroundColor: colors.y,
   },
   typeBadgeUser: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.fab,
   },
 
   itemBody: { flex: 1, minWidth: 0 },
@@ -765,7 +770,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   nameUnread: { fontFamily: fonts.black },
   timeWrap: {
@@ -782,7 +787,7 @@ const styles = StyleSheet.create({
   time: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g400,
+    color: colors.subtle,
   },
   timeUnread: {
     fontFamily: fonts.bold,
@@ -795,7 +800,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginTop: 4,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
     borderRadius: radius.sm,
@@ -813,7 +818,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 4,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -829,9 +834,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     marginTop: 4,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.sm,
     paddingVertical: 2,
     paddingHorizontal: 6,
@@ -839,7 +844,7 @@ const styles = StyleSheet.create({
   generalChipText: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
   },
 
   itemBottom: {
@@ -853,11 +858,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   previewUnread: {
     fontFamily: fonts.semiBold,
-    color: colors.dk,
+    color: colors.heading,
   },
   badge: {
     minWidth: 20,
@@ -874,3 +879,8 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

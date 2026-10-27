@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
   Pressable,
   StyleSheet,
@@ -12,11 +12,14 @@ import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { Button } from '@/components/ui/Button'
 import { BottomTabBar } from '@/components/BottomTabBar'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 export default function SignInRequiredScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const dirStyle = { writingDirection: isRtl ? 'rtl' as const : 'ltr' as const }
 
   const safeRedirect =
@@ -97,8 +100,8 @@ export default function SignInRequiredScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  flex: { flex: 1, backgroundColor: colors.hero },
 
   hero: {
     alignItems: 'center',
@@ -189,7 +192,7 @@ const styles = StyleSheet.create({
 
   card: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingTop: spacing.xl,
@@ -205,7 +208,7 @@ const styles = StyleSheet.create({
   cancelText: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g500,
+    color: colors.muted,
     textDecorationLine: 'underline',
   },
 })

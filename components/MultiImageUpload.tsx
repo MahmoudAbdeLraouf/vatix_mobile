@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -11,7 +11,8 @@ import {
 import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { authUploadFile } from '@/lib/auth'
 
@@ -40,6 +41,8 @@ export function MultiImageUpload({ images, onChange, style }: Props) {
   const { locale, t } = useLocale()
   const ar = locale === 'ar'
   const [error, setError] = useState('')
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const dirStyle = {
     textAlign: ar ? ('right' as const) : ('left' as const),
     writingDirection: ar ? ('rtl' as const) : ('ltr' as const),
@@ -117,7 +120,7 @@ export function MultiImageUpload({ images, onChange, style }: Props) {
           <View key={`${i}-${img.url || 'ph'}`} style={styles.tile}>
             {img.uploading ? (
               <View style={styles.tilePlaceholder}>
-                <ActivityIndicator color={colors.dk} />
+                <ActivityIndicator color={colors.heading} />
               </View>
             ) : (
               <>
@@ -195,12 +198,12 @@ export function MultiImageUpload({ images, onChange, style }: Props) {
             style={({ pressed }) => [
               styles.tile,
               styles.addTile,
-              pressed && { backgroundColor: colors.yl, borderColor: colors.y },
+              pressed && { backgroundColor: colors.yellowBg, borderColor: colors.y },
             ]}
             accessibilityRole="button"
             accessibilityLabel={ar ? 'إضافة صورة' : 'Add image'}
           >
-            <Ionicons name="camera-outline" size={24} color={colors.g400} />
+            <Ionicons name="camera-outline" size={24} color={colors.subtle} />
             <Text style={styles.addText}>{ar ? '+ إضافة' : '+ Add'}</Text>
           </Pressable>
         ) : null}
@@ -227,7 +230,7 @@ export function MultiImageUpload({ images, onChange, style }: Props) {
 
 const TILE_SIZE = 100
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -239,20 +242,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: colors.g200,
-    backgroundColor: colors.g100,
+    borderColor: colors.border,
+    backgroundColor: colors.placeholder,
     position: 'relative',
   },
   tilePlaceholder: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
   },
   addTile: {
     borderStyle: 'dashed',
-    borderColor: colors.g300,
-    backgroundColor: colors.g50,
+    borderColor: colors.dot,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
@@ -260,7 +263,7 @@ const styles = StyleSheet.create({
   addText: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   mainBadge: {
     position: 'absolute',
@@ -314,7 +317,7 @@ const styles = StyleSheet.create({
   hintText: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g400,
+    color: colors.subtle,
   },
   hintTextFlex: {
     flex: 1,

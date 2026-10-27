@@ -5,7 +5,8 @@ import { useLocale } from '@/contexts/locale'
 import { imgUrl } from '@/lib/api'
 import type { BroScratches } from '@/lib/bro'
 import type { BroIconName } from '@/components/bro/BroButton'
-import { colors, fonts, radius } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 /** Presentational pieces shared by BroMatchCard and BroOfferCard so the two cards cannot drift apart. */
 
@@ -73,15 +74,18 @@ export function useBroCardFormat(now: number) {
 
 /** Small yellow pill (price drop, source tag). `muted` gives the grey variant (e.g. "unavailable"). */
 export function BroPill({ children, muted = false }: { children: ReactNode; muted?: boolean }) {
+  const { colors, mode } = useTheme()
+  const styles = themedStyles[mode].parts
   return (
     <View style={[styles.pill, muted ? styles.pillMuted : styles.pillOn]}>
-      <Text style={[styles.pillText, { color: muted ? colors.g700 : colors.yt }]}>{children}</Text>
+      <Text style={[styles.pillText, { color: muted ? colors.text : colors.yellowText }]}>{children}</Text>
     </View>
   )
 }
 
 /** Solid yellow "cheapest" ribbon. */
 export function BroRibbon({ children }: { children: ReactNode }) {
+  const styles = useStyles()
   return (
     <View style={styles.ribbon}>
       <Text style={styles.ribbonText}>{children}</Text>
@@ -92,24 +96,28 @@ export function BroRibbon({ children }: { children: ReactNode }) {
 /** Wrapping row that holds the ribbon and tag pills at the top of a card. Renders nothing when empty. */
 export function BroTagRow({ children }: { children: ReactNode }) {
   const { rowDir } = useBroDir()
+  const styles = useStyles()
   return <View style={[styles.tagRow, rowDir]}>{children}</View>
 }
 
 /** 72x72 product thumbnail. */
 export function BroThumb({ src }: { src: string | null | undefined }) {
   const image = imgUrl(src, { w: 144 })
+  const styles = useStyles()
   return <View style={styles.thumb}>{image ? <Image source={{ uri: image }} style={styles.thumbImg} /> : null}</View>
 }
 
 /** Two-column grid of fact chips (area, scratches, box, ...). Renders nothing when empty. */
 export function BroFacts({ facts }: { facts: BroFact[] }) {
   const { dirStyle, rowDir } = useBroDir()
+  const { colors, mode } = useTheme()
+  const styles = themedStyles[mode].parts
   if (facts.length === 0) return null
   return (
     <View style={[styles.facts, rowDir]}>
       {facts.map(f => (
         <View key={f.icon} style={[styles.fact, rowDir]}>
-          <Ionicons name={f.icon} size={14} color={colors.g500} />
+          <Ionicons name={f.icon} size={14} color={colors.muted} />
           <Text style={[styles.factText, dirStyle]} numberOfLines={2}>
             {f.text}
           </Text>
@@ -123,27 +131,28 @@ export function BroFacts({ facts }: { facts: BroFact[] }) {
 export function BroSellerNote({ note }: { note: string }) {
   const { t } = useLocale()
   const { dirStyle } = useBroDir()
+  const styles = useStyles()
   return <Text style={[styles.note, dirStyle]}>{t.bro.sellerQuote.replace('{note}', note)}</Text>
 }
 
-export const cardStyles = StyleSheet.create({
+const makeCardStyles = (colors: ThemeColors) => StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   info: { flex: 1, minWidth: 0 },
-  title: { fontFamily: fonts.bold, fontSize: 14, color: colors.dk },
+  title: { fontFamily: fonts.bold, fontSize: 14, color: colors.heading },
   priceRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  price: { fontFamily: fonts.extraBold, fontSize: 16, color: colors.dk },
-  seller: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500, marginTop: 2 },
+  price: { fontFamily: fonts.extraBold, fontSize: 16, color: colors.price },
+  seller: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted, marginTop: 2 },
 })
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   pill: { borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
-  pillOn: { backgroundColor: colors.yl },
-  pillMuted: { backgroundColor: colors.g100 },
+  pillOn: { backgroundColor: colors.yellowBg },
+  pillMuted: { backgroundColor: colors.placeholder },
   pillText: { fontFamily: fonts.bold, fontSize: 12 },
   ribbon: { backgroundColor: colors.y, borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
   ribbonText: { fontFamily: fonts.extraBold, fontSize: 12, color: colors.dk },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  thumb: { width: 72, height: 72, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.g100 },
+  thumb: { width: 72, height: 72, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.placeholder },
   thumbImg: { width: 72, height: 72 },
   facts: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 6, columnGap: 6 },
   fact: {
@@ -151,19 +160,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     width: '48.5%',
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 6,
   },
-  factText: { flex: 1, fontFamily: fonts.semiBold, fontSize: 12, color: colors.g700 },
+  factText: { flex: 1, fontFamily: fonts.semiBold, fontSize: 12, color: colors.text },
   note: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g700,
-    backgroundColor: colors.g100,
+    color: colors.text,
+    backgroundColor: colors.placeholder,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
 })
+
+const themedStyles = {
+  light: { parts: makeStyles(lightColors), card: makeCardStyles(lightColors) },
+  dark: { parts: makeStyles(darkColors), card: makeCardStyles(darkColors) },
+}
+
+function useStyles() {
+  return themedStyles[useTheme().mode].parts
+}
+
+/** Layout styles shared by BroMatchCard and BroOfferCard (top row, title, price, seller). */
+export function useCardStyles() {
+  return themedStyles[useTheme().mode].card
+}

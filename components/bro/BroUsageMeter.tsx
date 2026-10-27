@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
 import { useLocale } from '@/contexts/locale'
 import type { BroUsage } from '@/lib/bro'
-import { colors, fonts, radius } from '@/constants/theme'
+import { fonts, radius, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useBroDir } from '@/components/bro/BroCardParts'
 import { BroButton } from '@/components/bro/BroButton'
 import { UpgradeModal } from '@/components/UpgradeModal'
@@ -14,6 +15,8 @@ import { UpgradeModal } from '@/components/UpgradeModal'
 export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsage; style?: StyleProp<ViewStyle>; upgrade?: boolean }) {
   const { t, locale } = useLocale()
   const [showUpgrade, setShowUpgrade] = useState(false)
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const { dirStyle, rowDir } = useBroDir()
   const b = t.bro
   const { used, cap } = usage.offers
@@ -60,15 +63,15 @@ function resetDate(iso: string, locale: string): string {
   }
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     paddingVertical: 12,
     paddingHorizontal: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
   },
   head: {
     flexDirection: 'row',
@@ -78,11 +81,11 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
   },
-  label: { fontFamily: fonts.bold, fontSize: 13, color: colors.dk },
-  count: { fontFamily: fonts.regular, fontSize: 12, color: colors.g600 },
-  track: { height: 10, backgroundColor: colors.g200, borderRadius: 99, overflow: 'hidden' },
+  label: { fontFamily: fonts.bold, fontSize: 13, color: colors.heading },
+  count: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
+  track: { height: 10, backgroundColor: colors.border, borderRadius: 99, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 99 },
   capBox: { marginTop: 12, gap: 6 },
   capTitle: { fontFamily: fonts.bold, fontSize: 14, color: '#dc2626' },
-  capBody: { fontFamily: fonts.regular, fontSize: 13, color: colors.g600, lineHeight: 20 },
+  capBody: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted, lineHeight: 20 },
 })

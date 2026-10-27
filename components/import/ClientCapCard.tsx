@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { Button } from '@/components/ui/Button'
@@ -6,7 +6,8 @@ import { UpgradeModal } from '@/components/UpgradeModal'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
 import { TRIAL_DAYS } from '@/lib/trial'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 export type ImportScreen = 'shopify' | 'easyorders' | 'excel'
 
@@ -28,6 +29,8 @@ export function buySlotsForImportHref(screen: ImportScreen) {
 // coming back from buy-slots shows the new allowance.
 export function ClientCapCard({ screen }: { screen: ImportScreen }) {
   const { t, locale } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ip = t.importProducts
   const ar = locale === 'ar'
   const dirStyle = {
@@ -128,24 +131,24 @@ export function ClientCapCard({ screen }: { screen: ImportScreen }) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   card: {
     gap: spacing.sm,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.ss,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.ss),
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: spacing.md },
-  title: { fontFamily: fonts.black, fontSize: 15, color: colors.dk },
-  remaining: { fontFamily: fonts.bold, fontSize: 13, color: colors.g600 },
+  title: { fontFamily: fonts.black, fontSize: 15, color: colors.heading },
+  remaining: { fontFamily: fonts.bold, fontSize: 13, color: colors.muted },
   // Pinned to LTR so the fill's start edge is deterministic; Arabic fills from the right via alignSelf.
-  track: { height: 10, borderRadius: radius.full, backgroundColor: colors.g200, overflow: 'hidden', direction: 'ltr' },
+  track: { height: 10, borderRadius: radius.full, backgroundColor: colors.dot, overflow: 'hidden', direction: 'ltr' },
   fill: { height: '100%', borderRadius: radius.full },
-  used: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.g700 },
-  hint: { fontFamily: fonts.regular, fontSize: 12, color: colors.g600 },
+  used: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.text },
+  hint: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   actions: { flexDirection: 'row', gap: 10, marginTop: spacing.xs },
   action: { flex: 1 },
   trialHint: { fontFamily: fonts.bold, fontSize: 11, color: colors.green },

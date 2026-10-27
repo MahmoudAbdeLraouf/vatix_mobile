@@ -52,7 +52,8 @@ import { RateAppDialog } from '@/components/RateAppDialog'
 import { BroEntryCard, useBroEnabled } from '@/components/bro/BroEntryCard'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Logo } from '@/components/ui/Logo'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { colors, darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { geekoXml, requestXml } from '@/assets/promo/art'
 import { slide2Xml } from '@/assets/onboarding/slide-2'
 import { slide3Xml } from '@/assets/onboarding/slide-3'
@@ -197,8 +198,11 @@ function openPromo(id: PromoId, user: StoredUser | null) {
 
 function PromoCard({ item, onPress }: { item: PromoSlide; onPress: () => void }) {
   const { t, isRtl } = useLocale()
+  const { isDark } = useTheme()
   const { theme } = item
   const gradientId = `promo-${item.id}`
+  // Navy slides sink into the dark page, so they get a deeper end stop and an outline.
+  const darkNavy = isDark && theme === PROMO_NAVY
   return (
     <TouchableOpacity
       activeOpacity={0.88}
@@ -206,6 +210,7 @@ function PromoCard({ item, onPress }: { item: PromoSlide; onPress: () => void })
       style={[
         promoStyles.card,
         { width: PROMO_W, direction: isRtl ? 'rtl' : 'ltr', backgroundColor: theme.from },
+        darkNavy && promoStyles.darkOutline,
       ]}
     >
       {/* Inner layer clips the rounded corners; the outer one keeps the shadow. */}
@@ -214,7 +219,7 @@ function PromoCard({ item, onPress }: { item: PromoSlide; onPress: () => void })
           <Defs>
             <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0" stopColor={theme.from} />
-              <Stop offset="1" stopColor={theme.to} />
+              <Stop offset="1" stopColor={darkNavy ? '#0F2A55' : theme.to} />
             </LinearGradient>
           </Defs>
           <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
@@ -255,6 +260,12 @@ const promoStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
+  },
+  darkOutline: {
+    borderWidth: 1,
+    borderColor: darkColors.border,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   inner: {
     flex: 1,
@@ -369,6 +380,7 @@ function PromoCarousel() {
     lastMoveRef.current = Date.now()
   }, [])
 
+  const styles = useStyles()
   return (
     <View style={styles.promoSection}>
       <ScrollView
@@ -397,6 +409,7 @@ function PromoCarousel() {
 }
 
 function PromoDots({ count, active }: { count: number; active: number }) {
+  const dotStyles = themedDotStyles[useTheme().mode]
   return (
     <View style={dotStyles.row}>
       {Array.from({ length: count }).map((_, i) => (
@@ -406,7 +419,7 @@ function PromoDots({ count, active }: { count: number; active: number }) {
   )
 }
 
-const dotStyles = StyleSheet.create({
+const makeDotStyles = (colors: ThemeColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     direction: 'ltr',
@@ -418,7 +431,7 @@ const dotStyles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.g300,
+    backgroundColor: colors.dot,
   },
   dotActive: {
     width: 18,
@@ -426,10 +439,13 @@ const dotStyles = StyleSheet.create({
   },
 })
 
+const themedDotStyles = { light: makeDotStyles(lightColors), dark: makeDotStyles(darkColors) }
+
 function BrandCard({ brand, locale, width }: { brand: Brand; locale: string; width: number }) {
   const name = localeName(brand.translations, locale as 'ar' | 'en')
   const logoUrl = imgUrl(brand.logo)
   const icon = getBrandIcon(name)
+  const brandCardStyles = themedBrandStyles[useTheme().mode]
   return (
     <TouchableOpacity
       style={[brandCardStyles.card, { width }]}
@@ -452,33 +468,38 @@ function BrandCard({ brand, locale, width }: { brand: Brand; locale: string; wid
   )
 }
 
-const brandCardStyles = StyleSheet.create({
+// The logo tile stays light in dark mode so dark brand logos stay readable.
+const makeBrandStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     alignItems: 'center',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xs,
     gap: spacing.sm,
-    ...shadow.sm,
+    ...(dark ? null : shadow.sm),
   },
   logoWrap: {
     width: 56,
     height: 56,
     borderRadius: radius.md,
-    backgroundColor: colors.g100,
+    backgroundColor: dark ? colors.g200 : colors.g100,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   logo: { width: 48, height: 48 },
-  name: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.g700, textAlign: 'center' },
+  name: { fontFamily: fonts.semiBold, fontSize: 11, color: dark ? colors.catText : colors.g700, textAlign: 'center' },
 })
+
+const themedBrandStyles = { light: makeBrandStyles(lightColors, false), dark: makeBrandStyles(darkColors, true) }
 
 function SectionHeader({ title, onMore }: { title: string; onMore?: () => void }) {
   const { t, isRtl } = useLocale()
+  const { mode, colors } = useTheme()
+  const styles = themedStyles[mode]
   return (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionTitleRow}>
@@ -491,7 +512,7 @@ function SectionHeader({ title, onMore }: { title: string; onMore?: () => void }
           <Ionicons
             name={isRtl ? 'chevron-back-outline' : 'chevron-forward-outline'}
             size={13}
-            color={colors.dk}
+            color={colors.seeAllText}
           />
         </TouchableOpacity>
       )}
@@ -508,6 +529,7 @@ function Section({
   children: React.ReactNode
   onMore?: () => void
 }) {
+  const styles = useStyles()
   return (
     <View style={styles.section}>
       <SectionHeader title={title} onMore={onMore} />
@@ -517,6 +539,7 @@ function Section({
 }
 
 function ProductRowSeparator() {
+  const styles = useStyles()
   return <View style={styles.productRowSep} />
 }
 
@@ -533,6 +556,8 @@ interface CategoryItem {
 export default function HomeScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
   const { user } = useAuth()
+  const { mode, colors } = useTheme()
+  const styles = themedStyles[mode]
 
   const [stores, setStores] = useState<Store[]>([])
   const [allStores, setAllStores] = useState<Store[]>([])
@@ -662,7 +687,7 @@ export default function HomeScreen() {
     ({ item }: { item: Product }) => (
       <ProductCard product={item} style={styles.productCardFull} />
     ),
-    [],
+    [styles],
   )
   const productKey = useCallback((p: Product) => String(p.id), [])
 
@@ -694,7 +719,7 @@ export default function HomeScreen() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.categoryIconWrap}>
-                    <Ionicons name={item.icon} size={28} color={colors.blue} />
+                    <Ionicons name={item.icon} size={28} color={colors.catIcon} />
                   </View>
                   <Text style={styles.categoryName} numberOfLines={1}>
                     {item.name}
@@ -755,6 +780,8 @@ export default function HomeScreen() {
       stores,
       featuredProducts,
       latestProducts.length,
+      styles,
+      colors,
     ],
   )
 
@@ -791,14 +818,14 @@ export default function HomeScreen() {
         </Text>
       </>
     ),
-    [t, allStores, brands, locale],
+    [t, allStores, brands, locale, styles],
   )
 
   return (
     <SafeAreaView style={[styles.safe, { direction: isRtl ? 'rtl' : 'ltr' }]} edges={['top']}>
       <View style={styles.container}>
         {loading ? (
-          <View style={[styles.center, { backgroundColor: colors.g100 }]}>
+          <View style={[styles.center, { backgroundColor: colors.bg }]}>
             <ActivityIndicator color={colors.y} size="large" />
           </View>
         ) : (
@@ -826,19 +853,19 @@ export default function HomeScreen() {
               </View>
               <View style={styles.heroSearchRow}>
                 <View style={styles.heroSearchBar}>
-                  <Ionicons name="search-outline" size={20} color={colors.g500} />
+                  <Ionicons name="search-outline" size={20} color={colors.muted} />
                   <TextInput
                     style={[styles.searchInput, { textAlign: 'auto' }]}
                     value={search}
                     onChangeText={setSearch}
                     placeholder={t.search}
-                    placeholderTextColor={colors.g400}
+                    placeholderTextColor={colors.subtle}
                     returnKeyType="search"
                     onSubmitEditing={submitSearch}
                   />
                   {search.length > 0 && (
                     <TouchableOpacity onPress={() => setSearch('')}>
-                      <Ionicons name="close-circle" size={18} color={colors.g400} />
+                      <Ionicons name="close-circle" size={18} color={colors.subtle} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -890,12 +917,12 @@ export default function HomeScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.hero },
   container: { flex: 1 },
   content: {
     flex: 1,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     overflow: 'hidden',
@@ -905,7 +932,7 @@ const styles = StyleSheet.create({
   },
 
   hero: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
@@ -922,7 +949,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.searchBg,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     height: 44,
@@ -959,7 +986,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g900,
+    color: colors.text,
   },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -988,14 +1015,14 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: radius.lg,
-    backgroundColor: colors.bl,
+    backgroundColor: colors.catBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryName: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.dk,
+    color: colors.catText,
     textAlign: 'center',
   },
 
@@ -1021,13 +1048,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: fonts.bold,
     fontSize: 16,
-    color: colors.g900,
+    color: colors.text,
   },
   seeAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.seeAllBg,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radius.full,
@@ -1035,7 +1062,7 @@ const styles = StyleSheet.create({
   seeAll: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.seeAllText,
   },
 
   hList: {
@@ -1069,7 +1096,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g500,
+    color: colors.muted,
   },
   brandsGrid: {
     flexDirection: 'row',
@@ -1083,9 +1110,15 @@ const styles = StyleSheet.create({
   },
   versionText: {
     textAlign: 'center',
-    color: colors.g400,
+    color: colors.subtle,
     fontFamily: fonts.regular,
     fontSize: 12,
     paddingVertical: spacing.lg,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }
+
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

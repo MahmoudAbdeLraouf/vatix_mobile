@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ScrollView,
   View,
@@ -14,7 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
 import { getSiteSettings, type SiteSettings } from '@/lib/api'
 import { authErrorMessage } from '@/lib/auth'
-import { colors, fonts, spacing, radius, shadow } from '@/constants/theme'
+import { fonts, spacing, radius, shadow, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
@@ -36,6 +37,8 @@ interface Method {
 
 export default function ContactScreen() {
   const { locale, t } = useLocale()
+  const { colors, isDark } = useTheme()
+  const s = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ar = locale === 'ar'
 
   const [settings, setSettings] = useState<SiteSettings | null>(null)
@@ -66,9 +69,9 @@ export default function ContactScreen() {
       value: email,
       href: `mailto:${email}`,
       sub: ar ? 'رد خلال ٢٤ ساعة' : 'Reply within 24h',
-      color: '#B45309',
-      bg: '#FFFBEB',
-      border: '#FDE68A',
+      color: isDark ? colors.y : '#B45309',
+      bg: isDark ? colors.yellowBg : '#FFFBEB',
+      border: isDark ? 'rgba(245,184,0,0.35)' : '#FDE68A',
     })
   }
   if (phone) {
@@ -79,9 +82,9 @@ export default function ContactScreen() {
       value: phone,
       href: `tel:${phone}`,
       sub: ar ? 'من ٩ صباحاً - ٦ مساءً' : '9 AM - 6 PM',
-      color: '#1D4ED8',
-      bg: '#EFF6FF',
-      border: '#BFDBFE',
+      color: isDark ? '#7FB0FF' : '#1D4ED8',
+      bg: isDark ? colors.blueBg : '#EFF6FF',
+      border: isDark ? 'rgba(127,176,255,0.35)' : '#BFDBFE',
     })
   }
   if (whatsapp) {
@@ -93,9 +96,9 @@ export default function ContactScreen() {
       value: whatsapp,
       href: `https://wa.me/${digits}`,
       sub: ar ? 'رد فوري' : 'Instant reply',
-      color: '#047857',
-      bg: '#ECFDF5',
-      border: '#A7F3D0',
+      color: isDark ? '#34D399' : '#047857',
+      bg: isDark ? colors.greenBg : '#ECFDF5',
+      border: isDark ? 'rgba(52,211,153,0.35)' : '#A7F3D0',
     })
   }
   if (twitter) {
@@ -106,9 +109,9 @@ export default function ContactScreen() {
       value: twitter.startsWith('http') ? twitter.replace(/^https?:\/\//, '') : twitter,
       href: twitter.startsWith('http') ? twitter : `https://x.com/${twitter.replace(/^@/, '')}`,
       sub: ar ? 'آخر الأخبار' : 'Latest news',
-      color: colors.dk,
-      bg: colors.g100,
-      border: colors.g300,
+      color: colors.heading,
+      bg: colors.placeholder,
+      border: colors.dot,
     })
   }
 
@@ -174,9 +177,9 @@ export default function ContactScreen() {
         options={{
           headerShown: true,
           title: ar ? 'تواصل معنا' : 'Contact',
-          headerStyle: { backgroundColor: colors.white },
-          headerTitleStyle: { fontFamily: fonts.black, color: colors.dk },
-          headerTintColor: colors.dk,
+          headerStyle: { backgroundColor: colors.card },
+          headerTitleStyle: { fontFamily: fonts.black, color: colors.heading },
+          headerTintColor: colors.heading,
         }}
       />
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
@@ -310,7 +313,7 @@ export default function ContactScreen() {
                     placeholder={
                       ar ? 'اكتب رسالتك هنا...' : 'Write your message here...'
                     }
-                    placeholderTextColor={colors.g400}
+                    placeholderTextColor={colors.subtle}
                     textAlignVertical="top"
                     style={[
                       s.textarea,
@@ -348,7 +351,7 @@ export default function ContactScreen() {
 
         {!settings && (
           <View style={s.loaderBar}>
-            <ActivityIndicator color={colors.dk} />
+            <ActivityIndicator color={colors.heading} />
           </View>
         )}
       </ScrollView>
@@ -356,11 +359,11 @@ export default function ContactScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   scroll: { paddingBottom: spacing.xl },
   hero: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingVertical: 44,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
@@ -412,7 +415,7 @@ const s = StyleSheet.create({
   methodSub: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
     marginTop: 6,
     textAlign: 'center',
   },
@@ -426,32 +429,32 @@ const s = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.g300,
+    backgroundColor: colors.dot,
   },
   dividerText: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
   formCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
     marginHorizontal: spacing.md,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   formTitle: {
     fontFamily: fonts.black,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md,
   },
   fieldLabel: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: 6,
   },
   chipRow: {
@@ -464,17 +467,17 @@ const s = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: radius.full,
     borderWidth: 1.5,
-    borderColor: colors.g300,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   chipActive: {
-    borderColor: colors.dk,
-    backgroundColor: colors.dk,
+    borderColor: colors.fab,
+    backgroundColor: colors.fab,
   },
   chipText: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.g700,
+    color: colors.text,
   },
   chipTextActive: {
     color: colors.white,
@@ -482,18 +485,18 @@ const s = StyleSheet.create({
   textarea: {
     minHeight: 130,
     borderWidth: 1.5,
-    borderColor: colors.g300,
+    borderColor: colors.border,
     borderRadius: radius.md,
     padding: spacing.md,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.dk,
-    backgroundColor: colors.white,
+    color: colors.heading,
+    backgroundColor: colors.inputBg,
   },
   counter: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     marginTop: 4,
   },
   errorText: {
@@ -510,14 +513,14 @@ const s = StyleSheet.create({
   successTitle: {
     fontFamily: fonts.black,
     fontSize: 20,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
     textAlign: 'center',
   },
   successBody: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 22,
   },

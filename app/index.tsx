@@ -3,12 +3,13 @@ import { Redirect } from 'expo-router'
 import { ActivityIndicator, View } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import { useAuth } from '@/contexts/auth'
-import { colors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const ONBOARDED_KEY = 'vatix_onboarded'
 
 export default function Index() {
   const { loading } = useAuth()
+  const { colors } = useTheme()
   const [onboarded, setOnboarded] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -17,7 +18,7 @@ export default function Index() {
 
   if (loading || onboarded === null) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
         <ActivityIndicator color={colors.y} size="large" />
       </View>
     )

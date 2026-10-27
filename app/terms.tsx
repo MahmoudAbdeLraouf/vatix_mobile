@@ -1,8 +1,10 @@
+import { useMemo } from 'react'
 import { ScrollView, View, Text, StyleSheet } from 'react-native'
 import { Stack } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts, spacing, radius, shadow } from '@/constants/theme'
+import { fonts, spacing, radius, shadow, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 interface Section {
   t: string
@@ -67,6 +69,8 @@ export default function TermsScreen() {
   const { locale } = useLocale()
   const ar = locale === 'ar'
   const sections = ar ? SECTIONS_AR : SECTIONS_EN
+  const { colors, isDark } = useTheme()
+  const s = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   return (
     <SafeAreaView style={s.safe} edges={['bottom']}>
@@ -74,9 +78,9 @@ export default function TermsScreen() {
         options={{
           headerShown: true,
           title: ar ? 'الشروط والأحكام' : 'Terms',
-          headerStyle: { backgroundColor: colors.white },
-          headerTitleStyle: { fontFamily: fonts.black, color: colors.dk },
-          headerTintColor: colors.dk,
+          headerStyle: { backgroundColor: colors.card },
+          headerTitleStyle: { fontFamily: fonts.black, color: colors.heading },
+          headerTintColor: colors.heading,
         }}
       />
       <ScrollView contentContainerStyle={s.scroll}>
@@ -113,11 +117,11 @@ function toArDigits(n: number): string {
     .join('')
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   scroll: { paddingBottom: spacing.xl },
   hero: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingVertical: 40,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
@@ -140,12 +144,12 @@ const s = StyleSheet.create({
     gap: spacing.sm,
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   head: {
     flexDirection: 'row',
@@ -170,12 +174,12 @@ const s = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.extraBold,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
   },
   body: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 26,
   },
 })

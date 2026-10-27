@@ -13,12 +13,13 @@ import { BroAvatar } from '@/components/bro/BroAvatar'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
+import { useTheme } from '@/contexts/theme'
 import { authFetch } from '@/lib/auth'
 import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { getStorePromotionOffer } from '@/lib/api'
 import type { PendingUpgradeRequest, Product, PromoInfo, StorePromotionOffer, UserProfile, WalletBalance } from '@/lib/api'
 import { bumpEngagement, markRated } from '@/lib/rate-app-engagement'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 
 type IconName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -72,6 +73,8 @@ async function rateApp() {
 
 export default function MoreScreen() {
   const { t, locale, setLocale } = useLocale()
+  const { isDark, setMode, colors, mode } = useTheme()
+  const styles = themedStyles[mode]
   const { user, isAuthenticated, loading, logout } = useAuth()
   const ar = locale === 'ar'
   const broEnabled = useBroEnabled()
@@ -172,6 +175,8 @@ export default function MoreScreen() {
   if (loading) return null
 
   const toggleLocale = () => setLocale(locale === 'ar' ? 'en' : 'ar')
+  const toggleTheme = () => void setMode(isDark ? 'light' : 'dark')
+  const themeTrailing = isDark ? (ar ? 'مفعّل' : 'On') : (ar ? 'متوقف' : 'Off')
   const rowProps = { ar, rowDir, colDir, dirStyle }
   const scrollPad = { paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + 120 }
 
@@ -251,6 +256,13 @@ export default function MoreScreen() {
                 />
                 <MoreRow
                   {...rowProps}
+                  icon="moon-outline"
+                  label={t.darkMode}
+                  trailing={themeTrailing}
+                  onPress={toggleTheme}
+                />
+                <MoreRow
+                  {...rowProps}
                   icon="star-outline"
                   label={ar ? 'قيّم التطبيق' : 'Rate the app'}
                   onPress={() => void rateApp()}
@@ -304,7 +316,7 @@ export default function MoreScreen() {
           <View style={[styles.headerBtns, rowDir]}>
             {langButton}
             <View style={styles.roundBtn}>
-              <NotificationBell color={colors.dk} />
+              <NotificationBell color={colors.heading} />
             </View>
           </View>
         </View>
@@ -341,7 +353,7 @@ export default function MoreScreen() {
             accessibilityRole="button"
           >
             <View style={[styles.bannerText, colDir]}>
-              <Text style={[styles.bannerTitle, { color: colors.dk }, dirStyle]}>
+              <Text style={[styles.bannerTitle, { color: colors.heading }, dirStyle]}>
                 {promotedUntil
                   ? ar
                     ? `🚀 متجرك مروّج حتى ${formatPromoDate(promotedUntil, locale)}`
@@ -351,10 +363,10 @@ export default function MoreScreen() {
                     : '🚀 Promote your store and appear first'}
               </Text>
               {!!promoPriceLine && (
-                <Text style={[styles.bannerSub, { color: colors.yt }, dirStyle]}>{promoPriceLine}</Text>
+                <Text style={[styles.bannerSub, { color: colors.yellowText }, dirStyle]}>{promoPriceLine}</Text>
               )}
             </View>
-            <View style={[styles.bannerCta, { backgroundColor: colors.dk }]}>
+            <View style={[styles.bannerCta, { backgroundColor: colors.fab }]}>
               <Text style={[styles.bannerCtaText, { color: colors.y }]}>
                 {promotedUntil ? (ar ? 'تمديد الترويج' : 'Extend promotion') : ar ? 'روّج متجرك الآن' : 'Promote my store'}
               </Text>
@@ -403,8 +415,8 @@ export default function MoreScreen() {
               <Text style={{ fontSize: 16 }}>⏳</Text>
             </View>
             <View style={[styles.noticeText, colDir]}>
-              <Text style={[styles.noticeTitle, { color: colors.dk }, dirStyle]}>{t.pendingUpgradeTitle}</Text>
-              <Text style={[styles.noticeSub, { color: colors.dk, opacity: 0.8 }, dirStyle]}>
+              <Text style={[styles.noticeTitle, { color: colors.heading }, dirStyle]}>{t.pendingUpgradeTitle}</Text>
+              <Text style={[styles.noticeSub, { color: colors.heading, opacity: 0.8 }, dirStyle]}>
                 {t.pendingUpgradeSubtitle}
               </Text>
             </View>
@@ -505,8 +517,8 @@ export default function MoreScreen() {
                 : `Language · Password · Email alerts · Rate the app${IS_IOS ? ' · Restore purchases' : ''} · Delete account`
             }
             onPress={() => router.push('/dashboard/settings')}
-            last
           />
+          <MoreRow {...rowProps} icon="moon-outline" label={t.darkMode} trailing={themeTrailing} onPress={toggleTheme} last />
         </Section>
 
         <View style={[styles.group, { marginTop: spacing.lg }]}>
@@ -532,6 +544,7 @@ export default function MoreScreen() {
 type DirProps = ReturnType<typeof useDir>
 
 function Section({ title, dirStyle, children }: { title: string; dirStyle: DirProps['dirStyle']; children: React.ReactNode }) {
+  const styles = useStyles()
   return (
     <View style={styles.section}>
       <Text style={[styles.sectionTitle, dirStyle]}>{title}</Text>
@@ -564,21 +577,23 @@ function MoreRow({
   last?: boolean
   onPress: () => void
 }) {
+  const { colors } = useTheme()
+  const styles = useStyles()
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      style={({ pressed }) => [styles.row, rowDir, !last && styles.rowDivider, pressed && { backgroundColor: colors.g50 }]}
+      style={({ pressed }) => [styles.row, rowDir, !last && styles.rowDivider, pressed && { backgroundColor: colors.pressed }]}
     >
-      <View style={[styles.rowIcon, danger && { backgroundColor: colors.rl }]}>
-        {iconNode ?? <Ionicons name={icon ?? 'ellipse-outline'} size={19} color={danger ? colors.red : colors.dk} />}
+      <View style={[styles.rowIcon, danger && { backgroundColor: colors.redBg }]}>
+        {iconNode ?? <Ionicons name={icon ?? 'ellipse-outline'} size={19} color={danger ? colors.red : colors.heading} />}
       </View>
       <View style={[styles.rowText, colDir]}>
         <Text style={[styles.rowLabel, danger && { color: colors.red }, dirStyle]}>{label}</Text>
         {!!sub && <Text style={[styles.rowSub, dirStyle]} numberOfLines={2}>{sub}</Text>}
       </View>
       {!!trailing && <Text style={styles.rowTrailing}>{trailing}</Text>}
-      {!danger && <Ionicons name={ar ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.g400} />}
+      {!danger && <Ionicons name={ar ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.subtle} />}
     </Pressable>
   )
 }
@@ -600,6 +615,8 @@ function QuickCard({
   dirStyle: DirProps['dirStyle']
   onPress: () => void
 }) {
+  const { colors } = useTheme()
+  const styles = useStyles()
   return (
     <Pressable
       onPress={onPress}
@@ -607,7 +624,7 @@ function QuickCard({
       style={({ pressed }) => [styles.quickCard, colDir, pressed && { opacity: 0.85 }]}
     >
       <View style={styles.quickIcon}>
-        <Ionicons name={icon} size={20} color={colors.dk} />
+        <Ionicons name={icon} size={20} color={colors.heading} />
         {!!badge && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
@@ -620,38 +637,38 @@ function QuickCard({
   )
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: spacing.md, gap: spacing.md },
 
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   avatarClient: { backgroundColor: colors.y },
-  avatarStore: { backgroundColor: colors.dk },
+  avatarStore: { backgroundColor: colors.fab },
   avatarText: { fontFamily: fonts.black, fontSize: 22 },
   headerText: { flex: 1, gap: 2 },
-  name: { fontFamily: fonts.extraBold, fontSize: 18, color: colors.dk },
-  phone: { fontFamily: fonts.regular, fontSize: 13, color: colors.g500 },
+  name: { fontFamily: fonts.extraBold, fontSize: 18, color: colors.heading },
+  phone: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted },
   chipRow: { flexDirection: 'row', marginTop: 4 },
   chip: { paddingHorizontal: 10, paddingVertical: 2, borderRadius: radius.full },
-  chipClient: { backgroundColor: colors.yl },
-  chipStore: { backgroundColor: 'rgba(6,43,91,0.08)' },
-  chipText: { fontFamily: fonts.bold, fontSize: 12, color: colors.dk },
+  chipClient: { backgroundColor: colors.yellowBg },
+  chipStore: { backgroundColor: dark ? 'rgba(255,255,255,0.08)' : 'rgba(6,43,91,0.08)' },
+  chipText: { fontFamily: fonts.bold, fontSize: 12, color: colors.heading },
   headerBtns: { flexDirection: 'row', gap: spacing.sm },
   roundBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadow.ss,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
   },
-  langText: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.dk },
+  langText: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.heading },
 
   banner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: spacing.md, borderRadius: radius.lg },
-  bannerNavy: { backgroundColor: colors.dk },
-  bannerGold: { backgroundColor: colors.yl, borderWidth: 1.5, borderColor: colors.y },
+  bannerNavy: { backgroundColor: colors.hero, ...(dark ? { borderWidth: 1, borderColor: colors.border } : null) },
+  bannerGold: { backgroundColor: colors.yellowBg, borderWidth: 1.5, borderColor: colors.y },
   bannerText: { flex: 1, gap: 4 },
   bannerTitle: { fontFamily: fonts.extraBold, fontSize: 15 },
   bannerSub: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 18 },
@@ -661,22 +678,22 @@ const styles = StyleSheet.create({
   quickRow: { flexDirection: 'row', gap: 12 },
   quickCard: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.md,
     gap: 6,
-    ...shadow.ss,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
   },
   quickIcon: {
     width: 38,
     height: 38,
     borderRadius: radius.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickLabel: { fontFamily: fonts.bold, fontSize: 14, color: colors.dk },
-  quickValue: { fontFamily: fonts.black, fontSize: 20, color: colors.dk },
+  quickLabel: { fontFamily: fonts.bold, fontSize: 14, color: colors.heading },
+  quickValue: { fontFamily: fonts.black, fontSize: 20, color: colors.heading },
   badge: {
     position: 'absolute',
     top: -6,
@@ -693,67 +710,77 @@ const styles = StyleSheet.create({
 
   notice: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.lg },
   noticeInstapay: { backgroundColor: '#7c4a00' },
-  noticeUpgrade: { backgroundColor: colors.yl, borderWidth: 1.5, borderColor: colors.y },
+  noticeUpgrade: { backgroundColor: colors.yellowBg, borderWidth: 1.5, borderColor: colors.y },
   noticeIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   noticeText: { flex: 1, gap: 2 },
   noticeTitle: { fontFamily: fonts.black, fontSize: 14 },
   noticeSub: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 18 },
 
   section: { gap: spacing.sm },
-  sectionTitle: { fontFamily: fonts.extraBold, fontSize: 13, color: colors.g500, paddingHorizontal: 4 },
-  group: { backgroundColor: colors.white, borderRadius: radius.lg, overflow: 'hidden', ...shadow.ss },
+  sectionTitle: { fontFamily: fonts.extraBold, fontSize: 13, color: colors.muted, paddingHorizontal: 4 },
+  group: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
+  },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
-  rowDivider: { borderBottomWidth: 1, borderBottomColor: colors.g100 },
+  rowDivider: { borderBottomWidth: 1, borderBottomColor: dark ? colors.border : colors.g100 },
   rowIcon: {
     width: 34,
     height: 34,
     borderRadius: radius.sm,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   rowText: { flex: 1, gap: 2 },
-  rowLabel: { fontFamily: fonts.bold, fontSize: 15, color: colors.dk },
-  rowSub: { fontFamily: fonts.regular, fontSize: 11, color: colors.g500, lineHeight: 16 },
-  rowTrailing: { fontFamily: fonts.bold, fontSize: 13, color: colors.g500 },
+  rowLabel: { fontFamily: fonts.bold, fontSize: 15, color: colors.heading },
+  rowSub: { fontFamily: fonts.regular, fontSize: 11, color: colors.muted, lineHeight: 16 },
+  rowTrailing: { fontFamily: fonts.bold, fontSize: 13, color: colors.muted },
 
-  version: { fontFamily: fonts.regular, fontSize: 12, color: colors.g400, textAlign: 'center', marginTop: spacing.sm },
+  version: { fontFamily: fonts.regular, fontSize: 12, color: colors.subtle, textAlign: 'center', marginTop: spacing.sm },
 
   guestTop: { flexDirection: 'row' },
   loginCard: {
     marginTop: spacing.xl,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.xl,
     padding: spacing.lg,
     alignItems: 'center',
     gap: spacing.sm,
-    ...shadow.sm,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.sm),
   },
-  loginTitle: { fontFamily: fonts.extraBold, fontSize: 18, color: colors.dk, textAlign: 'center' },
-  loginSub: { fontFamily: fonts.regular, fontSize: 13, color: colors.g500, textAlign: 'center', lineHeight: 20 },
+  loginTitle: { fontFamily: fonts.extraBold, fontSize: 18, color: colors.heading, textAlign: 'center' },
+  loginSub: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted, textAlign: 'center', lineHeight: 20 },
   loginBtns: { flexDirection: 'row', gap: spacing.sm, alignSelf: 'stretch', marginTop: spacing.sm },
   btnPrimary: { flex: 1, backgroundColor: colors.y, borderRadius: radius.md, paddingVertical: 12, alignItems: 'center' },
   btnPrimaryText: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.dk },
   btnOutline: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: colors.dk,
+    borderColor: colors.heading,
     borderRadius: radius.md,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  btnOutlineText: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.dk },
+  btnOutlineText: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.heading },
 
-  backdrop: { flex: 1, backgroundColor: 'rgba(6,20,40,0.45)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
   },
-  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.g300, marginBottom: spacing.sm },
-  sheetTitle: { fontFamily: fonts.extraBold, fontSize: 18, color: colors.dk, marginBottom: spacing.xs },
+  grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.dot, marginBottom: spacing.sm },
+  sheetTitle: { fontFamily: fonts.extraBold, fontSize: 18, color: colors.heading, marginBottom: spacing.xs },
 })
+
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

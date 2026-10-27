@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -11,7 +11,8 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/Button'
 import { SkeletonCard } from '@/components/ui/Skeleton'
-import { colors, fonts, spacing } from '@/constants/theme'
+import { fonts, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 // Each request's matches cost one call, so only the newest requests are scanned.
 const SCAN_ROWS = 20
@@ -19,6 +20,8 @@ const SCAN_ROWS = 20
 /** Every device Bro found, across the buyer's requests, grouped by request (newest first). */
 export default function BroFindsTab() {
   const { locale, t } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const b = t.bro
   const ar = locale === 'ar'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
@@ -190,15 +193,15 @@ export default function BroFindsTab() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  h1: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.dk },
-  sub: { fontFamily: fonts.regular, fontSize: 13, color: colors.g500 },
+  h1: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.heading },
+  sub: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   groupHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  groupTitle: { flex: 1, fontFamily: fonts.extraBold, fontSize: 15, color: colors.dk },
-  groupLink: { fontFamily: fonts.bold, fontSize: 20, color: colors.g500 },
+  groupTitle: { flex: 1, fontFamily: fonts.extraBold, fontSize: 15, color: colors.heading },
+  groupLink: { fontFamily: fonts.bold, fontSize: 20, color: colors.muted },
   err: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red },
 })

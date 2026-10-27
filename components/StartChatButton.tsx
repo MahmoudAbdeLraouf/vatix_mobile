@@ -14,7 +14,8 @@ import { useLoginGate } from '@/contexts/loginGate'
 import { authErrorMessage, authPost } from '@/lib/auth'
 import { ConversationListItem } from '@/lib/api'
 import { track } from '@/lib/analytics'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { colors, darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 interface StartChatButtonProps {
   recipientId: number
@@ -34,6 +35,7 @@ export function StartChatButton({
   const { t } = useLocale()
   const { requireLogin } = useLoginGate()
   const [loading, setLoading] = useState(false)
+  const styles = themedStyles[useTheme().mode]
 
   const start = async () => {
     if (!requireLogin()) return
@@ -90,12 +92,12 @@ export function StartChatButton({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.dk,
+    backgroundColor: colors.fab,
     borderRadius: radius.lg,
     paddingVertical: 14,
     paddingHorizontal: spacing.md,
@@ -115,3 +117,5 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }

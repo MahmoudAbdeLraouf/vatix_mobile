@@ -41,7 +41,8 @@ import { MessagesBell } from '@/components/MessagesBell'
 import { CategoryBar } from '@/components/CategoryBar'
 import { FilterCombobox, ComboOption } from '@/components/FilterCombobox'
 import { trackSearch } from '@/lib/analytics'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { SkeletonProductRow } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { BroEntryCard } from '@/components/bro/BroEntryCard'
@@ -79,6 +80,8 @@ function queryKey(
 
 export default function ProductsScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const params = useLocalSearchParams<{ categoryId?: string; brandId?: string; search?: string }>()
 
   const [products, setProducts] = useState<Product[]>([])
@@ -270,7 +273,7 @@ export default function ProductsScreen() {
           </View>
         )
       },
-    [cellLayouts],
+    [cellLayouts, styles],
   )
 
   const handleScroll = useCallback(
@@ -466,7 +469,7 @@ export default function ProductsScreen() {
               <Text style={styles.activeChipText} numberOfLines={1}>
                 {localeName(activeBrand.translations, locale)}
               </Text>
-              <Ionicons name="close" size={13} color={colors.dk} />
+              <Ionicons name="close" size={13} color={colors.heading} />
             </TouchableOpacity>
           )}
           {activeLocation && (
@@ -478,7 +481,7 @@ export default function ProductsScreen() {
               <Text style={styles.activeChipText} numberOfLines={1}>
                 {localeName(activeLocation.translations, locale)}
               </Text>
-              <Ionicons name="close" size={13} color={colors.dk} />
+              <Ionicons name="close" size={13} color={colors.heading} />
             </TouchableOpacity>
           )}
           {minPrice ? (
@@ -490,7 +493,7 @@ export default function ProductsScreen() {
               <Text style={styles.activeChipText}>
                 {t.from}: {Number(minPrice).toLocaleString()}
               </Text>
-              <Ionicons name="close" size={13} color={colors.dk} />
+              <Ionicons name="close" size={13} color={colors.heading} />
             </TouchableOpacity>
           ) : null}
           {maxPrice ? (
@@ -502,7 +505,7 @@ export default function ProductsScreen() {
               <Text style={styles.activeChipText}>
                 {t.to}: {Number(maxPrice).toLocaleString()}
               </Text>
-              <Ionicons name="close" size={13} color={colors.dk} />
+              <Ionicons name="close" size={13} color={colors.heading} />
             </TouchableOpacity>
           ) : null}
         </ScrollView>
@@ -512,7 +515,7 @@ export default function ProductsScreen() {
       <View style={styles.filterCard}>
         <View style={styles.filterCardHeader}>
           <View style={styles.filterTitleRow}>
-            <Ionicons name="options-outline" size={16} color={colors.dk} />
+            <Ionicons name="options-outline" size={16} color={colors.heading} />
             <Text style={styles.filterTitle}>{filtersLabel}</Text>
             {activeFilterCount > 0 && (
               <View style={styles.filterCountPill}>
@@ -527,7 +530,7 @@ export default function ProductsScreen() {
               activeOpacity={0.7}
               hitSlop={6}
             >
-              <Ionicons name="refresh-outline" size={13} color={colors.g600} />
+              <Ionicons name="refresh-outline" size={13} color={colors.muted} />
               <Text style={styles.resetBtnText}>{resetLabel}</Text>
             </TouchableOpacity>
           )}
@@ -560,7 +563,7 @@ export default function ProductsScreen() {
               onChangeText={setMinPrice}
               keyboardType="numeric"
               placeholder={t.from}
-              placeholderTextColor={colors.g400}
+              placeholderTextColor={colors.subtle}
               textAlign="center"
             />
           </View>
@@ -571,7 +574,7 @@ export default function ProductsScreen() {
               onChangeText={setMaxPrice}
               keyboardType="numeric"
               placeholder={t.to}
-              placeholderTextColor={colors.g400}
+              placeholderTextColor={colors.subtle}
               textAlign="center"
             />
           </View>
@@ -601,6 +604,8 @@ export default function ProductsScreen() {
     locale,
     spotlightStores,
     isRtl,
+    styles,
+    colors,
   ])
 
   return (
@@ -630,17 +635,17 @@ export default function ProductsScreen() {
         </View>
 
         <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color={colors.g500} />
+          <Ionicons name="search-outline" size={18} color={colors.muted} />
           <TextInput
             style={[styles.searchInput, { textAlign: 'auto' }]}
             value={search}
             onChangeText={setSearch}
             placeholder={t.search}
-            placeholderTextColor={colors.g400}
+            placeholderTextColor={colors.subtle}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color={colors.g400} />
+              <Ionicons name="close-circle" size={18} color={colors.subtle} />
             </TouchableOpacity>
           )}
         </View>
@@ -752,11 +757,11 @@ export default function ProductsScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.hero },
   content: {
     flex: 1,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     overflow: 'hidden',
@@ -764,7 +769,7 @@ const styles = StyleSheet.create({
 
   // ── Header ──────────────────────────────────────────────────────────
   header: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
@@ -797,7 +802,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.searchBg,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     height: 46,
@@ -806,7 +811,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g900,
+    color: colors.text,
   },
 
   // ── List header (hero + filters) ────────────────────────────────────
@@ -815,7 +820,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
   },
   bounceTop: {
     position: 'absolute',
@@ -823,7 +828,7 @@ const styles = StyleSheet.create({
     height: 1000,
     left: -spacing.lg,
     right: -spacing.lg,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
   },
 
   // Hero block — mirrors the website's dark→light transition band.
@@ -835,7 +840,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.black,
     fontSize: 24,
     lineHeight: 30,
-    color: colors.dk,
+    color: colors.heading,
     letterSpacing: -0.3,
   },
   heroMetaRow: {
@@ -880,24 +885,24 @@ const styles = StyleSheet.create({
     paddingEnd: spacing.sm,
     paddingVertical: 6,
     borderRadius: radius.full,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
   },
   activeChipText: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.yd,
+    color: dark ? colors.yellowText : colors.yd,
     flexShrink: 1,
   },
 
   // ── Filters card ────────────────────────────────────────────────────
   filterCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.sm,
-    ...shadow.ss,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
   },
   filterCardHeader: {
     flexDirection: 'row',
@@ -913,7 +918,7 @@ const styles = StyleSheet.create({
   filterTitle: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.g900,
+    color: colors.text,
   },
   filterCountPill: {
     minWidth: 20,
@@ -937,12 +942,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 5,
     borderRadius: radius.full,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
   },
   resetBtnText: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
   filterRow: {
     flexDirection: 'row',
@@ -966,7 +971,7 @@ const styles = StyleSheet.create({
   },
   cell: {
     paddingBottom: spacing.md,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -975,7 +980,7 @@ const styles = StyleSheet.create({
   },
   footerWrap: {
     flexGrow: 1,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
   },
   footer: {
     gap: spacing.md,
@@ -987,19 +992,19 @@ const styles = StyleSheet.create({
     height: 1000,
     left: -spacing.lg,
     right: -spacing.lg,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
   },
 
   // Height/border/radius mirror FilterCombobox.chip so min/max match the dropdowns.
   priceInput: {
     height: 42,
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.inputBg,
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g900,
+    color: colors.text,
     paddingHorizontal: spacing.sm,
   },
 
@@ -1024,13 +1029,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.extraBold,
     fontSize: 15,
-    color: colors.g900,
+    color: colors.text,
     letterSpacing: 0.1,
   },
   railLink: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
   },
   railList: {
     paddingHorizontal: spacing.lg,
@@ -1040,15 +1045,15 @@ const styles = StyleSheet.create({
     width: 170,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     overflow: 'hidden',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   spotCover: {
     position: 'relative',
     height: 90,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
   },
   spotCoverImg: {
     width: '100%',
@@ -1110,7 +1115,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 12,
     lineHeight: 15,
-    color: colors.dk,
+    color: colors.heading,
     minHeight: 30,
   },
 })

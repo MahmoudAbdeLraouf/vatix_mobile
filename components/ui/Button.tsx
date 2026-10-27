@@ -8,13 +8,14 @@ import {
   View,
   ViewStyle,
 } from 'react-native'
-import { colors, fonts, shadow } from '@/constants/theme'
+import { darkColors, fonts, lightColors, shadow, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 // Mirrors website .btn-* classes in vatix_website/app/globals.css
 // - y      → .btn-y      (yellow bg, navy text)
 // - dk     → .btn-dk     (navy bg, white text)
-// - outline→ .btn-out    (white bg, navy text, g300 border)
-// - ghost  → translucent, for use over dark backgrounds
+// - outline→ .btn-out    (card bg, heading text, border)
+// - ghost  → translucent, heading text
 // - red    → .btn-red    (red-light bg, red text + border)
 // - cta    → .btn-cta    (yellow with drop-shadow, extra bold)
 // `primary` kept as alias for `y` for backward compat.
@@ -60,8 +61,9 @@ export function Button({
   const v = resolveVariant(variant)
   const s = SIZE_MAP[size]
 
-  const variantStyle = VARIANT_STYLES[v]
-  const labelColor = VARIANT_LABEL_COLOR[v]
+  const { mode } = useTheme()
+  const variantStyle = THEMED_VARIANTS[mode].styles[v]
+  const labelColor = THEMED_VARIANTS[mode].labels[v]
 
   return (
     <Pressable
@@ -105,38 +107,43 @@ export function Button({
   )
 }
 
-const VARIANT_STYLES: Record<Exclude<Variant, 'primary' | 'destructive'>, ViewStyle> = {
+const makeVariantStyles = (colors: ThemeColors): Record<Exclude<Variant, 'primary' | 'destructive'>, ViewStyle> => ({
   y: {
     backgroundColor: colors.y,
   },
   dk: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.fab,
   },
   outline: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: colors.g300,
+    borderColor: colors.border,
   },
   ghost: {
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
   red: {
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     borderWidth: 1.5,
     borderColor: colors.red,
   },
   cta: {
     backgroundColor: colors.y,
   },
-}
+})
 
-const VARIANT_LABEL_COLOR: Record<Exclude<Variant, 'primary' | 'destructive'>, string> = {
+const makeVariantLabels = (colors: ThemeColors): Record<Exclude<Variant, 'primary' | 'destructive'>, string> => ({
   y: colors.dk,
   dk: colors.white,
-  outline: colors.dk,
-  ghost: colors.white,
+  outline: colors.heading,
+  ghost: colors.heading,
   red: colors.red,
   cta: colors.dk,
+})
+
+const THEMED_VARIANTS = {
+  light: { styles: makeVariantStyles(lightColors), labels: makeVariantLabels(lightColors) },
+  dark: { styles: makeVariantStyles(darkColors), labels: makeVariantLabels(darkColors) },
 }
 
 const styles = StyleSheet.create({

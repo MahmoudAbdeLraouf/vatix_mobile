@@ -23,12 +23,15 @@ import {
   SKU_SUBSCRIPTION_STORE,
   iosFallbackDisplayPrice,
 } from '@/lib/iap-products'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 export default function SubscriptionScreen() {
   const { user } = useAuth()
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
   // RTL, `textAlign: 'right'` and `flexDirection: 'row-reverse'` resolve visually
@@ -183,13 +186,13 @@ export default function SubscriptionScreen() {
   }
 
   const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-    success: { label: ar ? 'مكتمل' : 'Completed', color: colors.green, bg: colors.gl },
-    pending: { label: ar ? 'معلّق' : 'Pending', color: colors.yd, bg: colors.yl },
-    failed: { label: ar ? 'فشل' : 'Failed', color: colors.red, bg: colors.rl },
+    success: { label: ar ? 'مكتمل' : 'Completed', color: colors.green, bg: colors.greenBg },
+    pending: { label: ar ? 'معلّق' : 'Pending', color: colors.yd, bg: colors.yellowBg },
+    failed: { label: ar ? 'فشل' : 'Failed', color: colors.red, bg: colors.redBg },
     pending_verification: {
       label: ar ? 'قيد المراجعة' : 'Under Review',
       color: colors.yd,
-      bg: colors.yl,
+      bg: colors.yellowBg,
     },
   }
 
@@ -218,7 +221,7 @@ export default function SubscriptionScreen() {
     <DashboardLayout title={t.subscription}>
       {loading ? (
         <View style={styles.loader}>
-          <ActivityIndicator color={colors.dk} />
+          <ActivityIndicator color={colors.heading} />
         </View>
       ) : loadError ? (
         <ErrorState kind="network" onRetry={loadAll} />
@@ -230,7 +233,7 @@ export default function SubscriptionScreen() {
               style={[
                 styles.trialBanner,
                 {
-                  backgroundColor: trialDanger ? colors.rl : colors.yl,
+                  backgroundColor: trialDanger ? colors.redBg : colors.yellowBg,
                   borderColor: trialDanger ? colors.red : colors.y,
                 },
               ]}
@@ -365,7 +368,7 @@ export default function SubscriptionScreen() {
                 <Ionicons
                   name={ar ? 'chevron-back' : 'chevron-forward'}
                   size={20}
-                  color={colors.g500}
+                  color={colors.muted}
                 />
               </Pressable>
             </>
@@ -380,7 +383,7 @@ export default function SubscriptionScreen() {
               ]}
               onPress={() => setModal('cancel-store')}
             >
-              <View style={[styles.actionIcon, { backgroundColor: colors.rl }]}>
+              <View style={[styles.actionIcon, { backgroundColor: colors.redBg }]}>
                 <Ionicons name="close-circle" size={22} color={colors.red} />
               </View>
               <View style={[styles.actionBody, colDir]}>
@@ -401,7 +404,7 @@ export default function SubscriptionScreen() {
           <View style={styles.walletCard}>
             <View style={[styles.walletHead, rowDir]}>
               <View style={styles.walletIcon}>
-                <Ionicons name="wallet" size={20} color={colors.dk} />
+                <Ionicons name="wallet" size={20} color={colors.seeAllText} />
               </View>
               <View style={[styles.actionBody, colDir]}>
                 <Text style={[styles.walletLabel, dirStyle]}>{t.walletBalance}</Text>
@@ -422,7 +425,7 @@ export default function SubscriptionScreen() {
                 ]}
                 onPress={() => setWalletModal(true)}
               >
-                <Ionicons name="add-circle" size={18} color={colors.dk} />
+                <Ionicons name="add-circle" size={18} color={colors.seeAllText} />
                 <Text style={[styles.topupBtnText, dirStyle]}>{t.topUpWallet}</Text>
               </Pressable>
             )}
@@ -444,8 +447,8 @@ export default function SubscriptionScreen() {
                 {subscriptionHistory.map(p => {
                   const status = STATUS_LABELS[p.status] ?? {
                     label: p.status,
-                    color: colors.g600,
-                    bg: colors.g100,
+                    color: colors.muted,
+                    bg: colors.placeholder,
                   }
                   return (
                     <View key={p.id} style={[styles.historyRow, rowDir]}>
@@ -500,7 +503,7 @@ export default function SubscriptionScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   loader: {
     paddingVertical: spacing.xxl,
     alignItems: 'center',
@@ -529,7 +532,7 @@ const styles = StyleSheet.create({
   trialSub: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g700,
+    color: colors.text,
     marginTop: 2,
   },
   renewBtn: {
@@ -546,7 +549,7 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 6,
     borderRadius: radius.full,
-    backgroundColor: colors.white,
+    backgroundColor: dark ? colors.dot : colors.white,
     overflow: 'hidden',
   },
   progressFill: {
@@ -554,10 +557,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   planCard: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     borderRadius: radius.lg,
     padding: spacing.lg,
-    ...shadow.md,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.md),
   },
   planHead: {
     flexDirection: 'row',
@@ -628,26 +631,26 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   actionCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.ss,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.ss),
   },
   cancelCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: colors.rl,
-    ...shadow.ss,
+    borderColor: colors.redBg,
+    ...(dark ? null : shadow.ss),
   },
   actionPressed: {
     opacity: 0.85,
@@ -656,7 +659,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: radius.full,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -666,21 +669,21 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   actionSub: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     marginTop: 2,
   },
   walletCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.sm,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.sm),
   },
   walletHead: {
     flexDirection: 'row',
@@ -691,19 +694,19 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: radius.full,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   walletLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g700,
+    color: colors.text,
   },
   walletValue: {
     fontFamily: fonts.extraBold,
     fontSize: 26,
-    color: colors.dk,
+    color: colors.price,
     marginTop: spacing.sm,
   },
   topupBtn: {
@@ -712,7 +715,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     paddingVertical: 8,
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
@@ -720,26 +723,26 @@ const styles = StyleSheet.create({
   topupBtnText: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.seeAllText,
   },
   historyCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.sm,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.sm),
   },
   historyTitle: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md,
   },
   emptyText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     paddingVertical: spacing.md,
   },
   historyRow: {
@@ -748,7 +751,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
+    borderBottomColor: colors.border,
   },
   historyTrail: {
     gap: 4,
@@ -756,18 +759,18 @@ const styles = StyleSheet.create({
   historyType: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
   },
   historyDate: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
     marginTop: 2,
   },
   historyAmount: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   statusChip: {
     paddingVertical: 3,

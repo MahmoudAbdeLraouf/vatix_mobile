@@ -61,7 +61,16 @@ import {
   promotionSkuForCount,
 } from '@/lib/iap-products'
 import { finalizePaymentSuccess, verifyIapPurchase } from '@/lib/payment'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
+import {
+  darkColors,
+  fonts,
+  lightColors,
+  radius,
+  shadow,
+  spacing,
+  type ThemeColors,
+} from '@/constants/theme'
 
 type Step =
   | 'pick'
@@ -129,6 +138,8 @@ function useDir() {
 }
 
 export default function PromoteScreen() {
+  const { colors, isDark } = useTheme()
+  const styles = useStyles()
   const { locale, t } = useLocale()
   const { user } = useAuth()
   const { ar, rowDir, colDir, dirStyle, trailAlign } = useDir()
@@ -264,31 +275,31 @@ export default function PromoteScreen() {
       emoji: '👛',
       label: ar ? 'محفظة' : 'Wallet',
       color: colors.green,
-      bg: colors.gl,
+      bg: colors.greenBg,
     },
     instapay: {
       emoji: '📱',
       label: 'InstaPay',
-      color: '#7B2FBE',
-      bg: '#F5EEFF',
+      color: isDark ? '#B98AE6' : '#7B2FBE',
+      bg: isDark ? 'rgba(123,47,190,0.18)' : '#F5EEFF',
     },
     mobile_wallet: {
       emoji: '📲',
       label: ar ? 'محفظة موبايل' : 'Mobile Wallet',
       color: '#10b981',
-      bg: '#ECFDF5',
+      bg: isDark ? 'rgba(16,185,129,0.16)' : '#ECFDF5',
     },
     gift: {
       emoji: '🎁',
       label: ar ? 'مجاني' : 'Free',
       color: colors.yd,
-      bg: colors.yl,
+      bg: colors.yellowBg,
     },
     legacy: {
       emoji: '🎯',
       label: ar ? 'رصيد ترويج' : 'Credit',
-      color: colors.g600,
-      bg: colors.g100,
+      color: colors.muted,
+      bg: colors.placeholder,
     },
   }
 
@@ -299,19 +310,19 @@ export default function PromoteScreen() {
     success: {
       label: ar ? 'مكتمل' : 'Completed',
       color: colors.green,
-      bg: colors.gl,
+      bg: colors.greenBg,
     },
     pending: {
       label: ar ? 'معلّق' : 'Pending',
       color: colors.yd,
-      bg: colors.yl,
+      bg: colors.yellowBg,
     },
     pending_verification: {
       label: ar ? 'قيد المراجعة' : 'Under Review',
-      color: '#7B2FBE',
-      bg: '#F5EEFF',
+      color: isDark ? '#B98AE6' : '#7B2FBE',
+      bg: isDark ? 'rgba(123,47,190,0.18)' : '#F5EEFF',
     },
-    failed: { label: ar ? 'فشل' : 'Failed', color: colors.red, bg: colors.rl },
+    failed: { label: ar ? 'فشل' : 'Failed', color: colors.red, bg: colors.redBg },
   }
 
   const chooseBundle = (id: number) => {
@@ -541,7 +552,7 @@ export default function PromoteScreen() {
     <DashboardLayout title={ar ? 'ترويج الإعلانات' : 'Promote Listings'}>
       {pageLoading ? (
         <View style={styles.loader}>
-          <ActivityIndicator color={colors.dk} />
+          <ActivityIndicator color={colors.heading} />
         </View>
       ) : pageError ? (
         <ErrorState
@@ -584,7 +595,7 @@ export default function PromoteScreen() {
                     style={[
                       styles.creditsHeadText,
                       dirStyle,
-                      { color: colors.g700 },
+                      { color: colors.text },
                     ]}
                   >
                     {ar ? 'رصيد المحفظة' : 'Wallet Balance'}
@@ -627,7 +638,7 @@ export default function PromoteScreen() {
 
               {!bundlesLoaded ? (
                 <View style={{ paddingVertical: spacing.lg }}>
-                  <ActivityIndicator color={colors.dk} />
+                  <ActivityIndicator color={colors.heading} />
                 </View>
               ) : bundles.length === 0 ? (
                 <View style={colDir}>
@@ -729,7 +740,7 @@ export default function PromoteScreen() {
                 <Ionicons
                   name={ar ? 'chevron-forward' : 'chevron-back'}
                   size={18}
-                  color={colors.dk}
+                  color={colors.heading}
                 />
                 <Text style={[styles.backText, dirStyle]}>
                   {ar ? 'رجوع' : 'Back'}
@@ -792,8 +803,8 @@ export default function PromoteScreen() {
                   // hidden here — wallet balance stays available below.
                   <MethodCard
                     icon="logo-apple"
-                    color={colors.dk}
-                    bg={colors.g100}
+                    color={colors.heading}
+                    bg={colors.placeholder}
                     title={ar ? 'الدفع عبر Apple' : 'Pay with Apple'}
                     subtitle={
                       ar ? 'App Store · شراء آمن' : 'App Store · Secure purchase'
@@ -806,8 +817,8 @@ export default function PromoteScreen() {
                     {paySettings.instapayEnabled && (
                       <MethodCard
                         icon="phone-portrait"
-                        color={'#7B2FBE'}
-                        bg={'#F5EDFA'}
+                        color={isDark ? '#B98AE6' : '#7B2FBE'}
+                        bg={isDark ? 'rgba(123,47,190,0.18)' : '#F5EDFA'}
                         title={ar ? 'انستاباي' : 'InstaPay'}
                         subtitle={
                           ar ? 'تحويل بنكي مع إيصال' : 'Bank transfer with receipt'
@@ -823,7 +834,7 @@ export default function PromoteScreen() {
                       <MethodCard
                         icon="phone-portrait-outline"
                         color={'#10b981'}
-                        bg={'#ECFDF5'}
+                        bg={isDark ? 'rgba(16,185,129,0.16)' : '#ECFDF5'}
                         title={ar ? 'محفظة موبايل' : 'Mobile Wallet'}
                         subtitle={
                           ar
@@ -842,7 +853,7 @@ export default function PromoteScreen() {
                 <MethodCard
                   icon="wallet"
                   color={colors.green}
-                  bg={colors.gl}
+                  bg={colors.greenBg}
                   title={ar ? 'المحفظة' : 'Wallet'}
                   subtitle={
                     canWallet
@@ -860,7 +871,7 @@ export default function PromoteScreen() {
 
               {loading ? (
                 <View style={styles.inlineLoader}>
-                  <ActivityIndicator color={colors.dk} />
+                  <ActivityIndicator color={colors.heading} />
                 </View>
               ) : null}
               {error ? <ErrorBox text={error} /> : null}
@@ -879,7 +890,7 @@ export default function PromoteScreen() {
                 <Ionicons
                   name={ar ? 'chevron-forward' : 'chevron-back'}
                   size={18}
-                  color={colors.dk}
+                  color={colors.heading}
                 />
                 <Text style={[styles.backText, dirStyle]}>
                   {ar ? 'رجوع' : 'Back'}
@@ -930,7 +941,7 @@ export default function PromoteScreen() {
                 <Ionicons
                   name={ar ? 'chevron-forward' : 'chevron-back'}
                   size={18}
-                  color={colors.dk}
+                  color={colors.heading}
                 />
                 <Text style={[styles.backText, dirStyle]}>
                   {ar ? 'رجوع' : 'Back'}
@@ -1040,7 +1051,7 @@ export default function PromoteScreen() {
           {/* Step: apple-iap — loading while StoreKit sheet is up */}
           {step === 'apple-iap' && (
             <View style={[styles.card, styles.doneCard]}>
-              <ActivityIndicator color={colors.dk} />
+              <ActivityIndicator color={colors.heading} />
               <Text style={[styles.doneTitle, { marginTop: spacing.md }]}>
                 {ar ? 'جارٍ الاتصال بـ App Store...' : 'Connecting to App Store...'}
               </Text>
@@ -1188,7 +1199,7 @@ export default function PromoteScreen() {
                                 <Ionicons
                                   name="image"
                                   size={20}
-                                  color={colors.g500}
+                                  color={colors.muted}
                                 />
                               </View>
                             )}
@@ -1212,8 +1223,8 @@ export default function PromoteScreen() {
                                   styles.chip,
                                   {
                                     backgroundColor: active
-                                      ? colors.gl
-                                      : colors.g100,
+                                      ? colors.greenBg
+                                      : colors.placeholder,
                                   },
                                 ]}
                               >
@@ -1223,7 +1234,7 @@ export default function PromoteScreen() {
                                     {
                                       color: active
                                         ? colors.green
-                                        : colors.g600,
+                                        : colors.muted,
                                     },
                                   ]}
                                 >
@@ -1292,8 +1303,8 @@ export default function PromoteScreen() {
                       METHOD_LABELS[methodKey] ?? METHOD_LABELS.legacy
                     const s = PROMO_STATUS_LABELS[row.status] ?? {
                       label: row.status,
-                      color: colors.g600,
-                      bg: colors.g100,
+                      color: colors.muted,
+                      bg: colors.placeholder,
                     }
                     const isFree =
                       row.gift ||
@@ -1382,6 +1393,7 @@ function TabButton({
   label: string
   onPress: () => void
 }) {
+  const styles = useStyles()
   return (
     <Pressable
       onPress={onPress}
@@ -1411,6 +1423,8 @@ function MethodCard({
   onPress: () => void
   disabled?: boolean
 }) {
+  const { colors } = useTheme()
+  const styles = useStyles()
   const { ar, rowDir, colDir, dirStyle } = useDir()
   return (
     <Pressable
@@ -1437,7 +1451,7 @@ function MethodCard({
       <Ionicons
         name={ar ? 'chevron-back' : 'chevron-forward'}
         size={18}
-        color={colors.g500}
+        color={colors.muted}
       />
     </Pressable>
   )
@@ -1452,6 +1466,8 @@ function InstaRow({
   value: string
   highlight?: boolean
 }) {
+  const { colors } = useTheme()
+  const styles = useStyles()
   const { rowDir, dirStyle } = useDir()
   return (
     <View style={[styles.instaRow, rowDir]}>
@@ -1470,6 +1486,8 @@ function InstaRow({
 }
 
 function ErrorBox({ text }: { text: string }) {
+  const { colors } = useTheme()
+  const styles = useStyles()
   const { rowDir, colDir, dirStyle } = useDir()
   if (!text) return null
   return (
@@ -1482,7 +1500,8 @@ function ErrorBox({ text }: { text: string }) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark?: boolean) =>
+  StyleSheet.create({
   loader: {
     paddingVertical: spacing.xxl,
     alignItems: 'center',
@@ -1503,19 +1522,19 @@ const styles = StyleSheet.create({
   },
   creditsCard: {
     flex: 1,
-    backgroundColor: colors.dk,
+    backgroundColor: dark ? colors.hero : colors.dk,
     borderRadius: radius.lg,
     padding: spacing.md,
-    ...shadow.md,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.md),
   },
   walletCard: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.ss,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.ss),
   },
   creditsHead: {
     flexDirection: 'row',
@@ -1551,41 +1570,41 @@ const styles = StyleSheet.create({
   walletCurrency: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
   },
   walletLink: {
     marginTop: 6,
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
   },
 
   // Card
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.sm,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.sm),
   },
   cardTitle: {
     fontFamily: fonts.bold,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
   },
   cardSub: {
     marginTop: 4,
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 18,
   },
   empty: {
     marginTop: spacing.md,
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     paddingVertical: spacing.md,
   },
@@ -1595,7 +1614,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.xs,
     padding: 4,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.md,
     marginBottom: spacing.sm,
   },
@@ -1608,16 +1627,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabBtnActive: {
-    backgroundColor: colors.white,
-    ...shadow.ss,
+    backgroundColor: colors.card,
+    ...(dark ? null : shadow.ss),
   },
   tabBtnText: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
   tabBtnTextActive: {
-    color: colors.dk,
+    color: colors.heading,
   },
 
   // Bundle picker
@@ -1627,29 +1646,29 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
-    ...shadow.ss,
+    backgroundColor: colors.card,
+    ...(dark ? null : shadow.ss),
   },
   bundleIcon: {
     width: 44,
     height: 44,
     borderRadius: radius.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bundleName: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   bundleMeta: {
     marginTop: 4,
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
   },
   bundlePrice: {
     alignItems: 'center',
@@ -1658,13 +1677,13 @@ const styles = StyleSheet.create({
   bundlePriceValue: {
     fontFamily: fonts.extraBold,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.price,
     textAlign: 'center',
   },
   bundlePriceCurrency: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
   },
 
@@ -1678,14 +1697,14 @@ const styles = StyleSheet.create({
   backText: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
   },
   bundleSummary: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.md,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.md,
   },
   method: {
@@ -1694,10 +1713,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
-    ...shadow.ss,
+    backgroundColor: colors.card,
+    ...(dark ? null : shadow.ss),
   },
   methodDisabled: {
     opacity: 0.5,
@@ -1707,7 +1726,7 @@ const styles = StyleSheet.create({
   methodPressed: {
     opacity: 0.95,
     transform: [{ scale: 0.99 }],
-    backgroundColor: colors.g100,
+    backgroundColor: colors.pressed,
   },
   methodIcon: {
     width: 44,
@@ -1719,13 +1738,13 @@ const styles = StyleSheet.create({
   methodTitle: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   methodSub: {
     marginTop: 2,
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
 
   // InstaPay
@@ -1734,7 +1753,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: '#7B2FBE',
     gap: spacing.sm,
-    ...shadow.sm,
+    ...(dark ? null : shadow.sm),
   },
   instapayHead: {
     flexDirection: 'row',
@@ -1768,7 +1787,7 @@ const styles = StyleSheet.create({
   instructionsBox: {
     marginTop: spacing.md,
     padding: spacing.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.y,
@@ -1776,13 +1795,13 @@ const styles = StyleSheet.create({
   instructionsTitle: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: 6,
   },
   instructionsBody: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
     lineHeight: 20,
   },
 
@@ -1795,7 +1814,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: radius.full,
-    backgroundColor: colors.gl,
+    backgroundColor: colors.greenBg,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
@@ -1803,14 +1822,14 @@ const styles = StyleSheet.create({
   doneTitle: {
     fontFamily: fonts.extraBold,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
   },
   doneBody: {
     marginTop: 6,
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: spacing.md,
@@ -1824,15 +1843,15 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   adThumbWrap: {
     width: 56,
     height: 56,
     borderRadius: radius.md,
     overflow: 'hidden',
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
   },
   adThumb: {
     width: '100%',
@@ -1845,13 +1864,13 @@ const styles = StyleSheet.create({
   adTitle: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
   },
   adMeta: {
     marginTop: 2,
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
   },
   adChipsRow: {
     flexDirection: 'row',
@@ -1865,7 +1884,7 @@ const styles = StyleSheet.create({
   adLink: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
   },
   adDelete: {
     fontFamily: fonts.semiBold,
@@ -1878,7 +1897,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
+    borderBottomColor: colors.border,
   },
   orderHeader: {
     flexDirection: 'row',
@@ -1891,22 +1910,22 @@ const styles = StyleSheet.create({
   creditsValue: {
     fontFamily: fonts.black,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
   },
   creditsUnit: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
   },
   orderMeta: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
   },
   orderAmount: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.price,
   },
   chip: {
     paddingVertical: 3,
@@ -1925,7 +1944,7 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: spacing.sm,
     padding: spacing.sm,
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.red,
@@ -1936,3 +1955,12 @@ const styles = StyleSheet.create({
     color: colors.red,
   },
 })
+
+const themedStyles = {
+  light: makeStyles(lightColors),
+  dark: makeStyles(darkColors, true),
+}
+
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Alert,
   Linking,
@@ -16,7 +16,8 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { authErrorMessage, deleteAccount } from '@/lib/auth'
 import { markRated } from '@/lib/rate-app-engagement'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { validatePassword } from '@/lib/password-policy'
 import { IS_IOS } from '@/lib/platform'
 import type { EventSubscription, Purchase, PurchaseError } from 'react-native-iap'
@@ -45,6 +46,8 @@ const NOTIFS: { key: NotifKey; ar: string; en: string }[] = [
 export default function SettingsScreen() {
   const { t, locale, setLocale } = useLocale()
   const { logout } = useAuth()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ar = locale === 'ar'
 
   // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
@@ -353,7 +356,7 @@ export default function SettingsScreen() {
             onChangeText={setCurrentPassword}
             placeholder="••••••••"
             secureTextEntry
-            leftIcon={<Ionicons name="lock-closed-outline" size={18} color={colors.g400} />}
+            leftIcon={<Ionicons name="lock-closed-outline" size={18} color={colors.subtle} />}
           />
           <Input
             label={ar ? 'كلمة المرور الجديدة' : 'New Password'}
@@ -361,7 +364,7 @@ export default function SettingsScreen() {
             onChangeText={setNewPassword}
             placeholder="••••••••"
             secureTextEntry
-            leftIcon={<Ionicons name="key-outline" size={18} color={colors.g400} />}
+            leftIcon={<Ionicons name="key-outline" size={18} color={colors.subtle} />}
           />
           <Input
             label={ar ? 'تأكيد كلمة المرور' : 'Confirm Password'}
@@ -369,7 +372,7 @@ export default function SettingsScreen() {
             onChangeText={setConfirmPassword}
             placeholder="••••••••"
             secureTextEntry
-            leftIcon={<Ionicons name="key-outline" size={18} color={colors.g400} />}
+            leftIcon={<Ionicons name="key-outline" size={18} color={colors.subtle} />}
           />
 
           {passwordMsg && (
@@ -377,7 +380,7 @@ export default function SettingsScreen() {
               style={[
                 styles.msgBox,
                 {
-                  backgroundColor: passwordMsg.ok ? colors.gl : colors.rl,
+                  backgroundColor: passwordMsg.ok ? colors.greenBg : colors.redBg,
                   borderColor: passwordMsg.ok ? colors.green : colors.red,
                 },
               ]}
@@ -440,7 +443,7 @@ export default function SettingsScreen() {
               style={[
                 styles.msgBox,
                 {
-                  backgroundColor: notifsMsg.ok ? colors.gl : colors.rl,
+                  backgroundColor: notifsMsg.ok ? colors.greenBg : colors.redBg,
                   borderColor: notifsMsg.ok ? colors.green : colors.red,
                 },
               ]}
@@ -507,7 +510,7 @@ export default function SettingsScreen() {
                 style={[
                   styles.msgBox,
                   {
-                    backgroundColor: restoreMsg.ok ? colors.gl : colors.rl,
+                    backgroundColor: restoreMsg.ok ? colors.greenBg : colors.redBg,
                     borderColor: restoreMsg.ok ? colors.green : colors.red,
                   },
                 ]}
@@ -555,7 +558,7 @@ export default function SettingsScreen() {
             onChangeText={setDeletePassword}
             placeholder="••••••••"
             secureTextEntry
-            leftIcon={<Ionicons name="lock-closed-outline" size={18} color={colors.g400} />}
+            leftIcon={<Ionicons name="lock-closed-outline" size={18} color={colors.subtle} />}
           />
 
           {deleteMsg && (
@@ -563,7 +566,7 @@ export default function SettingsScreen() {
               style={[
                 styles.msgBox,
                 {
-                  backgroundColor: deleteMsg.ok ? colors.gl : colors.rl,
+                  backgroundColor: deleteMsg.ok ? colors.greenBg : colors.redBg,
                   borderColor: deleteMsg.ok ? colors.green : colors.red,
                 },
               ]}
@@ -598,26 +601,26 @@ export default function SettingsScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   h2: {
     fontFamily: fonts.black,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md + 4,
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
     marginBottom: spacing.md,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   cardTitle: {
     fontFamily: fonts.black,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md,
   },
   dangerTitle: {
@@ -626,7 +629,7 @@ const styles = StyleSheet.create({
   helperText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 20,
     marginBottom: spacing.md,
   },
@@ -638,14 +641,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     marginBottom: spacing.sm,
   },
   langRowActive: {
     borderColor: colors.y,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
   },
   flag: {
     fontSize: 20,
@@ -653,10 +656,10 @@ const styles = StyleSheet.create({
   langLabel: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.g700,
+    color: colors.text,
   },
   langLabelActive: {
-    color: colors.dk,
+    color: colors.heading,
   },
   langCheck: {
     marginStart: 'auto',
@@ -673,8 +676,8 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: colors.g300,
-    backgroundColor: colors.white,
+    borderColor: colors.dot,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -686,7 +689,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
 
   msgBox: {

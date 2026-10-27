@@ -27,7 +27,8 @@ import {
   type LocationNode,
   type UserProfile,
 } from '@/lib/api'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 type Msg = { ok: boolean; text: string } | null
 type BranchType = 'branch' | 'general'
@@ -50,6 +51,8 @@ function locationSubLabel(type: string, ar: boolean): string {
 }
 
 export default function BranchesScreen() {
+  const { colors } = useTheme()
+  const styles = useStyles()
   const { locale, t } = useLocale()
   const ar = locale === 'ar'
   const dirContainer = ar ? { direction: 'rtl' as const } : null
@@ -261,7 +264,7 @@ export default function BranchesScreen() {
                       styles.msgBox,
                       dirContainer,
                       {
-                        backgroundColor: msg.ok ? colors.gl : colors.rl,
+                        backgroundColor: msg.ok ? colors.greenBg : colors.redBg,
                         borderColor: msg.ok ? colors.green : colors.red,
                       },
                     ]}
@@ -306,7 +309,7 @@ export default function BranchesScreen() {
                 <>
                   {bBranches.length > 0 && (
                     <View style={styles.section}>
-                      <View style={[styles.pill, { backgroundColor: colors.bl }]}>
+                      <View style={[styles.pill, { backgroundColor: colors.blueBg }]}>
                         <Text style={[styles.pillText, { color: colors.blue }]}>
                           📍 {ar ? `فروع بمواقع محددة (${bBranches.length})` : `Branches with locations (${bBranches.length})`}
                         </Text>
@@ -334,7 +337,7 @@ export default function BranchesScreen() {
 
                   {bGeneral.length > 0 && (
                     <View style={styles.section}>
-                      <View style={[styles.pill, { backgroundColor: colors.gl }]}>
+                      <View style={[styles.pill, { backgroundColor: colors.greenBg }]}>
                         <Text style={[styles.pillText, { color: colors.green }]}>
                           📞 {ar ? `أرقام عامة (${bGeneral.length})` : `General numbers (${bGeneral.length})`}
                         </Text>
@@ -428,7 +431,7 @@ export default function BranchesScreen() {
                         styles.typeCard,
                         active && {
                           borderColor: colors.y,
-                          backgroundColor: colors.yl,
+                          backgroundColor: colors.yellowBg,
                         },
                       ]}
                     >
@@ -500,7 +503,7 @@ export default function BranchesScreen() {
                     styles.msgBox,
                     dirContainer,
                     {
-                      backgroundColor: msg.ok ? colors.gl : colors.rl,
+                      backgroundColor: msg.ok ? colors.greenBg : colors.redBg,
                       borderColor: msg.ok ? colors.green : colors.red,
                       marginTop: spacing.md,
                     },
@@ -578,8 +581,10 @@ function BranchCard({
   onDelete: () => void
   deleting: boolean
 }) {
+  const { colors } = useTheme()
+  const styles = useStyles()
   const isBranch = branch.type === 'branch'
-  const iconBg = isBranch ? colors.bl : colors.gl
+  const iconBg = isBranch ? colors.blueBg : colors.greenBg
   const iconColor = isBranch ? colors.blue : colors.green
   const dir = ar ? 'right' : 'left'
   const dirContainer = ar ? { direction: 'rtl' as const } : null
@@ -633,7 +638,7 @@ function BranchCard({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
   scrollContent: {
     paddingBottom: spacing.xxl,
     gap: spacing.md,
@@ -645,15 +650,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
     maxWidth: 600,
     width: '100%',
     alignSelf: 'center',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   headerRow: {
     flexDirection: 'row',
@@ -662,19 +667,19 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontFamily: fonts.black,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
   },
   hint: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     lineHeight: 20,
   },
   hintSmall: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     marginTop: -spacing.sm,
     marginBottom: spacing.sm,
   },
@@ -695,13 +700,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   branchCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: spacing.sm,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   branchTop: {
     flexDirection: 'row',
@@ -717,18 +722,18 @@ const styles = StyleSheet.create({
   branchName: {
     fontFamily: fonts.extraBold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   branchLoc: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
     marginTop: 2,
   },
   branchPhone: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     marginTop: 4,
     textAlign: 'left',
     writingDirection: 'ltr',
@@ -736,7 +741,7 @@ const styles = StyleSheet.create({
   branchPhoneEmpty: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g400,
+    color: colors.subtle,
     fontStyle: 'italic',
     marginTop: 4,
   },
@@ -755,7 +760,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.g500,
+    color: colors.muted,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
   },
@@ -776,21 +781,21 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6,43,91,0.32)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '90%',
-    ...shadow.sl,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.sl),
   },
   sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderTopLeftRadius: radius.xl,
@@ -804,7 +809,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
   },
   typeGrid: {
@@ -815,8 +820,8 @@ const styles = StyleSheet.create({
   typeCard: {
     flex: 1,
     borderWidth: 2,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     padding: spacing.md,
     alignItems: 'center',
@@ -829,12 +834,12 @@ const styles = StyleSheet.create({
   typeLabel: {
     fontFamily: fonts.bold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
   },
   typeSub: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
   },
   sheetActions: {
     flexDirection: 'row',
@@ -842,3 +847,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

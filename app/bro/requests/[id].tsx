@@ -22,7 +22,8 @@ import { BroOfferCard } from '@/components/bro/BroOfferCard'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const POLL_MS = 15_000
 // Once Geeko is done the request may still sit on the board collecting offers; poll slower.
@@ -30,6 +31,7 @@ const BOARD_POLL_MS = 60_000
 
 export default function BroRequestScreen() {
   const { t } = useLocale()
+  const styles = useStyles()
   const { id: rawParam } = useLocalSearchParams<{ id: string }>()
   const rawId = Array.isArray(rawParam) ? rawParam[0] : rawParam
 
@@ -50,6 +52,8 @@ export default function BroRequestScreen() {
 
 function RequestView({ id }: { id: number }) {
   const { locale, t } = useLocale()
+  const { colors } = useTheme()
+  const styles = useStyles()
   const b = t.bro
   const ar = locale === 'ar'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
@@ -312,7 +316,7 @@ function RequestView({ id }: { id: number }) {
             {request.storage ? ` · ${request.storage}` : ''}
           </Text>
           <View style={[styles.pill, searching ? styles.pillOn : styles.pillOff, styles.statusPill, { alignSelf: ar ? 'flex-end' : 'flex-start' }]}>
-            <Text style={[styles.pillText, { color: searching ? colors.yt : colors.g700 }]}>{statusLabel}</Text>
+            <Text style={[styles.pillText, { color: searching ? colors.yellowText : colors.text }]}>{statusLabel}</Text>
           </View>
         </View>
 
@@ -400,32 +404,37 @@ function RequestView({ id }: { id: number }) {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   content: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
-  h1: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.dk },
-  h2: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.dk },
+  h1: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.heading },
+  h2: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.heading },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: 10,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   centerCard: { alignItems: 'center' },
-  emptyTitle: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.dk },
-  progress: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.dk },
+  emptyTitle: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.heading },
+  progress: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.heading },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
   pill: { borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
-  pillOn: { backgroundColor: colors.yl },
-  pillOff: { backgroundColor: colors.g100 },
+  pillOn: { backgroundColor: colors.yellowBg },
+  pillOff: { backgroundColor: colors.placeholder },
   statusPill: { marginTop: 6 },
   pillText: { fontFamily: fonts.bold, fontSize: 12 },
   list: { gap: 10 },
-  sold: { fontFamily: fonts.regular, fontSize: 13, color: colors.g500 },
+  sold: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted },
   err: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red },
-  until: { fontFamily: fonts.regular, fontSize: 13, color: colors.g700 },
+  until: { fontFamily: fonts.regular, fontSize: 13, color: colors.text },
   errSmall: { fontFamily: fonts.regular, fontSize: 12, color: colors.red },
 })
+
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import type { Category } from '@/lib/api'
 import { localeName } from '@/lib/api'
 import { useLocale } from '@/contexts/locale'
@@ -31,6 +32,7 @@ interface Props {
 
 export function CategoryBar({ categories, activeCategoryId, onSelect, allLabel }: Props) {
   const { locale } = useLocale()
+  const styles = useStyles()
   const isAllActive = activeCategoryId == null
 
   return (
@@ -67,6 +69,7 @@ interface ChipProps {
 }
 
 function Chip({ label, icon, active, onPress }: ChipProps) {
+  const styles = useStyles()
   return (
     <Pressable
       onPress={onPress}
@@ -87,10 +90,10 @@ function Chip({ label, icon, active, onPress }: ChipProps) {
   )
 }
 
-const styles = StyleSheet.create({
-  // Matches the tab header background (colors.dk) so it reads as part of the header.
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  // Matches the tab header background (colors.hero) so it reads as part of the header.
   bar: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.07)',
   },
@@ -130,3 +133,6 @@ const styles = StyleSheet.create({
     color: colors.dk,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }
+function useStyles() { return themedStyles[useTheme().mode] }

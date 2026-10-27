@@ -1,6 +1,7 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react'
 import { Platform, StyleSheet, Text, TextInput, View } from 'react-native'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const OTP_LENGTH = 6
 
@@ -23,6 +24,7 @@ export const OtpCodeInput = forwardRef<TextInput, Props>(function OtpCodeInput(
   ref,
 ) {
   const [focused, setFocused] = useState(false)
+  const styles = themedStyles[useTheme().mode]
 
   // Read the latest handler after the parent re-renders with the new code,
   // so the screen's verify function sees the full value instead of a stale one.
@@ -66,7 +68,7 @@ export const OtpCodeInput = forwardRef<TextInput, Props>(function OtpCodeInput(
   )
 })
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   wrap: { marginBottom: spacing.lg },
   // Digits always read left-to-right, even in Arabic.
   row: { flexDirection: 'row', direction: 'ltr', gap: spacing.sm },
@@ -75,13 +77,13 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.g300,
-    backgroundColor: colors.g100,
+    borderColor: colors.dot,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  boxActive: { borderColor: colors.y, backgroundColor: colors.white },
-  digit: { fontFamily: fonts.black, fontSize: 26, color: colors.dk },
+  boxActive: { borderColor: colors.y, backgroundColor: colors.inputBg },
+  digit: { fontFamily: fonts.black, fontSize: 26, color: colors.heading },
   input: {
     ...StyleSheet.absoluteFillObject,
     color: 'transparent',
@@ -89,3 +91,5 @@ const styles = StyleSheet.create({
     fontSize: 1,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }

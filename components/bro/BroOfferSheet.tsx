@@ -13,7 +13,8 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { colors, darkColors, fonts, lightColors, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { imgUrl, type Product } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
@@ -69,6 +70,7 @@ export function BroOfferSheet(props: Props) {
 
 function Notice({ text, onRetry, retryLabel, busy }: { text?: string; onRetry?: () => void; retryLabel?: string; busy?: boolean }) {
   const { dirStyle } = useBroDir()
+  const styles = useStyles()
   return (
     <View style={styles.notice} accessibilityRole="alert">
       {busy && <ActivityIndicator color={colors.y} />}
@@ -82,6 +84,7 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
   const { locale, t } = useLocale()
   const b = t.bro
   const { dirStyle, rowDir, colDir } = useBroDir()
+  const styles = useStyles()
   const insets = useSafeAreaInsets()
 
   const [tab, setTab] = useState<Tab>('products')
@@ -407,17 +410,17 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
   )
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '92%',
     overflow: 'hidden',
   },
   header: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingVertical: 14,
     flexDirection: 'row',
@@ -430,28 +433,33 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, gap: spacing.md },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   list: { gap: spacing.sm },
-  hint: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500 },
+  hint: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: 10,
   },
   rowDim: { opacity: 0.7 },
-  thumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.g100 },
+  thumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.placeholder },
   rowText: { flex: 1, minWidth: 0 },
-  rowTitle: { fontFamily: fonts.bold, fontSize: 13, color: colors.dk },
-  rowPrice: { fontFamily: fonts.regular, fontSize: 12, color: colors.g600 },
+  rowTitle: { fontFamily: fonts.bold, fontSize: 13, color: colors.heading },
+  rowPrice: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   rowHint: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.red },
   backRow: { flexDirection: 'row' },
   notice: { alignItems: 'center', gap: 10, paddingVertical: spacing.md },
-  noticeText: { fontFamily: fonts.regular, fontSize: 13, color: colors.g600, textAlign: 'center' },
+  noticeText: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted, textAlign: 'center' },
   center: { alignItems: 'center', gap: 8, paddingVertical: spacing.sm },
-  centerTitle: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.dk, textAlign: 'center' },
-  centerBody: { fontFamily: fonts.regular, fontSize: 13, color: colors.g600, textAlign: 'center', lineHeight: 20 },
+  centerTitle: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.heading, textAlign: 'center' },
+  centerBody: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted, textAlign: 'center', lineHeight: 20 },
   centerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center', marginTop: 6 },
   error: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.red },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

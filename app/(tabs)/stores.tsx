@@ -14,13 +14,16 @@ import { useLocale } from '@/contexts/locale'
 import { getStores, Store } from '@/lib/api'
 import { StoreCard } from '@/components/StoreCard'
 import { MessagesBell } from '@/components/MessagesBell'
-import { colors, fonts, radius, spacing } from '@/constants/theme'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 
 export default function StoresScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [stores, setStores] = useState<Store[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -50,7 +53,7 @@ export default function StoresScreen() {
 
   const renderStore = useCallback(
     ({ item }: { item: Store }) => <StoreCard store={item} style={styles.gridItem} />,
-    [],
+    [styles],
   )
 
   return (
@@ -78,13 +81,13 @@ export default function StoresScreen() {
           </View>
         </View>
         <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color={colors.g500} />
+          <Ionicons name="search-outline" size={18} color={colors.muted} />
           <TextInput
             style={[styles.searchInput, { textAlign: 'auto' }]}
             value={search}
             onChangeText={setSearch}
             placeholder={t.search}
-            placeholderTextColor={colors.g400}
+            placeholderTextColor={colors.subtle}
           />
         </View>
       </View>
@@ -118,10 +121,10 @@ export default function StoresScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.dk },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.hero },
   header: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
@@ -129,7 +132,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.bg,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     overflow: 'hidden',
@@ -160,7 +163,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.white,
+    backgroundColor: colors.searchBg,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     height: 46,
@@ -169,7 +172,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g900,
+    color: colors.text,
   },
   list: {
     padding: spacing.lg,

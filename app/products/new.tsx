@@ -1,16 +1,19 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { router, type Href } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 // "Where are your products right now?" — shown on every add-product entry,
 // for every user type, mirroring the website's /products/add chooser.
 export default function NewProductChooserScreen() {
   const { t, locale } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ip = t.importProducts
   const ar = locale === 'ar'
   const dirStyle = {
@@ -50,7 +53,7 @@ export default function NewProductChooserScreen() {
               <Text style={styles.emoji}>{o.emoji}</Text>
             </View>
             <Text style={[styles.label, dirStyle]}>{o.label}</Text>
-            <Ionicons name={ar ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.g500} />
+            <Ionicons name={ar ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.muted} />
           </Pressable>
         ))}
       </ScrollView>
@@ -58,32 +61,32 @@ export default function NewProductChooserScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: { padding: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
   header: { gap: spacing.xs, marginBottom: spacing.xs },
-  title: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.dk },
-  subtitle: { fontFamily: fonts.regular, fontSize: 13, color: colors.g500 },
+  title: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.heading },
+  subtitle: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.ss,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.ss),
   },
   iconWrap: {
     width: 44,
     height: 44,
     borderRadius: radius.full,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emoji: { fontSize: 20 },
-  label: { flex: 1, fontFamily: fonts.bold, fontSize: 14, color: colors.dk },
+  label: { flex: 1, fontFamily: fonts.bold, fontSize: 14, color: colors.heading },
 })

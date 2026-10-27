@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { StyleSheet, Text, View, ViewStyle } from 'react-native'
-import { colors, fonts, spacing } from '@/constants/theme'
+import { fonts, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { Button } from './Button'
 
 interface EmptyStateProps {
@@ -20,6 +21,8 @@ export function EmptyState({
   onAction,
   style,
 }: EmptyStateProps) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={[styles.wrap, style as ViewStyle]}>
       {icon ? <View style={styles.icon}>{icon}</View> : null}
@@ -34,7 +37,7 @@ export function EmptyState({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   wrap: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -45,7 +48,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
@@ -53,13 +56,13 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.bold,
     fontSize: 16,
-    color: colors.g900,
+    color: colors.text,
     textAlign: 'center',
   },
   subtitle: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 20,
   },

@@ -5,8 +5,9 @@ import { router } from 'expo-router'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useLocale } from '@/contexts/locale'
+import { useTheme } from '@/contexts/theme'
 import { authFetch } from '@/lib/auth'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 
 interface ProductRow {
   id: number
@@ -55,6 +56,8 @@ type IconName = React.ComponentProps<typeof Ionicons>['name']
 
 export default function AnalyticsScreen() {
   const { t, locale } = useLocale()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ar = locale === 'ar'
 
   // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
@@ -145,43 +148,43 @@ export default function AnalyticsScreen() {
           label: t.totalReach,
           value: data.totalReach ?? 0,
           icon: 'radio-outline',
-          color: colors.dk,
-          bg: colors.g100,
+          color: colors.heading,
+          bg: colors.placeholder,
         },
         {
           label: t.totalViews,
           value: data.totalViews,
           icon: 'eye-outline',
           color: colors.blue,
-          bg: colors.bl,
+          bg: colors.blueBg,
         },
         {
           label: t.totalContact,
           value: data.totalContacts,
           icon: 'chatbubbles-outline',
           color: colors.green,
-          bg: colors.gl,
+          bg: colors.greenBg,
         },
         {
           label: t.totalFavorites,
           value: data.totalFavorites,
           icon: 'heart-outline',
           color: colors.red,
-          bg: colors.rl,
+          bg: colors.redBg,
         },
         {
           label: t.totalProducts,
           value: data.totalProducts,
           icon: 'list-outline',
-          color: colors.dk,
-          bg: colors.g100,
+          color: colors.heading,
+          bg: colors.placeholder,
         },
         {
           label: t.activeProducts,
           value: data.activeProducts,
           icon: 'checkmark-circle-outline',
           color: colors.green,
-          bg: colors.gl,
+          bg: colors.greenBg,
         },
       ]
     : []
@@ -197,7 +200,7 @@ export default function AnalyticsScreen() {
     <DashboardLayout title={t.analytics}>
       {loading ? (
         <View style={styles.loader}>
-          <ActivityIndicator color={colors.dk} />
+          <ActivityIndicator color={colors.heading} />
         </View>
       ) : loadError ? (
         <ErrorState kind="network" onRetry={load} />
@@ -213,7 +216,7 @@ export default function AnalyticsScreen() {
                 <View
                   style={[
                     styles.summaryIcon,
-                    { backgroundColor: colors.white },
+                    { backgroundColor: colors.card },
                   ]}
                 >
                   <Ionicons name={s.icon} size={18} color={s.color} />
@@ -275,7 +278,7 @@ export default function AnalyticsScreen() {
                     <Ionicons
                       name="storefront-outline"
                       size={16}
-                      color={colors.dk}
+                      color={colors.heading}
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.storeCalloutTitle, dirStyle]}>
@@ -342,7 +345,7 @@ export default function AnalyticsScreen() {
                           {
                             height: `${h}%`,
                             backgroundColor:
-                              d.count > 0 ? colors.dk : colors.g200,
+                              d.count > 0 ? (isDark ? colors.y : colors.dk) : colors.dot,
                             opacity:
                               d.count > 0
                                 ? 0.75 + (d.count / maxReach) * 0.25
@@ -427,7 +430,7 @@ export default function AnalyticsScreen() {
                           {
                             height: `${h}%`,
                             backgroundColor:
-                              d.count > 0 ? colors.blue : colors.g200,
+                              d.count > 0 ? colors.blue : colors.dot,
                             opacity:
                               d.count > 0
                                 ? 0.75 + (d.count / maxInteract) * 0.25
@@ -495,8 +498,8 @@ export default function AnalyticsScreen() {
                             styles.statusPill,
                             {
                               backgroundColor: p.isActive
-                                ? colors.gl
-                                : colors.rl,
+                                ? colors.greenBg
+                                : colors.redBg,
                             },
                           ]}
                         >
@@ -530,10 +533,10 @@ export default function AnalyticsScreen() {
                           <Ionicons
                             name="radio-outline"
                             size={14}
-                            color={colors.dk}
+                            color={colors.heading}
                           />
                           <Text
-                            style={[styles.pStatValue, { color: colors.dk }]}
+                            style={[styles.pStatValue, { color: colors.heading }]}
                           >
                             {fmt(p.reach ?? 0)}
                           </Text>
@@ -581,10 +584,10 @@ export default function AnalyticsScreen() {
                           <Ionicons
                             name="chatbubbles-outline"
                             size={14}
-                            color={colors.dk}
+                            color={colors.heading}
                           />
                           <Text
-                            style={[styles.pStatValue, { color: colors.dk }]}
+                            style={[styles.pStatValue, { color: colors.heading }]}
                           >
                             {fmt(p.chats ?? 0)}
                           </Text>
@@ -614,7 +617,7 @@ export default function AnalyticsScreen() {
                           <Ionicons
                             name={ar ? 'chevron-back' : 'chevron-forward'}
                             size={14}
-                            color={colors.dk}
+                            color={colors.heading}
                           />
                         </Pressable>
                       </View>
@@ -630,7 +633,7 @@ export default function AnalyticsScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   loader: {
     paddingVertical: spacing.xxl,
     alignItems: 'center',
@@ -648,7 +651,7 @@ const styles = StyleSheet.create({
     flexBasis: '47%',
     borderRadius: radius.lg,
     padding: spacing.md,
-    ...shadow.ss,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
   },
   summaryIcon: {
     width: 32,
@@ -666,21 +669,21 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g600,
+    color: colors.muted,
     marginTop: 2,
   },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
-    ...shadow.ss,
+    borderColor: colors.border,
+    ...(dark ? null : shadow.ss),
   },
   cardTitle: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
   },
   chartHead: {
     flexDirection: 'row',
@@ -699,17 +702,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   rangePillActive: {
-    backgroundColor: colors.dk,
-    borderColor: colors.dk,
+    backgroundColor: colors.fab,
+    borderColor: colors.fab,
   },
   rangePillText: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.g700,
+    color: colors.text,
   },
   rangePillTextActive: {
     color: colors.y,
@@ -719,7 +722,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
   },
   chartArea: {
     flexDirection: 'row',
@@ -744,20 +747,20 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 9,
-    color: colors.g400,
+    color: colors.muted,
     textAlign: 'center',
   },
   chartFooter: {
     fontFamily: fonts.regular,
     fontSize: 11,
-    color: colors.g500,
+    color: colors.muted,
     marginTop: 6,
     textAlign: 'center',
   },
   pRow: {
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.g100,
+    borderBottomColor: colors.border,
     gap: 8,
   },
   pHead: {
@@ -769,7 +772,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
   },
   statusPill: {
     paddingVertical: 3,
@@ -782,7 +785,7 @@ const styles = StyleSheet.create({
   },
   pBarTrack: {
     height: 4,
-    backgroundColor: colors.g200,
+    backgroundColor: colors.dot,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -801,7 +804,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: spacing.sm,
     borderRadius: radius.md,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
   },
   breakdownValue: {
     fontFamily: fonts.extraBold,
@@ -810,7 +813,7 @@ const styles = StyleSheet.create({
   breakdownLabel: {
     fontFamily: fonts.regular,
     fontSize: 10,
-    color: colors.g600,
+    color: colors.muted,
   },
   storeCallout: {
     marginTop: spacing.md,
@@ -819,19 +822,19 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.sm,
     borderRadius: radius.md,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1,
     borderColor: colors.y,
   },
   storeCalloutTitle: {
     fontFamily: fonts.bold,
     fontSize: 12,
-    color: colors.dk,
+    color: colors.heading,
   },
   storeCalloutHint: {
     fontFamily: fonts.regular,
     fontSize: 10,
-    color: colors.g700,
+    color: colors.text,
     marginTop: 2,
   },
   pStatsRow: {
@@ -858,12 +861,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.g200,
-    backgroundColor: colors.white,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   viewBtnText: {
     fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: colors.dk,
+    color: colors.heading,
   },
 })

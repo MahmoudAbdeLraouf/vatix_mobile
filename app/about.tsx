@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, View, Text, StyleSheet } from 'react-native'
 import { Stack, router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
 import { getProducts, getStores } from '@/lib/api'
-import { colors, fonts, spacing, radius, shadow } from '@/constants/theme'
+import { fonts, spacing, radius, shadow, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { Button } from '@/components/ui/Button'
 
 interface Stat {
@@ -20,6 +21,8 @@ interface Value {
 
 export default function AboutScreen() {
   const { locale } = useLocale()
+  const { colors, isDark } = useTheme()
+  const s = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ar = locale === 'ar'
   const nfmt = (n: number) => n.toLocaleString(ar ? 'ar-EG' : 'en-EG')
 
@@ -81,9 +84,9 @@ export default function AboutScreen() {
         options={{
           headerShown: true,
           title: ar ? 'من نحن' : 'About',
-          headerStyle: { backgroundColor: colors.white },
-          headerTitleStyle: { fontFamily: fonts.black, color: colors.dk },
-          headerTintColor: colors.dk,
+          headerStyle: { backgroundColor: colors.card },
+          headerTitleStyle: { fontFamily: fonts.black, color: colors.heading },
+          headerTintColor: colors.heading,
         }}
       />
       <ScrollView contentContainerStyle={s.scroll}>
@@ -159,11 +162,11 @@ export default function AboutScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   scroll: { paddingBottom: spacing.xl },
   hero: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingVertical: 48,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
@@ -215,76 +218,76 @@ const s = StyleSheet.create({
   h2: {
     fontFamily: fonts.black,
     fontSize: 20,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.md,
   },
   valuesGrid: {
     gap: spacing.sm,
   },
   valueCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   valueEmoji: { fontSize: 32, marginBottom: spacing.sm },
   valueTitle: {
     fontFamily: fonts.extraBold,
     fontSize: 16,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: 4,
   },
   valueBody: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 22,
   },
   missionCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
     marginHorizontal: spacing.md,
     marginBottom: spacing.md,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   missionTitle: {
     fontFamily: fonts.black,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.sm,
   },
   missionBody: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 24,
   },
   ctaCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.lg,
     marginHorizontal: spacing.md,
     alignItems: 'center',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   ctaTitle: {
     fontFamily: fonts.black,
     fontSize: 20,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
     textAlign: 'center',
   },
   ctaBody: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
     textAlign: 'center',
     marginBottom: spacing.md,
   },

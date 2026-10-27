@@ -10,7 +10,8 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { track, trackProductPhoneClick, trackProductWhatsappClick } from '@/lib/analytics'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { colors, darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 const WA_GREEN = '#25D366'
 
@@ -24,6 +25,7 @@ interface RevealPhoneProps {
 
 export function RevealPhone({ productId, phone, waLink, showPhone, style }: RevealPhoneProps) {
   const { locale } = useLocale()
+  const styles = themedStyles[useTheme().mode]
   const ar = locale === 'ar'
   const [revealed, setRevealed] = useState(false)
 
@@ -98,7 +100,7 @@ export function RevealPhone({ productId, phone, waLink, showPhone, style }: Reve
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -149,6 +151,8 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g500,
+    color: colors.muted,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }

@@ -48,7 +48,8 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { IS_IOS, PAID_UI_ENABLED } from '@/lib/platform'
 
 // Last-resort fallback used only if the plans fetch fails or no matching plan
@@ -107,6 +108,8 @@ export function ExpiredStoreDialog({ visible, phone, password, onClose }: Props)
   const { rowDir, dirStyle } = useDir()
   const auth = useAuth()
   const insets = useSafeAreaInsets()
+  const { colors, isDark } = useTheme()
+  const styles = useStyles()
 
   const [step, setStep] = useState<Step>('choice')
   const [error, setError] = useState('')
@@ -451,7 +454,7 @@ export function ExpiredStoreDialog({ visible, phone, password, onClose }: Props)
                     return (
                       <MethodCard
                         icon="logo-apple"
-                        iconColor={colors.dk}
+                        iconColor={colors.heading}
                         title={t.expiredRecovery.optionAppleTitle}
                         subtitle={`${t.expiredRecovery.optionAppleDesc} · ${priceLabel}`}
                         onPress={handleAppleIapPurchase}
@@ -525,7 +528,7 @@ export function ExpiredStoreDialog({ visible, phone, password, onClose }: Props)
                         />
                       ) : (
                         <View style={styles.uploadPlaceholder}>
-                          <Ionicons name="cloud-upload-outline" size={28} color={colors.g500} />
+                          <Ionicons name="cloud-upload-outline" size={28} color={colors.muted} />
                           <Text style={styles.uploadHint}>{t.expiredRecovery.screenshot}</Text>
                         </View>
                       )}
@@ -620,7 +623,7 @@ export function ExpiredStoreDialog({ visible, phone, password, onClose }: Props)
                         />
                       ) : (
                         <View style={styles.uploadPlaceholder}>
-                          <Ionicons name="cloud-upload-outline" size={28} color={colors.g500} />
+                          <Ionicons name="cloud-upload-outline" size={28} color={colors.muted} />
                           <Text style={styles.uploadHint}>{t.expiredRecovery.screenshot}</Text>
                         </View>
                       )}
@@ -689,7 +692,7 @@ export function ExpiredStoreDialog({ visible, phone, password, onClose }: Props)
 
               {step === 'apple-iap' && (
                 <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
-                  <ActivityIndicator size="large" color={colors.dk} />
+                  <ActivityIndicator size="large" color={isDark ? colors.y : colors.dk} />
                   <Text style={[styles.doneBody, { marginTop: spacing.md }, dirStyle]}>
                     {t.expiredRecovery.appleProcessing}
                   </Text>
@@ -744,11 +747,17 @@ function MethodCard({
   rowDir: { direction: 'ltr'; flexDirection: 'row-reverse' } | null
   dirStyle: { writingDirection: 'rtl' | 'ltr'; textAlign: 'auto' }
 }) {
+  const { isDark } = useTheme()
+  const styles = useStyles()
   const cardTint =
     variant === 'purple'
-      ? { backgroundColor: '#F6EFFB', borderColor: '#D6BCEF' }
+      ? isDark
+        ? { backgroundColor: 'rgba(123,47,190,0.16)', borderColor: 'rgba(168,110,224,0.45)' }
+        : { backgroundColor: '#F6EFFB', borderColor: '#D6BCEF' }
       : variant === 'green'
-        ? { backgroundColor: '#ECFDF5', borderColor: '#10b981' }
+        ? isDark
+          ? { backgroundColor: 'rgba(16,185,129,0.14)', borderColor: '#10b981' }
+          : { backgroundColor: '#ECFDF5', borderColor: '#10b981' }
         : null
   const iconTint =
     variant === 'purple'
@@ -792,6 +801,7 @@ function DetailRow({
   rowDir: { direction: 'ltr'; flexDirection: 'row-reverse' } | null
   dirStyle: { writingDirection: 'rtl' | 'ltr'; textAlign: 'auto' }
 }) {
+  const styles = useStyles()
   return (
     <View style={[styles.detailRow, rowDir]}>
       <Text style={[styles.detailLabel, dirStyle]}>{label}</Text>
@@ -802,14 +812,14 @@ function DetailRow({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6,43,91,0.32)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     maxHeight: '92%',
@@ -817,7 +827,7 @@ const styles = StyleSheet.create({
     ...shadow.sl,
   },
   sheetHeader: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     flexDirection: 'row',
@@ -838,14 +848,14 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 22,
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     borderWidth: 1,
     borderColor: colors.red,
     borderRadius: radius.md,
@@ -862,9 +872,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderRadius: radius.md,
     padding: spacing.md,
   },
@@ -872,19 +882,19 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   methodTitle: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
   },
   methodSubtitle: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g600,
+    color: colors.muted,
     marginTop: 2,
     lineHeight: 18,
   },
@@ -892,7 +902,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
-    backgroundColor: colors.rl,
+    backgroundColor: colors.redBg,
     borderWidth: 1.5,
     borderColor: colors.red,
     borderRadius: radius.md,
@@ -902,16 +912,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     lineHeight: 20,
   },
   instapayBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
-    backgroundColor: '#F6EFFB',
+    backgroundColor: dark ? 'rgba(123,47,190,0.16)' : '#F6EFFB',
     borderWidth: 1,
-    borderColor: '#D6BCEF',
+    borderColor: dark ? 'rgba(168,110,224,0.45)' : '#D6BCEF',
     borderRadius: radius.md,
     padding: spacing.md,
   },
@@ -919,7 +929,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: '#4A1E75',
+    color: dark ? '#D8B9F5' : '#4A1E75',
     lineHeight: 20,
   },
   detailRow: {
@@ -927,7 +937,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -935,28 +945,28 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    color: colors.g600,
+    color: colors.muted,
   },
   detailValue: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
     writingDirection: 'ltr',
   },
   fieldLabel: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.dk,
+    color: colors.heading,
     marginBottom: spacing.xs,
   },
   uploadBox: {
     borderWidth: 1.5,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     borderStyle: 'dashed',
     borderRadius: radius.md,
     minHeight: 140,
     overflow: 'hidden',
-    backgroundColor: colors.g100,
+    backgroundColor: colors.placeholder,
   },
   uploadPlaceholder: {
     flex: 1,
@@ -968,7 +978,7 @@ const styles = StyleSheet.create({
   uploadHint: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.g500,
+    color: colors.muted,
   },
   uploadPreview: {
     width: '100%',
@@ -1000,14 +1010,19 @@ const styles = StyleSheet.create({
   doneTitle: {
     fontFamily: fonts.black,
     fontSize: 18,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
   },
   doneBody: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 22,
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}

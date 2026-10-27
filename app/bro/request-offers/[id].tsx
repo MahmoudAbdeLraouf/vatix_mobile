@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Stack, router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -10,7 +10,8 @@ import { BroOfferCard } from '@/components/bro/BroOfferCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { SkeletonCard } from '@/components/ui/Skeleton'
-import { colors, fonts, radius, shadow, spacing } from '@/constants/theme'
+import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 
 /** All seller offers on one request, each with a chat button. Port of the website /bro/requests/[id]/offers. */
 export default function BroRequestOffersScreen() {
@@ -36,6 +37,8 @@ function OffersView({ id }: { id: number }) {
   const ar = locale === 'ar'
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
   const insets = useSafeAreaInsets()
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   const [view, setView] = useState<BroRequestView | null>(null)
   const [loading, setLoading] = useState(true)
@@ -193,22 +196,22 @@ function OffersView({ id }: { id: number }) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: spacing.md, gap: spacing.md },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: 4,
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
-  kicker: { fontFamily: fonts.regular, fontSize: 12, color: colors.g500 },
-  title: { fontFamily: fonts.extraBold, fontSize: 18, color: colors.dk },
-  back: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.g700, marginTop: 4 },
-  h2: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.dk },
+  kicker: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
+  title: { fontFamily: fonts.extraBold, fontSize: 18, color: colors.heading },
+  back: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.text, marginTop: 4 },
+  h2: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.heading },
   list: { gap: 10 },
   err: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red },
 })

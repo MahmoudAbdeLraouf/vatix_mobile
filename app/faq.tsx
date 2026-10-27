@@ -4,7 +4,8 @@ import { Stack, router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
-import { colors, fonts, spacing, radius, shadow } from '@/constants/theme'
+import { fonts, spacing, radius, shadow, lightColors, darkColors, type ThemeColors } from '@/constants/theme'
+import { useTheme } from '@/contexts/theme'
 import { Button } from '@/components/ui/Button'
 
 interface QA {
@@ -34,11 +35,13 @@ const FAQS_EN: QA[] = [
 
 function FAQItem({ q, a }: QA) {
   const [open, setOpen] = useState(false)
+  const { colors, isDark } = useTheme()
+  const s = useStyles()
   return (
     <View style={s.faqCard}>
       <Pressable onPress={() => setOpen((o) => !o)} style={s.faqHead}>
         <Text style={s.faqQ}>{q}</Text>
-        <Ionicons name={open ? 'remove' : 'add'} size={22} color={colors.yd} />
+        <Ionicons name={open ? 'remove' : 'add'} size={22} color={isDark ? colors.y : colors.yd} />
       </Pressable>
       {open && (
         <View style={s.faqBody}>
@@ -53,6 +56,8 @@ export default function FAQScreen() {
   const { locale } = useLocale()
   const ar = locale === 'ar'
   const faqs = ar ? FAQS_AR : FAQS_EN
+  const { colors } = useTheme()
+  const s = useStyles()
 
   return (
     <SafeAreaView style={s.safe} edges={['bottom']}>
@@ -60,9 +65,9 @@ export default function FAQScreen() {
         options={{
           headerShown: true,
           title: ar ? 'الأسئلة الشائعة' : 'FAQ',
-          headerStyle: { backgroundColor: colors.white },
-          headerTitleStyle: { fontFamily: fonts.black, color: colors.dk },
-          headerTintColor: colors.dk,
+          headerStyle: { backgroundColor: colors.card },
+          headerTitleStyle: { fontFamily: fonts.black, color: colors.heading },
+          headerTintColor: colors.heading,
         }}
       />
       <ScrollView contentContainerStyle={s.scroll}>
@@ -93,11 +98,11 @@ export default function FAQScreen() {
   )
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.g100 },
+const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   scroll: { paddingBottom: spacing.xl },
   hero: {
-    backgroundColor: colors.dk,
+    backgroundColor: colors.hero,
     paddingVertical: 40,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
@@ -120,12 +125,12 @@ const s = StyleSheet.create({
     gap: spacing.sm,
   },
   faqCard: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.g200,
+    borderColor: colors.border,
     overflow: 'hidden',
-    ...shadow.ss,
+    ...(dark ? null : shadow.ss),
   },
   faqHead: {
     padding: spacing.md,
@@ -137,7 +142,7 @@ const s = StyleSheet.create({
   faqQ: {
     fontFamily: fonts.bold,
     fontSize: 15,
-    color: colors.dk,
+    color: colors.heading,
     flex: 1,
   },
   faqBody: {
@@ -147,14 +152,14 @@ const s = StyleSheet.create({
   faqA: {
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: colors.g600,
+    color: colors.muted,
     lineHeight: 24,
   },
   ctaCard: {
     marginHorizontal: spacing.md,
     marginTop: spacing.sm,
     padding: spacing.lg,
-    backgroundColor: colors.yl,
+    backgroundColor: colors.yellowBg,
     borderWidth: 1.5,
     borderColor: colors.y,
     borderRadius: radius.lg,
@@ -164,7 +169,12 @@ const s = StyleSheet.create({
   ctaText: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: colors.dk,
+    color: colors.heading,
     textAlign: 'center',
   },
 })
+
+const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors, true) }
+function useStyles() {
+  return themedStyles[useTheme().mode]
+}
