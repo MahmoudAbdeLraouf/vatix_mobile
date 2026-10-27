@@ -231,6 +231,7 @@ export default function MoreScreen() {
               sub={ar ? 'اللغة · قيّم التطبيق' : 'Language · Rate the app'}
               onPress={() => setGuestSettingsOpen(true)}
             />
+            <MoreRow {...rowProps} icon="moon-outline" label={t.darkMode} trailing={themeTrailing} onPress={toggleTheme} last />
           </Section>
 
           <Text style={styles.version}>{ar ? `الإصدار ${APP_VERSION}` : `Version ${APP_VERSION}`}</Text>
@@ -253,13 +254,6 @@ export default function MoreScreen() {
                   label={t.language}
                   trailing={ar ? 'العربية' : 'English'}
                   onPress={toggleLocale}
-                />
-                <MoreRow
-                  {...rowProps}
-                  icon="moon-outline"
-                  label={t.darkMode}
-                  trailing={themeTrailing}
-                  onPress={toggleTheme}
                 />
                 <MoreRow
                   {...rowProps}
