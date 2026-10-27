@@ -272,9 +272,14 @@ export async function updateStoredUser(user: {
 
 // ─── Silent token refresh ─────────────────────────────────────────────────────
 
-let _refreshing: Promise<boolean> | null = null
+// `rejected` = the server refused the refresh token (session is really over).
+// `unavailable` = offline / timeout / 5xx — the session may still be valid, so
+// callers must NOT log the user out; they surface a network error instead.
+type RefreshResult = 'ok' | 'rejected' | 'unavailable'
 
-export async function refreshAccessToken(): Promise<boolean> {
+let _refreshing: Promise<RefreshResult> | null = null
+
+function refreshSession(): Promise<RefreshResult> {
   if (_refreshing) return _refreshing
   _refreshing = _doRefresh().finally(() => {
     _refreshing = null
@@ -282,9 +287,13 @@ export async function refreshAccessToken(): Promise<boolean> {
   return _refreshing
 }
 
-async function _doRefresh(): Promise<boolean> {
+export async function refreshAccessToken(): Promise<boolean> {
+  return (await refreshSession()) === 'ok'
+}
+
+async function _doRefresh(): Promise<RefreshResult> {
   const refreshToken = await getRefreshToken()
-  if (!refreshToken) return false
+  if (!refreshToken) return 'rejected'
   try {
     const res = await fetch(`${BASE}/auth/refresh-token`, {
       method: 'POST',
@@ -295,23 +304,43 @@ async function _doRefresh(): Promise<boolean> {
       },
       body: JSON.stringify({ refreshToken }),
     })
-    if (!res.ok) return false
+    if (!res.ok) {
+      const transient = res.status >= 500 || res.status === 408 || res.status === 429
+      return transient ? 'unavailable' : 'rejected'
+    }
     const { accessToken, refreshToken: newRefresh } = (await res.json()) as {
       accessToken: string
       refreshToken: string
     }
     await saveTokens(accessToken, newRefresh)
-    return true
+    return 'ok'
   } catch {
-    return false
+    return 'unavailable'
   }
 }
 
+// Returns null only when the session is really gone. Throws NETWORK_ERROR when
+// a refresh was needed but the server could not be reached.
 async function getValidToken(): Promise<string | null> {
   const t = await getToken()
   if (t) return t
-  const ok = await refreshAccessToken()
-  return ok ? getToken() : null
+  const result = await refreshSession()
+  if (result === 'unavailable') throw new AuthFetchError(AUTH_ERR.NETWORK_ERROR, 0)
+  return result === 'ok' ? getToken() : null
+}
+
+// Call on a 401. Returns true when a fresh token is saved and the caller may
+// retry once. Returns false (after clearing the session) when the server
+// rejected the refresh token, or the request already retried once. Throws
+// NETWORK_ERROR when the refresh could not reach the server — keep the session.
+async function refreshAfter401(alreadyRefreshed: boolean): Promise<boolean> {
+  if (!alreadyRefreshed) {
+    const result = await refreshSession()
+    if (result === 'ok') return true
+    if (result === 'unavailable') throw new AuthFetchError(AUTH_ERR.NETWORK_ERROR, 0)
+  }
+  await clearSession()
+  return false
 }
 
 // ─── Authenticated fetch helpers ─────────────────────────────────────────────
@@ -387,13 +416,7 @@ async function _authFetchImpl<T>(
 
   if (res.status === 401) {
     // Refresh only once per request to avoid loops on server-side revocation.
-    if (state.refreshed) {
-      await clearSession()
-      throw new AuthFetchError(AUTH_ERR.SESSION_EXPIRED, 401)
-    }
-    const refreshed = await refreshAccessToken()
-    if (!refreshed) {
-      await clearSession()
+    if (!(await refreshAfter401(state.refreshed))) {
       throw new AuthFetchError(AUTH_ERR.SESSION_EXPIRED, 401)
     }
     return _authFetchImpl<T>(path, init, { ...state, refreshed: true })
@@ -421,7 +444,7 @@ async function _authFetchImpl<T>(
   return res.json() as Promise<T>
 }
 
-export async function authPost<T>(path: string, body: unknown): Promise<T> {
+export async function authPost<T>(path: string, body: unknown, refreshed = false): Promise<T> {
   const token = await getValidToken()
   if (!token) {
     await clearSession()
@@ -437,12 +460,8 @@ export async function authPost<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   }, 'POST')
   if (res.status === 401) {
-    const refreshed = await refreshAccessToken()
-    if (!refreshed) {
-      await clearSession()
-      throw new Error(AUTH_ERR.SESSION_EXPIRED)
-    }
-    return authPost<T>(path, body)
+    if (!(await refreshAfter401(refreshed))) throw new Error(AUTH_ERR.SESSION_EXPIRED)
+    return authPost<T>(path, body, true)
   }
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
@@ -455,7 +474,7 @@ export async function authPost<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>
 }
 
-export async function authPatch<T>(path: string, body: unknown): Promise<T> {
+export async function authPatch<T>(path: string, body: unknown, refreshed = false): Promise<T> {
   const token = await getValidToken()
   if (!token) {
     await clearSession()
@@ -471,12 +490,8 @@ export async function authPatch<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   }, 'PATCH')
   if (res.status === 401) {
-    const refreshed = await refreshAccessToken()
-    if (!refreshed) {
-      await clearSession()
-      throw new Error(AUTH_ERR.SESSION_EXPIRED)
-    }
-    return authPatch<T>(path, body)
+    if (!(await refreshAfter401(refreshed))) throw new Error(AUTH_ERR.SESSION_EXPIRED)
+    return authPatch<T>(path, body, true)
   }
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
@@ -489,7 +504,7 @@ export async function authPatch<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>
 }
 
-export async function authDelete(path: string, body?: unknown): Promise<boolean> {
+export async function authDelete(path: string, body?: unknown, refreshed = false): Promise<boolean> {
   const token = await getValidToken()
   if (!token) {
     await clearSession()
@@ -506,12 +521,8 @@ export async function authDelete(path: string, body?: unknown): Promise<boolean>
   }
   const res = await fetchOrThrowNetwork(`${BASE}${path}`, init, 'DELETE')
   if (res.status === 401) {
-    const refreshed = await refreshAccessToken()
-    if (!refreshed) {
-      await clearSession()
-      return false
-    }
-    return authDelete(path, body)
+    if (!(await refreshAfter401(refreshed))) return false
+    return authDelete(path, body, true)
   }
   const ok = res.ok || res.status === 204
   if (ok) clearApiCache()
@@ -520,7 +531,11 @@ export async function authDelete(path: string, body?: unknown): Promise<boolean>
 
 // Same as authDelete but returns the parsed JSON body (or null on failure).
 // Use when the DELETE endpoint returns useful data (e.g. refreshed counters).
-export async function authDeleteJson<T>(path: string, body?: unknown): Promise<T | null> {
+export async function authDeleteJson<T>(
+  path: string,
+  body?: unknown,
+  refreshed = false,
+): Promise<T | null> {
   const token = await getValidToken()
   if (!token) {
     await clearSession()
@@ -537,12 +552,8 @@ export async function authDeleteJson<T>(path: string, body?: unknown): Promise<T
   }
   const res = await fetchOrThrowNetwork(`${BASE}${path}`, init, 'DELETE')
   if (res.status === 401) {
-    const refreshed = await refreshAccessToken()
-    if (!refreshed) {
-      await clearSession()
-      return null
-    }
-    return authDeleteJson<T>(path, body)
+    if (!(await refreshAfter401(refreshed))) return null
+    return authDeleteJson<T>(path, body, true)
   }
   if (!res.ok && res.status !== 204) return null
   clearApiCache()
@@ -584,10 +595,13 @@ export async function deleteAccount(password: string): Promise<void> {
 
 // ─── File upload ─────────────────────────────────────────────────────────────
 
-export async function authUploadFile(localUri: string, mimeType = 'image/jpeg'): Promise<string | null> {
-  const token = await getValidToken()
-  if (!token) return null
-
+// Returns null on any failure (callers show a generic upload error). A 401
+// refreshes the token and retries once, like the other helpers.
+export async function authUploadFile(
+  localUri: string,
+  mimeType = 'image/jpeg',
+  refreshed = false,
+): Promise<string | null> {
   const formData = new FormData()
   formData.append('file', {
     uri: localUri,
@@ -596,11 +610,17 @@ export async function authUploadFile(localUri: string, mimeType = 'image/jpeg'):
   } as unknown as Blob)
 
   try {
+    const token = await getValidToken()
+    if (!token) return null
     const res = await fetch(`${BASE}/user/upload`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'X-Client-Platform': CLIENT_PLATFORM },
       body: formData,
     })
+    if (res.status === 401) {
+      if (!(await refreshAfter401(refreshed))) return null
+      return authUploadFile(localUri, mimeType, true)
+    }
     if (!res.ok) return null
     const { url } = (await res.json()) as { url: string }
     return url
@@ -658,8 +678,7 @@ export async function authRawRequest(
     if (typeof code === 'string' && code.endsWith('_RECONNECT_REQUIRED')) {
       return { status: res.status, body }
     }
-    if (refreshed || !(await refreshAccessToken())) {
-      await clearSession()
+    if (!(await refreshAfter401(refreshed))) {
       throw new AuthFetchError(AUTH_ERR.SESSION_EXPIRED, 401)
     }
     return authRawRequest(path, init, true)
