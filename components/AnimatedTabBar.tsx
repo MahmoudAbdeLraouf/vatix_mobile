@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
+import { Animated, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
 import Svg, { Path } from 'react-native-svg'
@@ -17,7 +17,9 @@ const NOTCH_DEPTH = 34
 const NOTCH_HALF = 46
 const BUBBLE_TOP = NOTCH_DEPTH - 5 - BUBBLE // bubble floats 5px above the notch floor
 const CORNER = 24
-const INSET_OVERLAP = 12 // labels may sit over the top of the home-indicator area; the full inset left a tall empty band
+// iOS only: labels may sit over the top of the home-indicator area; the full inset left a tall empty band.
+// Android's inset is the system nav bar itself (3-button or gesture pill), so it must stay fully clear.
+const INSET_OVERLAP = Platform.OS === 'ios' ? 12 : 0
 
 // White strip 2× the screen width with the notch at its middle; sliding it sideways moves the notch
 // without re-drawing the path, so the native driver can animate it.
