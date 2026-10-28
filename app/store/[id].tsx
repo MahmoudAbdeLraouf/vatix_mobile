@@ -38,6 +38,7 @@ import { authErrorMessage, authPost, logShare } from '@/lib/auth'
 import { trackStorePhoneClick, trackStoreView, trackStoreWhatsappClick } from '@/lib/analytics'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { FollowButton } from '@/components/FollowButton'
+import { VerifiedBadge } from '@/components/VerifiedBadge'
 import { ProductCard } from '@/components/ProductCard'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
@@ -435,6 +436,10 @@ export default function StoreDetailScreen() {
                   {storeProfile.name ?? ''}
                 </Text>
               </View>
+              <VerifiedBadge
+                verification={store.verification ?? storeProfile.verification}
+                variant="full"
+              />
               <View style={styles.metaRow}>
                 <Text style={[styles.metaText, dir]} numberOfLines={1}>
                   {[

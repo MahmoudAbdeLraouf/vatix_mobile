@@ -39,6 +39,7 @@ import {
 import { ProductCard } from '@/components/ProductCard'
 import { MessagesBell } from '@/components/MessagesBell'
 import { CategoryBar } from '@/components/CategoryBar'
+import { VerifiedBadge } from '@/components/VerifiedBadge'
 import { FilterCombobox, ComboOption } from '@/components/FilterCombobox'
 import { trackSearch } from '@/lib/analytics'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
@@ -413,6 +414,9 @@ export default function ProductsScreen() {
                     >
                       {name}
                     </Text>
+                    <VerifiedBadge
+                      verification={store.verification ?? store.storeProfile?.verification}
+                    />
                   </View>
                 </Pressable>
               )

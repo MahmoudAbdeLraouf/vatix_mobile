@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 import { useLocale } from '@/contexts/locale'
 import type { BroOfferView } from '@/lib/bro'
+import { VerifiedBadge, verificationFromChecks } from '@/components/VerifiedBadge'
 import { BroButton } from '@/components/bro/BroButton'
 import {
   BroFacts,
@@ -65,9 +66,12 @@ export function BroOfferCard({
           <View style={[cardStyles.priceRow, rowDir]}>
             <Text style={cardStyles.price}>{b.priceEgp.replace('{price}', Number(offer.price).toLocaleString())}</Text>
           </View>
-          <Text style={[cardStyles.seller, dirStyle]}>
-            {offer.seller.name} · {ago(offer.createdAt)}
-          </Text>
+          <View style={[cardStyles.sellerRow, rowDir]}>
+            <Text style={[cardStyles.seller, cardStyles.sellerText, dirStyle]}>
+              {offer.seller.name} · {ago(offer.createdAt)}
+            </Text>
+            <VerifiedBadge verification={verificationFromChecks(offer.seller.verificationChecks)} />
+          </View>
         </View>
       </View>
 

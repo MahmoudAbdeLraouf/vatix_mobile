@@ -142,6 +142,8 @@ const makeCardStyles = (colors: ThemeColors) => StyleSheet.create({
   priceRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   price: { fontFamily: fonts.extraBold, fontSize: 16, color: colors.price },
   seller: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted, marginTop: 2 },
+  sellerRow: { alignItems: 'center', flexWrap: 'wrap', columnGap: 6 },
+  sellerText: { flexShrink: 1 },
 })
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({

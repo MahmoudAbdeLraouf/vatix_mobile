@@ -55,6 +55,14 @@ export interface ProductImage {
   sortOrder: number
 }
 
+export type VerificationCheck = 'phone' | 'commercial_register' | 'storefront' | 'facebook'
+
+/** Public verification payload. Never carries CR numbers, photos or reasons. */
+export interface StoreVerification {
+  verified: boolean
+  checks: VerificationCheck[]
+}
+
 export interface Product {
   id: number
   slug: string | null
@@ -80,7 +88,14 @@ export interface Product {
     phone: string | null
     contactPhone?: string | null
     subscriptionExpired?: boolean
-    storeProfile?: { id: number; name: string; slug: string | null; logo: string | null } | null
+    storeProfile?: {
+      id: number
+      name: string
+      slug: string | null
+      logo: string | null
+      verification?: StoreVerification
+    } | null
+    verification?: StoreVerification
     clientProfile?: { id: number; firstName: string; lastName?: string } | null
   }
   location?: { id: number; translations: Translation[] } | null
@@ -110,6 +125,7 @@ export interface StoreProfile {
   status: string
   locationId: number | null
   promotedUntil?: string | null
+  verification?: StoreVerification
 }
 
 export interface Store {
@@ -121,6 +137,7 @@ export interface Store {
   isActive: boolean
   createdAt: string
   storeProfile: StoreProfile
+  verification?: StoreVerification
 }
 
 export interface LocationNode {

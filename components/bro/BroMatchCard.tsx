@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { useLocale } from '@/contexts/locale'
 import type { BroMatchView } from '@/lib/bro'
+import { VerifiedBadge, verificationFromChecks } from '@/components/VerifiedBadge'
 import { BroButton } from '@/components/bro/BroButton'
 import {
   BroFacts,
@@ -72,9 +73,12 @@ export function BroMatchCard({
               <BroPill>{b.priceDrop.replace('{amount}', match.priceDrop.toLocaleString())}</BroPill>
             ) : null}
           </View>
-          <Text style={[cardStyles.seller, dirStyle]}>
-            {match.seller.displayName} · {b.factAvailable.replace('{ago}', ago(match.answeredAt))}
-          </Text>
+          <View style={[cardStyles.sellerRow, rowDir]}>
+            <Text style={[cardStyles.seller, cardStyles.sellerText, dirStyle]}>
+              {match.seller.displayName} · {b.factAvailable.replace('{ago}', ago(match.answeredAt))}
+            </Text>
+            <VerifiedBadge verification={verificationFromChecks(match.seller.verificationChecks)} />
+          </View>
         </View>
       </View>
 

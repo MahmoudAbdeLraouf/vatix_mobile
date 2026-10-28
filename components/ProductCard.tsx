@@ -8,6 +8,7 @@ import { useLocale } from '@/contexts/locale'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 import { getCategoryIcon } from '@/lib/category-icons'
+import { VerifiedBadge } from '@/components/VerifiedBadge'
 
 interface ProductCardProps {
   product: Product
@@ -49,6 +50,7 @@ export const ProductCard = React.memo(function ProductCard({
   const owner = product.owner
   const isStore = owner?.type === 'store'
   const storeName = owner?.storeProfile?.name
+  const verification = owner?.storeProfile?.verification ?? owner?.verification
   const ownerIcon = isStore ? '🏪' : null
 
   const ratingsCount = product.ratingsCount ?? 0
@@ -119,6 +121,11 @@ export const ProductCard = React.memo(function ProductCard({
             <Text style={[styles.storeName, textDirStyle]} numberOfLines={1}>
               {storeName}
             </Text>
+            {isStore && verification?.verified ? (
+              <View style={styles.verifiedWrap}>
+                <VerifiedBadge verification={verification} />
+              </View>
+            ) : null}
           </View>
         ) : null}
 
@@ -249,6 +256,9 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     marginTop: 1,
+  },
+  verifiedWrap: {
+    flexShrink: 0,
   },
   storeIcon: {
     fontSize: 11,

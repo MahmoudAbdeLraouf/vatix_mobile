@@ -1,7 +1,7 @@
 // Vatix Bro (buyer concierge) API client. Types mirror vatix_backend/src/bro.
 // Dates arrive as ISO strings over JSON; MySQL decimals may arrive as strings.
 
-import { apiFetch } from '@/lib/api'
+import { apiFetch, type VerificationCheck } from '@/lib/api'
 import {
   authDelete,
   authFetch,
@@ -82,6 +82,8 @@ export interface BroMatchView {
     displayName: string
     isStore: boolean
     logo: string | null
+    /** Non-empty means the store is verified. */
+    verificationChecks?: VerificationCheck[]
   }
 }
 
@@ -113,7 +115,12 @@ export interface BroOfferView {
   hasWarranty: boolean
   warrantyNote: string | null
   sellerNote: string | null
-  seller: { name: string; type: 'client' | 'store'; storeVerified?: boolean }
+  seller: {
+    name: string
+    type: 'client' | 'store'
+    storeVerified?: boolean
+    verificationChecks?: VerificationCheck[]
+  }
   available: boolean
   /** Bro also confirmed this same seller + product: one card, not two. */
   viaBro: boolean

@@ -1095,6 +1095,13 @@ export interface Translations {
     deleteSavedFailed: string
     browseRequests: string
   }
+  verified: {
+    badge: string
+    labels: Record<'phone' | 'storefront' | 'commercial_register' | 'facebook', string>
+    tooltipTitle: string
+    tips: Record<'phone' | 'storefront' | 'commercial_register' | 'facebook', string>
+    renameWarning: string
+  }
 }
 
 export const translations: Record<Locale, Translations> = {
@@ -2120,6 +2127,23 @@ export const translations: Record<Locale, Translations> = {
       deleteSavedFailed: 'معرفناش نحذف العرض، جرّب تاني',
       browseRequests: 'شوف طلبات الشراء',
     },
+    verified: {
+      badge: 'موثّق',
+      labels: {
+        phone: 'الهاتف',
+        storefront: 'المحل',
+        commercial_register: 'السجل التجاري',
+        facebook: 'فيسبوك',
+      },
+      tooltipTitle: 'متجر موثّق من فاتكس',
+      tips: {
+        phone: 'الهاتف: تم التأكد من رقم هاتف المتجر',
+        storefront: 'المحل: تم التأكد من وجود المحل (صورة اللافتة)',
+        commercial_register: 'السجل التجاري: تم التأكد من السجل التجاري',
+        facebook: 'فيسبوك: تم التأكد من صفحة المتجر على فيسبوك',
+      },
+      renameWarning: 'تغيير الاسم سيزيل شارة التوثيق',
+    },
   },
   en: {
     appName: 'Vatix',
@@ -3142,6 +3166,23 @@ export const translations: Record<Locale, Translations> = {
       deleteSavedConfirm: 'Delete this saved offer?',
       deleteSavedFailed: 'We could not delete the offer, try again',
       browseRequests: 'Browse buy requests',
+    },
+    verified: {
+      badge: 'Verified',
+      labels: {
+        phone: 'Phone',
+        storefront: 'Shop',
+        commercial_register: 'Commercial register',
+        facebook: 'Facebook',
+      },
+      tooltipTitle: 'Store verified by Vatix',
+      tips: {
+        phone: 'Phone: the store phone number was confirmed',
+        storefront: 'Shop: the physical shop was confirmed (sign photo)',
+        commercial_register: 'Commercial register: the commercial register was confirmed',
+        facebook: 'Facebook: the store Facebook page was confirmed',
+      },
+      renameWarning: 'Changing your name removes your verified badge',
     },
   },
 }

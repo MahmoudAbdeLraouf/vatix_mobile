@@ -42,6 +42,7 @@ import { RevealPhone } from '@/components/RevealPhone'
 import { StartChatButton } from '@/components/StartChatButton'
 import { StarRating } from '@/components/StarRating'
 import { RatingSection } from '@/components/RatingSection'
+import { VerifiedBadge } from '@/components/VerifiedBadge'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -222,6 +223,7 @@ export default function ProductDetailScreen() {
       ? `${owner.clientProfile.firstName ?? ''} ${owner.clientProfile.lastName ?? ''}`.trim()
       : '')
   const storeLogo = imgUrl(owner?.storeProfile?.logo, { w: THUMB_TARGET_W })
+  const ownerVerification = owner?.storeProfile?.verification ?? owner?.verification
   const ownerBadge =
     isStore
       ? { label: locale === 'ar' ? 'متجر 🏪' : 'Store 🏪', bg: colors.placeholder, fg: colors.text }
@@ -487,6 +489,11 @@ export default function ProductDetailScreen() {
                       </Text>
                     </View>
                   </View>
+                  {!!ownerVerification?.verified && (
+                    <View style={styles.sellerVerified}>
+                      <VerifiedBadge verification={ownerVerification} variant="full" />
+                    </View>
+                  )}
                   <View style={styles.sellerCtaRow}>
                     <Text style={[styles.sellerCta, dir]}>{t.visit}</Text>
                     <Ionicons name={forwardIcon} size={13} color={colors.heading} />
@@ -689,6 +696,9 @@ export default function ProductDetailScreen() {
                         >
                           {name}
                         </Text>
+                        <VerifiedBadge
+                          verification={store.verification ?? store.storeProfile?.verification}
+                        />
                       </View>
                     </Pressable>
                   )
@@ -1347,6 +1357,9 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: radius.full,
+  },
+  sellerVerified: {
+    marginBottom: 4,
   },
   sellerBadgeText: {
     fontFamily: fonts.semiBold,

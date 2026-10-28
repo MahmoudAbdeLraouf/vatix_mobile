@@ -7,6 +7,7 @@ import { Store, imgUrl } from '@/lib/api'
 import { useLocale } from '@/contexts/locale'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
+import { VerifiedBadge } from '@/components/VerifiedBadge'
 
 const COVER_H = 80
 const LOGO_SIZE = 44
@@ -27,6 +28,7 @@ function StoreCardImpl({ store, style }: StoreCardProps) {
   const logo = imgUrl(store.storeProfile.logo, { w: 160 })
   const cover = imgUrl(store.storeProfile.cover, { w: 600 })
   const name = store.storeProfile.name
+  const verification = store.verification ?? store.storeProfile.verification
 
   return (
     <Pressable
@@ -81,6 +83,11 @@ function StoreCardImpl({ store, style }: StoreCardProps) {
       {/* Name + Description */}
       <View style={styles.nameWrap}>
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
+        {verification?.verified ? (
+          <View>
+            <VerifiedBadge verification={verification} />
+          </View>
+        ) : null}
         {store.storeProfile.description ? (
           <Text style={styles.description} numberOfLines={2}>
             {store.storeProfile.description}
