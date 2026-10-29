@@ -623,6 +623,13 @@ export interface Translations {
     cta: string
     dismiss: string
   }
+  storeVerifyDialog: {
+    title: string
+    badge: string
+    body: string
+    cta: string
+    dismiss: string
+  }
   storeCategoriesBrandsDialog: {
     title: string
     hookLine: string
@@ -1784,6 +1791,13 @@ export const translations: Record<Locale, Translations> = {
       cta: 'رَوِّج إعلاناً الآن',
       dismiss: 'لاحقاً',
     },
+    storeVerifyDialog: {
+      title: 'وثّق متجرك',
+      badge: 'موثّق',
+      body: 'التوثيق مجاني ويستغرق دقائق قليلة، ويضيف شارة "موثّق" لمتجرك ليثق بك المشترون أكثر.',
+      cta: 'وثّق الآن',
+      dismiss: 'لاحقاً',
+    },
     storeCategoriesBrandsDialog: {
       title: '🏷️ حسّن ظهور متجرك',
       hookLine: 'متجرك لم يُصنَّف بعد بأي فئات أو ماركات',
@@ -2875,6 +2889,13 @@ export const translations: Record<Locale, Translations> = {
       body: 'Use your promotion credits to push a listing to the top of search results for 7 days.',
       creditsLabel: 'Credits available',
       cta: 'Promote a listing now',
+      dismiss: 'Later',
+    },
+    storeVerifyDialog: {
+      title: 'Verify your store',
+      badge: 'Verified',
+      body: 'Verification is free and takes a few minutes. Your store gets the "Verified" badge so buyers trust you more.',
+      cta: 'Verify now',
       dismiss: 'Later',
     },
     storeCategoriesBrandsDialog: {

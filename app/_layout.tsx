@@ -29,6 +29,7 @@ import { UpdatePrompt } from '@/components/UpdatePrompt'
 import { StoreShareDialogTrigger } from '@/components/StoreShareDialogTrigger'
 import { UsePromoCreditsDialogTrigger } from '@/components/UsePromoCreditsDialogTrigger'
 import { CategoriesBrandsDialogTrigger } from '@/components/CategoriesBrandsDialogTrigger'
+import { StoreVerifyDialogTrigger } from '@/components/StoreVerifyDialogTrigger'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { installGlobalErrorHandler } from '@/lib/globalErrorHandler'
 import { beforeSend } from '@/lib/sentryScrub'
@@ -133,6 +134,7 @@ function RootLayout() {
               <StoreShareDialogTrigger />
               <UsePromoCreditsDialogTrigger />
               <CategoriesBrandsDialogTrigger />
+              <StoreVerifyDialogTrigger />
             </LoginGateProvider>
           </AuthProvider>
         </ThemeProvider>
