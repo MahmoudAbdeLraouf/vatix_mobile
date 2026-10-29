@@ -152,6 +152,9 @@ export interface StoreProfile {
   locationId: number | null
   promotedUntil?: string | null
   verification?: StoreVerification
+  // Raw owner-side columns returned by GET /user/profile (non-null verifiedAt = verified).
+  verifiedAt?: string | null
+  verifiedChecks?: string[] | null
 }
 
 export interface Store {

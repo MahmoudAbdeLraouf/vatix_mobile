@@ -108,7 +108,7 @@ export default function StoreInfoScreen() {
     }
     // Renaming a verified store revokes its badge server-side, so confirm first.
     const current = profile?.storeProfile
-    if (current?.verification?.verified && name.trim() !== (current.name ?? '').trim()) {
+    if (current?.verifiedAt && name.trim() !== (current.name ?? '').trim()) {
       Alert.alert(t.verified.renameWarning, undefined, [
         { text: t.cancel, style: 'cancel' },
         { text: t.confirm, onPress: () => { void doSave() } },
@@ -138,10 +138,9 @@ export default function StoreInfoScreen() {
               storeProfile: {
                 ...prev.storeProfile,
                 name: name.trim(),
-                verification:
-                  name.trim() !== (prev.storeProfile.name ?? '').trim()
-                    ? undefined
-                    : prev.storeProfile.verification,
+                ...(name.trim() !== (prev.storeProfile.name ?? '').trim()
+                  ? { verifiedAt: null, verifiedChecks: null }
+                  : null),
               },
             }
           : prev,
@@ -193,7 +192,7 @@ export default function StoreInfoScreen() {
                 placeholder={t.storeName}
                 leftIcon={<Ionicons name="business-outline" size={18} color={colors.subtle} />}
               />
-              {profile.storeProfile.verification?.verified ? (
+              {profile.storeProfile.verifiedAt ? (
                 <Text style={[styles.hint, dirStyle]}>{t.verified.renameWarning}</Text>
               ) : null}
 
