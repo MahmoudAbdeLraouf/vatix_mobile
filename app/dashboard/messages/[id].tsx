@@ -6,6 +6,7 @@ import {
   AppStateStatus,
   FlatList,
   Image,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
@@ -95,6 +96,9 @@ export default function ConversationScreen() {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const listRef = useRef<FlatList>(null)
+  const composerRef = useRef<TextInput>(null)
+  const scrollYRef = useRef(0)
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
   const lastIdRef = useRef<number>(0)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const inFlightRef = useRef<boolean>(false)
@@ -196,6 +200,34 @@ export default function ConversationScreen() {
   const scrollToBottom = (animated = true) => {
     setTimeout(() => listRef.current?.scrollToEnd({ animated }), 80)
   }
+
+  // A FlatList doesn't scroll a focused field into view, so a Bro form input
+  // can end up hidden under the keyboard. Bring it near the top of the list.
+  const revealFocusedInput = useCallback(() => {
+    const input = TextInput.State.currentlyFocusedInput()
+    const list = listRef.current?.getNativeScrollRef() as View | null | undefined
+    if (!input || !list || input === composerRef.current) return
+    list.measureInWindow((_lx, listY, _lw, listH) => {
+      input.measureInWindow((_x, y, _w, h) => {
+        const margin = spacing.lg
+        if (y >= listY + margin && y + h <= listY + listH - margin) return
+        listRef.current?.scrollToOffset({
+          offset: Math.max(0, scrollYRef.current + y - listY - margin),
+          animated: true,
+        })
+      })
+    })
+  }, [])
+
+  useEffect(() => {
+    const ios = Platform.OS === 'ios'
+    const subs = [
+      Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardOpen(true)),
+      Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboardOpen(false)),
+      Keyboard.addListener('keyboardDidShow', revealFocusedInput),
+    ]
+    return () => subs.forEach((s) => s.remove())
+  }, [revealFocusedInput])
 
   async function handleSend() {
     const content = text.trim()
@@ -353,7 +385,16 @@ export default function ConversationScreen() {
             data={rows}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
-            onContentSizeChange={() => scrollToBottom(false)}
+            onContentSizeChange={() => {
+              // Don't yank the list while the user is typing in the Bro form.
+              if (broFormOpen && keyboardOpen) return
+              scrollToBottom(false)
+            }}
+            onScroll={(e) => {
+              scrollYRef.current = e.nativeEvent.contentOffset.y
+            }}
+            scrollEventThrottle={16}
+            keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.empty}>
@@ -422,13 +463,14 @@ export default function ConversationScreen() {
           />
         )}
 
-        <View style={[styles.inputBarWrap, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+        <View style={[styles.inputBarWrap, { paddingBottom: keyboardOpen ? spacing.sm : Math.max(insets.bottom, spacing.sm) }]}>
           {broFormOpen ? (
             <Text style={styles.broFormHint}>{t.bro.formComposerHint}</Text>
           ) : (
           <View style={styles.inputBar}>
             <View style={styles.inputPill}>
               <TextInput
+                ref={composerRef}
                 style={[styles.input, dirStyle]}
                 value={text}
                 onChangeText={setText}

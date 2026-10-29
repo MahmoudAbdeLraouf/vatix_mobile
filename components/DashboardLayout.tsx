@@ -119,7 +119,8 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
         style={[styles.body, bodyBg]}
         behavior="padding"
         enabled={Platform.OS === 'ios'}
-        keyboardVerticalOffset={insets.top + 52}
+        // The KAV's own y already includes the top inset + topbar (it sits
+        // inside the SafeAreaView at screen top), so no extra offset.
       >
         {Body}
       </KeyboardAvoidingView>
