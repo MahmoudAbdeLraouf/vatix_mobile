@@ -427,6 +427,7 @@ export default function MoreScreen() {
           <Section title={ar ? 'متجري' : 'My store'} dirStyle={dirStyle}>
             <MoreRow {...rowProps} icon="storefront-outline" label={t.storeInfo} onPress={() => router.push('/dashboard/store')} />
             <MoreRow {...rowProps} icon="logo-instagram" label={t.socialMedia} onPress={() => router.push('/dashboard/social')} />
+            <MoreRow {...rowProps} icon="shield-checkmark-outline" label={t.verified.page.title} onPress={() => router.push('/dashboard/verify' as never)} />
             <MoreRow {...rowProps} icon="pricetags-outline" label={t.categoriesBrands} onPress={() => router.push('/dashboard/categories-brands')} />
             <MoreRow
               {...rowProps}

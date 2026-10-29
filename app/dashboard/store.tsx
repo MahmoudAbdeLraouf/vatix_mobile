@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   Image,
   StyleSheet,
   Text,
@@ -100,11 +101,24 @@ export default function StoreInfoScreen() {
     [locations, locale, ar],
   )
 
-  async function handleSave() {
+  function handleSave() {
     if (!name.trim()) {
       setMsg({ ok: false, text: ar ? 'اسم المتجر مطلوب' : 'Store name is required' })
       return
     }
+    // Renaming a verified store revokes its badge server-side, so confirm first.
+    const current = profile?.storeProfile
+    if (current?.verification?.verified && name.trim() !== (current.name ?? '').trim()) {
+      Alert.alert(t.verified.renameWarning, undefined, [
+        { text: t.cancel, style: 'cancel' },
+        { text: t.confirm, onPress: () => { void doSave() } },
+      ])
+      return
+    }
+    void doSave()
+  }
+
+  async function doSave() {
     setSaving(true)
     setMsg(null)
     try {
@@ -116,6 +130,22 @@ export default function StoreInfoScreen() {
         websiteUrl: websiteUrl.trim() || undefined,
         locationId: locationId ? Number(locationId) : undefined,
       })
+      // Keep local state in step: a rename drops the verified badge (and the hint/confirm with it).
+      setProfile(prev =>
+        prev?.storeProfile
+          ? {
+              ...prev,
+              storeProfile: {
+                ...prev.storeProfile,
+                name: name.trim(),
+                verification:
+                  name.trim() !== (prev.storeProfile.name ?? '').trim()
+                    ? undefined
+                    : prev.storeProfile.verification,
+              },
+            }
+          : prev,
+      )
       setMsg({
         ok: true,
         text: ar ? 'تم حفظ بيانات المتجر بنجاح ✓' : 'Store info saved successfully ✓',
@@ -163,6 +193,9 @@ export default function StoreInfoScreen() {
                 placeholder={t.storeName}
                 leftIcon={<Ionicons name="business-outline" size={18} color={colors.subtle} />}
               />
+              {profile.storeProfile.verification?.verified ? (
+                <Text style={[styles.hint, dirStyle]}>{t.verified.renameWarning}</Text>
+              ) : null}
 
               <View style={styles.field}>
                 <Text style={[styles.label, dirStyle]}>

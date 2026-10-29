@@ -1101,6 +1101,57 @@ export interface Translations {
     tooltipTitle: string
     tips: Record<'phone' | 'storefront' | 'commercial_register' | 'facebook', string>
     renameWarning: string
+    page: {
+      title: string
+      rule: string
+      intro: string
+      loadError: string
+      retry: string
+      loading: string
+      accepted: string
+      reasonLabel: string
+      pendingTitle: string
+      pendingBody: string
+      rejectedTitle: string
+      rejectedBody: string
+      verifiedTitle: string
+      addCheck: string
+      notSubmittedYet: string
+      phoneDone: string
+      phoneNeeded: string
+      sendCode: string
+      resendCode: string
+      codePlaceholder: string
+      smsHint: string
+      crNumberChanged: string
+      confirmCode: string
+      crNumber: string
+      crNumberHint: string
+      crPhoto: string
+      crNeedNumber: string
+      signLine: string
+      signPhoto: string
+      photoHint: string
+      fbPageUrl: string
+      getCode: string
+      newCode: string
+      yourCode: string
+      expiresOn: string
+      codeExpired: string
+      openVatixPage: string
+      sendFromPage: string
+      submit: string
+      submitting: string
+      submitted: string
+      needPhone: string
+      needTwo: string
+      needNew: string
+      needCode: string
+      error: string
+      choosePhoto: string
+      replacePhoto: string
+      photoUploaded: string
+    }
   }
 }
 
@@ -2143,6 +2194,57 @@ export const translations: Record<Locale, Translations> = {
         facebook: 'فيسبوك: تم التأكد من صفحة المتجر على فيسبوك',
       },
       renameWarning: 'تغيير الاسم سيزيل شارة التوثيق',
+      page: {
+        title: 'وثّق متجرك',
+        rule: 'الهاتف + أي اثنين من الثلاثة',
+        intro: 'المتاجر الموثّقة تظهر بشارة بجانب اسمها. أكمل الهاتف وأي فحصين من الثلاثة التالية.',
+        loadError: 'تعذّر تحميل حالة التوثيق. حاول مرة أخرى.',
+        retry: 'إعادة المحاولة',
+        loading: 'جاري التحميل...',
+        accepted: 'تم قبوله',
+        reasonLabel: 'السبب',
+        pendingTitle: 'قيد المراجعة',
+        pendingBody: 'استلمنا طلبك وسنراجعه قريباً. لا يمكن التعديل أثناء المراجعة.',
+        rejectedTitle: 'لم يكتمل التوثيق',
+        rejectedBody: 'صحّح الفحوصات المرفوضة ثم أعد الإرسال. الفحوصات المقبولة محفوظة.',
+        verifiedTitle: 'متجرك موثّق',
+        addCheck: 'إضافة فحص',
+        notSubmittedYet: 'لم يتم الإرسال بعد',
+        phoneDone: 'تم التحقق من الهاتف',
+        phoneNeeded: 'تحقق من رقم هاتف المتجر',
+        sendCode: 'إرسال الرمز',
+        resendCode: 'إعادة إرسال الرمز',
+        codePlaceholder: 'أدخل الرمز المكوّن من ٦ أرقام',
+        smsHint: 'سيصلك رمز التحقق في رسالة نصية',
+        crNumberChanged: 'غيّرت الرقم. أعد رفع الصورة لحفظه.',
+        confirmCode: 'تأكيد',
+        crNumber: 'رقم السجل التجاري',
+        crNumberHint: 'أرقام فقط، حتى 20 رقماً',
+        crPhoto: 'صورة السجل التجاري',
+        crNeedNumber: 'أدخل رقم السجل التجاري (أرقام فقط) قبل رفع الصورة',
+        signLine: 'التقط صورة ليافطة محلك الآن',
+        signPhoto: 'صورة اليافطة',
+        photoHint: 'JPG · PNG · WebP · حجم أقصى 15 MB',
+        fbPageUrl: 'رابط صفحة المتجر على فيسبوك',
+        getCode: 'احصل على الكود',
+        newCode: 'كود جديد',
+        yourCode: 'الكود الخاص بك',
+        expiresOn: 'ينتهي في',
+        codeExpired: 'انتهت صلاحية الكود. احصل على كود جديد.',
+        openVatixPage: 'افتح صفحة فاتكس',
+        sendFromPage: 'أرسل الكود من صفحة محلك وليس من حسابك الشخصي',
+        submit: 'إرسال للمراجعة',
+        submitting: 'جاري الإرسال...',
+        submitted: 'تم إرسال الطلب',
+        needPhone: 'تحقق من الهاتف أولاً',
+        needTwo: 'أضف فحصين على الأقل بجانب الهاتف',
+        needNew: 'أضف فحصاً جديداً واحداً على الأقل',
+        needCode: 'كود فيسبوك مفقود أو منتهي، احصل على كود جديد',
+        error: 'حدث خطأ، حاول مرة أخرى',
+        choosePhoto: 'اختر صورة',
+        replacePhoto: 'استبدال الصورة',
+        photoUploaded: 'تم رفع الصورة',
+      },
     },
   },
   en: {
@@ -3183,6 +3285,57 @@ export const translations: Record<Locale, Translations> = {
         facebook: 'Facebook: the store Facebook page was confirmed',
       },
       renameWarning: 'Changing your name removes your verified badge',
+      page: {
+        title: 'Verify my store',
+        rule: 'Phone + any two of the three',
+        intro: 'Verified stores show a badge next to their name. Complete the phone check and any two of the three below.',
+        loadError: 'Could not load your verification status. Please try again.',
+        retry: 'Retry',
+        loading: 'Loading...',
+        accepted: 'Accepted',
+        reasonLabel: 'Reason',
+        pendingTitle: 'Under review',
+        pendingBody: 'We received your request and will review it soon. You cannot edit it while it is under review.',
+        rejectedTitle: 'Verification not completed',
+        rejectedBody: 'Fix the rejected checks and submit again. Accepted checks are kept.',
+        verifiedTitle: 'Your store is verified',
+        addCheck: 'Add a check',
+        notSubmittedYet: 'Not submitted yet',
+        phoneDone: 'Phone verified',
+        phoneNeeded: 'Verify your store phone number',
+        sendCode: 'Send code',
+        resendCode: 'Resend code',
+        codePlaceholder: 'Enter 6-digit code',
+        smsHint: 'The code will arrive as a text message',
+        crNumberChanged: 'You changed the number. Re-upload the photo to save it.',
+        confirmCode: 'Confirm',
+        crNumber: 'Commercial register number',
+        crNumberHint: 'Digits only, up to 20',
+        crPhoto: 'Commercial register photo',
+        crNeedNumber: 'Enter the commercial register number (digits only) before uploading the photo',
+        signLine: 'Take a photo of your shop sign now',
+        signPhoto: 'Shop sign photo',
+        photoHint: 'JPG · PNG · WebP · Max 15 MB',
+        fbPageUrl: 'Your store Facebook page link',
+        getCode: 'Get code',
+        newCode: 'New code',
+        yourCode: 'Your code',
+        expiresOn: 'Expires',
+        codeExpired: 'The code expired. Get a new one.',
+        openVatixPage: 'Open Vatix page',
+        sendFromPage: 'Send the code from your shop page, not your personal account',
+        submit: 'Submit for review',
+        submitting: 'Submitting...',
+        submitted: 'Request submitted',
+        needPhone: 'Verify your phone first',
+        needTwo: 'Add at least two checks besides the phone',
+        needNew: 'Add at least one new check',
+        needCode: 'The Facebook code is missing or expired. Get a new one',
+        error: 'Something went wrong, please try again',
+        choosePhoto: 'Choose a photo',
+        replacePhoto: 'Replace photo',
+        photoUploaded: 'Photo uploaded',
+      },
     },
   },
 }

@@ -63,6 +63,32 @@ export interface StoreVerification {
   checks: VerificationCheck[]
 }
 
+export type OptionalCheck = Exclude<VerificationCheck, 'phone'>
+export type VerificationStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'cancelled'
+export type CheckResult = 'pass' | 'fail'
+
+/** Owner-only view of the store's verification state (GET /stores/me/verification). */
+export interface StoreVerificationView {
+  verification: StoreVerification
+  phone: { verified: boolean; masked: string }
+  vatixFacebookUrl: string | null
+  request: null | {
+    id: number
+    status: VerificationStatus
+    crNumber: string | null
+    hasCrPhoto: boolean
+    hasSignPhoto: boolean
+    facebookPageUrl: string | null
+    facebookCode: string | null
+    facebookCodeExpiresAt: string | null
+    carriedChecks: OptionalCheck[]
+    results: Partial<Record<OptionalCheck, { result: CheckResult; reason: string | null }>>
+    submittedAt: string | null
+    reviewedAt: string | null
+  }
+  prefillFacebookUrl: string | null
+}
+
 export interface Product {
   id: number
   slug: string | null
