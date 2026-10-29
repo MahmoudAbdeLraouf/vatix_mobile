@@ -53,13 +53,6 @@
       ],
       "expo-web-browser",
       [
-        "expo-image-picker",
-        {
-          "photosPermission": "Vatix needs access to your photos so you can upload store verification photos.",
-          "cameraPermission": "Vatix needs camera access so you can take store verification photos, such as your storefront sign."
-        }
-      ],
-      [
         "expo-notifications",
         {
           "color": "#F5B800"

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useFocusEffect } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { Button } from '@/components/ui/Button'
@@ -52,7 +53,7 @@ type Msg = { text: string; ok: boolean }
 export default function VerifyScreen() {
   const { locale, t } = useLocale()
   const { colors, isDark } = useTheme()
-  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const v = t.verified
   const p = v.page
   const ar = locale === 'ar'
@@ -87,15 +88,19 @@ export default function VerifyScreen() {
         setLoadFailed(true)
         return
       }
+      setLoadFailed(false)
       applyView(data, true)
     } catch {
       setLoadFailed(true)
     }
   }, [applyView])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  // Refetch whenever the screen regains focus (replaces the mount-only fetch).
+  useFocusEffect(
+    useCallback(() => {
+      load()
+    }, [load]),
+  )
 
   function retryLoad() {
     setLoadFailed(false)
@@ -217,7 +222,7 @@ export default function VerifyScreen() {
     const accepted = (c: OptionalCheck) =>
       carried.includes(c) ||
       (status === 'rejected' && req?.results[c]?.result === 'pass') ||
-      (!req && verified && view.verification.checks.includes(c))
+      (verified && view.verification.checks.includes(c))
 
     const hasData: Record<OptionalCheck, boolean> = {
       commercial_register: !!req?.hasCrPhoto && !!req.crNumber,
@@ -387,11 +392,7 @@ export default function VerifyScreen() {
                   <View style={styles.channelHint}>
                     <Text style={styles.channelIcon}>💬</Text>
                     <Text style={[styles.channelText, dirStyle]}>
-                      {codeSent === 'whatsapp'
-                        ? ar
-                          ? 'سيصلك رمز التحقق في رسالة على واتساب'
-                          : 'The code will arrive as a WhatsApp message'
-                        : p.smsHint}
+                      {codeSent === 'whatsapp' ? p.whatsappHint : p.smsHint}
                     </Text>
                   </View>
                   <TextInput
@@ -576,7 +577,7 @@ export default function VerifyScreen() {
   )
 }
 
-const makeStyles = (colors: ThemeColors, isDark: boolean) =>
+const makeStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     wrap: { width: '100%', maxWidth: 640, alignSelf: 'center', gap: spacing.md },
     body: { gap: spacing.md },
@@ -678,8 +679,8 @@ const makeStyles = (colors: ThemeColors, isDark: boolean) =>
       padding: spacing.sm + 2,
       borderRadius: radius.md,
       borderWidth: 1,
-      borderColor: isDark ? colors.border : '#B7EBCB',
-      backgroundColor: isDark ? colors.inputBg : '#EDFBF2',
+      borderColor: colors.green,
+      backgroundColor: colors.greenBg,
     },
     channelIcon: { fontSize: 18 },
     channelText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.text },

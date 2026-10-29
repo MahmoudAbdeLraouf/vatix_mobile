@@ -1101,6 +1101,7 @@ export interface Translations {
     tooltipTitle: string
     tips: Record<'phone' | 'storefront' | 'commercial_register' | 'facebook', string>
     renameWarning: string
+    renameWarningOpenRequest: string
     page: {
       title: string
       rule: string
@@ -1123,6 +1124,7 @@ export interface Translations {
       resendCode: string
       codePlaceholder: string
       smsHint: string
+      whatsappHint: string
       crNumberChanged: string
       confirmCode: string
       crNumber: string
@@ -2194,6 +2196,7 @@ export const translations: Record<Locale, Translations> = {
         facebook: 'فيسبوك: تم التأكد من صفحة المتجر على فيسبوك',
       },
       renameWarning: 'تغيير الاسم سيزيل شارة التوثيق',
+      renameWarningOpenRequest: 'تغيير اسم المتجر سيلغي مستندات طلب التوثيق الحالي (السجل التجاري واللافتة وفيسبوك).',
       page: {
         title: 'وثّق متجرك',
         rule: 'الهاتف + أي اثنين من الثلاثة',
@@ -2216,6 +2219,7 @@ export const translations: Record<Locale, Translations> = {
         resendCode: 'إعادة إرسال الرمز',
         codePlaceholder: 'أدخل الرمز المكوّن من ٦ أرقام',
         smsHint: 'سيصلك رمز التحقق في رسالة نصية',
+        whatsappHint: 'سيصلك رمز التحقق في رسالة على واتساب',
         crNumberChanged: 'غيّرت الرقم. أعد رفع الصورة لحفظه.',
         confirmCode: 'تأكيد',
         crNumber: 'رقم السجل التجاري',
@@ -3285,6 +3289,7 @@ export const translations: Record<Locale, Translations> = {
         facebook: 'Facebook: the store Facebook page was confirmed',
       },
       renameWarning: 'Changing your name removes your verified badge',
+      renameWarningOpenRequest: 'Renaming the store will drop the documents in your current verification request (CR, sign and Facebook).',
       page: {
         title: 'Verify my store',
         rule: 'Phone + any two of the three',
@@ -3307,6 +3312,7 @@ export const translations: Record<Locale, Translations> = {
         resendCode: 'Resend code',
         codePlaceholder: 'Enter 6-digit code',
         smsHint: 'The code will arrive as a text message',
+        whatsappHint: 'The code will arrive as a WhatsApp message',
         crNumberChanged: 'You changed the number. Re-upload the photo to save it.',
         confirmCode: 'Confirm',
         crNumber: 'Commercial register number',

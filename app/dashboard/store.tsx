@@ -17,7 +17,14 @@ import { FileUpload } from '@/components/ui/FileUpload'
 import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect'
 import { useLocale } from '@/contexts/locale'
 import { authErrorMessage, authFetch, authPatch } from '@/lib/auth'
-import { getLocations, imgUrl, localeName, type LocationNode, type UserProfile } from '@/lib/api'
+import {
+  getLocations,
+  imgUrl,
+  localeName,
+  type LocationNode,
+  type StoreVerificationView,
+  type UserProfile,
+} from '@/lib/api'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -51,6 +58,7 @@ export default function StoreInfoScreen() {
   const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<Msg>(null)
+  const [hasOpenRequest, setHasOpenRequest] = useState(false)
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -63,10 +71,14 @@ export default function StoreInfoScreen() {
     setLoading(true)
     setLoadError(false)
     try {
-      const [prof, locs] = await Promise.all([
+      const [prof, locs, ver] = await Promise.all([
         authFetch<UserProfile>('/user/profile'),
         getLocations().catch(() => [] as LocationNode[]),
+        // Hint only (rename warning): a failure just means "no open request".
+        authFetch<StoreVerificationView>('/stores/me/verification').catch(() => null),
       ])
+      const reqStatus = ver?.request?.status
+      setHasOpenRequest(reqStatus === 'draft' || reqStatus === 'pending')
       if (prof) {
         setProfile(prof)
         const sp = prof.storeProfile
@@ -108,8 +120,9 @@ export default function StoreInfoScreen() {
     }
     // Renaming a verified store revokes its badge server-side, so confirm first.
     const current = profile?.storeProfile
-    if (current?.verifiedAt && name.trim() !== (current.name ?? '').trim()) {
-      Alert.alert(t.verified.renameWarning, undefined, [
+    const renaming = name.trim() !== (current?.name ?? '').trim()
+    if (renaming && (current?.verifiedAt || hasOpenRequest)) {
+      Alert.alert(current?.verifiedAt ? t.verified.renameWarning : t.verified.renameWarningOpenRequest, undefined, [
         { text: t.cancel, style: 'cancel' },
         { text: t.confirm, onPress: () => { void doSave() } },
       ])
@@ -194,6 +207,8 @@ export default function StoreInfoScreen() {
               />
               {profile.storeProfile.verifiedAt ? (
                 <Text style={[styles.hint, dirStyle]}>{t.verified.renameWarning}</Text>
+              ) : hasOpenRequest ? (
+                <Text style={[styles.hint, dirStyle]}>{t.verified.renameWarningOpenRequest}</Text>
               ) : null}
 
               <View style={styles.field}>
