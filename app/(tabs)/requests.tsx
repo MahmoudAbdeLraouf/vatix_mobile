@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
@@ -56,6 +56,16 @@ export default function RequestsTab() {
   const [sheet, setSheet] = useState<{ id: number; modelText?: string } | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const reqSeq = useRef(0)
+  // Home's "Client Requests" strip deep-links here with ?offer=<id> to open the sheet.
+  const { offer: offerParam, model: modelParam } = useLocalSearchParams<{ offer?: string; model?: string }>()
+
+  useEffect(() => {
+    if (!offerParam || authLoading) return
+    const id = Number(offerParam)
+    router.setParams({ offer: undefined, model: undefined })
+    if (!id || !userType) return
+    setSheet({ id, modelText: modelParam || undefined })
+  }, [offerParam, modelParam, authLoading, userType])
 
   useEffect(() => {
     getCategories().then(c => setCategories(c.filter(x => x.isActive))).catch(() => {})

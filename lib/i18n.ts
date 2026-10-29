@@ -67,6 +67,7 @@ export interface Translations {
   // Home
   featured: string
   featuredStores: string
+  clientRequests: string
   latestProducts: string
   welcomeBack: string
   categories: string
@@ -1228,6 +1229,7 @@ export const translations: Record<Locale, Translations> = {
     // Home
     featured: 'مميز',
     featuredStores: 'متاجر مميزة',
+    clientRequests: 'طلبات العملاء 🔎',
     latestProducts: 'أحدث المنتجات',
     welcomeBack: 'مرحباً',
     categories: 'الاقسام',
@@ -2328,6 +2330,7 @@ export const translations: Record<Locale, Translations> = {
     // Home
     featured: 'Featured',
     featuredStores: 'Featured Stores',
+    clientRequests: 'Client Requests 🔎',
     latestProducts: 'Latest Products',
     welcomeBack: 'Welcome',
     categories: 'Categories',

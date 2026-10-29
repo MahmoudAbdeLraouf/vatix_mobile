@@ -22,9 +22,9 @@ import * as Application from 'expo-application'
 import Constants from 'expo-constants'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
+import { useLoginGate } from '@/contexts/loginGate'
 import {
   Brand,
-  getFeaturedStores,
   getCategories,
   getBrands,
   getProducts,
@@ -36,6 +36,7 @@ import {
   Store,
 } from '@/lib/api'
 import { markActionSeen, type StoredUser } from '@/lib/auth'
+import { getBroBoard, type BroBoardItem } from '@/lib/bro'
 import {
   bumpEngagement,
   markShown as markRateAppShown,
@@ -50,6 +51,7 @@ import { StoreCard } from '@/components/StoreCard'
 import { MessagesBell } from '@/components/MessagesBell'
 import { RateAppDialog } from '@/components/RateAppDialog'
 import { BroEntryCard, useBroEnabled } from '@/components/bro/BroEntryCard'
+import { BroBoardCard } from '@/components/bro/BroBoardCard'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Logo } from '@/components/ui/Logo'
 import { colors, darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
@@ -555,11 +557,13 @@ interface CategoryItem {
 
 export default function HomeScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
+  const { requireLogin } = useLoginGate()
+  const broEnabled = useBroEnabled()
   const { mode, colors } = useTheme()
   const styles = themedStyles[mode]
 
-  const [stores, setStores] = useState<Store[]>([])
+  const [requests, setRequests] = useState<BroBoardItem[]>([])
   const [allStores, setAllStores] = useState<Store[]>([])
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
@@ -571,19 +575,42 @@ export default function HomeScreen() {
   const [search, setSearch] = useState('')
   const [showRateAppDialog, setShowRateAppDialog] = useState(false)
 
+  // Latest buy requests for the home strip. Waits for auth so the board's
+  // isMine / myOffer flags match the signed-in user; hidden on error or off.
+  useEffect(() => {
+    if (!broEnabled) {
+      setRequests([])
+      return
+    }
+    if (authLoading) return
+    let alive = true
+    getBroBoard({ page: 1 }).then(
+      res => { if (alive) setRequests(res.items.slice(0, 6)) },
+      () => { if (alive) setRequests([]) },
+    )
+    return () => { alive = false }
+  }, [broEnabled, authLoading, user?.id])
+
+  const makeOffer = useCallback(
+    (item: BroBoardItem) => {
+      if (!requireLogin()) return
+      router.push({ pathname: '/(tabs)/requests', params: { offer: String(item.id), model: item.modelText } } as never)
+    },
+    [requireLogin],
+  )
+
   const loadHome = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       // Only categories + latest products are load-bearing. Everything else
-      // degrades gracefully — a single flaky endpoint (featured stores, brands,
+      // degrades gracefully — a single flaky endpoint (brands,
       // promoted products, all stores) must not nuke the whole home screen.
       // Each secondary rejection is logged to Sentry so we can see what's
       // actually failing on user devices.
-      const [cRes, lpRes, sRes, bRes, fpRes, allSRes] = await Promise.allSettled([
+      const [cRes, lpRes, bRes, fpRes, allSRes] = await Promise.allSettled([
         getCategories(),
         getProducts({ limit: 12, sort: 'newest_pure' }),
-        getFeaturedStores(),
         IS_IOS ? Promise.resolve([] as Brand[]) : getBrands(),
         getProducts({ limit: 8, promoted: true }),
         getStores(),
@@ -601,7 +628,6 @@ export default function HomeScreen() {
         })
         return fallback
       }
-      const s = pick(sRes, 'featuredStores', [] as Store[])
       const b = pick(bRes, 'brands', [] as Brand[])
       const fp = pick(fpRes, 'featuredProducts', { items: [] as Product[] } as Awaited<ReturnType<typeof getProducts>>)
       const allS = pick(allSRes, 'allStores', [] as Store[])
@@ -614,7 +640,6 @@ export default function HomeScreen() {
         Sentry.captureMessage('[home] primary fetches returned empty', {
           level: 'warning',
           extra: {
-            featuredStores: s.length,
             categories: c.length,
             brands: b.length,
             featuredProducts: fp.items.length,
@@ -625,7 +650,6 @@ export default function HomeScreen() {
         setError(new Error('EMPTY_HOME'))
         return
       }
-      setStores(s)
       setAllStores(allS)
       setCategories([
         { id: null, name: t.all, icon: 'grid-outline' },
@@ -734,16 +758,18 @@ export default function HomeScreen() {
             "can't find it?" fallback, and away from the carousel so it isn't read as a navy promo slide. */}
         <BroEntryCard variant="home" />
 
-        {/* Featured Stores */}
-        {stores.length > 0 && (
-          <Section title={t.featuredStores} onMore={() => router.push('/(tabs)/stores')}>
+        {/* Client Requests (latest buy requests from the Bro board) */}
+        {requests.length > 0 && (
+          <Section title={t.clientRequests} onMore={() => router.push('/(tabs)/requests' as never)}>
             <ScrollView
               horizontal
               contentContainerStyle={styles.hList}
               showsHorizontalScrollIndicator={false}
             >
-              {stores.map(item => (
-                <StoreCard key={item.id} store={item} style={styles.storeCardWide} />
+              {requests.map(item => (
+                <View key={item.id} style={styles.requestCardWrap}>
+                  <BroBoardCard item={item} onMakeOffer={() => makeOffer(item)} />
+                </View>
               ))}
             </ScrollView>
           </Section>
@@ -777,7 +803,8 @@ export default function HomeScreen() {
     [
       t,
       categories,
-      stores,
+      requests,
+      makeOffer,
       featuredProducts,
       latestProducts.length,
       styles,
@@ -1092,6 +1119,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   storeCardWide: {
     width: 150,
+  },
+  requestCardWrap: {
+    width: Math.round(SCREEN_W * 0.78),
   },
   emptyText: {
     fontFamily: fonts.regular,
