@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
   FlatList,
   Image,
@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
@@ -163,9 +163,13 @@ export default function MessagesScreen() {
     }
   }, [])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  // Reload on every focus, not just mount: the list stays mounted under the
+  // thread screen, so coming back from a chat would otherwise show stale unread.
+  useFocusEffect(
+    useCallback(() => {
+      load()
+    }, [load]),
+  )
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
