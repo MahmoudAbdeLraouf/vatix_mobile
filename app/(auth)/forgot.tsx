@@ -141,6 +141,8 @@ export default function ForgotScreen() {
                 keyboardType="phone-pad"
                 autoComplete="tel"
                 placeholder="01xxxxxxxxx"
+                // Phone numbers render LTR regardless of UI locale.
+                style={{ textAlign: 'left', writingDirection: 'ltr' }}
               />
               {!!error && <Text style={styles.error}>{error}</Text>}
               <Button label={t.next} onPress={handleSendOtp} loading={loading} />
