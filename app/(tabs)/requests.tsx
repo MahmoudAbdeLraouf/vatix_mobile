@@ -145,6 +145,20 @@ export default function RequestsTab() {
     loadUsage()
   }, [broEnabled, authLoading, loadUsage])
 
+  // The tab stays mounted, so a later deep link (digest push) must re-apply its filters.
+  const appliedParams = useRef(`${categoryParam ?? ''}|${brandParam ?? ''}`)
+  useEffect(() => {
+    const key = `${categoryParam ?? ''}|${brandParam ?? ''}`
+    if (key === appliedParams.current) return
+    appliedParams.current = key
+    const nextCategory = positiveIntParam(categoryParam)
+    const nextBrand = positiveIntParam(brandParam)
+    if (!nextCategory && !nextBrand) return
+    resetBoard()
+    setCategoryId(nextCategory)
+    setBrandId(nextBrand)
+  }, [categoryParam, brandParam])
+
   const hasFilters = !!(categoryId || brandId || locationId)
   const hasMore = items.length < total
 
