@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ActivityIndicator,
   Alert,
   Linking,
   Pressable,
@@ -88,7 +89,11 @@ export default function SettingsScreen() {
     tips: true,
   })
   const [notifsLoading, setNotifsLoading] = useState(true)
+  const [notifsLoadFailed, setNotifsLoadFailed] = useState(false)
   const [notifsMsg, setNotifsMsg] = useState<Msg>(null)
+  // Keys whose PATCH is still in flight; further taps on them are ignored.
+  const notifsPending = useRef<Set<NotificationPrefKey>>(new Set())
+  const mounted = useRef(true)
 
   const [deletePassword, setDeletePassword] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -131,28 +136,37 @@ export default function SettingsScreen() {
     }, 400)
   }
 
-  useEffect(() => {
-    let cancelled = false
-    getNotificationPrefs()
-      .then((prefs) => {
-        if (cancelled) return
-        setNotifs(prefs)
-        setNotifsLoading(false)
-      })
-      // On load failure the rows stay disabled: showing default-on values
+  const loadNotifs = useCallback(async () => {
+    setNotifsLoading(true)
+    setNotifsLoadFailed(false)
+    setNotifsMsg(null)
+    try {
+      const prefs = await getNotificationPrefs()
+      if (!mounted.current) return
+      setNotifs(prefs)
+      setNotifsLoading(false)
+    } catch (err) {
+      if (!mounted.current) return
+      // On load failure the switches stay hidden: showing default-on values
       // would misrepresent the user's real preferences.
-      .catch((err) => {
-        if (!cancelled) setNotifsMsg({ ok: false, text: authErrorMessage(err, t) })
-      })
-    return () => {
-      cancelled = true
+      setNotifsLoadFailed(true)
+      setNotifsMsg({ ok: false, text: authErrorMessage(err, t) })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    mounted.current = true
+    loadNotifs()
+    return () => {
+      mounted.current = false
+    }
+  }, [loadNotifs])
+
   async function handleToggleNotif(key: NotificationPrefKey) {
-    if (notifsLoading) return
+    if (notifsLoading || notifsLoadFailed || notifsPending.current.has(key)) return
     const next = !notifs[key]
+    notifsPending.current.add(key)
     setNotifsMsg(null)
     setNotifs((s) => ({ ...s, [key]: next }))
     try {
@@ -160,6 +174,8 @@ export default function SettingsScreen() {
     } catch (err) {
       setNotifs((s) => ({ ...s, [key]: !next }))
       setNotifsMsg({ ok: false, text: authErrorMessage(err, t) })
+    } finally {
+      notifsPending.current.delete(key)
     }
   }
 
@@ -445,30 +461,38 @@ export default function SettingsScreen() {
             {ar ? 'الإشعارات' : 'Notifications'}
           </Text>
 
-          {NOTIFS.map((n) => {
-            const on = notifs[n.key]
-            return (
-              <Pressable
-                key={n.key}
-                onPress={() => handleToggleNotif(n.key)}
-                disabled={notifsLoading}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: on, disabled: notifsLoading }}
-                style={({ pressed }) => [
-                  styles.notifRow,
-                  notifsLoading && { opacity: 0.5 },
-                  pressed && { opacity: 0.85 },
-                ]}
-              >
-                <View style={[styles.checkbox, on && styles.checkboxOn]}>
-                  {on && <Ionicons name="checkmark" size={14} color={colors.dk} />}
-                </View>
-                <Text style={[styles.notifLabel, dirStyle]}>
-                  {ar ? n.ar : n.en}
-                </Text>
-              </Pressable>
-            )
-          })}
+          {notifsLoading && !notifsLoadFailed && (
+            <View style={styles.notifLoading}>
+              <ActivityIndicator color={colors.heading} />
+            </View>
+          )}
+
+          {!notifsLoading && !notifsLoadFailed && (
+            <>
+              {NOTIFS.map((n) => {
+                const on = notifs[n.key]
+                return (
+                  <Pressable
+                    key={n.key}
+                    onPress={() => handleToggleNotif(n.key)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}
+                    style={({ pressed }) => [
+                      styles.notifRow,
+                      pressed && { opacity: 0.85 },
+                    ]}
+                  >
+                    <View style={[styles.checkbox, on && styles.checkboxOn]}>
+                      {on && <Ionicons name="checkmark" size={14} color={colors.dk} />}
+                    </View>
+                    <Text style={[styles.notifLabel, dirStyle]}>
+                      {ar ? n.ar : n.en}
+                    </Text>
+                  </Pressable>
+                )
+              })}
+            </>
+          )}
 
           <Text style={[styles.helperText, dirStyle]}>
             {ar
@@ -500,6 +524,16 @@ export default function SettingsScreen() {
                 {notifsMsg.text}
               </Text>
             </View>
+          )}
+
+          {notifsLoadFailed && (
+            <Button
+              label={t.retry}
+              onPress={loadNotifs}
+              loading={notifsLoading}
+              variant="outline"
+              size="sm"
+            />
           )}
         </View>
 
@@ -715,6 +749,10 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   checkboxOn: {
     backgroundColor: colors.y,
     borderColor: colors.y,
+  },
+  notifLoading: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
   },
   notifLabel: {
     flex: 1,
