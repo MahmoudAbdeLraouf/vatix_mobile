@@ -39,7 +39,10 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
     writingDirection: isRtl ? ('rtl' as const) : ('ltr' as const),
     textAlign: 'auto' as const,
   }
-  const inputDirStyle = textStyle
+  // iOS hides digit-only text in an RTL field, so phone numbers always render LTR.
+  const inputDirStyle = rest.keyboardType === 'phone-pad'
+    ? { writingDirection: 'ltr' as const, textAlign: 'left' as const }
+    : textStyle
 
   return (
     <View style={[styles.wrapper, wrapperDir]}>
