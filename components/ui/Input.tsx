@@ -13,6 +13,7 @@ import { useTheme } from '@/contexts/theme'
 
 interface InputProps extends TextInputProps {
   label?: string
+  required?: boolean
   error?: string
   leftIcon?: React.ReactNode
   rightIcon?: React.ReactNode
@@ -20,7 +21,7 @@ interface InputProps extends TextInputProps {
 }
 
 export const Input = forwardRef<TextInput, InputProps>(function Input(
-  { label, error, leftIcon, rightIcon, onRightIconPress, style, multiline, ...rest },
+  { label, required, error, leftIcon, rightIcon, onRightIconPress, style, multiline, ...rest },
   ref,
 ) {
   const [focused, setFocused] = useState(false)
@@ -39,16 +40,22 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
     writingDirection: isRtl ? ('rtl' as const) : ('ltr' as const),
     textAlign: 'auto' as const,
   }
-  // iOS hides digit-only text in an RTL field, so phone numbers always render LTR.
+  // iOS hides typed text in a TextInput forced to writingDirection rtl (digits
+  // and Latin, e.g. "iPhone 15"), so the field itself only aligns to the
+  // locale and lets the content pick its own direction. Phone numbers always
+  // render LTR.
   const inputDirStyle = rest.keyboardType === 'phone-pad'
     ? { writingDirection: 'ltr' as const, textAlign: 'left' as const }
-    : textStyle
+    : { textAlign: isRtl ? ('right' as const) : ('left' as const) }
 
   return (
     <View style={[styles.wrapper, wrapperDir]}>
       {label && (
         <View style={[textRowStyle, styles.labelRow]}>
-          <Text style={[styles.label, textStyle]}>{label}</Text>
+          <Text style={[styles.label, textStyle]}>
+            {label}
+            {required && <Text style={styles.required}> *</Text>}
+          </Text>
         </View>
       )}
       <View
@@ -102,6 +109,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: fonts.semiBold,
     fontSize: 14,
     color: colors.text,
+  },
+  required: {
+    color: colors.error,
   },
   errorRow: {
     marginTop: 4,

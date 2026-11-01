@@ -29,10 +29,11 @@ interface Props {
   onChange: (value: string) => void
   placeholder?: string
   label?: string
+  required?: boolean
   style?: ViewStyle
 }
 
-export function SearchableSelect({ options, value, onChange, placeholder, label, style }: Props) {
+export function SearchableSelect({ options, value, onChange, placeholder, label, required, style }: Props) {
   const { locale } = useLocale()
   const ar = locale === 'ar'
   const dirStyle = {
@@ -69,6 +70,7 @@ export function SearchableSelect({ options, value, onChange, placeholder, label,
   const searchPlaceholder = locale === 'ar' ? 'ابحث...' : 'Search...'
   const emptyText = locale === 'ar' ? 'لا توجد نتائج' : 'No results'
   const triggerPlaceholder = placeholder ?? (locale === 'ar' ? 'ابحث أو اختر...' : 'Search or select...')
+  const closeLabel = locale === 'ar' ? 'إغلاق' : 'Close'
 
   function close() {
     setOpen(false)
@@ -89,7 +91,10 @@ export function SearchableSelect({ options, value, onChange, placeholder, label,
     <View style={[styles.wrapper, style]}>
       {label ? (
         <View style={[styles.labelRow, rowDir]}>
-          <Text style={[styles.label, dirStyle]}>{label}</Text>
+          <Text style={[styles.label, dirStyle]}>
+            {label}
+            {required && <Text style={styles.required}> *</Text>}
+          </Text>
         </View>
       ) : null}
 
@@ -115,13 +120,28 @@ export function SearchableSelect({ options, value, onChange, placeholder, label,
       <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
         <Pressable style={styles.backdrop} onPress={close} />
         <View style={[styles.sheet, wrapperDir, { paddingBottom: insets.bottom + spacing.md, marginTop: insets.top + 60 }]}>
+          <View style={[styles.sheetHeader, rowDir]}>
+            <Text style={[styles.sheetTitle, dirStyle]} numberOfLines={1}>
+              {label ?? triggerPlaceholder}
+            </Text>
+            <Pressable
+              onPress={close}
+              hitSlop={10}
+              style={({ pressed }) => [styles.closeBtn, pressed && styles.optionPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={closeLabel}
+            >
+              <Text style={styles.closeGlyph}>✕</Text>
+            </Pressable>
+          </View>
           <View style={styles.searchWrap}>
             <TextInput
               value={query}
               onChangeText={setQuery}
               placeholder={searchPlaceholder}
               placeholderTextColor={colors.subtle}
-              style={[styles.searchInput, dirStyle]}
+              // No writingDirection here — iOS hides Latin/digit text typed into an rtl-forced TextInput.
+              style={[styles.searchInput, { textAlign: dirStyle.textAlign }]}
               autoFocus
               autoCorrect={false}
               autoCapitalize="none"
@@ -174,6 +194,9 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     fontSize: 14,
     color: colors.text,
   },
+  required: {
+    color: colors.error,
+  },
   // Mirrors .fi input styling (Input.tsx container)
   trigger: {
     flexDirection: 'row',
@@ -220,6 +243,32 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     borderTopRightRadius: radius.lg,
     overflow: 'hidden',
     ...(dark ? null : shadow.sl),
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+  sheetTitle: {
+    flex: 1,
+    fontFamily: fonts.bold,
+    fontSize: 16,
+    color: colors.heading,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.inputBg,
+    marginStart: spacing.sm,
+  },
+  closeGlyph: {
+    fontSize: 16,
+    color: colors.text,
   },
   searchWrap: {
     paddingVertical: spacing.sm,

@@ -396,6 +396,7 @@ export default function AddProductScreen() {
 
             <Input
               label={t.productTitle}
+              required
               value={title}
               onChangeText={setTitle}
               placeholder={t.productTitle}
@@ -406,6 +407,7 @@ export default function AddProductScreen() {
             <View style={[styles.fieldLabelRow, rowDir]}>
               <Text style={[styles.fieldLabel, dirStyle]}>
                 {t.price}
+                <Text style={styles.requiredMark}> *</Text>
               </Text>
             </View>
             <View style={[styles.priceWrap, rowDir]}>
@@ -502,6 +504,7 @@ export default function AddProductScreen() {
 
             <SearchableSelect
               label={t.category}
+              required
               placeholder={t.selectCategory}
               options={categoryOptions}
               value={categoryId != null ? String(categoryId) : ''}
@@ -543,7 +546,6 @@ export default function AddProductScreen() {
               multiline
               numberOfLines={5}
               maxLength={2000}
-              style={dirStyle}
             />
             <Text style={[styles.charCount, dirStyle]}>
               {description.length} / 2000
@@ -842,6 +844,9 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     marginBottom: spacing.xs,
+  },
+  requiredMark: {
+    color: colors.error,
   },
 
   /* PRICE */
