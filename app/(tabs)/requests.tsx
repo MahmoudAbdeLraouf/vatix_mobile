@@ -22,6 +22,12 @@ import { useTheme } from '@/contexts/theme'
 
 type Sort = 'newest' | 'budget'
 
+/** Route param -> filter value: only positive integers pass, anything else means "no filter". */
+function positiveIntParam(raw: string | string[] | undefined): string {
+  const v = Array.isArray(raw) ? raw[0] : raw
+  return v && /^[1-9]\d*$/.test(v) && Number.isSafeInteger(Number(v)) ? v : ''
+}
+
 /** Public board of buyer requests that sellers can answer with an offer. Mirrors the website /requests. */
 export default function RequestsTab() {
   const { locale, t, isRtl, setLocale } = useLocale()
@@ -39,8 +45,10 @@ export default function RequestsTab() {
   const [categories, setCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
   const [locations, setLocations] = useState<LocationNode[]>([])
-  const [categoryId, setCategoryId] = useState('')
-  const [brandId, setBrandId] = useState('')
+  // Deep links (e.g. Geeko digests) may pass ?categoryId=&brandId= as initial filters.
+  const { categoryId: categoryParam, brandId: brandParam } = useLocalSearchParams<{ categoryId?: string; brandId?: string }>()
+  const [categoryId, setCategoryId] = useState(() => positiveIntParam(categoryParam))
+  const [brandId, setBrandId] = useState(() => positiveIntParam(brandParam))
   const [locationId, setLocationId] = useState('')
   const [sort, setSort] = useState<Sort>('newest')
 

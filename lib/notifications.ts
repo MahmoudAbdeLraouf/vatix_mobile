@@ -4,6 +4,7 @@ import * as Device from 'expo-device'
 import * as Notifications from 'expo-notifications'
 import { router } from 'expo-router'
 import { authDelete, authPost } from './auth'
+import { answerBroAvailability } from './bro'
 
 // Expo SDK 54 notification handler — `shouldShowAlert` is deprecated;
 // use the `shouldShowBanner` + `shouldShowList` split instead.
@@ -89,12 +90,26 @@ export async function unregisterPushNotifications(): Promise<void> {
   await authDelete('/notifications/push-token', { token }).catch(() => undefined)
 }
 
+// Geeko "is it still available?" push — the seller answers from the
+// notification itself. Buttons only show once the category is registered.
+const BRO_ASK_CATEGORY = 'bro_ask'
+const BRO_ACTION_AVAILABLE = 'bro_available'
+const BRO_ACTION_SOLD = 'bro_sold'
+
+async function ensureNotificationCategories(): Promise<void> {
+  await Notifications.setNotificationCategoryAsync(BRO_ASK_CATEGORY, [
+    { identifier: BRO_ACTION_AVAILABLE, buttonTitle: '✅ متاح', options: { opensAppToForeground: true } },
+    { identifier: BRO_ACTION_SOLD, buttonTitle: 'اتباع', options: { opensAppToForeground: false } },
+  ])
+}
+
 type NotificationDataRoute = {
   route?: string
   productId?: number | string
   storeId?: number | string
   conversationId?: number | string
   broRequestId?: number | string
+  inquiryId?: number | string
 }
 
 function routeFromData(data: NotificationDataRoute | undefined): string | null {
@@ -117,7 +132,33 @@ function navigateFromResponse(response: Notifications.NotificationResponse, sour
   _handledResponseIds.add(id)
   const data = response.notification.request.content.data as NotificationDataRoute | undefined
   const path = routeFromData(data)
-  console.log(`[push] tapped (${source})`, { id, data, path })
+  console.log(`[push] tapped (${source})`, { id, action: response.actionIdentifier, data, path })
+  const inquiryId = data?.inquiryId != null ? Number(data.inquiryId) : NaN
+  if (Number.isInteger(inquiryId) && inquiryId > 0) {
+    if (response.actionIdentifier === BRO_ACTION_SOLD) {
+      void markBroSoldFromPush(inquiryId, id, path)
+      return
+    }
+    if (response.actionIdentifier === BRO_ACTION_AVAILABLE) {
+      // The bro_ask push route is the chat conversation, so build the seller screen path directly.
+      openPath(`/bro/i/${inquiryId}?src=push_action`)
+      return
+    }
+  }
+  openPath(path)
+}
+
+async function markBroSoldFromPush(inquiryId: number, notificationId: string, fallback: string | null): Promise<void> {
+  try {
+    await answerBroAvailability(inquiryId, false, 'push_action')
+    await Notifications.dismissNotificationAsync(notificationId).catch(() => undefined)
+  } catch (err) {
+    console.warn('[push] bro sold action failed', inquiryId, err)
+    openPath(fallback)
+  }
+}
+
+function openPath(path: string | null): void {
   if (!path) return
   // Defer one tick so the root Stack is mounted before router.push runs —
   // required on cold start where the response fires before layout renders.
@@ -131,6 +172,8 @@ function navigateFromResponse(response: Notifications.NotificationResponse, sour
 }
 
 export function attachNotificationTapHandler(): () => void {
+  ensureNotificationCategories().catch(() => undefined)
+
   // Cold start: the tap that launched the app fired before this handler
   // was attached, so pull it from the OS via getLastNotificationResponseAsync.
   Notifications.getLastNotificationResponseAsync()

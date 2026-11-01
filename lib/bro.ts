@@ -495,8 +495,12 @@ export function getBroSellerView(id: number): Promise<BroSellerView | null> {
   return authFetch<BroSellerView>(`/bro/inquiries/${id}/seller`)
 }
 
-export function answerBroAvailability(id: number, available: boolean): Promise<{ ok: boolean }> {
-  return authPost<{ ok: boolean }>(`/bro/inquiries/${id}/availability`, { available })
+export function answerBroAvailability(
+  id: number,
+  available: boolean,
+  source?: 'push_action',
+): Promise<{ ok: boolean }> {
+  return authPost<{ ok: boolean }>(`/bro/inquiries/${id}/availability`, source ? { available, source } : { available })
 }
 
 /** Seller says the listing is a different model than the one the buyer asked for. */

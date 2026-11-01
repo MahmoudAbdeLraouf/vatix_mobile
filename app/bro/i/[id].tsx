@@ -34,7 +34,8 @@ export default function BroSellerScreen() {
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
   const rowDir = ar ? ({ direction: 'ltr', flexDirection: 'row-reverse' } as const) : null
 
-  const { id: rawParam } = useLocalSearchParams<{ id: string }>()
+  const { id: rawParam, src: rawSrc } = useLocalSearchParams<{ id: string; src?: string }>()
+  const fromPushAction = (Array.isArray(rawSrc) ? rawSrc[0] : rawSrc) === 'push_action'
   const rawId = Array.isArray(rawParam) ? rawParam[0] : rawParam
   const id = Number(rawId)
 
@@ -199,13 +200,13 @@ export default function BroSellerScreen() {
                 <BroButton
                   label={b.qrAvailable}
                   disabled={busy}
-                  onPress={() => void answer(() => answerBroAvailability(id, true))}
+                  onPress={() => void answer(() => answerBroAvailability(id, true, fromPushAction ? 'push_action' : undefined))}
                   dirStyle={dirStyle}
                 />
                 <BroButton
                   label={b.qrSold}
                   disabled={busy}
-                  onPress={() => void answer(() => answerBroAvailability(id, false))}
+                  onPress={() => void answer(() => answerBroAvailability(id, false, fromPushAction ? 'push_action' : undefined))}
                   dirStyle={dirStyle}
                 />
                 <BroButton label={b.qrOwnReply} disabled={busy} onPress={() => setReplying(v => !v)} dirStyle={dirStyle} />
