@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Linking,
@@ -14,7 +14,14 @@ import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { authErrorMessage, deleteAccount } from '@/lib/auth'
+import {
+  authErrorMessage,
+  deleteAccount,
+  getNotificationPrefs,
+  updateNotificationPrefs,
+  type NotificationPrefKey,
+  type NotificationPrefs,
+} from '@/lib/auth'
 import { markRated } from '@/lib/rate-app-engagement'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
@@ -35,12 +42,12 @@ import { finalizePaymentSuccess, verifyIapPurchase } from '@/lib/payment'
 
 type Msg = { ok: boolean; text: string } | null
 
-type NotifKey = 'messages' | 'listings' | 'offers'
-
-const NOTIFS: { key: NotifKey; ar: string; en: string }[] = [
-  { key: 'messages', ar: 'إشعارات الرسائل', en: 'Message Notifications' },
-  { key: 'listings', ar: 'تحديثات الإعلانات', en: 'Listing Updates' },
-  { key: 'offers', ar: 'عروض المنصة', en: 'Platform Offers' },
+const NOTIFS: { key: NotificationPrefKey; ar: string; en: string }[] = [
+  { key: 'messages', ar: 'الرسايل', en: 'Messages' },
+  { key: 'geeko', ar: 'طلبات المشترين (جيكو)', en: 'Buyer requests (Geeko)' },
+  { key: 'listings', ar: 'إعلاناتك', en: 'Your listings' },
+  { key: 'follows', ar: 'المحلات اللي متابعها', en: 'Stores you follow' },
+  { key: 'tips', ar: 'نصايح وعروض فاتكس', en: 'Vatix tips & offers' },
 ]
 
 export default function SettingsScreen() {
@@ -73,12 +80,14 @@ export default function SettingsScreen() {
   const [savingPassword, setSavingPassword] = useState(false)
   const [passwordMsg, setPasswordMsg] = useState<Msg>(null)
 
-  const [notifs, setNotifs] = useState<Record<NotifKey, boolean>>({
+  const [notifs, setNotifs] = useState<NotificationPrefs>({
     messages: true,
+    geeko: true,
     listings: true,
-    offers: true,
+    follows: true,
+    tips: true,
   })
-  const [savingNotifs, setSavingNotifs] = useState(false)
+  const [notifsLoading, setNotifsLoading] = useState(true)
   const [notifsMsg, setNotifsMsg] = useState<Msg>(null)
 
   const [deletePassword, setDeletePassword] = useState('')
@@ -122,15 +131,36 @@ export default function SettingsScreen() {
     }, 400)
   }
 
-  function handleSaveNotifs() {
-    setSavingNotifs(true)
-    setTimeout(() => {
-      setSavingNotifs(false)
-      setNotifsMsg({
-        ok: true,
-        text: t.settingsSaved,
+  useEffect(() => {
+    let cancelled = false
+    getNotificationPrefs()
+      .then((prefs) => {
+        if (cancelled) return
+        setNotifs(prefs)
+        setNotifsLoading(false)
       })
-    }, 400)
+      // On load failure the rows stay disabled: showing default-on values
+      // would misrepresent the user's real preferences.
+      .catch((err) => {
+        if (!cancelled) setNotifsMsg({ ok: false, text: authErrorMessage(err, t) })
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function handleToggleNotif(key: NotificationPrefKey) {
+    if (notifsLoading) return
+    const next = !notifs[key]
+    setNotifsMsg(null)
+    setNotifs((s) => ({ ...s, [key]: next }))
+    try {
+      await updateNotificationPrefs({ [key]: next })
+    } catch (err) {
+      setNotifs((s) => ({ ...s, [key]: !next }))
+      setNotifsMsg({ ok: false, text: authErrorMessage(err, t) })
+    }
   }
 
   async function handleRateApp() {
@@ -412,7 +442,7 @@ export default function SettingsScreen() {
         {/* Notifications card */}
         <View style={styles.card}>
           <Text style={[styles.cardTitle, dirStyle]}>
-            {ar ? 'إشعارات البريد الإلكتروني' : 'Email Notifications'}
+            {ar ? 'الإشعارات' : 'Notifications'}
           </Text>
 
           {NOTIFS.map((n) => {
@@ -420,11 +450,13 @@ export default function SettingsScreen() {
             return (
               <Pressable
                 key={n.key}
-                onPress={() =>
-                  setNotifs((s) => ({ ...s, [n.key]: !s[n.key] }))
-                }
+                onPress={() => handleToggleNotif(n.key)}
+                disabled={notifsLoading}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: on, disabled: notifsLoading }}
                 style={({ pressed }) => [
                   styles.notifRow,
+                  notifsLoading && { opacity: 0.5 },
                   pressed && { opacity: 0.85 },
                 ]}
               >
@@ -437,6 +469,12 @@ export default function SettingsScreen() {
               </Pressable>
             )
           })}
+
+          <Text style={[styles.helperText, dirStyle]}>
+            {ar
+              ? 'إشعارات الحساب والدفع وطلباتك على جيكو بتوصلك دايمًا.'
+              : 'Account, payment and your own Geeko requests are always on.'}
+          </Text>
 
           {notifsMsg && (
             <View
@@ -463,13 +501,6 @@ export default function SettingsScreen() {
               </Text>
             </View>
           )}
-
-          <Button
-            label={ar ? 'حفظ الإعدادات' : 'Save Settings'}
-            onPress={handleSaveNotifs}
-            loading={savingNotifs}
-            variant="y"
-          />
         </View>
 
         {/* Rate the App card */}

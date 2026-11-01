@@ -593,6 +593,23 @@ export async function deleteAccount(password: string): Promise<void> {
   throw new Error(msg)
 }
 
+// ─── Notification preferences ────────────────────────────────────────────────
+
+export type NotificationPrefKey = 'messages' | 'geeko' | 'listings' | 'follows' | 'tips'
+export type NotificationPrefs = Record<NotificationPrefKey, boolean>
+
+export async function getNotificationPrefs(): Promise<NotificationPrefs> {
+  const res = await authFetch<NotificationPrefs>('/notifications/preferences')
+  if (!res) throw new Error(AUTH_ERR.SERVER_ERROR)
+  return res
+}
+
+export function updateNotificationPrefs(
+  patch: Partial<NotificationPrefs>,
+): Promise<NotificationPrefs> {
+  return authPatch<NotificationPrefs>('/notifications/preferences', patch)
+}
+
 // ─── File upload ─────────────────────────────────────────────────────────────
 
 // Returns null on any failure (callers show a generic upload error). A 401
