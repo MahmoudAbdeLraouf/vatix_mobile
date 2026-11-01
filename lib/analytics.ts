@@ -18,6 +18,9 @@ function fireAndForget(url: string, init?: RequestInit) {
       ...(await visitorIdHeader()),
       ...((init?.headers as Record<string, string> | undefined) ?? {}),
     }
+    // Signed-in users get linked as viewerId so behavior scoring can see them.
+    const token = await getToken()
+    if (token) headers.Authorization = `Bearer ${token}`
     fetch(url, { ...init, headers }).catch(() => {
       // analytics failures are non-critical — swallow
     })
