@@ -154,7 +154,7 @@ async function markBroSoldFromPush(inquiryId: number, notificationId: string, fa
     await Notifications.dismissNotificationAsync(notificationId).catch(() => undefined)
   } catch (err) {
     console.warn('[push] bro sold action failed', inquiryId, err)
-    openPath(fallback)
+    openPath(fallback ?? `/bro/i/${inquiryId}`)
   }
 }
 
