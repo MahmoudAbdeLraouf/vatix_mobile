@@ -146,14 +146,14 @@ export default function RequestsTab() {
   }, [broEnabled, authLoading, loadUsage])
 
   // The tab stays mounted, so a later deep link (digest push) must re-apply its filters.
-  const appliedParams = useRef(`${categoryParam ?? ''}|${brandParam ?? ''}`)
+  // Consume the params once applied so a repeat link with the same ids still lands.
   useEffect(() => {
-    const key = `${categoryParam ?? ''}|${brandParam ?? ''}`
-    if (key === appliedParams.current) return
-    appliedParams.current = key
+    if (categoryParam === undefined && brandParam === undefined) return
     const nextCategory = positiveIntParam(categoryParam)
     const nextBrand = positiveIntParam(brandParam)
+    router.setParams({ categoryId: undefined, brandId: undefined })
     if (!nextCategory && !nextBrand) return
+    if (nextCategory === categoryId && nextBrand === brandId) return
     resetBoard()
     setCategoryId(nextCategory)
     setBrandId(nextBrand)
