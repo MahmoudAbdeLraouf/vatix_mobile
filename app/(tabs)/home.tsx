@@ -49,6 +49,7 @@ import { IS_IOS } from '@/lib/platform'
 import { ProductCard } from '@/components/ProductCard'
 import { StoreCard } from '@/components/StoreCard'
 import { MessagesBell } from '@/components/MessagesBell'
+import { GuestNudgeBanner } from '@/components/GuestNudgeBanner'
 import { RateAppDialog } from '@/components/RateAppDialog'
 import { BroEntryCard, useBroEnabled } from '@/components/bro/BroEntryCard'
 import { BroBoardCard } from '@/components/bro/BroBoardCard'
@@ -906,6 +907,7 @@ export default function HomeScreen() {
               </View>
             </View>
             <View style={styles.content}>
+              <GuestNudgeBanner />
               {error ? (
                 <ErrorState
                   kind={error.message === 'EMPTY_HOME' ? 'generic' : 'network'}

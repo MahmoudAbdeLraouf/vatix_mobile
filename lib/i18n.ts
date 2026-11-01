@@ -6,6 +6,10 @@ export interface Translations {
   loading: string
   error: string
   retry: string
+  guestNudgeTitleCategory: string
+  guestNudgeTitle: string
+  guestNudgeCta: string
+  guestNudgeClose: string
   cancel: string
   save: string
   delete: string
@@ -1171,6 +1175,10 @@ export const translations: Record<Locale, Translations> = {
     loading: 'جاري التحميل...',
     error: 'حدث خطأ',
     retry: 'إعادة المحاولة',
+    guestNudgeTitleCategory: 'شايفك بتدوّر على {category} — سجّل وإحنا نبلغك لما ينزل اللي بتدوّر عليه بسعر أحسن',
+    guestNudgeTitle: 'شايفك بتدوّر — سجّل وإحنا نبلغك لما ينزل اللي بتدوّر عليه بسعر أحسن',
+    guestNudgeCta: 'سجّل دلوقتي',
+    guestNudgeClose: 'إغلاق',
     cancel: 'إلغاء',
     save: 'حفظ',
     delete: 'حذف',
@@ -2272,6 +2280,11 @@ export const translations: Record<Locale, Translations> = {
     loading: 'Loading...',
     error: 'An error occurred',
     retry: 'Retry',
+    // en never interpolates the (Arabic) category name; both keys use the generic copy.
+    guestNudgeTitleCategory: "Looking for something? Sign up and we'll tell you when it drops to a better price",
+    guestNudgeTitle: "Looking for something? Sign up and we'll tell you when it drops to a better price",
+    guestNudgeCta: 'Sign up',
+    guestNudgeClose: 'Close',
     cancel: 'Cancel',
     save: 'Save',
     delete: 'Delete',
