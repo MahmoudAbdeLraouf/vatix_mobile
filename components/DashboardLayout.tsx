@@ -59,6 +59,11 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
         { paddingBottom: insets.bottom + spacing.xl },
       ]}
       showsVerticalScrollIndicator={false}
+      // Native inset adjustment also scrolls the focused input above the
+      // keyboard (the KAV below only shrinks the frame, it never scrolls).
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
     >
       {children}
     </ScrollView>
@@ -118,7 +123,9 @@ export function DashboardLayout({ title, children, scroll = true, contentPadding
       <KeyboardAvoidingView
         style={[styles.body, bodyBg]}
         behavior="padding"
-        enabled={Platform.OS === 'ios'}
+        // Scrolling bodies handle the keyboard via automaticallyAdjustKeyboardInsets;
+        // running both would pad twice. Android relies on softwareKeyboardLayoutMode "pan".
+        enabled={Platform.OS === 'ios' && !scroll}
         // The KAV's own y already includes the top inset + topbar (it sits
         // inside the SafeAreaView at screen top), so no extra offset.
       >
