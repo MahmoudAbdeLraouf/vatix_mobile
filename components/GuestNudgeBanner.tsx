@@ -90,7 +90,7 @@ export function GuestNudgeBanner() {
 
   const category = locale === 'ar' ? nudge.categoryName?.trim() : null
   const title = category
-    ? t.guestNudgeTitleCategory.replace('{category}', category)
+    ? t.guestNudgeTitleCategory.replace('{category}', () => category)
     : t.guestNudgeTitle
   const dir = { direction: isRtl ? ('rtl' as const) : ('ltr' as const) }
 
