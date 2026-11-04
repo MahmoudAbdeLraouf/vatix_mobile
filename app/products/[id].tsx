@@ -43,6 +43,8 @@ import { StartChatButton } from '@/components/StartChatButton'
 import { StarRating } from '@/components/StarRating'
 import { RatingSection } from '@/components/RatingSection'
 import { VerifiedBadge } from '@/components/VerifiedBadge'
+import { SalesRecordPill } from '@/components/SalesRecordPill'
+import { SalesRecordSheet } from '@/components/SalesRecordSheet'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -104,6 +106,7 @@ export default function ProductDetailScreen() {
   const [product, setProduct] = useState<Product | ExpiredResource | null>(null)
   const [loading, setLoading] = useState(true)
   const [imgIndex, setImgIndex] = useState(0)
+  const [salesSheetOpen, setSalesSheetOpen] = useState(false)
   const [similarItems, setSimilarItems] = useState<Product[]>([])
   const [spotlightStores, setSpotlightStores] = useState<Store[]>([])
   const galleryRef = useRef<FlatList<ProductImage>>(null)
@@ -459,6 +462,13 @@ export default function ProductDetailScreen() {
           {/* Store / seller card — only stores get the tappable "visit" CTA;
               individual client sellers render as a plain identity block since
               they have no storefront page to route to. */}
+          {isStore && !!owner?.id && !!owner.salesRecord?.total && (
+            <SalesRecordSheet
+              visible={salesSheetOpen}
+              storeId={owner.id}
+              onClose={() => setSalesSheetOpen(false)}
+            />
+          )}
           {!!owner?.id && (
             isStore ? (
               <Pressable
@@ -492,6 +502,15 @@ export default function ProductDetailScreen() {
                   {!!ownerVerification?.verified && (
                     <View style={styles.sellerVerified}>
                       <VerifiedBadge verification={ownerVerification} variant="full" />
+                    </View>
+                  )}
+                  {!!owner.salesRecord?.total && (
+                    <View style={styles.sellerSales}>
+                      <SalesRecordPill
+                        variant="link"
+                        total={owner.salesRecord.total}
+                        onOpen={() => setSalesSheetOpen(true)}
+                      />
                     </View>
                   )}
                   <View style={styles.sellerCtaRow}>
@@ -1364,6 +1383,9 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   sellerBadgeText: {
     fontFamily: fonts.semiBold,
     fontSize: 10,
+  },
+  sellerSales: {
+    marginTop: 4,
   },
   sellerCtaRow: {
     flexDirection: 'row',

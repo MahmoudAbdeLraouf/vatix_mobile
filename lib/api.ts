@@ -1,4 +1,5 @@
 import { Platform } from 'react-native'
+import type { PublicSalesRecord, SalesCounts, SaleVerificationStatus } from '@/lib/salesRecord'
 import * as Sentry from '@sentry/react-native'
 import { AUTH_ERR, normalizeUserType } from '@/lib/auth'
 import { getOrCreateVisitorId, visitorIdHeader } from '@/lib/visitor-id'
@@ -101,6 +102,8 @@ export interface Product {
   promotedUntil: string | null
   soldAt: string | null
   soldChannel: 'vatix' | 'offline' | null
+  // Only present on the owner's own listings (GET /products/mine) when the sales-record flag is on.
+  saleVerification?: { status: SaleVerificationStatus } | null
   averageRating?: number
   ratingsCount?: number
   images: ProductImage[]
@@ -114,6 +117,7 @@ export interface Product {
     phone: string | null
     contactPhone?: string | null
     subscriptionExpired?: boolean
+    salesRecord?: SalesCounts | null
     storeProfile?: {
       id: number
       name: string
@@ -167,6 +171,7 @@ export interface Store {
   createdAt: string
   storeProfile: StoreProfile
   verification?: StoreVerification
+  salesRecord?: SalesCounts | null
 }
 
 export interface LocationNode {
@@ -239,6 +244,8 @@ export interface UserProfile {
   createdAt: string
   storeShareDialogSeenAt?: string | null
   storeShareCount?: number
+  // Stores only; absent when the sales-record flag is off.
+  salesRecord?: SalesCounts | null
   flags?: UserActionFlags
   pendingUpgrade?: PendingUpgradeRequest | null
   // True once the user consumed their one free store trial.
@@ -523,6 +530,11 @@ export function getSpotlightStores(limit = 10): Promise<Store[]> {
 
 export function getStoreProfile(id: number): Promise<Store | ExpiredResource> {
   return fetchOrExpired(() => apiFetch<Store>(`/stores/${id}`))
+}
+
+// 404 when the sales-record flag is off (callers treat that as "nothing to show").
+export function getStoreSalesRecord(storeId: number): Promise<PublicSalesRecord> {
+  return apiFetch<PublicSalesRecord>(`/stores/${storeId}/sales-record`)
 }
 
 export interface Branch {
@@ -944,6 +956,7 @@ export interface SiteSettings {
   storePromotionPrice: number
   storePromotionDays: number
   storePromotionAppleProductId: string | null
+  salesRecordEnabled?: boolean
 }
 
 export function getSubscriptionPlans(): Promise<PlanData[]> {

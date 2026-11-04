@@ -39,6 +39,8 @@ import { trackStorePhoneClick, trackStoreView, trackStoreWhatsappClick } from '@
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { FollowButton } from '@/components/FollowButton'
 import { VerifiedBadge } from '@/components/VerifiedBadge'
+import { SalesRecordPill } from '@/components/SalesRecordPill'
+import { SalesRecordSheet } from '@/components/SalesRecordSheet'
 import { ProductCard } from '@/components/ProductCard'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
@@ -107,6 +109,7 @@ export default function StoreDetailScreen() {
   const [descTruncatable, setDescTruncatable] = useState(false)
   const [activeTab, setActiveTab] = useState<TabKey>('products')
   const [phoneSheetOpen, setPhoneSheetOpen] = useState(false)
+  const [salesSheetOpen, setSalesSheetOpen] = useState(false)
   const [revealedPhones, setRevealedPhones] = useState<Set<string>>(new Set())
 
   const storeId = Number(id)
@@ -449,6 +452,10 @@ export default function StoreDetailScreen() {
                     .filter(Boolean)
                     .join(dotSeparator)}
                 </Text>
+                <SalesRecordPill
+                  total={store.salesRecord?.total}
+                  onOpen={() => setSalesSheetOpen(true)}
+                />
               </View>
             </View>
           </View>
@@ -681,6 +688,14 @@ export default function StoreDetailScreen() {
       <View style={styles.tabBarAnchor}>
         <BottomTabBar />
       </View>
+
+      {store?.salesRecord?.total ? (
+        <SalesRecordSheet
+          visible={salesSheetOpen}
+          storeId={storeId}
+          onClose={() => setSalesSheetOpen(false)}
+        />
+      ) : null}
 
       {/* Phone chooser bottom sheet */}
       <Modal

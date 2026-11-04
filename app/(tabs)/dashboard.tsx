@@ -9,6 +9,7 @@ import { AddProductDialog } from '@/components/AddProductDialog'
 import { StoreLogoDialog } from '@/components/StoreLogoDialog'
 import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDialog'
 import { NotificationBell } from '@/components/NotificationBell'
+import { SalesRecordCard } from '@/components/SalesRecordCard'
 import { BroAvatar } from '@/components/bro/BroAvatar'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { useAuth } from '@/contexts/auth'
@@ -388,6 +389,8 @@ export default function MoreScreen() {
             onPress={() => router.push('/dashboard/messages')}
           />
         </View>
+
+        {isStore && <SalesRecordCard />}
 
         {/* Notices */}
         {PAID_UI_ENABLED && pendingInstapay && (

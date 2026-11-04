@@ -9,6 +9,7 @@ import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColo
 import { useTheme } from '@/contexts/theme'
 import { getCategoryIcon } from '@/lib/category-icons'
 import { VerifiedBadge } from '@/components/VerifiedBadge'
+import { fillTemplate } from '@/lib/salesRecord'
 
 interface ProductCardProps {
   product: Product
@@ -52,6 +53,8 @@ export const ProductCard = React.memo(function ProductCard({
   const storeName = owner?.storeProfile?.name
   const verification = owner?.storeProfile?.verification ?? owner?.verification
   const ownerIcon = isStore ? '🏪' : null
+  // `owner.salesRecord` is omitted by the backend when the sales-record flag is off.
+  const salesTotal = isStore ? (owner?.salesRecord?.total ?? 0) : 0
 
   const ratingsCount = product.ratingsCount ?? 0
   const avgRating = product.averageRating ?? 0
@@ -125,6 +128,11 @@ export const ProductCard = React.memo(function ProductCard({
               <View style={styles.verifiedWrap}>
                 <VerifiedBadge verification={verification} />
               </View>
+            ) : null}
+            {salesTotal > 0 ? (
+              <Text style={[styles.soldSuffix, textDirStyle]} numberOfLines={1}>
+                {fillTemplate(t.salesRecord.cardSold, { n: salesTotal })}
+              </Text>
             ) : null}
           </View>
         ) : null}
@@ -270,6 +278,13 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     lineHeight: 15,
     color: colors.heading,
     flexShrink: 1,
+  },
+  soldSuffix: {
+    fontFamily: fonts.semiBold,
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.muted,
+    flexShrink: 0,
   },
   price: {
     fontFamily: fonts.black,

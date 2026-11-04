@@ -2,14 +2,16 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native'
-import { router, useFocusEffect } from 'expo-router'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
@@ -34,12 +36,15 @@ import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
+import { SaleVerifyStep, type SaleVerifyProduct } from '@/components/SaleVerifyStep'
+import { fillTemplate, type MarkSoldResponse } from '@/lib/salesRecord'
 
 export default function MyAdsScreen() {
   const { colors } = useTheme()
   const styles = useStyles()
   const { t, locale } = useLocale()
   const { user } = useAuth()
+  const params = useLocalSearchParams<{ tab?: string }>()
   const ar = locale === 'ar'
   const isStore = user?.isStore ?? false
   // Stores have no product cap; only clients are limited.
@@ -56,6 +61,13 @@ export default function MyAdsScreen() {
   const [noCreditsProduct, setNoCreditsProduct] = useState<Product | null>(null)
   const [bundles, setBundles] = useState<Bundle[]>([])
   const [settings, setSettings] = useState<SiteSettings | null>(null)
+  const [activeTab, setActiveTab] = useState<'active' | 'sold'>(
+    params.tab === 'sold' ? 'sold' : 'active',
+  )
+  // Step 2 of mark-sold (buyer confirmation) lives inside the sold Modal.
+  const [soldSuccess, setSoldSuccess] = useState<{ product: SaleVerifyProduct; total: number } | null>(null)
+  // Standalone confirm modal opened from a row's "confirm with buyer" button.
+  const [verifyFor, setVerifyFor] = useState<Product | null>(null)
   const [extraSlots, setExtraSlots] = useState(0)
 
   // Inline bundle-buy payment modal state (mirrors website's instapayFor popover)
@@ -115,6 +127,13 @@ export default function MyAdsScreen() {
       ).length,
     }
   }, [products])
+
+  const salesOn = !!settings?.salesRecordEnabled && isStore
+  const visibleProducts = useMemo(() => {
+    const list = products ?? []
+    if (!salesOn) return list
+    return list.filter((p) => (activeTab === 'sold' ? !!p.soldAt : !p.soldAt))
+  }, [products, salesOn, activeTab])
 
   const usedForLimit = stats.active
   const usagePct = isStore
@@ -230,14 +249,38 @@ export default function MyAdsScreen() {
     if (!soldFor || markingSold) return
     setMarkingSold(true)
     try {
-      await authPatch(`/products/${soldFor.id}/mark-sold`, { sold: true, channel })
-      setSoldFor(null)
-      load()
+      const res = await authPatch<MarkSoldResponse>(`/products/${soldFor.id}/mark-sold`, {
+        sold: true,
+        channel,
+      })
+      if (salesOn && res?.salesRecord && res.soldAt && res.soldChannel === 'vatix') {
+        // Keep the modal open and move to step 2 (buyer confirmation).
+        setSoldSuccess({
+          product: { id: soldFor.id, title: soldFor.title, images: soldFor.images },
+          total: res.salesRecord.total,
+        })
+        load()
+      } else {
+        setSoldFor(null)
+        load()
+      }
     } catch (e) {
       Alert.alert(ar ? 'خطأ' : 'Error', authErrorMessage(e, t))
     } finally {
       setMarkingSold(false)
     }
+  }
+
+  function dismissSold() {
+    if (markingSold) return
+    if (soldSuccess) closeSoldDialog()
+    else setSoldFor(null)
+  }
+
+  function closeSoldDialog() {
+    setSoldFor(null)
+    setSoldSuccess(null)
+    load()
   }
 
   async function handleRepost(product: Product) {
@@ -378,6 +421,25 @@ export default function MyAdsScreen() {
         </View>
       )}
 
+      {hasData && salesOn && products!.length > 0 && (
+        <View style={[styles.tabsRow, dirContainer]}>
+          {(['active', 'sold'] as const).map((k) => {
+            const on = activeTab === k
+            return (
+              <Pressable
+                key={k}
+                onPress={() => setActiveTab(k)}
+                style={[styles.tabBtn, on && styles.tabBtnOn]}
+              >
+                <Text style={[styles.tabText, on && styles.tabTextOn]}>
+                  {k === 'active' ? t.salesRecord.tabActive : t.salesRecord.tabSold}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>
+      )}
+
       {products === null && !error ? (
         <SkeletonGrid count={4} />
       ) : error ? (
@@ -388,13 +450,25 @@ export default function MyAdsScreen() {
           actionLabel={ar ? 'أضف إعلانك الأول' : 'Post your first ad'}
           onAction={() => router.push('/products/new')}
         />
+      ) : visibleProducts.length === 0 ? (
+        <EmptyState
+          title={
+            activeTab === 'sold'
+              ? t.salesRecord.soldTabEmpty
+              : ar
+                ? 'لا توجد إعلانات نشطة حالياً.'
+                : 'No active ads right now.'
+          }
+        />
       ) : (
         showList && (
           <View style={styles.list}>
-            {products!.map((p) => (
+            {visibleProducts.map((p) => (
               <ProductRow
                 key={p.id}
                 product={p}
+                salesOn={salesOn}
+                onConfirmBuyer={() => setVerifyFor(p)}
                 ar={ar}
                 dirStyle={dirStyle}
                 dirContainer={dirContainer}
@@ -688,16 +762,47 @@ export default function MyAdsScreen() {
         visible={!!soldFor}
         transparent
         animationType="fade"
-        onRequestClose={() => !markingSold && setSoldFor(null)}
+        onRequestClose={dismissSold}
       >
-        <Pressable
-          style={styles.backdrop}
-          onPress={() => !markingSold && setSoldFor(null)}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
+        <Pressable style={styles.backdrop} onPress={dismissSold}>
           <Pressable
             style={[styles.popover, dirContainer]}
             onPress={(e) => e.stopPropagation()}
           >
+            {soldSuccess ? (
+              <>
+                <View style={[styles.popHeader, dirContainer]}>
+                  <View style={[styles.popIconWrap, { backgroundColor: colors.greenBg }]}>
+                    <Ionicons name="checkmark-circle" size={22} color={colors.green} />
+                  </View>
+                  <View style={styles.popHeaderText}>
+                    <Text style={[styles.popTitle, dirStyle]} numberOfLines={3}>
+                      {fillTemplate(t.salesRecord.soldRecorded, { n: soldSuccess.total })}
+                    </Text>
+                  </View>
+                  <Pressable onPress={closeSoldDialog} hitSlop={12} style={styles.popClose}>
+                    <Ionicons name="close" size={18} color={colors.muted} />
+                  </Pressable>
+                </View>
+                <ScrollView
+                  style={{ maxHeight: 460 }}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
+                  <SaleVerifyStep
+                    product={soldSuccess.product}
+                    onDone={closeSoldDialog}
+                    onLater={closeSoldDialog}
+                    onConflict={load}
+                  />
+                </ScrollView>
+              </>
+            ) : (
+            <>
             <View style={[styles.popHeader, dirContainer]}>
               <View style={[styles.popIconWrap, { backgroundColor: colors.greenBg }]}>
                 <Ionicons
@@ -727,7 +832,7 @@ export default function MyAdsScreen() {
                 </Text>
               </View>
               <Pressable
-                onPress={() => !markingSold && setSoldFor(null)}
+                onPress={dismissSold}
                 hitSlop={12}
                 style={styles.popClose}
                 disabled={markingSold}
@@ -829,7 +934,7 @@ export default function MyAdsScreen() {
                 </Pressable>
               ) : (
                 <Pressable
-                  onPress={() => !markingSold && setSoldFor(null)}
+                  onPress={dismissSold}
                   disabled={markingSold}
                   style={({ pressed }) => [
                     styles.optionBtn,
@@ -855,8 +960,55 @@ export default function MyAdsScreen() {
                 </Pressable>
               )}
             </View>
+            </>
+            )}
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Standalone buyer-confirmation modal (row "confirm with buyer" button) */}
+      <Modal
+        visible={!!verifyFor}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setVerifyFor(null)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <Pressable style={styles.backdrop} onPress={() => setVerifyFor(null)}>
+            <Pressable
+              style={[styles.popover, dirContainer]}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View style={[styles.popHeader, dirContainer]}>
+                <View style={styles.popHeaderText} />
+                <Pressable onPress={() => setVerifyFor(null)} hitSlop={12} style={styles.popClose}>
+                  <Ionicons name="close" size={18} color={colors.muted} />
+                </Pressable>
+              </View>
+              <ScrollView
+                style={{ maxHeight: 480 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                {verifyFor && (
+                  <SaleVerifyStep
+                    product={{ id: verifyFor.id, title: verifyFor.title, images: verifyFor.images }}
+                    onDone={() => {
+                      setVerifyFor(null)
+                      load()
+                    }}
+                    onLater={() => setVerifyFor(null)}
+                    onConflict={load}
+                  />
+                )}
+              </ScrollView>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </DashboardLayout>
   )
@@ -889,6 +1041,8 @@ function StatChip({
 
 function ProductRow({
   product,
+  salesOn,
+  onConfirmBuyer,
   ar,
   dirStyle,
   dirContainer,
@@ -901,6 +1055,8 @@ function ProductRow({
   onRepost,
 }: {
   product: Product
+  salesOn: boolean
+  onConfirmBuyer: () => void
   ar: boolean
   dirStyle: { textAlign: 'auto'; writingDirection: 'rtl' | 'ltr' }
   dirContainer: { direction: 'rtl' } | null
@@ -913,12 +1069,15 @@ function ProductRow({
   onRepost: () => void
 }) {
   const { colors } = useTheme()
+  const { t } = useLocale()
   const styles = useStyles()
   const thumb = imgUrl(product.images?.[0]?.url)
   const isPromoted =
     !!product.promotedUntil && new Date(product.promotedUntil) > new Date()
   const isSold = !!product.soldAt
   const soldChannel = product.soldChannel
+  const verifyStatus = product.saleVerification?.status
+  const showSaleState = salesOn && isSold && soldChannel === 'vatix'
   const priceStr = `${Number(product.price).toLocaleString(ar ? 'ar-EG' : 'en-EG')} ${
     ar ? 'ج.م' : 'EGP'
   }`
@@ -986,6 +1145,49 @@ function ProductRow({
                 </Text>
               </View>
             )}
+            {showSaleState && verifyStatus === 'confirmed' && (
+              <View style={[styles.statePill, { backgroundColor: colors.greenBg }]}>
+                <Ionicons name="shield-checkmark" size={10} color={colors.green} />
+                <Text style={[styles.statePillText, { color: colors.green }]}>
+                  {t.salesRecord.stateConfirmed}
+                </Text>
+              </View>
+            )}
+            {showSaleState && (verifyStatus === 'pending' || verifyStatus === 'sent') && (
+              <View style={[styles.statePill, { backgroundColor: colors.yellowBg }]}>
+                <Ionicons name="time-outline" size={10} color={colors.yellowText} />
+                <Text style={[styles.statePillText, { color: colors.yellowText }]}>
+                  {t.salesRecord.statePending}
+                </Text>
+              </View>
+            )}
+            {showSaleState && verifyStatus === 'denied' && (
+              <View style={[styles.statePill, { backgroundColor: colors.redBg }]}>
+                <Ionicons name="close-circle" size={10} color={colors.red} />
+                <Text style={[styles.statePillText, { color: colors.red }]}>
+                  {t.salesRecord.stateDenied}
+                </Text>
+              </View>
+            )}
+            {showSaleState &&
+              verifyStatus !== 'confirmed' &&
+              verifyStatus !== 'pending' &&
+              verifyStatus !== 'sent' &&
+              verifyStatus !== 'denied' && (
+                <Pressable
+                  onPress={onConfirmBuyer}
+                  style={({ pressed }) => [
+                    styles.statePill,
+                    { backgroundColor: colors.yellowBg },
+                    pressed && { opacity: 0.85 },
+                  ]}
+                >
+                  <Ionicons name="logo-whatsapp" size={10} color={colors.yellowText} />
+                  <Text style={[styles.statePillText, { color: colors.yellowText }]}>
+                    {t.salesRecord.stateConfirmWithBuyer}
+                  </Text>
+                </Pressable>
+              )}
           </View>
         </View>
       </View>
@@ -1330,6 +1532,44 @@ const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.full,
+  },
+  statePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+  },
+  statePillText: {
+    fontFamily: fonts.bold,
+    fontSize: 10,
+  },
+  tabsRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  tabBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tabBtnOn: {
+    backgroundColor: colors.y,
+    borderColor: colors.y,
+  },
+  tabText: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.muted,
+  },
+  tabTextOn: {
+    color: colors.dk,
   },
   soldPillText: {
     fontFamily: fonts.bold,

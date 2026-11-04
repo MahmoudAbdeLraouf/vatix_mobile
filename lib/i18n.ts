@@ -1195,6 +1195,66 @@ export interface Translations {
       photoUploaded: string
     }
   }
+  // Store sales record ("باع N عبر فاتكس"). Placeholders: {n} {count} {remaining} {tier} {store}
+  salesRecord: {
+    pill: string
+    cardSold: string
+    sellerCard: string
+    sheetTitle: string
+    soldLabel: string
+    verifiedLabel: string
+    howTitle: string
+    howRegistered: string
+    howConfirmed: string
+    recentTitle: string
+    tagConfirmed: string
+    tagRegistered: string
+    noCommission: string
+    dashNoCommission: string
+    loading: string
+    empty: string
+    close: string
+    tierActive: string
+    tierTrusted: string
+    tierTop: string
+    dashTitle: string
+    dashSold: string
+    dashVerified: string
+    dashNextTier: string
+    dashPending: string
+    dashCta: string
+    soldRecorded: string
+    step2Title: string
+    step2Phone: string
+    step2PhoneHint: string
+    step2PhoneInvalid: string
+    step2Explainer: string
+    step2Preview: string
+    step2Send: string
+    step2Later: string
+    step2OwnNumber: string
+    toastSent: string
+    toastNudge: string
+    stateConfirmed: string
+    statePending: string
+    stateDenied: string
+    stateConfirmAction: string
+    downgradeLine: string
+    downgradeCta: string
+    tabActive: string
+    tabSold: string
+    soldTabEmpty: string
+    stateConfirmWithBuyer: string
+    step2Failed: string
+    step2Sending: string
+    previewIntro: string
+    previewBody: string
+    previewProduct: string
+    previewAsk: string
+    previewFooter: string
+    previewYes: string
+    previewNo: string
+  }
 }
 
 export const translations: Record<Locale, Translations> = {
@@ -2330,6 +2390,65 @@ export const translations: Record<Locale, Translations> = {
         photoUploaded: 'تم رفع الصورة',
       },
     },
+    salesRecord: {
+      pill: '🛒 باع {n} عبر فاتكس',
+      cardSold: '· باع {n}',
+      sellerCard: 'باع {n} عبر فاتكس',
+      sheetTitle: 'مبيعات المتجر على فاتكس',
+      soldLabel: 'بيعة عبر فاتكس',
+      verifiedLabel: 'مؤكدة من المشتري',
+      howTitle: 'إيه معنى الأرقام دي؟',
+      howRegistered: 'مسجّلة: المتجر سجّل إن المنتج اتباع عن طريق فاتكس.',
+      howConfirmed: 'مؤكدة: المشتري نفسه أكّد الشراء برسالة واتساب.',
+      recentTitle: 'آخر المبيعات',
+      tagConfirmed: 'مؤكدة',
+      tagRegistered: 'مسجّلة',
+      noCommission: 'فاتكس مش بتاخد أي عمولة — الأرقام دي لثقة المشترين بس.',
+      dashNoCommission: 'فاتكس مش بتاخد أي عمولة — الأرقام دي لثقة المشترين فيك بس.',
+      loading: 'جاري التحميل…',
+      empty: 'مفيش مبيعات للعرض دلوقتي.',
+      close: 'إغلاق',
+      tierActive: 'بائع نشط',
+      tierTrusted: 'بائع موثوق',
+      tierTop: 'بائع مميز',
+      dashTitle: 'مبيعاتك على فاتكس',
+      dashSold: 'بيعة',
+      dashVerified: 'مؤكدة',
+      dashNextTier: 'باقي {remaining} بيعة لتبقى {tier}',
+      dashPending: 'عندك {count} بيعات مستنية تأكيد — أكّدها',
+      dashCta: 'اعرض منتج جديد',
+      soldRecorded: '✅ اتسجّلت بيعة عبر فاتكس — رصيدك: {n} بيعة',
+      step2Title: 'أكّد البيعة مع المشتري',
+      step2Phone: 'رقم المشتري',
+      step2PhoneHint: '01xxxxxxxxx',
+      step2PhoneInvalid: 'اكتب رقم موبايل مصري صحيح (01xxxxxxxxx)',
+      step2Explainer: 'هنبعت للمشتري رسالة واتساب يأكد الشراء — من غير أي عمولة. البيعات المؤكدة بتزوّد ثقة المشترين في متجرك.',
+      step2Preview: 'معاينة الرسالة',
+      step2Send: 'ابعت للمشتري',
+      step2Later: 'بعدين',
+      step2OwnNumber: 'ده رقم متجرك — اكتب رقم المشتري',
+      toastSent: 'بعتنا للمشتري ✅ هتوصلك إشعار لما يأكد',
+      toastNudge: 'اعرض منتج جديد',
+      stateConfirmed: 'مؤكدة ✅',
+      statePending: 'مستني رد المشتري',
+      stateDenied: 'المشتري رفض',
+      stateConfirmAction: 'أكّد البيعة',
+      downgradeLine: 'سجل مبيعاتك ({n} بيعة) هيختفي لو حوّلت لحساب عميل',
+      downgradeCta: 'جدّد واحتفظ بسجلك',
+      tabActive: 'الإعلانات النشطة',
+      tabSold: 'المباعة',
+      soldTabEmpty: 'مفيش منتجات مباعة لسه.',
+      stateConfirmWithBuyer: 'أكّد البيعة مع المشتري',
+      step2Failed: 'ماقدرناش نبعت الرسالة. جرّب تاني.',
+      step2Sending: 'جاري الإرسال...',
+      previewIntro: 'أهلاً بيك 👋',
+      previewBody: 'متجر *{store}* سجّل إنك اشتريت منه:',
+      previewProduct: '📱 *{title}*',
+      previewAsk: 'تأكدلنا بضغطة واحدة؟ ردّك بيساعد آلاف المشترين يلاقوا متاجر يثقوا فيها على فاتكس 💛',
+      previewFooter: 'فاتكس · سوق الإلكترونيات في مصر',
+      previewYes: 'أيوه، اشتريته',
+      previewNo: 'لا، مش أنا',
+    },
   },
   en: {
     appName: 'Vatix',
@@ -3463,6 +3582,65 @@ export const translations: Record<Locale, Translations> = {
         replacePhoto: 'Replace photo',
         photoUploaded: 'Photo uploaded',
       },
+    },
+    salesRecord: {
+      pill: '🛒 Sold {n} on Vatix',
+      cardSold: '· Sold {n}',
+      sellerCard: 'Sold {n} on Vatix',
+      sheetTitle: 'Store sales on Vatix',
+      soldLabel: 'sales on Vatix',
+      verifiedLabel: 'confirmed by buyer',
+      howTitle: 'What do these numbers mean?',
+      howRegistered: 'Registered: the store marked the item as sold through Vatix.',
+      howConfirmed: 'Confirmed: the buyer confirmed the purchase themselves on WhatsApp.',
+      recentTitle: 'Recent sales',
+      tagConfirmed: 'Confirmed',
+      tagRegistered: 'Registered',
+      noCommission: 'Vatix takes no commission — these numbers only exist to build buyer trust.',
+      dashNoCommission: "Vatix takes no commission — these numbers are only there to build buyers' trust in you.",
+      loading: 'Loading…',
+      empty: 'No sales to show right now.',
+      close: 'Close',
+      tierActive: 'Active seller',
+      tierTrusted: 'Trusted seller',
+      tierTop: 'Top seller',
+      dashTitle: 'Your sales on Vatix',
+      dashSold: 'sold',
+      dashVerified: 'confirmed',
+      dashNextTier: '{remaining} more sales to become {tier}',
+      dashPending: 'You have {count} sales waiting for confirmation — confirm them',
+      dashCta: 'List a new product',
+      soldRecorded: '✅ A Vatix sale was recorded — your total: {n} sales',
+      step2Title: 'Confirm the sale with the buyer',
+      step2Phone: 'Buyer phone',
+      step2PhoneHint: '01xxxxxxxxx',
+      step2PhoneInvalid: 'Enter a valid Egyptian mobile number (01xxxxxxxxx)',
+      step2Explainer: 'We will send the buyer a WhatsApp message to confirm the purchase — no commission at all. Confirmed sales build buyer trust in your store.',
+      step2Preview: 'Message preview',
+      step2Send: 'Send to buyer',
+      step2Later: 'Later',
+      step2OwnNumber: "That's your store's number — enter the buyer's number",
+      toastSent: "Sent to the buyer ✅ You'll be notified when they confirm",
+      toastNudge: 'List a new product',
+      stateConfirmed: 'Confirmed ✅',
+      statePending: 'Waiting for buyer',
+      stateDenied: 'Buyer declined',
+      stateConfirmAction: 'Confirm sale',
+      downgradeLine: 'Your sales record ({n} sales) will disappear if you switch to a client account',
+      downgradeCta: 'Renew and keep your record',
+      tabActive: 'Active listings',
+      tabSold: 'Sold',
+      soldTabEmpty: 'No sold items yet.',
+      stateConfirmWithBuyer: 'Confirm the sale with the buyer',
+      step2Failed: "We couldn't send the message. Try again.",
+      step2Sending: 'Sending...',
+      previewIntro: 'Hi there 👋',
+      previewBody: 'The store *{store}* recorded that you bought from them:',
+      previewProduct: '📱 *{title}*',
+      previewAsk: 'Can you confirm with one tap? Your reply helps thousands of buyers find stores they can trust on Vatix 💛',
+      previewFooter: 'Vatix · Egypt’s electronics marketplace',
+      previewYes: 'Yes, I bought it',
+      previewNo: "No, that's not me",
     },
   },
 }

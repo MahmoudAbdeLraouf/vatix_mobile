@@ -34,6 +34,7 @@ import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload
 import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { IS_IOS } from '@/lib/platform'
+import { fillTemplate } from '@/lib/salesRecord'
 import {
   addPurchaseErrorListener,
   addPurchaseUpdatedListener,
@@ -1368,6 +1369,21 @@ function CancelStorePanel({
   const { ar, rowDir, colDir, dirStyle } = useDir()
   const { t } = useLocale()
 
+  // Sales record at stake on downgrade. The backend omits `salesRecord` when
+  // the feature flag is off, so no extra flag check is needed here.
+  const [salesTotal, setSalesTotal] = useState(0)
+  useEffect(() => {
+    let cancelled = false
+    authFetch<UserProfile>('/user/profile')
+      .then(p => {
+        if (!cancelled) setSalesTotal(p?.salesRecord?.total ?? 0)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   // Match the website contract: only `need_feature` and `other` require the
   // free-text field. Backend re-validates via class-validator `@ValidateIf`.
   const needsDetail = reason === 'need_feature' || reason === 'other'
@@ -1473,6 +1489,17 @@ function CancelStorePanel({
           <Text style={[styles.warningText, dirStyle]}>{confirmText}</Text>
         </View>
       </View>
+
+      {salesTotal > 0 ? (
+        <View style={[styles.salesLossBox, colDir]}>
+          <Text style={[styles.salesLossText, dirStyle]}>
+            {fillTemplate(t.salesRecord.downgradeLine, { n: salesTotal })}
+          </Text>
+          <Pressable onPress={onCancel} disabled={busy} hitSlop={8}>
+            <Text style={[styles.salesLossCta, dirStyle]}>{t.salesRecord.downgradeCta}</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={[styles.reasonSummary, colDir]}>
         <Text style={[styles.reasonSummaryLabel, dirStyle]}>
@@ -1767,6 +1794,24 @@ const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
     backgroundColor: colors.green,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  salesLossBox: {
+    backgroundColor: colors.yellowBg,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  salesLossText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.yellowText,
+  },
+  salesLossCta: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.heading,
+    textDecorationLine: 'underline',
   },
   warningBox: {
     flexDirection: 'row',
