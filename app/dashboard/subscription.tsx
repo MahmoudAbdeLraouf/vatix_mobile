@@ -10,12 +10,16 @@ import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
 import {
+  getSiteSettings,
   getSubscriptionPlans,
   PaymentRecord,
   PlanData,
+  SiteSettings,
   SubStatus,
   WalletBalance,
 } from '@/lib/api'
+import { useBroEnabled } from '@/components/bro/BroEntryCard'
+import { TRIAL_DAYS } from '@/lib/trial'
 import { IS_IOS, PAID_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { fetchIosProducts } from '@/lib/iap'
 import {
@@ -71,6 +75,23 @@ export default function SubscriptionScreen() {
 
   const [modal, setModal] = useState<UpgradeMode | null>(null)
   const [walletModal, setWalletModal] = useState(false)
+
+  // Non-critical extras for the client upgrade pitch (ad cap, offer cap, trial
+  // eligibility). Fetched outside loadAll so a failure here never blanks the
+  // screen — the copy falls back to defaults.
+  const [settings, setSettings] = useState<SiteSettings | null>(null)
+  const [profile, setProfile] = useState<{
+    trialUsed?: boolean
+    extraProductSlots?: number
+  } | null>(null)
+  const broEnabled = useBroEnabled()
+
+  useEffect(() => {
+    getSiteSettings().then(setSettings).catch(() => {})
+    authFetch<{ trialUsed?: boolean; extraProductSlots?: number }>('/user/profile')
+      .then(setProfile)
+      .catch(() => {})
+  }, [])
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -204,18 +225,57 @@ export default function SubscriptionScreen() {
     [history],
   )
 
-  const trialProgress = Math.min(
+  const remaining = isTrial ? daysLeft : subDaysLeft
+  const endsAtIso = isTrial
+    ? (subInfo?.trialEndsAt ?? subInfo?.subscriptionEndsAt)
+    : subInfo?.subscriptionEndsAt
+  const endsAtLabel = endsAtIso
+    ? new Date(endsAtIso).toLocaleDateString(ar ? 'ar-EG' : 'en-EG', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : null
+  // A week out is when the renew prompt moves to the top of the screen; the
+  // backend's own expiry warning fires at 3 days.
+  const isExpiring = isStore && remaining != null && remaining <= 7
+  const progress = Math.min(
     100,
-    Math.max(0, ((daysLeft ?? 0) / 30) * 100),
+    Math.max(0, ((remaining ?? 0) / (isTrial ? TRIAL_DAYS : 30)) * 100),
   )
-  const trialDanger = (daysLeft ?? 0) <= 3
-  const currentPlanLabel = isStore
-    ? t.standardStorePlan
-    : ar
-      ? 'عميل'
-      : 'Client'
-  const currentPlanCost = isStore ? storeMonthly : 0
-  const currentPlanPriceLine = isStore ? storePriceLine : null
+  const money = (n: number) => `${fmt(n)} ${ar ? 'ج.م' : 'EGP'}`
+  // LTR isolate keeps "$9.99" from flipping to "9.99$" inside the RTL label.
+  const renewPrice = storeIosPrice ? `\u2066${storeIosPrice}\u2069` : money(storeMonthly)
+  // Mirrors the 04:00 wallet auto-renew cron (balance >= plan price).
+  const walletEnough = (walletBal ?? 0) >= storeMonthly
+  const shortfall = Math.max(0, storeMonthly - (walletBal ?? 0))
+  const clientCap =
+    (settings?.maxProductsPerClient ?? 10) + (profile?.extraProductSlots ?? 0)
+
+  const statusTag = isExpiring
+    ? { label: t.subStatusExpiring, bg: colors.orange, color: colors.white }
+    : isTrial
+      ? { label: t.subStatusTrial, bg: colors.y, color: colors.dk }
+      : { label: t.subStatusActive, bg: colors.green, color: colors.white }
+
+  const benefits = [
+    t.subBenefitUnlimitedAds,
+    ...(broEnabled
+      ? [fill(t.subBenefitUnlimitedOffers, { n: fmt(settings?.broClientOffersPerMonth ?? 10) })]
+      : []),
+    t.subBenefitStorePage,
+    t.subBenefitSearch,
+    t.subBenefitStats,
+  ]
+
+  const renewCta = (label: string) => (
+    <Pressable
+      onPress={() => setModal('upgrade-to-store')}
+      style={({ pressed }) => [styles.ctaBtn, pressed && styles.actionPressed]}
+    >
+      <Text style={styles.ctaBtnText}>{label}</Text>
+    </Pressable>
+  )
 
   return (
     <DashboardLayout title={t.subscription}>
@@ -227,176 +287,181 @@ export default function SubscriptionScreen() {
         <ErrorState kind="network" onRetry={loadAll} />
       ) : (
         <View style={{ gap: spacing.md }}>
-          {/* Trial banner — stores only; clients don't have a subscription */}
-          {!isClient && isTrial && daysLeft != null && (
-            <View
-              style={[
-                styles.trialBanner,
-                {
-                  backgroundColor: trialDanger ? colors.redBg : colors.yellowBg,
-                  borderColor: trialDanger ? colors.red : colors.y,
-                },
-              ]}
-            >
-              <View style={[styles.trialHead, rowDir]}>
-                <Text style={styles.trialIcon}>{trialDanger ? '⚠️' : '🎁'}</Text>
-                <View style={[styles.trialBody, colDir]}>
-                  <Text
-                    style={[
-                      styles.trialTitle,
-                      dirStyle,
-                      { color: trialDanger ? colors.red : colors.yd },
-                    ]}
-                  >
-                    {t.trialActive}
-                  </Text>
-                  <Text style={[styles.trialSub, dirStyle]}>
-                    {ar
-                      ? `متبقّي ${fmt(daysLeft)} يوم`
-                      : `${fmt(daysLeft)} ${t.daysLeftLabel}`}
-                  </Text>
-                </View>
-                {/* Renew — iOS routes through Apple IAP inside the modal. */}
-                {SUBSCRIPTION_UI_ENABLED && (
-                  <Pressable
-                    onPress={() => setModal('upgrade-to-store')}
-                    style={({ pressed }) => [
-                      styles.renewBtn,
-                      pressed && styles.actionPressed,
-                    ]}
-                  >
-                    <Text style={styles.renewBtnText}>
-                      {ar ? 'جدّد ←' : 'Renew →'}
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-              <View style={styles.progressTrack}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${trialProgress}%`,
-                      backgroundColor: trialDanger ? colors.red : colors.y,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          )}
-
-          {/* Current plan card — stores only; clients don't have a subscription */}
-          {!isClient && (
-          <View style={styles.planCard}>
-            <View style={[styles.planHead, rowDir]}>
-              <Ionicons name="diamond" size={18} color={colors.y} />
-              <View style={[styles.planHeadTextWrap, colDir]}>
-                <Text style={[styles.planHeadText, dirStyle]}>{t.currentPlan}</Text>
-              </View>
-            </View>
-            <View style={[styles.planNameRow, rowDir]}>
-              <Text style={[styles.planName, dirStyle]}>{currentPlanLabel}</Text>
-              {isTrial && (
-                <View style={styles.trialBadge}>
-                  <Text style={styles.trialBadgeText}>{t.freeTrialBadge}</Text>
-                </View>
-              )}
-            </View>
-            {isActive && subDaysLeft != null && (
+          {/* Client: upgrade pitch with one obvious CTA. iOS routes the
+              purchase through Apple IAP inside the modal. */}
+          {isClient && SUBSCRIPTION_UI_ENABLED && (
+            <View style={styles.planCard}>
               <View style={colDir}>
+                <Text style={[styles.planHeadText, dirStyle]}>{t.subUpgradeKicker}</Text>
+                <Text style={[styles.planName, dirStyle]}>{t.subUpgradeTitle}</Text>
                 <Text style={[styles.planMeta, dirStyle]}>
-                  {ar
-                    ? `متبقّي ${fmt(subDaysLeft)} يوم على التجديد`
-                    : `${fmt(subDaysLeft)} ${t.daysLeftLabel}`}
+                  {fill(t.subCurrentClient, { cap: fmt(clientCap) })}
                 </Text>
               </View>
-            )}
-            {subInfo?.subscriptionEndsAt && !isTrial && (
-              <View style={colDir}>
-                <Text style={[styles.planEnds, dirStyle]}>
-                  {t.expiresOn}{' '}
-                  {new Date(subInfo.subscriptionEndsAt).toLocaleDateString(
-                    ar ? 'ar-EG' : 'en-EG',
-                    { year: 'numeric', month: 'long', day: 'numeric' },
-                  )}
-                  {subDaysLeft != null && (
-                    <Text
-                      style={{
-                        color: (subDaysLeft ?? 0) <= 7 ? colors.red : colors.g200,
-                      }}
-                    >
-                      {' '}
-                      ({fmt(subDaysLeft)} {ar ? 'يوم' : 'days'})
-                    </Text>
-                  )}
-                </Text>
+              <View style={styles.benefits}>
+                {benefits.map(b => (
+                  <View key={b} style={[styles.benefitRow, rowDir]}>
+                    <Text style={styles.benefitCheck}>✓</Text>
+                    <View style={[styles.actionBody, colDir]}>
+                      <Text style={[styles.benefitText, dirStyle]}>{b}</Text>
+                    </View>
+                  </View>
+                ))}
               </View>
-            )}
-            {currentPlanCost > 0 && currentPlanPriceLine && (
               <View style={[styles.planPriceRow, rowDir]}>
                 <Text style={styles.planPriceLabel}>{t.planCost}</Text>
-                <Text style={styles.planPriceValue}>
-                  {currentPlanPriceLine}
+                <Text style={styles.planPriceValue}>{storePriceLine}</Text>
+              </View>
+              {renewCta(t.subUpgradeCta)}
+              {profile?.trialUsed !== true && (
+                <Text style={styles.heroNote}>
+                  {fill(t.subTrialNote, { days: fmt(TRIAL_DAYS) })}
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* Store, ≤7 days left: renew prompt goes first */}
+          {isExpiring && (
+            <View style={styles.warnCard}>
+              <View style={colDir}>
+                <Text style={[styles.warnTitle, dirStyle]}>
+                  {fill(t.subExpiringTitle, { days: fmt(remaining ?? 0) })}
+                </Text>
+                <Text style={[styles.warnBody, dirStyle]}>
+                  {!IS_IOS && !walletEnough
+                    ? fill(t.subExpiringWalletShort, { balance: money(walletBal ?? 0) })
+                    : t.subExpiringBody}
                 </Text>
               </View>
-            )}
-          </View>
+              {SUBSCRIPTION_UI_ENABLED && renewCta(`${t.subRenewNow} — ${renewPrice}`)}
+            </View>
           )}
 
-          {/* Upgrade CTAs — iOS routes through Apple IAP inside the modal */}
-          {isClient && SUBSCRIPTION_UI_ENABLED && (
-            <>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.actionCard,
-                  rowDir,
-                  pressed && styles.actionPressed,
-                ]}
-                onPress={() => setModal('upgrade-to-store')}
-              >
-                <View style={styles.actionIcon}>
-                  <Ionicons name="storefront" size={22} color={colors.y} />
-                </View>
-                <View style={[styles.actionBody, colDir]}>
-                  <Text style={[styles.actionTitle, dirStyle]}>
-                    {t.standardStorePlan}
-                  </Text>
-                  <Text style={[styles.actionSub, dirStyle]}>
-                    {storePriceLine}
-                  </Text>
-                </View>
-                <Ionicons
-                  name={ar ? 'chevron-back' : 'chevron-forward'}
-                  size={20}
-                  color={colors.muted}
-                />
-              </Pressable>
-            </>
-          )}
-
+          {/* Store: current plan */}
           {isStore && (
+            <View style={styles.planCard}>
+              <View style={[styles.spreadRow, rowDir]}>
+                <Text style={styles.planHeadText}>{t.currentPlan}</Text>
+                <View style={[styles.tag, { backgroundColor: statusTag.bg }]}>
+                  <Text style={[styles.tagText, { color: statusTag.color }]}>
+                    {statusTag.label}
+                  </Text>
+                </View>
+              </View>
+              <View style={colDir}>
+                <Text style={[styles.planName, dirStyle]}>{t.standardStorePlan}</Text>
+              </View>
+              {(remaining != null || endsAtLabel) && (
+                <View style={[styles.spreadRow, rowDir, { marginTop: 6 }]}>
+                  {remaining != null && (
+                    <Text style={styles.planMeta}>
+                      {fill(t.subDaysLeft, { days: fmt(remaining) })}
+                    </Text>
+                  )}
+                  {endsAtLabel && (
+                    <Text
+                      style={[styles.planMeta, isExpiring && { color: HERO_DANGER }]}
+                    >
+                      {fill(t.subEndsOn, { date: endsAtLabel })}
+                    </Text>
+                  )}
+                </View>
+              )}
+              {remaining != null && (
+                <View style={styles.progressTrack}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${progress}%`,
+                        backgroundColor: isExpiring ? HERO_DANGER : colors.y,
+                      },
+                    ]}
+                  />
+                </View>
+              )}
+              {!isExpiring && (
+                <>
+                  <View style={[styles.planPriceRow, rowDir]}>
+                    <Text style={styles.planPriceLabel}>{t.planCost}</Text>
+                    <Text style={styles.planPriceValue}>{storePriceLine}</Text>
+                  </View>
+                  {SUBSCRIPTION_UI_ENABLED && (
+                    <>
+                      {renewCta(t.subRenewNow)}
+                      {endsAtLabel && (
+                        <Text style={styles.heroNote}>
+                          {fill(t.subRenewKeepsDays, { date: endsAtLabel })}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </View>
+          )}
+
+          {/* Store: how auto-renewal works. iOS never mentions the wallet
+              (App Store §3.1.1) and only claims App Store renewal once the
+              store is on a paid plan — a trial has no Apple subscription. */}
+          {isStore && (!IS_IOS || isActive) && (
+            <View style={[styles.infoCard, rowDir]}>
+              <Text style={styles.infoIcon}>🔄</Text>
+              <View style={[styles.actionBody, colDir]}>
+                <Text style={[styles.actionTitle, dirStyle]}>{t.subAutoRenewTitle}</Text>
+                <Text style={[styles.infoText, dirStyle]}>
+                  {IS_IOS ? t.subAutoRenewIos : t.subAutoRenewWallet}
+                </Text>
+                {!IS_IOS && (
+                  <View style={[styles.spreadRow, rowDir, { marginTop: spacing.sm }]}>
+                    <Text style={styles.infoText}>
+                      {t.subWalletYourBalance}{' '}
+                      <Text style={styles.infoStrong}>{money(walletBal ?? 0)}</Text>
+                    </Text>
+                    <View
+                      style={[
+                        styles.tag,
+                        { backgroundColor: walletEnough ? colors.greenBg : colors.redBg },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.tagText,
+                          { color: walletEnough ? colors.green : colors.red },
+                        ]}
+                      >
+                        {walletEnough ? t.subWalletEnough : t.subWalletShort}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Store, expiring + wallet short: nudge toward a top-up so next
+              month renews itself. Hidden on iOS (§3.1.1). */}
+          {isExpiring && PAID_UI_ENABLED && !IS_IOS && shortfall > 0 && (
             <Pressable
+              onPress={() => setWalletModal(true)}
               style={({ pressed }) => [
-                styles.cancelCard,
+                styles.infoCard,
                 rowDir,
                 pressed && styles.actionPressed,
               ]}
-              onPress={() => setModal('cancel-store')}
             >
-              <View style={[styles.actionIcon, { backgroundColor: colors.redBg }]}>
-                <Ionicons name="close-circle" size={22} color={colors.red} />
-              </View>
+              <Text style={styles.infoIcon}>💡</Text>
               <View style={[styles.actionBody, colDir]}>
-                <Text
-                  style={[
-                    styles.actionTitle,
-                    dirStyle,
-                    { color: colors.red },
-                  ]}
-                >
-                  {t.cancelStore}
+                <Text style={[styles.infoText, dirStyle]}>
+                  {fill(t.subTopupTip, { amount: money(shortfall) })}
                 </Text>
               </View>
+              <Ionicons
+                name={ar ? 'chevron-back' : 'chevron-forward'}
+                size={18}
+                color={colors.muted}
+              />
             </Pressable>
           )}
 
@@ -411,9 +476,7 @@ export default function SubscriptionScreen() {
               </View>
             </View>
             <View style={colDir}>
-              <Text style={[styles.walletValue, dirStyle]}>
-                {fmt(walletBal ?? 0)} {ar ? 'ج.م' : 'EGP'}
-              </Text>
+              <Text style={[styles.walletValue, dirStyle]}>{money(walletBal ?? 0)}</Text>
             </View>
             {/* Top-up — iOS hides paid entry (App Store §3.1.1) */}
             {PAID_UI_ENABLED && (
@@ -431,7 +494,8 @@ export default function SubscriptionScreen() {
             )}
           </View>
 
-          {/* Subscription history */}
+          {/* Subscription history — stores only; a client's is always empty */}
+          {isStore && (
           <View style={styles.historyCard}>
             <View style={colDir}>
               <Text style={[styles.historyTitle, dirStyle]}>
@@ -482,6 +546,17 @@ export default function SubscriptionScreen() {
               </View>
             )}
           </View>
+          )}
+
+          {isStore && (
+            <Pressable
+              onPress={() => setModal('cancel-store')}
+              hitSlop={8}
+              style={({ pressed }) => [styles.cancelLink, pressed && styles.actionPressed]}
+            >
+              <Text style={styles.cancelLinkText}>{t.subCancelLink}</Text>
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -503,53 +578,23 @@ export default function SubscriptionScreen() {
   )
 }
 
+// Light red that stays legible on the navy hero card.
+const HERO_DANGER = '#FF8A80'
+
+// Fills `{name}` placeholders in i18n strings.
+const fill = (s: string, vars: Record<string, string | number>) =>
+  s.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ''))
+
 const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   loader: {
     paddingVertical: spacing.xxl,
     alignItems: 'center',
   },
-  trialBanner: {
-    borderWidth: 1.5,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  trialHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  trialBody: {
-    flex: 1,
-  },
-  trialIcon: {
-    fontSize: 26,
-  },
-  trialTitle: {
-    fontFamily: fonts.bold,
-    fontSize: 15,
-  },
-  trialSub: {
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.text,
-    marginTop: 2,
-  },
-  renewBtn: {
-    backgroundColor: colors.y,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: radius.full,
-  },
-  renewBtnText: {
-    fontFamily: fonts.bold,
-    fontSize: 12,
-    color: colors.dk,
-  },
   progressTrack: {
     height: 6,
+    marginTop: spacing.sm,
     borderRadius: radius.full,
-    backgroundColor: dark ? colors.dot : colors.white,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
   },
   progressFill: {
@@ -562,54 +607,56 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     padding: spacing.lg,
     ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.md),
   },
-  planHead: {
+  spreadRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: spacing.sm,
-  },
-  planHeadTextWrap: {
-    flex: 1,
+    gap: spacing.sm,
   },
   planHeadText: {
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.bold,
     fontSize: 13,
     color: colors.y,
-    letterSpacing: 0.4,
-  },
-  planNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
   },
   planName: {
     fontFamily: fonts.extraBold,
     fontSize: 22,
     color: colors.white,
-  },
-  trialBadge: {
-    backgroundColor: colors.y,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: radius.full,
-  },
-  trialBadgeText: {
-    fontFamily: fonts.bold,
-    fontSize: 11,
-    color: colors.dk,
+    marginTop: 4,
   },
   planMeta: {
     fontFamily: fonts.regular,
     fontSize: 13,
     color: colors.g200,
-    marginTop: 6,
+    marginTop: 2,
   },
-  planEnds: {
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    color: colors.g200,
-    marginTop: 6,
+  tag: {
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: radius.full,
+  },
+  tagText: {
+    fontFamily: fonts.extraBold,
+    fontSize: 11,
+  },
+  benefits: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  benefitCheck: {
+    fontFamily: fonts.extraBold,
+    fontSize: 15,
+    color: colors.y,
+  },
+  benefitText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.white,
   },
   planPriceRow: {
     marginTop: spacing.md,
@@ -630,38 +677,70 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     fontSize: 14,
     color: colors.white,
   },
-  actionCard: {
+  ctaBtn: {
+    marginTop: spacing.md,
+    backgroundColor: colors.y,
+    borderRadius: radius.md,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  ctaBtnText: {
+    fontFamily: fonts.extraBold,
+    fontSize: 15,
+    color: colors.dk,
+  },
+  heroNote: {
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    color: colors.g200,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  warnCard: {
+    backgroundColor: colors.orangeBg,
+    borderWidth: 1.5,
+    borderColor: colors.orange,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  warnTitle: {
+    fontFamily: fonts.extraBold,
+    fontSize: 15,
+    color: colors.heading,
+  },
+  warnBody: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.text,
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  infoCard: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
     padding: spacing.md,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+    alignItems: 'flex-start',
+    gap: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
     ...(dark ? null : shadow.ss),
   },
-  cancelCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.redBg,
-    ...(dark ? null : shadow.ss),
+  infoIcon: {
+    fontSize: 20,
+  },
+  infoText: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  infoStrong: {
+    fontFamily: fonts.bold,
+    color: colors.heading,
   },
   actionPressed: {
     opacity: 0.85,
-  },
-  actionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.full,
-    backgroundColor: colors.yellowBg,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   actionBody: {
     flex: 1,
@@ -671,11 +750,15 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     fontSize: 15,
     color: colors.heading,
   },
-  actionSub: {
-    fontFamily: fonts.regular,
+  cancelLink: {
+    alignSelf: 'center',
+    paddingVertical: spacing.sm,
+  },
+  cancelLinkText: {
+    fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.muted,
-    marginTop: 2,
+    color: colors.red,
+    textDecorationLine: 'underline',
   },
   walletCard: {
     backgroundColor: colors.card,

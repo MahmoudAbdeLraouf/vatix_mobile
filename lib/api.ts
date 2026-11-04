@@ -940,6 +940,7 @@ export interface SiteSettings {
   androidLatestVersion: string | null
   androidStoreUrl: string | null
   maxProductsPerClient: number
+  broClientOffersPerMonth?: number
   storePromotionPrice: number
   storePromotionDays: number
   storePromotionAppleProductId: string | null

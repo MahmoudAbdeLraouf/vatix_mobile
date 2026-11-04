@@ -360,6 +360,34 @@ export interface Translations {
   subscriptionHistory: string
   paymentHistory: string
   noHistory: string
+  subUpgradeKicker: string
+  subUpgradeTitle: string
+  subCurrentClient: string
+  subBenefitUnlimitedAds: string
+  subBenefitUnlimitedOffers: string
+  subBenefitStorePage: string
+  subBenefitSearch: string
+  subBenefitStats: string
+  subUpgradeCta: string
+  subTrialNote: string
+  subStatusActive: string
+  subStatusTrial: string
+  subStatusExpiring: string
+  subDaysLeft: string
+  subEndsOn: string
+  subRenewNow: string
+  subRenewKeepsDays: string
+  subAutoRenewTitle: string
+  subAutoRenewWallet: string
+  subAutoRenewIos: string
+  subWalletYourBalance: string
+  subWalletEnough: string
+  subWalletShort: string
+  subExpiringTitle: string
+  subExpiringWalletShort: string
+  subExpiringBody: string
+  subTopupTip: string
+  subCancelLink: string
   // Phase 4 — Wallet
   topUp: string
   topUpWallet: string
@@ -1526,6 +1554,34 @@ export const translations: Record<Locale, Translations> = {
     subscriptionHistory: 'سجل الاشتراكات',
     paymentHistory: 'سجل المدفوعات',
     noHistory: 'لا يوجد سجل بعد',
+    subUpgradeKicker: '🏪 حوّل حسابك لمتجر',
+    subUpgradeTitle: 'بيع أكثر مع حساب متجر',
+    subCurrentClient: 'حسابك الحالي: عادي — حد أقصى {cap} إعلانات',
+    subBenefitUnlimitedAds: 'إعلانات غير محدودة',
+    subBenefitUnlimitedOffers: 'عروض غير محدودة على طلبات المشترين (بدل {n} في الشهر)',
+    subBenefitStorePage: 'صفحة متجر احترافية برابط خاص',
+    subBenefitSearch: 'أولوية الظهور في البحث',
+    subBenefitStats: 'إحصائيات الزيارات والتواصل',
+    subUpgradeCta: 'ترقية إلى متجر ←',
+    subTrialNote: 'تجربة مجانية {days} يوم لأول مرة — بدون دفع الآن',
+    subStatusActive: 'نشط',
+    subStatusTrial: 'تجربة',
+    subStatusExpiring: 'ينتهي قريباً',
+    subDaysLeft: 'باقي {days} يوم',
+    subEndsOn: 'ينتهي {date}',
+    subRenewNow: 'جدّد الآن',
+    subRenewKeepsDays: 'المدة الجديدة تُضاف بعد {date} — مش هتخسر أي يوم',
+    subAutoRenewTitle: 'التجديد التلقائي',
+    subAutoRenewWallet: 'هيتجدد اشتراكك تلقائياً من المحفظة قبل الانتهاء بيوم لو الرصيد يكفي.',
+    subAutoRenewIos: 'يتجدد اشتراكك تلقائياً عبر App Store. تقدر تدير الاشتراك من إعدادات Apple.',
+    subWalletYourBalance: 'رصيدك:',
+    subWalletEnough: 'يكفي ✓',
+    subWalletShort: 'لا يكفي',
+    subExpiringTitle: '⏰ اشتراكك ينتهي خلال {days} يوم',
+    subExpiringWalletShort: 'رصيد محفظتك ({balance}) لا يكفي للتجديد التلقائي. جدّد دلوقتي عشان متجرك يفضل ظاهر.',
+    subExpiringBody: 'جدّد دلوقتي عشان متجرك يفضل ظاهر.',
+    subTopupTip: 'بدل الدفع كل شهر: اشحن محفظتك بـ {amount} وهيتجدد تلقائياً.',
+    subCancelLink: 'إلغاء المتجر والرجوع لحساب عادي',
     // Phase 4 — Wallet
     topUp: 'شحن',
     topUpWallet: 'شحن المحفظة',
@@ -2632,6 +2688,34 @@ export const translations: Record<Locale, Translations> = {
     subscriptionHistory: 'Subscription History',
     paymentHistory: 'Payment History',
     noHistory: 'No history yet',
+    subUpgradeKicker: '🏪 Turn your account into a store',
+    subUpgradeTitle: 'Sell more with a store account',
+    subCurrentClient: 'Your account: regular — up to {cap} ads',
+    subBenefitUnlimitedAds: 'Unlimited ads',
+    subBenefitUnlimitedOffers: 'Unlimited offers on buyer requests (instead of {n} a month)',
+    subBenefitStorePage: 'A professional store page with its own link',
+    subBenefitSearch: 'Priority placement in search',
+    subBenefitStats: 'Visit and contact analytics',
+    subUpgradeCta: 'Upgrade to store →',
+    subTrialNote: '{days}-day free trial the first time — nothing to pay now',
+    subStatusActive: 'Active',
+    subStatusTrial: 'Trial',
+    subStatusExpiring: 'Ending soon',
+    subDaysLeft: '{days} days left',
+    subEndsOn: 'Ends {date}',
+    subRenewNow: 'Renew now',
+    subRenewKeepsDays: 'The new period starts after {date} — you won\'t lose any days',
+    subAutoRenewTitle: 'Auto-renewal',
+    subAutoRenewWallet: 'Your subscription renews automatically from your wallet one day before it ends, if the balance covers it.',
+    subAutoRenewIos: 'Your subscription renews automatically through the App Store. Manage it from your Apple settings.',
+    subWalletYourBalance: 'Your balance:',
+    subWalletEnough: 'Enough ✓',
+    subWalletShort: 'Not enough',
+    subExpiringTitle: '⏰ Your subscription ends in {days} days',
+    subExpiringWalletShort: 'Your wallet balance ({balance}) isn\'t enough for auto-renewal. Renew now to keep your store visible.',
+    subExpiringBody: 'Renew now to keep your store visible.',
+    subTopupTip: 'Skip paying every month: top up your wallet with {amount} and it renews automatically.',
+    subCancelLink: 'Cancel store and go back to a regular account',
     // Phase 4 — Wallet
     topUp: 'Top up',
     topUpWallet: 'Top up wallet',
