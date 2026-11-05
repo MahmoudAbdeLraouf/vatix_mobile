@@ -210,7 +210,8 @@ function ProductRowCard({ product, style }: { product: Product; style?: ViewStyl
           )}
           {isPromoted ? (
             <View style={styles.featuredBadge}>
-              <Text style={styles.featuredText}>⭐ {t.featured}</Text>
+              <Ionicons name="star" size={10} color={styles.featuredText.color} />
+              <Text style={styles.featuredText} numberOfLines={1}>{t.featured}</Text>
             </View>
           ) : null}
           {photoCount > 1 ? (
@@ -490,21 +491,26 @@ const makeRowStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create(
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Icon + text instead of a "⭐" emoji inside the Text — Android dropped the Arabic
+  // glyphs of the mixed emoji/Arabic run on some recycled rows, leaving only the star.
   featuredBadge: {
     position: 'absolute',
     top: 6,
     start: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: colors.y,
     borderRadius: 6,
     paddingHorizontal: 7,
-    paddingVertical: 1,
+    paddingVertical: 2,
     ...shadow.ss,
   },
   featuredText: {
     fontFamily: fonts.extraBold,
     fontSize: 10,
-    lineHeight: 16,
     color: colors.dk,
+    includeFontPadding: false,
   },
   photoChip: {
     position: 'absolute',
@@ -598,15 +604,20 @@ const makeRowStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create(
   shrink: {
     flexShrink: 1,
   },
+  // Inset panel inside the card's white frame — a full-bleed strip in a near-page-bg
+  // tint read as sitting outside the card on iOS.
   storeBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingHorizontal: 12,
-    paddingVertical: spacing.sm,
-    backgroundColor: dark ? colors.pressed : '#F3F6FB',
-    borderTopWidth: 1,
-    borderTopColor: dark ? colors.border : '#E4EAF3',
+    marginHorizontal: 10,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    backgroundColor: dark ? colors.pressed : '#EAF0F9',
+    borderColor: dark ? colors.border : '#D6E0EF',
   },
   storeBarPressed: {
     opacity: 0.8,
