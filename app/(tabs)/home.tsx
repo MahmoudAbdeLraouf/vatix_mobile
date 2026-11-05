@@ -62,7 +62,8 @@ import { slide2Xml } from '@/assets/onboarding/slide-2'
 import { slide3Xml } from '@/assets/onboarding/slide-3'
 
 const { width: SCREEN_W } = Dimensions.get('window')
-const CARD_W = Math.floor((SCREEN_W - spacing.lg * 2 - spacing.md) / 2)
+const GRID_GAP = 14
+const CARD_W = Math.floor((SCREEN_W - spacing.lg * 2 - GRID_GAP) / 2)
 const BRAND_W = Math.floor((SCREEN_W - spacing.lg * 2 - spacing.md * 2) / 3)
 const PROMO_W = SCREEN_W - spacing.lg * 2
 
@@ -257,7 +258,7 @@ function PromoCard({ item, onPress }: { item: PromoSlide; onPress: () => void })
 const promoStyles = StyleSheet.create({
   card: {
     height: PROMO_H,
-    borderRadius: 20,
+    borderRadius: radius.md,
     elevation: 4,
     shadowColor: colors.dk,
     shadowOffset: { width: 0, height: 4 },
@@ -272,7 +273,7 @@ const promoStyles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    borderRadius: 20,
+    borderRadius: radius.md,
     overflow: 'hidden',
   },
   row: {
@@ -500,23 +501,14 @@ const makeBrandStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.creat
 const themedBrandStyles = { light: makeBrandStyles(lightColors, false), dark: makeBrandStyles(darkColors, true) }
 
 function SectionHeader({ title, onMore }: { title: string; onMore?: () => void }) {
-  const { t, isRtl } = useLocale()
-  const { mode, colors } = useTheme()
-  const styles = themedStyles[mode]
+  const { t } = useLocale()
+  const styles = useStyles()
   return (
     <View style={styles.sectionHeader}>
-      <View style={styles.sectionTitleRow}>
-        <View style={styles.titleAccent} />
-        <Text style={styles.sectionTitle}>{title}</Text>
-      </View>
+      <Text style={styles.sectionTitle}>{title}</Text>
       {onMore && (
-        <TouchableOpacity onPress={onMore} style={styles.seeAllBtn}>
+        <TouchableOpacity onPress={onMore} hitSlop={8}>
           <Text style={styles.seeAll}>{t.seeAll}</Text>
-          <Ionicons
-            name={isRtl ? 'chevron-back-outline' : 'chevron-forward-outline'}
-            size={13}
-            color={colors.seeAllText}
-          />
         </TouchableOpacity>
       )}
     </View>
@@ -782,11 +774,15 @@ export default function HomeScreen() {
             title={t.featuredProducts}
             onMore={() => router.push({ pathname: '/(tabs)/products', params: { promoted: 'true' } })}
           >
-            <View style={styles.productsGrid}>
+            <ScrollView
+              horizontal
+              contentContainerStyle={styles.featuredList}
+              showsHorizontalScrollIndicator={false}
+            >
               {featuredProducts.map(p => (
-                <ProductCard key={p.id} product={p} style={styles.productCardFull} />
+                <ProductCard key={p.id} product={p} featured style={styles.featuredCard} />
               ))}
-            </View>
+            </ScrollView>
           </Section>
         )}
 
@@ -946,7 +942,7 @@ export default function HomeScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.hero },
   container: { flex: 1 },
   content: {
@@ -1041,12 +1037,21 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: spacing.xs,
   },
   categoryIconWrap: {
-    width: 68,
-    height: 68,
-    borderRadius: radius.lg,
-    backgroundColor: colors.catBg,
+    width: 64,
+    height: 64,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
+    ...(dark
+      ? { borderWidth: 1, borderColor: colors.border }
+      : {
+          shadowColor: colors.dk,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.07,
+          shadowRadius: 10,
+          elevation: 2,
+        }),
   },
   categoryName: {
     fontFamily: fonts.semiBold,
@@ -1055,43 +1060,23 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     textAlign: 'center',
   },
 
-  section: { marginTop: spacing.lg },
+  section: { marginTop: 28 },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  titleAccent: {
-    width: 3,
-    height: 18,
-    borderRadius: 2,
-    backgroundColor: colors.y,
+    marginBottom: 14,
   },
   sectionTitle: {
-    fontFamily: fonts.bold,
-    fontSize: 16,
-    color: colors.text,
-  },
-  seeAllBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    backgroundColor: colors.seeAllBg,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radius.full,
+    fontFamily: fonts.extraBold,
+    fontSize: 17,
+    color: colors.heading,
   },
   seeAll: {
     fontFamily: fonts.semiBold,
-    fontSize: 12,
-    color: colors.seeAllText,
+    fontSize: 12.5,
+    color: colors.muted,
   },
 
   hList: {
@@ -1099,22 +1084,22 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingBottom: spacing.md,
     gap: spacing.md,
   },
+  featuredList: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 4,
+    paddingBottom: 8,
+    gap: GRID_GAP,
+  },
   featuredCard: {
-    width: 180,
+    width: 220,
   },
 
-  productsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
-  },
   productRow: {
     paddingHorizontal: spacing.lg,
-    gap: spacing.md,
+    gap: GRID_GAP,
   },
   productRowSep: {
-    height: spacing.md,
+    height: GRID_GAP,
   },
   productCardFull: {
     width: CARD_W,
@@ -1149,7 +1134,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
 })
 
-const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }
 
 function useStyles() {
   return themedStyles[useTheme().mode]

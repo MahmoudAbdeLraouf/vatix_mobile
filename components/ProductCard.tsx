@@ -8,7 +8,6 @@ import { useLocale } from '@/contexts/locale'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 import { getCategoryIcon } from '@/lib/category-icons'
-import { VerifiedBadge } from '@/components/VerifiedBadge'
 import { soldCountText } from '@/lib/salesRecord'
 import { FavoriteButton } from '@/components/FavoriteButton'
 
@@ -16,11 +15,13 @@ interface ProductCardProps {
   product: Product
   style?: ViewStyle
   variant?: 'grid' | 'row'
+  // Grid only: wide 4:3 photo + gold hairline, for the home "Featured" strip.
+  featured?: boolean
 }
 
-// Mirrors vatix_website/components/product-card.tsx layout tokens:
-// 1:1 image, 12px body padding, 13/700 title (2 lines), 18/900 navy price,
-// --ss shadow, 12px radius, 1.5px g200 border.
+// Grid card ("luxury" home redesign): padded white card with a soft navy shadow,
+// framed photo, price-first body, and a store row (logo + name + ✓ + sold pill)
+// for store listings or a condition · area · time line for individual sellers.
 
 // Thumbs that already finished loading this session. iOS expo-image replays the
 // fade transition even on memory-cache hits, so a fast fling back over old rows
@@ -31,13 +32,14 @@ export const ProductCard = React.memo(function ProductCard({
   product,
   style,
   variant = 'grid',
+  featured = false,
 }: ProductCardProps) {
   return variant === 'row'
     ? <ProductRowCard product={product} style={style} />
-    : <ProductGridCard product={product} style={style} />
+    : <ProductGridCard product={product} style={style} featured={featured} />
 })
 
-function ProductGridCard({ product, style }: { product: Product; style?: ViewStyle }) {
+function ProductGridCard({ product, style, featured }: { product: Product; style?: ViewStyle; featured: boolean }) {
   const { locale, t, isRtl } = useLocale()
   const { mode, colors } = useTheme()
   const styles = themedStyles[mode]
@@ -46,6 +48,17 @@ function ProductGridCard({ product, style }: { product: Product; style?: ViewSty
   // the original 2-4MB upload.
   const thumb = imgUrl(product.images[0]?.url, { w: 400 })
   const categoryName = localeName(product.category.translations, locale)
+  const locationName = product.location ? localeName(product.location.translations, locale) : ''
+  const isPromoted = !!product.promotedUntil && new Date(product.promotedUntil) > new Date()
+
+  const isNew = product.condition === 'new'
+  const conditionLabel =
+    {
+      new: t.conditionNew,
+      used_excellent: t.conditionUsedExcellent,
+      used_good: t.conditionUsedGood,
+      used_acceptable: t.conditionUsedAcceptable,
+    }[product.condition ?? ''] ?? t.conditionUsed
 
   const textDirStyle = {
     writingDirection: isRtl ? ('rtl' as const) : ('ltr' as const),
@@ -55,32 +68,29 @@ function ProductGridCard({ product, style }: { product: Product; style?: ViewSty
   // `owner` may be absent when products come from endpoints that don't join it
   // (e.g. /stores/:id/products). Guard every access to avoid runtime crashes.
   const owner = product.owner
-  const isStore = owner?.type === 'store'
-  const storeName = owner?.storeProfile?.name
+  const isStore = owner?.type === 'store' && !!owner.storeProfile?.name
+  const storeName = owner?.storeProfile?.name ?? ''
+  const storeLogo = imgUrl(owner?.storeProfile?.logo, { w: 96 })
   const verification = owner?.storeProfile?.verification ?? owner?.verification
-  const ownerIcon = isStore ? '🏪' : null
   // `owner.salesRecord` is omitted by the backend when the sales-record flag is off.
   const salesTotal = isStore ? (owner?.salesRecord?.total ?? 0) : 0
-
-  const ratingsCount = product.ratingsCount ?? 0
-  const avgRating = product.averageRating ?? 0
-  const hasRating = ratingsCount > 0
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.card,
+        featured && styles.cardFeatured,
         style,
         pressed && styles.cardPressed,
       ]}
       onPress={() => router.push(`/products/${product.id}`)}
     >
-      <View style={styles.imageWrap}>
+      <View style={[styles.photo, featured && styles.photoFeatured]}>
         {thumb ? (
           <Image
             source={{ uri: thumb }}
             style={styles.image}
-            contentFit="contain"
+            contentFit="cover"
             cachePolicy="memory-disk"
             transition={loadedThumbs.has(thumb) ? 0 : 150}
             onLoad={() => loadedThumbs.add(thumb)}
@@ -88,67 +98,72 @@ function ProductGridCard({ product, style }: { product: Product; style?: ViewSty
           />
         ) : (
           <View style={[styles.image, styles.placeholder]}>
-            <Ionicons
-              name={getCategoryIcon(categoryName)}
-              size={48}
-              color={colors.subtle}
-            />
+            <Ionicons name={getCategoryIcon(categoryName)} size={44} color={colors.subtle} />
           </View>
         )}
-        {product.promotedUntil && new Date(product.promotedUntil) > new Date() && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{t.featured}</Text>
+        {isPromoted ? (
+          <View style={styles.tag}>
+            <Text style={styles.tagText} numberOfLines={1}>{t.featured}</Text>
           </View>
-        )}
+        ) : null}
+        <FavoriteButton productId={product.id} size={16} color={colors.g600} style={styles.heart} />
       </View>
 
-      <View style={styles.info}>
-        <Text
-          style={[styles.title, textDirStyle]}
-          numberOfLines={2}
-        >
+      <View style={styles.body}>
+        <Text style={[styles.price, textDirStyle]} numberOfLines={1}>
+          {Number(product.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}{' '}
+          <Text style={styles.priceUnit}>{t.egp}</Text>
+        </Text>
+
+        <Text style={[styles.title, textDirStyle]} numberOfLines={2}>
           {product.title}
         </Text>
 
-        <View style={styles.metaRow}>
-          <Text style={[styles.category, textDirStyle]} numberOfLines={1}>
-            {categoryName}
-          </Text>
-          {hasRating ? (
-            <View style={styles.ratingPill}>
-              <Text style={styles.ratingStar}>★</Text>
-              <Text style={styles.ratingValue}>{avgRating.toFixed(1)}</Text>
-              <Text style={styles.ratingCount}>({ratingsCount})</Text>
+        {isStore && owner ? (
+          <>
+            <View style={styles.storeRow}>
+              {storeLogo ? (
+                <Image source={{ uri: storeLogo }} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" />
+              ) : (
+                <View style={[styles.avatar, styles.avatarFallback]}>
+                  <Text style={styles.avatarText}>{initials(storeName)}</Text>
+                </View>
+              )}
+              <Text style={[styles.storeName, textDirStyle]} numberOfLines={1}>
+                {storeName}
+              </Text>
+              {verification?.verified ? (
+                <View style={styles.verifiedCheck} accessibilityLabel={t.verified.badge}>
+                  <Text style={styles.verifiedCheckText}>✓</Text>
+                </View>
+              ) : null}
             </View>
-          ) : null}
-        </View>
-
-        {storeName ? (
-          <View style={styles.storeRow}>
-            {ownerIcon ? <Text style={styles.storeIcon}>{ownerIcon}</Text> : null}
-            <Text style={[styles.storeName, textDirStyle]} numberOfLines={1}>
-              {storeName}
-            </Text>
-            {isStore && verification?.verified ? (
-              <View style={styles.verifiedWrap}>
-                <VerifiedBadge verification={verification} />
+            {salesTotal > 0 ? (
+              <View style={styles.soldPill}>
+                <Text style={styles.soldPillText} numberOfLines={1}>
+                  {soldCountText(t.salesRecord.cardSold, salesTotal, t.salesRecord)}
+                </Text>
               </View>
             ) : null}
-          </View>
-        ) : null}
-
-        {storeName && salesTotal > 0 ? (
-          <Text style={[styles.soldLine, textDirStyle]} numberOfLines={1}>
-            {soldCountText(t.salesRecord.cardSold, salesTotal, t.salesRecord)}
+          </>
+        ) : (
+          <Text style={[styles.meta, textDirStyle]} numberOfLines={1}>
+            <Text style={isNew ? styles.condNew : styles.condUsed}>{conditionLabel}</Text>
+            {locationName ? ` · ${locationName}` : ''}
+            {` · ${timeAgo(product.createdAt, t)}`}
           </Text>
-        ) : null}
-
-        <Text style={[styles.price, textDirStyle]}>
-          {Number(product.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')} <Text style={styles.priceUnit}>{t.egp}</Text>
-        </Text>
+        )}
       </View>
     </Pressable>
   )
+}
+
+// Two-letter monogram for stores without a logo ("Phone Corner" → "PC").
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '•'
+  const letters = parts.length === 1 ? [...parts[0]].slice(0, 2) : [[...parts[0]][0], [...parts[1]][0]]
+  return letters.join('').toUpperCase()
 }
 
 // Marketplace list row (Products tab): cover thumb + price-first info column, and
@@ -312,140 +327,186 @@ function timeAgo(iso: string, t: ReturnType<typeof useLocale>['t']) {
 }
 
 const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
-  // Sizing is deferred to the parent (fixed width in a wrap grid,
-  // or flex:1 in a FlatList numColumns row) via the style prop.
+  // Sizing is deferred to the parent (fixed width in a strip, or flex:1 in a
+  // FlatList numColumns row) via the style prop.
   card: {
     borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.border,
     backgroundColor: colors.card,
-    overflow: 'hidden',
+    padding: 6,
     // Dark cards separate by border alone; navy shadows vanish on a navy page.
-    ...(dark ? null : shadow.ss),
+    ...(dark
+      ? { borderWidth: 1, borderColor: colors.border }
+      : {
+          shadowColor: colors.dk,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.07,
+          shadowRadius: 12,
+          elevation: 2,
+        }),
+  },
+  // Gold hairline + slightly deeper shadow for the Featured strip.
+  cardFeatured: {
+    borderWidth: 1,
+    borderColor: dark ? 'rgba(233,199,102,0.45)' : '#E9C766',
+    ...(dark
+      ? null
+      : { shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 3 }),
   },
   cardPressed: {
     opacity: 0.92,
     transform: [{ scale: 0.99 }],
   },
-  imageWrap: {
+  photo: {
     position: 'relative',
-    backgroundColor: colors.card,
-    padding: 12,
-  },
-  image: {
     width: '100%',
     aspectRatio: 1,
     borderRadius: radius.sm,
-    backgroundColor: colors.placeholder,
+    overflow: 'hidden',
+    backgroundColor: dark ? colors.placeholder : '#F2F4F7',
   },
-  // Category-icon fallback: neutral g100 bg + soft g400 glyph — reads as a clean
-  // monochrome placeholder rather than competing with the yellow price/tag accents.
+  photoFeatured: {
+    aspectRatio: 4 / 3,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
   placeholder: {
-    backgroundColor: colors.placeholder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badge: {
+  tag: {
     position: 'absolute',
-    top: spacing.sm,
-    start: spacing.sm,
-    backgroundColor: colors.y,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-    ...shadow.ss,
+    top: 6,
+    start: 6,
+    backgroundColor: colors.dk,
+    paddingHorizontal: 9,
+    paddingVertical: 1,
+    borderRadius: 6,
+    ...(dark ? { borderWidth: 1, borderColor: 'rgba(245,184,0,0.35)' } : null),
   },
-  badgeText: {
+  tagText: {
     fontFamily: fonts.extraBold,
     fontSize: 10,
-    color: colors.dk,
-    letterSpacing: 0.2,
-  },
-  info: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 3,
-  },
-  title: {
-    fontFamily: fonts.bold,
-    fontSize: 13,
-    lineHeight: 17,
-    color: colors.text,
-    minHeight: 34,
-  },
-  category: {
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    lineHeight: 15,
-    color: colors.muted,
-    flexShrink: 1,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 6,
-  },
-  ratingPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  ratingStar: {
-    fontSize: 11,
-    lineHeight: 15,
+    lineHeight: 16,
     color: colors.y,
   },
-  ratingValue: {
-    fontFamily: fonts.bold,
-    fontSize: 11,
-    lineHeight: 15,
-    color: colors.heading,
-  },
-  ratingCount: {
-    fontFamily: fonts.regular,
-    fontSize: 10,
-    lineHeight: 15,
-    color: colors.muted,
-  },
-  storeRow: {
-    flexDirection: 'row',
+  heart: {
+    position: 'absolute',
+    top: 6,
+    end: 6,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 1,
+    justifyContent: 'center',
   },
-  verifiedWrap: {
-    flexShrink: 0,
-  },
-  storeIcon: {
-    fontSize: 11,
-    lineHeight: 15,
-  },
-  storeName: {
-    fontFamily: fonts.semiBold,
-    fontSize: 11,
-    lineHeight: 15,
-    color: colors.heading,
-    flexShrink: 1,
-  },
-  soldLine: {
-    fontFamily: fonts.bold,
-    fontSize: 11,
-    lineHeight: 15,
-    color: colors.yellowText,
-    marginTop: 2,
+  body: {
+    paddingTop: 8,
+    paddingHorizontal: 6,
+    paddingBottom: 6,
   },
   price: {
     fontFamily: fonts.black,
     fontSize: 16,
     lineHeight: 22,
     color: colors.price,
-    marginTop: 2,
   },
   priceUnit: {
     fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.subtle,
+  },
+  title: {
+    fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: colors.muted,
+    lineHeight: 17,
+    minHeight: 34,
+    marginTop: 2,
+    color: dark ? colors.muted : colors.g600,
+  },
+  meta: {
+    fontFamily: fonts.regular,
+    fontSize: 10.5,
+    lineHeight: 15,
+    color: colors.subtle,
+    marginTop: 6,
+  },
+  condNew: {
+    fontFamily: fonts.bold,
+    color: dark ? colors.green : '#067647',
+  },
+  condUsed: {
+    fontFamily: fonts.bold,
+    color: dark ? '#F79009' : '#B54708',
+  },
+  storeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 6,
+    paddingTop: 7,
+    borderTopWidth: 1,
+    borderTopColor: dark ? colors.border : '#F2F4F7',
+  },
+  avatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.placeholder,
+  },
+  avatarFallback: {
+    backgroundColor: colors.dk,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(dark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' } : null),
+  },
+  avatarText: {
+    fontFamily: fonts.black,
+    fontSize: 8,
+    lineHeight: 11,
+    color: colors.y,
+    includeFontPadding: false,
+  },
+  storeName: {
+    fontFamily: fonts.extraBold,
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.heading,
+    flexShrink: 1,
+  },
+  verifiedCheck: {
+    width: 13,
+    height: 13,
+    borderRadius: 6.5,
+    backgroundColor: '#1A2540',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    ...(dark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' } : null),
+  },
+  verifiedCheckText: {
+    fontFamily: fonts.bold,
+    fontSize: 7.5,
+    lineHeight: 10,
+    color: '#fff',
+    includeFontPadding: false,
+  },
+  soldPill: {
+    alignSelf: 'flex-start',
+    marginTop: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 1,
+    borderRadius: 6,
+    maxWidth: '100%',
+    backgroundColor: dark ? colors.yellowBg : '#FFF8E1',
+  },
+  soldPillText: {
+    fontFamily: fonts.extraBold,
+    fontSize: 10,
+    lineHeight: 16,
+    color: dark ? colors.y : colors.yt,
   },
 })
 
