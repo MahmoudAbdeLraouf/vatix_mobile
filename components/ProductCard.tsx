@@ -17,6 +17,9 @@ interface ProductCardProps {
   variant?: 'grid' | 'row'
   // Grid only: wide 4:3 photo + gold hairline, for the home "Featured" strip.
   featured?: boolean
+  // Grid only: card rendered on the store's own page. The store row and sold pill
+  // would repeat the header, so show a brand label and condition · ★ · time instead.
+  inStore?: boolean
 }
 
 // Grid card ("luxury" home redesign): padded white card with a soft navy shadow,
@@ -33,13 +36,24 @@ export const ProductCard = React.memo(function ProductCard({
   style,
   variant = 'grid',
   featured = false,
+  inStore = false,
 }: ProductCardProps) {
   return variant === 'row'
     ? <ProductRowCard product={product} style={style} />
-    : <ProductGridCard product={product} style={style} featured={featured} />
+    : <ProductGridCard product={product} style={style} featured={featured} inStore={inStore} />
 })
 
-function ProductGridCard({ product, style, featured }: { product: Product; style?: ViewStyle; featured: boolean }) {
+function ProductGridCard({
+  product,
+  style,
+  featured,
+  inStore,
+}: {
+  product: Product
+  style?: ViewStyle
+  featured: boolean
+  inStore: boolean
+}) {
   const { locale, t, isRtl } = useLocale()
   const { mode, colors } = useTheme()
   const styles = themedStyles[mode]
@@ -50,6 +64,8 @@ function ProductGridCard({ product, style, featured }: { product: Product; style
   const categoryName = localeName(product.category.translations, locale)
   const locationName = product.location ? localeName(product.location.translations, locale) : ''
   const isPromoted = !!product.promotedUntil && new Date(product.promotedUntil) > new Date()
+  const brandName = inStore && product.brand ? localeName(product.brand.translations ?? [], locale) : ''
+  const hasRating = (product.ratingsCount ?? 0) > 0 && product.averageRating != null
 
   const isNew = product.condition === 'new'
   const conditionLabel =
@@ -110,6 +126,11 @@ function ProductGridCard({ product, style, featured }: { product: Product; style
       </View>
 
       <View style={styles.body}>
+        {brandName ? (
+          <Text style={[styles.brand, textDirStyle]} numberOfLines={1}>
+            {brandName.toUpperCase()}
+          </Text>
+        ) : null}
         <Text style={[styles.price, textDirStyle]} numberOfLines={1}>
           {Number(product.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}{' '}
           <Text style={styles.priceUnit}>{t.egp}</Text>
@@ -119,7 +140,14 @@ function ProductGridCard({ product, style, featured }: { product: Product; style
           {product.title}
         </Text>
 
-        {isStore && owner ? (
+        {inStore ? (
+          <Text style={[styles.meta, textDirStyle]} numberOfLines={1}>
+            <Text style={isNew ? styles.condNew : styles.condUsed}>{conditionLabel}</Text>
+            {hasRating ? ' · ' : ''}
+            {hasRating ? <Text style={styles.rating}>★ {Number(product.averageRating).toFixed(1)}</Text> : null}
+            {` · ${timeAgo(product.createdAt, t)}`}
+          </Text>
+        ) : isStore && owner ? (
           <>
             <View style={styles.storeRow}>
               {storeLogo ? (
@@ -441,6 +469,17 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     fontFamily: fonts.bold,
     color: dark ? '#F79009' : '#B54708',
   },
+  rating: {
+    fontFamily: fonts.extraBold,
+    color: colors.yellowText,
+  },
+  brand: {
+    fontFamily: fonts.extraBold,
+    fontSize: 9.5,
+    lineHeight: 13,
+    letterSpacing: 1.2,
+    color: colors.subtle,
+  },
   storeRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -506,7 +545,7 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     fontFamily: fonts.extraBold,
     fontSize: 10,
     lineHeight: 16,
-    color: dark ? colors.y : colors.yt,
+    color: colors.yellowText,
   },
 })
 
@@ -750,7 +789,7 @@ const makeRowStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create(
     fontFamily: fonts.extraBold,
     fontSize: 11,
     lineHeight: 15,
-    color: dark ? colors.y : colors.yt,
+    color: colors.yellowText,
   },
   visit: {
     flexDirection: 'row',

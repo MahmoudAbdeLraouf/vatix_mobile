@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Image,
   Linking,
   Modal,
@@ -70,6 +69,8 @@ const SOCIAL_COLORS: Record<SocialKey, string> = {
 }
 
 type TabKey = 'products' | 'about' | 'branches'
+type SortKey = 'newest' | 'priceAsc' | 'priceDesc'
+const SORT_ORDER: SortKey[] = ['newest', 'priceAsc', 'priceDesc']
 
 type PhoneEntry = {
   key: string
@@ -89,7 +90,7 @@ export default function StoreDetailScreen() {
   const { requireLogin } = useLoginGate()
   const insets = useSafeAreaInsets()
   const { colors, isDark } = useTheme()
-  const styles = useMemo(() => makeStyles(colors), [colors])
+  const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   const dir = {
     writingDirection: (isRtl ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
@@ -104,6 +105,8 @@ export default function StoreDetailScreen() {
   const [locs, setLocs] = useState<LocationNode[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
+  const [sort, setSort] = useState<SortKey>('newest')
+  const [activeCat, setActiveCat] = useState<number | null>(null)
   const [startingChat, setStartingChat] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
   const [descTruncatable, setDescTruncatable] = useState(false)
@@ -132,13 +135,41 @@ export default function StoreDetailScreen() {
 
   const filteredProducts = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return products
-    return products.filter(p => {
+    const list = products.filter(p => {
+      if (activeCat != null && p.category?.id !== activeCat) return false
+      if (!q) return true
       const title = p.title?.toLowerCase() ?? ''
       const cat = localeName(p.category?.translations ?? [], locale).toLowerCase()
       return title.includes(q) || cat.includes(q)
     })
-  }, [products, query, locale])
+    // 'newest' keeps the backend order (createdAt DESC).
+    if (sort === 'priceAsc') list.sort((a, b) => Number(a.price) - Number(b.price))
+    if (sort === 'priceDesc') list.sort((a, b) => Number(b.price) - Number(a.price))
+    return list
+  }, [products, query, activeCat, sort, locale])
+
+  const promotedProducts = useMemo(() => {
+    const now = Date.now()
+    return products.filter(p => p.promotedUntil && new Date(p.promotedUntil).getTime() > now)
+  }, [products])
+
+  const categoryChips = useMemo(() => {
+    const map = new Map<number, { id: number; name: string; count: number }>()
+    for (const p of products) {
+      const c = p.category
+      if (!c) continue
+      const entry = map.get(c.id)
+      if (entry) entry.count++
+      else map.set(c.id, { id: c.id, name: localeName(c.translations ?? [], locale), count: 1 })
+    }
+    return [...map.values()].sort((a, b) => b.count - a.count)
+  }, [products, locale])
+
+  const productRows = useMemo(() => {
+    const rows: Product[][] = []
+    for (let i = 0; i < filteredProducts.length; i += 2) rows.push(filteredProducts.slice(i, i + 2))
+    return rows
+  }, [filteredProducts])
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -256,6 +287,15 @@ export default function StoreDetailScreen() {
   const searchPlaceholder = locale === 'ar' ? 'ابحث في منتجات المتجر…' : 'Search store products…'
   const noMatchesText = locale === 'ar' ? 'لا توجد منتجات مطابقة لبحثك.' : 'No products match your search.'
   const dotSeparator = ' · '
+  const ar = locale === 'ar'
+  const featuredTitle = ar ? 'الأبرز في المتجر' : 'Featured in store'
+  const allProductsTitle = ar ? 'كل المنتجات' : 'All products'
+  const allChipLabel = ar ? 'الكل' : 'All'
+  const sortLabel: Record<SortKey, string> = ar
+    ? { newest: 'الأحدث', priceAsc: 'السعر: الأقل', priceDesc: 'السعر: الأعلى' }
+    : { newest: 'Newest', priceAsc: 'Price: low', priceDesc: 'Price: high' }
+  const isFiltering = query.trim().length > 0 || activeCat != null
+  const onProductsTab = activeTab === 'products'
 
   const TAB_BAR_HEIGHT = 62 + insets.bottom
 
@@ -411,12 +451,17 @@ export default function StoreDetailScreen() {
       {/* Scrollable content */}
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: TAB_BAR_HEIGHT + spacing.lg }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          // The products tray runs to the bottom edge and carries its own padding.
+          { paddingBottom: onProductsTab ? 0 : TAB_BAR_HEIGHT + spacing.lg },
+        ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={{ height: COVER_HEIGHT - 40 }} />
 
-        <View style={styles.card}>
+        <View style={[styles.card, onProductsTab && { paddingBottom: 0 }]}>
           <View style={styles.handle} />
 
           {/* Hero: logo + name column (follow lives up in the cover header) */}
@@ -508,52 +553,110 @@ export default function StoreDetailScreen() {
           </View>
 
           {/* Tab content */}
-          {activeTab === 'products' && (
-            <View style={styles.tabPanel}>
-              {products.length > 0 && (
-                <View style={styles.searchWrap}>
-                  <Ionicons name="search-outline" size={18} color={colors.muted} />
-                  <TextInput
-                    style={[styles.searchInput, dir]}
-                    placeholder={searchPlaceholder}
-                    placeholderTextColor={colors.subtle}
-                    value={query}
-                    onChangeText={setQuery}
-                    autoCorrect={false}
-                    autoCapitalize="none"
-                    returnKeyType="search"
-                  />
-                  {query.length > 0 && (
-                    <Pressable style={styles.searchClearBtn} onPress={() => setQuery('')} hitSlop={8}>
-                      <Ionicons name="close-circle" size={18} color={colors.muted} />
-                    </Pressable>
-                  )}
-                </View>
+          {onProductsTab && (
+            <View style={[styles.tray, { paddingBottom: TAB_BAR_HEIGHT + spacing.xl }]}>
+              {promotedProducts.length > 0 && (
+                <>
+                  <View style={styles.sectionHead}>
+                    <Text style={[styles.sectionTitle, dir]}>{featuredTitle}</Text>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.showcaseRow}
+                  >
+                    {promotedProducts.map(p => (
+                      <ProductCard key={p.id} product={p} featured inStore style={styles.showcaseCard} />
+                    ))}
+                  </ScrollView>
+                </>
               )}
 
-              {filteredProducts.length > 0 ? (
-                <FlatList
-                  data={filteredProducts}
-                  keyExtractor={p => String(p.id)}
-                  numColumns={2}
-                  scrollEnabled={false}
-                  renderItem={({ item }) => (
-                    <ProductCard product={item} style={styles.productCard} />
+              {products.length > 0 && (
+                <>
+                  <View style={styles.sectionHead}>
+                    <Text style={[styles.sectionTitle, dir]}>{allProductsTitle}</Text>
+                    <Text style={styles.sectionCount}>{filteredProducts.length}</Text>
+                  </View>
+
+                  <View style={styles.toolsRow}>
+                    <View style={[styles.searchWrap, styles.toolSurface]}>
+                      <Ionicons name="search-outline" size={17} color={colors.subtle} />
+                      <TextInput
+                        style={[styles.searchInput, dir]}
+                        placeholder={searchPlaceholder}
+                        placeholderTextColor={colors.subtle}
+                        value={query}
+                        onChangeText={setQuery}
+                        autoCorrect={false}
+                        autoCapitalize="none"
+                        returnKeyType="search"
+                      />
+                      {query.length > 0 && (
+                        <Pressable style={styles.searchClearBtn} onPress={() => setQuery('')} hitSlop={8}>
+                          <Ionicons name="close-circle" size={18} color={colors.muted} />
+                        </Pressable>
+                      )}
+                    </View>
+                    <Pressable
+                      style={({ pressed }) => [styles.sortBtn, styles.toolSurface, pressed && { opacity: 0.7 }]}
+                      onPress={() => setSort(s => SORT_ORDER[(SORT_ORDER.indexOf(s) + 1) % SORT_ORDER.length])}
+                      accessibilityRole="button"
+                    >
+                      <Ionicons name="swap-vertical" size={15} color={colors.text} />
+                      <Text style={styles.sortText}>{sortLabel[sort]}</Text>
+                    </Pressable>
+                  </View>
+
+                  {categoryChips.length >= 2 && (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.chipsRow}
+                    >
+                      {[{ id: null, name: allChipLabel, count: products.length }, ...categoryChips].map(c => {
+                        const active = c.id === activeCat
+                        return (
+                          <Pressable
+                            key={c.id ?? 'all'}
+                            style={[styles.chip, active && styles.chipActive]}
+                            onPress={() => setActiveCat(c.id)}
+                          >
+                            <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                              {c.name}{' '}
+                              <Text style={[styles.chipCount, active && styles.chipCountActive]}>{c.count}</Text>
+                            </Text>
+                          </Pressable>
+                        )
+                      })}
+                    </ScrollView>
                   )}
-                  contentContainerStyle={styles.productGrid}
-                  columnWrapperStyle={styles.productRow}
-                />
+                </>
+              )}
+
+              {productRows.length > 0 ? (
+                <View style={styles.productGrid}>
+                  {productRows.map(row => (
+                    <View key={row[0].id} style={styles.productRow}>
+                      {row.map(p => (
+                        <ProductCard key={p.id} product={p} inStore style={styles.productCard} />
+                      ))}
+                      {/* Keep a lone last card half-width. */}
+                      {row.length === 1 && <View style={styles.productCard} />}
+                    </View>
+                  ))}
+                </View>
               ) : (
                 <View style={styles.emptyState}>
                   <View style={styles.emptyIconWrap}>
                     <Ionicons
-                      name={query ? 'search-outline' : 'cube-outline'}
+                      name={isFiltering ? 'search-outline' : 'cube-outline'}
                       size={30}
                       color={colors.y}
                     />
                   </View>
                   <Text style={[styles.emptyText, dir]}>
-                    {query ? noMatchesText : t.noResults}
+                    {isFiltering ? noMatchesText : t.noResults}
                   </Text>
                 </View>
               )}
@@ -744,7 +847,7 @@ export default function StoreDetailScreen() {
   )
 }
 
-const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.hero },
 
   loadingWrap: {
@@ -1135,23 +1238,83 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
 
   // ── Products ─────────────────────────────────────────────────────────────────
-  productGrid: { paddingHorizontal: spacing.md },
-  productRow: { gap: spacing.sm, marginBottom: spacing.sm },
-  productCard: { flex: 1, width: undefined },
+  // Grey tray so the white cards float, same rhythm as home.
+  tray: {
+    flexGrow: 1,
+    paddingTop: spacing.xs,
+    backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: dark ? colors.border : '#F2F4F7',
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingTop: 20,
+    paddingBottom: 12,
+  },
+  sectionTitle: { fontFamily: fonts.extraBold, fontSize: 16, color: colors.heading },
+  sectionCount: { fontFamily: fonts.bold, fontSize: 12, color: colors.subtle },
+  showcaseRow: { gap: 14, paddingHorizontal: spacing.lg, paddingBottom: spacing.xs },
+  showcaseCard: { width: 220 },
 
+  toolsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 12,
+  },
+  // Search + sort: white on the tray, shadow in light mode, border in dark.
+  toolSurface: {
+    height: 42,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    ...(dark
+      ? { borderWidth: 1, borderColor: colors.border }
+      : {
+          shadowColor: '#062B5B',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.06,
+          shadowRadius: 6,
+          elevation: 1,
+        }),
+  },
   searchWrap: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    backgroundColor: colors.inputBg,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingHorizontal: 14,
   },
+  sortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+  },
+  sortText: { fontFamily: fonts.bold, fontSize: 12, color: colors.text },
+
+  chipsRow: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
+  chip: {
+    height: 32,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: dark ? colors.border : colors.g200,
+  },
+  chipActive: { backgroundColor: colors.dk, borderColor: colors.dk },
+  chipText: { fontFamily: fonts.bold, fontSize: 12, color: dark ? colors.text : colors.g600 },
+  chipTextActive: { color: colors.white },
+  chipCount: { fontFamily: fonts.bold, fontSize: 11, color: colors.subtle },
+  chipCountActive: { color: colors.y },
+
+  productGrid: { paddingHorizontal: spacing.lg, gap: 14 },
+  productRow: { flexDirection: 'row', gap: 14 },
+  productCard: { flex: 1, width: undefined },
+
   searchInput: {
     flex: 1,
     fontFamily: fonts.regular,
