@@ -1211,8 +1211,8 @@ export interface Translations {
     tagRegistered: string
     noCommission: string
     dashNoCommission: string
-    loading: string
     empty: string
+    loadFailed: string
     close: string
     tierActive: string
     tierTrusted: string
@@ -2405,8 +2405,8 @@ export const translations: Record<Locale, Translations> = {
       tagRegistered: 'مسجّلة',
       noCommission: 'فاتكس مش بتاخد أي عمولة — الأرقام دي لثقة المشترين بس.',
       dashNoCommission: 'فاتكس مش بتاخد أي عمولة — الأرقام دي لثقة المشترين فيك بس.',
-      loading: 'جاري التحميل…',
       empty: 'مفيش مبيعات للعرض دلوقتي.',
+      loadFailed: 'مقدرناش نحمّل المبيعات، جرّب تاني.',
       close: 'إغلاق',
       tierActive: 'بائع نشط',
       tierTrusted: 'بائع موثوق',
@@ -2417,7 +2417,7 @@ export const translations: Record<Locale, Translations> = {
       dashNextTier: 'باقي {remaining} بيعة لتبقى {tier}',
       dashPending: 'عندك {count} بيعات مستنية تأكيد — أكّدها',
       dashCta: 'اعرض منتج جديد',
-      soldRecorded: '✅ اتسجّلت بيعة عبر فاتكس — رصيدك: {n} بيعة',
+      soldRecorded: 'اتسجّلت بيعة عبر فاتكس — رصيدك: {n} بيعة',
       step2Title: 'أكّد البيعة مع المشتري',
       step2Phone: 'رقم المشتري',
       step2PhoneHint: '01xxxxxxxxx',
@@ -3598,8 +3598,8 @@ export const translations: Record<Locale, Translations> = {
       tagRegistered: 'Registered',
       noCommission: 'Vatix takes no commission — these numbers only exist to build buyer trust.',
       dashNoCommission: "Vatix takes no commission — these numbers are only there to build buyers' trust in you.",
-      loading: 'Loading…',
       empty: 'No sales to show right now.',
+      loadFailed: 'We could not load the sales, try again.',
       close: 'Close',
       tierActive: 'Active seller',
       tierTrusted: 'Trusted seller',
@@ -3610,7 +3610,7 @@ export const translations: Record<Locale, Translations> = {
       dashNextTier: '{remaining} more sales to become {tier}',
       dashPending: 'You have {count} sales waiting for confirmation — confirm them',
       dashCta: 'List a new product',
-      soldRecorded: '✅ A Vatix sale was recorded — your total: {n} sales',
+      soldRecorded: 'A Vatix sale was recorded — your total: {n} sales',
       step2Title: 'Confirm the sale with the buyer',
       step2Phone: 'Buyer phone',
       step2PhoneHint: '01xxxxxxxxx',

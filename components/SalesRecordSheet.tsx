@@ -134,7 +134,7 @@ export function SalesRecordSheet({ visible, storeId, onClose }: Props) {
               </>
             ) : (
               <View style={styles.center}>
-                <Text style={[styles.emptyText, dirStyle]}>{s.empty}</Text>
+                <Text style={[styles.emptyText, dirStyle]}>{state === 'error' ? s.loadFailed : s.empty}</Text>
               </View>
             )}
           </ScrollView>

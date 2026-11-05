@@ -64,6 +64,10 @@ export default function MyAdsScreen() {
   const [activeTab, setActiveTab] = useState<'active' | 'sold'>(
     params.tab === 'sold' ? 'sold' : 'active',
   )
+  // my-ads may already be mounted when the dashboard nudge pushes ?tab=sold.
+  useEffect(() => {
+    if (params.tab === 'sold') setActiveTab('sold')
+  }, [params.tab])
   // Step 2 of mark-sold (buyer confirmation) lives inside the sold Modal.
   const [soldSuccess, setSoldSuccess] = useState<{ product: SaleVerifyProduct; total: number } | null>(null)
   // Standalone confirm modal opened from a row's "confirm with buyer" button.
