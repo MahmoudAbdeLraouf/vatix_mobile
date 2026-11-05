@@ -178,6 +178,7 @@ export interface Translations {
   followingEmptySubtitle: string
   browseStores: string
   visitStore: string
+  individualSeller: string
   // Promo banners
   promoGeekoTitle: string
   promoGeekoSubtitle: string
@@ -1435,6 +1436,7 @@ export const translations: Record<Locale, Translations> = {
     followingEmptySubtitle: 'تابع المتاجر لتصلك آخر منتجاتها وعروضها هنا.',
     browseStores: 'تصفّح المتاجر',
     visitStore: 'زيارة المتجر',
+    individualSeller: 'بائع فردي',
     // Promo banners
     promoGeekoTitle: 'خلّي جيكو يدوّرلك',
     promoGeekoSubtitle: 'قوله عايز إيه وهو يسأل البياعين',
@@ -2631,6 +2633,7 @@ export const translations: Record<Locale, Translations> = {
     followingEmptySubtitle: 'Follow stores to see their latest products and offers here.',
     browseStores: 'Browse stores',
     visitStore: 'Visit store',
+    individualSeller: 'Individual seller',
     // Promo banners
     promoGeekoTitle: 'Let Geeko find it',
     promoGeekoSubtitle: 'Tell him what you want, he asks sellers',

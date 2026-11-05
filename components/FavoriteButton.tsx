@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
-import { authDelete, authFetch, authPost } from '@/lib/auth'
-import { FavoriteProduct } from '@/lib/api'
+import { authDelete, authPost } from '@/lib/auth'
+import { loadFavoriteIds, markFavorite, peekFavorite, subscribeFavorites } from '@/lib/favorites-cache'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
@@ -31,10 +31,13 @@ export function FavoriteButton({
 }: FavoriteButtonProps) {
   const { colors: theme } = useTheme()
   const idleColor = color ?? theme.text
-  const { isAuthenticated } = useAuth()
+  const { user } = useAuth()
+  const userId = user?.id ?? null
   const { t } = useLocale()
   const { requireLogin } = useLoginGate()
-  const [faved, setFaved] = useState<boolean>(!!initialFaved)
+  const [faved, setFaved] = useState<boolean>(
+    () => initialFaved ?? (userId != null && !!peekFavorite(userId, productId)),
+  )
   const [loading, setLoading] = useState<boolean>(false)
   // Ref guard is checked synchronously so a second tap in the same event-loop
   // tick can't race past a stale `loading` closure and fire a duplicate request.
@@ -42,25 +45,29 @@ export function FavoriteButton({
 
   useEffect(() => {
     if (typeof initialFaved === 'boolean') return
-    if (!isAuthenticated) {
+    if (userId == null) {
       setFaved(false)
       return
     }
     let cancelled = false
-    ;(async () => {
-      // Peripheral heart icon: if the favorites list can't be fetched, leave
-      // the icon in its initial state rather than surfacing an error on every
-      // product card.
-      const list = await authFetch<FavoriteProduct[]>('/products/favorites').catch(() => null)
-      if (cancelled) return
-      if (Array.isArray(list)) {
-        setFaved(list.some((f) => f.productId === productId))
-      }
-    })()
+    // Peripheral heart icon: if the favorites list can't be fetched, leave
+    // the icon in its initial state rather than surfacing an error on every
+    // product card.
+    void loadFavoriteIds(userId).then((ids) => {
+      if (!cancelled && ids) setFaved(ids.has(productId))
+    })
+    // Hearts for the same product elsewhere (detail page, favorites list) write
+    // through the shared cache; follow them unless this heart has a toggle in flight.
+    const unsubscribe = subscribeFavorites(() => {
+      if (inFlightRef.current) return
+      const cached = peekFavorite(userId, productId)
+      if (cached !== undefined) setFaved(cached)
+    })
     return () => {
       cancelled = true
+      unsubscribe()
     }
-  }, [isAuthenticated, productId, initialFaved])
+  }, [userId, productId, initialFaved])
 
   const toggle = async () => {
     if (!requireLogin()) return
@@ -76,6 +83,7 @@ export function FavoriteButton({
       } else {
         await authDelete(`/products/${productId}/favorite`)
       }
+      markFavorite(productId, next)
       onChange?.(next)
     } catch {
       setFaved(!next)

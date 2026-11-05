@@ -17,6 +17,7 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { imgUrl, localeName, type FavoriteProduct } from '@/lib/api'
 import { authDelete, authFetch } from '@/lib/auth'
+import { markFavorite } from '@/lib/favorites-cache'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 import { SkeletonGrid } from '@/components/ui/Skeleton'
@@ -85,6 +86,7 @@ export default function FavoritesScreen() {
       anims.current.delete(favId)
     })
     // fire-and-forget; UI is optimistic
+    markFavorite(productId, false)
     authDelete(`/products/${productId}/favorite`).catch(() => {})
   }
 

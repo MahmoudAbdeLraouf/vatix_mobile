@@ -75,8 +75,8 @@ export function SkeletonRow() {
   )
 }
 
-// Placeholder that mirrors ProductCard's `row` variant (128px image column,
-// title/category/store/price stack) so blank list areas read as rows still
+// Placeholder that mirrors ProductCard's `row` variant (112px thumb,
+// price/title/meta stack) so blank list areas read as rows still
 // loading. One pulse per row instead of one per bar keeps it cheap to stack.
 export function SkeletonProductRow() {
   const s = useStyles()
@@ -101,11 +101,11 @@ export function SkeletonProductRow() {
         <Animated.View style={[s.productImage, { opacity }]} />
       </View>
       <Animated.View style={[s.productInfo, { opacity }]}>
-        <View style={[s.bar, { height: 14, width: '85%' }]} />
-        <View style={[s.bar, { height: 14, width: '60%' }]} />
-        <View style={[s.bar, { height: 11, width: '40%', marginTop: 2 }]} />
+        <View style={[s.bar, { height: 20, width: '45%' }]} />
+        <View style={[s.bar, { height: 14, width: '90%', marginTop: 4 }]} />
+        <View style={[s.bar, { height: 14, width: '65%' }]} />
+        <View style={[s.bar, { height: 11, width: '50%', marginTop: 'auto' }]} />
         <View style={[s.bar, { height: 11, width: '35%' }]} />
-        <View style={[s.bar, { height: 20, width: '45%', marginTop: 4 }]} />
       </Animated.View>
     </View>
   )
@@ -151,28 +151,26 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   productRow: {
     flexDirection: 'row',
-    borderRadius: radius.md,
-    borderWidth: 1.5,
+    padding: 10,
+    gap: 12,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     overflow: 'hidden',
   },
   productImageWrap: {
-    width: 128,
-    padding: 12,
+    width: 112,
   },
   productImage: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: radius.sm,
+    width: 112,
+    height: 112,
+    borderRadius: radius.md,
     backgroundColor: colors.border,
   },
   productInfo: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
     gap: 5,
-    justifyContent: 'center',
   },
   bar: {
     borderRadius: radius.sm,
