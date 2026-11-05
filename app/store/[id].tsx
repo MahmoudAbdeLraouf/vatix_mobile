@@ -42,6 +42,7 @@ import { SalesRecordPill } from '@/components/SalesRecordPill'
 import { SalesRecordSheet } from '@/components/SalesRecordSheet'
 import { ProductCard } from '@/components/ProductCard'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { tabBarHeight } from '@/components/AnimatedTabBar'
 import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -297,7 +298,7 @@ export default function StoreDetailScreen() {
   const isFiltering = query.trim().length > 0 || activeCat != null
   const onProductsTab = activeTab === 'products'
 
-  const TAB_BAR_HEIGHT = 62 + insets.bottom
+  const TAB_BAR_HEIGHT = tabBarHeight(insets.bottom)
 
   // Single-tap Call — direct dial if one number, sheet if multiple.
   const onCallPress = () => {

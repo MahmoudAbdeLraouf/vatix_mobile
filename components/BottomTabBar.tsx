@@ -1,190 +1,43 @@
-import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { router, usePathname } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
+import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocale } from '@/contexts/locale'
-import { darkColors, fonts, lightColors, type ThemeColors } from '@/constants/theme'
-import { useTheme } from '@/contexts/theme'
+import { AnimatedTabBar, TAB_ICONS, lastFocusedTab } from '@/components/AnimatedTabBar'
+import { usePostFab, useTabBarRoutes, useTabTitles } from '@/components/PostFab'
 
-type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
-
-interface TabDef {
-  key: string
-  href: string
-  labelKey: 'home' | 'products' | 'stores' | 'dashboard'
-  active: IoniconsName
-  inactive: IoniconsName
-  matches: (pathname: string) => boolean
-}
-
-const TABS: TabDef[] = [
-  {
-    key: 'home',
-    href: '/(tabs)/home',
-    labelKey: 'home',
-    active: 'home',
-    inactive: 'home-outline',
-    matches: p => p === '/' || p === '/home' || p === '/(tabs)/home',
-  },
-  {
-    key: 'products',
-    href: '/(tabs)/products',
-    labelKey: 'products',
-    active: 'grid',
-    inactive: 'grid-outline',
-    matches: p => p === '/products' || p === '/(tabs)/products',
-  },
-  {
-    key: 'stores',
-    href: '/(tabs)/stores',
-    labelKey: 'stores',
-    active: 'storefront',
-    inactive: 'storefront-outline',
-    matches: p => p === '/stores' || p === '/(tabs)/stores',
-  },
-  {
-    key: 'dashboard',
-    href: '/(tabs)/dashboard',
-    labelKey: 'dashboard',
-    active: 'person',
-    inactive: 'person-outline',
-    matches: p => p === '/dashboard' || p === '/(tabs)/dashboard',
-  },
-]
-
-const FAB_SIZE = 56
-const FAB_LIFT = 18
-
+// The tabs bar for screens outside the (tabs) navigator (store page, auth, add-product). Same AnimatedTabBar,
+// fed a stand-in navigator state focused on the tab the user came from; every tab press (that one included) pushes its route.
 export function BottomTabBar() {
-  const { t } = useLocale()
+  const { t, isRtl } = useLocale()
   const insets = useSafeAreaInsets()
-  const pathname = usePathname() ?? ''
-  const { colors, mode } = useTheme()
-  const styles = themedStyles[mode]
+  const visible = useTabBarRoutes()
+  const titles = useTabTitles()
+  const { onFabPress, chooser } = usePostFab()
 
-  const onAddPress = () => {
-    if (pathname !== '/products/new' && pathname !== '/products/add') router.push('/products/new')
+  const routes = visible.map(name => ({ key: name, name, params: undefined }))
+  const descriptors = Object.fromEntries(routes.map(r => [r.key, { options: { title: titles[r.name] } }]))
+  // AnimatedTabBar ignores presses on the focused tab, so navigate from the press event and mark it handled.
+  const navigation = {
+    emit: ({ type, target }: { type: string; target: string }) => {
+      if (type === 'tabPress') router.push(`/(tabs)/${target}` as never)
+      return { defaultPrevented: true }
+    },
   }
-
-  const go = (href: string) => {
-    router.push(href as never)
-  }
-
-  const [homeTab, productsTab, storesTab, dashboardTab] = TABS
+  const index = visible.indexOf(lastFocusedTab())
+  const props = { state: { index, routes }, descriptors, navigation, insets } as unknown as BottomTabBarProps
 
   return (
-    <View
-      style={[
-        styles.bar,
-        { height: 62 + insets.bottom, paddingBottom: insets.bottom + 6 },
-      ]}
-    >
-      <TabButton tab={homeTab} label={t.home} pathname={pathname} onPress={go} />
-      <TabButton tab={productsTab} label={t.products} pathname={pathname} onPress={go} />
-
-      <View style={styles.fabSlot} pointerEvents="box-none">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.postFreeAd}
-          onPress={onAddPress}
-          style={({ pressed }) => [
-            styles.fab,
-            { transform: [{ translateY: -FAB_LIFT }, { scale: pressed ? 0.96 : 1 }] },
-          ]}
-        >
-          <View style={styles.iconStack}>
-            <Ionicons name="camera" size={30} color={colors.white} />
-            <Ionicons name="add" size={14} color={colors.y} style={styles.iconPlus} />
-          </View>
-        </Pressable>
-      </View>
-
-      <TabButton tab={storesTab} label={t.stores} pathname={pathname} onPress={go} />
-      <TabButton tab={dashboardTab} label={t.dashboard} pathname={pathname} onPress={go} />
-    </View>
+    <>
+      <AnimatedTabBar
+        {...props}
+        visible={visible}
+        icons={TAB_ICONS}
+        isRtl={isRtl}
+        bottomInset={insets.bottom}
+        onFabPress={onFabPress}
+        fabLabel={t.postFreeAd}
+      />
+      {chooser}
+    </>
   )
 }
-
-function TabButton({
-  tab,
-  label,
-  pathname,
-  onPress,
-}: {
-  tab: TabDef
-  label: string
-  pathname: string
-  onPress: (href: string) => void
-}) {
-  const { colors, mode } = useTheme()
-  const styles = themedStyles[mode]
-  const focused = tab.matches(pathname)
-  const color = focused ? colors.y : colors.muted
-  return (
-    <Pressable
-      onPress={() => onPress(tab.href)}
-      style={styles.tabBtn}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-    >
-      <Ionicons name={focused ? tab.active : tab.inactive} size={24} color={color} />
-      <Text style={[styles.tabLabel, { color }]} numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
-  )
-}
-
-const makeStyles = (colors: ThemeColors) => StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.tabBar,
-    borderTopColor: colors.border,
-    borderTopWidth: 1,
-    paddingTop: 6,
-  },
-  tabBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-  },
-  tabLabel: {
-    fontFamily: fonts.semiBold,
-    fontSize: 11,
-  },
-  fabSlot: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fab: {
-    width: FAB_SIZE,
-    height: FAB_SIZE,
-    borderRadius: FAB_SIZE / 2,
-    backgroundColor: colors.y,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: colors.tabBar,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-  },
-  iconStack: {
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconPlus: {
-    position: 'absolute',
-    top: 10,
-  },
-})
-
-const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }

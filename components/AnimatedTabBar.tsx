@@ -10,6 +10,14 @@ type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
 
 export type TabIcons = Record<string, { active: IoniconsName; inactive: IoniconsName }>
 
+export const TAB_ICONS: TabIcons = {
+  home: { active: 'home', inactive: 'home-outline' },
+  products: { active: 'grid', inactive: 'grid-outline' },
+  requests: { active: 'megaphone', inactive: 'megaphone-outline' },
+  stores: { active: 'storefront', inactive: 'storefront-outline' },
+  dashboard: { active: 'menu', inactive: 'menu-outline' },
+}
+
 // Bar geometry. The active tab's icon rides in a yellow bubble that sits in a notch cut into the bar's top edge.
 const BAR_H = 60
 const BUBBLE = 50
@@ -20,6 +28,18 @@ const CORNER = 24
 // iOS only: labels may sit over the top of the home-indicator area; the full inset left a tall empty band.
 // Android's inset is the system nav bar itself (3-button or gesture pill), so it must stay fully clear.
 const INSET_OVERLAP = Platform.OS === 'ios' ? 12 : 0
+
+// The tab last focused in the (tabs) navigator. Screens pushed on top of it (store page, auth, add-product)
+// keep its bubble lit, like a tab stack would.
+let lastTab = 'home'
+export function lastFocusedTab() {
+  return lastTab
+}
+
+// Full bar height for a given safe-area bottom inset; screens that float the bar over content pad by this.
+export function tabBarHeight(bottomInset: number) {
+  return BAR_H + Math.max(bottomInset - INSET_OVERLAP, 8)
+}
 
 // White strip 2× the screen width with the notch at its middle; sliding it sideways moves the notch
 // without re-drawing the path, so the native driver can animate it.
@@ -55,7 +75,7 @@ export function AnimatedTabBar({
   const { width } = useWindowDimensions()
   const { colors } = useTheme()
   const styles = useMemo(() => makeStyles(colors), [colors])
-  const height = BAR_H + Math.max(bottomInset - INSET_OVERLAP, 8)
+  const height = tabBarHeight(bottomInset)
   const routes = visible
     .map(name => state.routes.find(r => r.name === name))
     .filter((r): r is (typeof state.routes)[number] => !!r)
@@ -68,6 +88,10 @@ export function AnimatedTabBar({
   const placed = useRef(false)
   const stripX = useMemo(() => Animated.subtract(x, width), [x, width])
   const bubbleX = useMemo(() => Animated.subtract(x, BUBBLE / 2), [x])
+
+  useEffect(() => {
+    if (focusedName && visible.includes(focusedName)) lastTab = focusedName
+  }, [focusedName, visible])
 
   const target = focusedName ? centers[focusedName] : undefined
   useEffect(() => {
