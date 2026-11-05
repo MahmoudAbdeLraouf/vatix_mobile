@@ -1195,11 +1195,14 @@ export interface Translations {
       photoUploaded: string
     }
   }
-  // Store sales record ("باع N عبر فاتكس"). Placeholders: {n} {count} {remaining} {tier} {store}
+  // Store sales record ("باع N منتج عبر فاتكس"). Placeholders: {n} {products} {count} {remaining} {tier} {store}
   salesRecord: {
     pill: string
     cardSold: string
     sellerCard: string
+    productOne: string
+    productFew: string
+    productMany: string
     sheetTitle: string
     soldLabel: string
     verifiedLabel: string
@@ -2391,9 +2394,12 @@ export const translations: Record<Locale, Translations> = {
       },
     },
     salesRecord: {
-      pill: '🛒 باع {n} عبر فاتكس',
-      cardSold: '· باع {n}',
-      sellerCard: 'باع {n} عبر فاتكس',
+      pill: '🛒 باع {n} {products} عبر فاتكس',
+      cardSold: '🛒 باع {n} {products} عبر فاتكس',
+      sellerCard: 'باع {n} {products} عبر فاتكس',
+      productOne: 'منتج',
+      productFew: 'منتجات',
+      productMany: 'منتج',
       sheetTitle: 'مبيعات المتجر على فاتكس',
       soldLabel: 'بيعة عبر فاتكس',
       verifiedLabel: 'مؤكدة من المشتري',
@@ -3584,9 +3590,12 @@ export const translations: Record<Locale, Translations> = {
       },
     },
     salesRecord: {
-      pill: '🛒 Sold {n} on Vatix',
-      cardSold: '· Sold {n}',
-      sellerCard: 'Sold {n} on Vatix',
+      pill: '🛒 Sold {n} {products} on Vatix',
+      cardSold: '🛒 Sold {n} {products} on Vatix',
+      sellerCard: 'Sold {n} {products} on Vatix',
+      productOne: 'product',
+      productFew: 'products',
+      productMany: 'products',
       sheetTitle: 'Store sales on Vatix',
       soldLabel: 'sales on Vatix',
       verifiedLabel: 'confirmed by buyer',

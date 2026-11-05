@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text } from 'react-native'
 import { useLocale } from '@/contexts/locale'
 import { useTheme } from '@/contexts/theme'
 import { fonts, radius, type ThemeColors } from '@/constants/theme'
-import { fillTemplate } from '@/lib/salesRecord'
+import { soldCountText } from '@/lib/salesRecord'
 
 interface Props {
   /** Total sales on Vatix. The pill renders nothing for a missing/zero total. */
@@ -29,7 +29,7 @@ export function SalesRecordPill({ total, onOpen, variant = 'pill' }: Props) {
     return (
       <Pressable onPress={onOpen} disabled={!onOpen} hitSlop={6} accessibilityRole="button">
         <Text style={[styles.link, dirStyle]}>
-          {fillTemplate(t.salesRecord.sellerCard, { n: total })}
+          {soldCountText(t.salesRecord.sellerCard, total, t.salesRecord)}
         </Text>
       </Pressable>
     )
@@ -43,7 +43,7 @@ export function SalesRecordPill({ total, onOpen, variant = 'pill' }: Props) {
       style={styles.pill}
     >
       <Text style={[styles.pillText, dirStyle]} numberOfLines={1}>
-        {fillTemplate(t.salesRecord.pill, { n: total })}
+        {soldCountText(t.salesRecord.pill, total, t.salesRecord)}
       </Text>
     </Pressable>
   )

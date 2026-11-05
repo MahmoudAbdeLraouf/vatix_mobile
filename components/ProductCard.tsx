@@ -9,7 +9,7 @@ import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColo
 import { useTheme } from '@/contexts/theme'
 import { getCategoryIcon } from '@/lib/category-icons'
 import { VerifiedBadge } from '@/components/VerifiedBadge'
-import { fillTemplate } from '@/lib/salesRecord'
+import { soldCountText } from '@/lib/salesRecord'
 
 interface ProductCardProps {
   product: Product
@@ -129,12 +129,13 @@ export const ProductCard = React.memo(function ProductCard({
                 <VerifiedBadge verification={verification} />
               </View>
             ) : null}
-            {salesTotal > 0 ? (
-              <Text style={[styles.soldSuffix, textDirStyle]} numberOfLines={1}>
-                {fillTemplate(t.salesRecord.cardSold, { n: salesTotal })}
-              </Text>
-            ) : null}
           </View>
+        ) : null}
+
+        {storeName && salesTotal > 0 ? (
+          <Text style={[styles.soldLine, textDirStyle]} numberOfLines={1}>
+            {soldCountText(t.salesRecord.cardSold, salesTotal, t.salesRecord)}
+          </Text>
         ) : null}
 
         <Text style={[styles.price, isRow && styles.priceLarge, textDirStyle]}>
@@ -279,12 +280,12 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     color: colors.heading,
     flexShrink: 1,
   },
-  soldSuffix: {
-    fontFamily: fonts.semiBold,
+  soldLine: {
+    fontFamily: fonts.bold,
     fontSize: 11,
     lineHeight: 15,
-    color: colors.muted,
-    flexShrink: 0,
+    color: colors.yellowText,
+    marginTop: 2,
   },
   price: {
     fontFamily: fonts.black,

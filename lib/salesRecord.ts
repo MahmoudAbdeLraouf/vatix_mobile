@@ -1,5 +1,5 @@
 /**
- * Store sales record ("باع X عبر فاتكس") — shared types and small pure helpers.
+ * Store sales record ("باع X منتج عبر فاتكس") — shared types and small pure helpers.
  * Types mirror the backend contracts (GET /stores/:id/sales-record and the optional
  * `salesRecord` payload field, which is absent when the feature flag is off).
  */
@@ -100,4 +100,20 @@ export function fillTemplate(template: string, vars: Record<string, string | num
     out = out.split(`{${k}}`).join(String(v))
   }
   return out
+}
+
+export interface SoldProductWords {
+  productOne: string
+  productFew: string
+  productMany: string
+}
+
+/**
+ * Fills a sold-count template (`{n}` + `{products}`), picking the noun by Arabic plural rules:
+ * 1 → productOne, n % 100 in 3..10 → productFew, otherwise productMany.
+ */
+export function soldCountText(template: string, n: number, words: SoldProductWords): string {
+  const mod100 = n % 100
+  const word = n === 1 ? words.productOne : mod100 >= 3 && mod100 <= 10 ? words.productFew : words.productMany
+  return fillTemplate(template, { n, products: word })
 }
