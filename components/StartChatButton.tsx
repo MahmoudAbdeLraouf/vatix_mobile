@@ -14,6 +14,7 @@ import { useLoginGate } from '@/contexts/loginGate'
 import { authErrorMessage, authPost } from '@/lib/auth'
 import { ConversationListItem } from '@/lib/api'
 import { track } from '@/lib/analytics'
+import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors, darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -52,6 +53,7 @@ export function StartChatButton({
           params: { product_id: productId, channel: 'chat' },
         })
       }
+      void bumpEngagement('inquiry')
       router.push(`/dashboard/messages/${conv.id}`)
     } catch (e: unknown) {
       Alert.alert(t.startChat, authErrorMessage(e, t))

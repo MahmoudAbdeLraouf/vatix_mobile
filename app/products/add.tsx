@@ -35,6 +35,7 @@ import {
 } from '@/lib/api'
 import { authErrorMessage, authPost } from '@/lib/auth'
 import { track } from '@/lib/analytics'
+import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -284,6 +285,7 @@ export default function AddProductScreen() {
           price: numPrice,
         },
       })
+      void bumpEngagement('publish')
       setPublishedId(created?.id ?? '')
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : ''

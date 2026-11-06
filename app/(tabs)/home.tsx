@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  AppState,
   Dimensions,
   FlatList,
   Image,
@@ -38,10 +39,9 @@ import {
 import { markActionSeen, type StoredUser } from '@/lib/auth'
 import { getBroBoard, type BroBoardItem } from '@/lib/bro'
 import {
-  bumpEngagement,
   markShown as markRateAppShown,
+  recordActiveDay,
   shouldShowRateApp,
-  type Audience,
 } from '@/lib/rate-app-engagement'
 import { getBrandIcon } from '@/lib/brand-icons'
 import { getCategoryIcon, type IoniconName as SharedIoniconName } from '@/lib/category-icons'
@@ -672,24 +672,39 @@ export default function HomeScreen() {
     loadHome()
   }, [loadHome])
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      await bumpEngagement('session_start')
-      const { enabled } = await getRateAppEnabled().catch(() => ({ enabled: false }))
-      if (!enabled || cancelled) return
-      const audience: Audience = (user?.type as Audience) ?? 'guest'
-      const should = await shouldShowRateApp(audience)
-      if (should && !cancelled) {
-        await markRateAppShown()
-        await markActionSeen('rate_app_dialog')
-        setShowRateAppDialog(true)
+  // Re-checked whenever Home is focused or the app comes back to the
+  // foreground, so engagement earned elsewhere (product page, add product)
+  // surfaces on the user's next return to Home instead of the next launch.
+  const rateAppCheckingRef = useRef(false)
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false
+      const check = async () => {
+        if (rateAppCheckingRef.current) return
+        rateAppCheckingRef.current = true
+        try {
+          await recordActiveDay()
+          const { enabled } = await getRateAppEnabled().catch(() => ({ enabled: false }))
+          if (!enabled || cancelled) return
+          if ((await shouldShowRateApp()) && !cancelled) {
+            await markRateAppShown()
+            await markActionSeen('rate_app_dialog')
+            setShowRateAppDialog(true)
+          }
+        } finally {
+          rateAppCheckingRef.current = false
+        }
       }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [user?.type])
+      void check()
+      const sub = AppState.addEventListener('change', (state) => {
+        if (state === 'active') void check()
+      })
+      return () => {
+        cancelled = true
+        sub.remove()
+      }
+    }, []),
+  )
 
   const submitSearch = useCallback(() => {
     const q = search.trim()

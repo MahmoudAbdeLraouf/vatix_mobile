@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { track, trackProductPhoneClick, trackProductWhatsappClick } from '@/lib/analytics'
+import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { colors, darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -43,6 +44,7 @@ export function RevealPhone({ productId, phone, waLink, showPhone, style }: Reve
         name: 'contact_seller',
         params: { product_id: productId, channel: 'phone' },
       })
+      void bumpEngagement('inquiry')
       return
     }
     if (phone) Linking.openURL(`tel:${phone}`).catch(() => {})
@@ -56,6 +58,7 @@ export function RevealPhone({ productId, phone, waLink, showPhone, style }: Reve
         name: 'contact_seller',
         params: { product_id: productId, channel: 'whatsapp' },
       })
+      void bumpEngagement('inquiry')
       return
     }
     if (waLink) Linking.openURL(waLink).catch(() => {})

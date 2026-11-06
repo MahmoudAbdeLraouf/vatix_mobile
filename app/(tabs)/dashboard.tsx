@@ -19,7 +19,7 @@ import { authFetch } from '@/lib/auth'
 import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { getStorePromotionOffer } from '@/lib/api'
 import type { PendingUpgradeRequest, Product, PromoInfo, StorePromotionOffer, UserProfile, WalletBalance } from '@/lib/api'
-import { bumpEngagement, markRated } from '@/lib/rate-app-engagement'
+import { markRated } from '@/lib/rate-app-engagement'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 
 type IconName = React.ComponentProps<typeof Ionicons>['name']
@@ -166,11 +166,6 @@ export default function MoreScreen() {
     return () => {
       cancelled = true
     }
-  }, [isAuthenticated])
-
-  useEffect(() => {
-    if (!isAuthenticated) return
-    void bumpEngagement('dashboard_visit')
   }, [isAuthenticated])
 
   if (loading) return null

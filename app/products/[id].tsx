@@ -790,6 +790,7 @@ export default function ProductDetailScreen() {
                   name: 'contact_seller',
                   params: { product_id: product.id, channel: 'whatsapp' },
                 })
+                void bumpEngagement('inquiry')
                 Linking.openURL(waLink).catch(() => {})
               }}
               style={({ pressed }) => [
