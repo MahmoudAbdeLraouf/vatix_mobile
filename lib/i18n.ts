@@ -1176,7 +1176,6 @@ export interface Translations {
       signPhoto: string
       photoHint: string
       fbPageUrl: string
-      fbPhoneRule: string
       fbFallback: string
       saveLink: string
       linkSaved: string
@@ -2378,7 +2377,6 @@ export const translations: Record<Locale, Translations> = {
         signPhoto: 'صورة اليافطة',
         photoHint: 'JPG · PNG · WebP · حجم أقصى 15 MB',
         fbPageUrl: 'رابط صفحة المتجر على فيسبوك',
-        fbPhoneRule: 'يجب أن تعرض صفحتك على فيسبوك نفس رقم الهاتف الذي تسجّل به الدخول إلى فاتكس:',
         fbFallback:
           'بعد إرسال الطلب سنرسل كوداً إلى رسائل ماسنجر الخاصة بصفحتك خلال 24 ساعة، أدخله هنا عند وصوله. وسيقارن فريقنا الرقمين أيضاً.',
         saveLink: 'حفظ الرابط',
@@ -3579,7 +3577,6 @@ export const translations: Record<Locale, Translations> = {
         signPhoto: 'Shop sign photo',
         photoHint: 'JPG · PNG · WebP · Max 15 MB',
         fbPageUrl: 'Your store Facebook page link',
-        fbPhoneRule: 'Your Facebook page must show the same phone number you log in to Vatix with:',
         fbFallback:
           "After you submit, we'll send a code to your page's Messenger inbox within 24 hours. Enter it here when it arrives. Our team also compares the two numbers.",
         saveLink: 'Save link',

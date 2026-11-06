@@ -495,9 +495,6 @@ export default function VerifyScreen() {
           ? card(
               'facebook',
               <>
-                <Text style={[styles.bodyText, dirStyle]}>
-                  {p.fbPhoneRule} <Text style={[styles.maskedPhone, ltrStyle]}>{view.phone.masked}</Text>
-                </Text>
                 <Text style={[styles.hint, dirStyle]}>{p.fbFallback}</Text>
                 <View style={styles.field}>
                   <Text style={[styles.label, dirStyle]}>{p.fbPageUrl}</Text>
