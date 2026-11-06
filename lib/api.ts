@@ -80,8 +80,10 @@ export interface StoreVerificationView {
     hasCrPhoto: boolean
     hasSignPhoto: boolean
     facebookPageUrl: string | null
-    facebookCode: string | null
+    /** True once an admin has sent a code to the page's Messenger inbox (the code itself is never exposed). */
+    facebookCodeSent: boolean
     facebookCodeExpiresAt: string | null
+    facebookCodeConfirmed: boolean
     carriedChecks: OptionalCheck[]
     results: Partial<Record<OptionalCheck, { result: CheckResult; reason: string | null }>>
     submittedAt: string | null

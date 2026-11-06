@@ -2,7 +2,6 @@ import React, { useCallback, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -27,25 +26,13 @@ const BASE_PATH = '/stores/me/verification'
 const OPTIONAL: OptionalCheck[] = ['commercial_register', 'storefront', 'facebook']
 const CR_RE = /^\d{1,20}$/
 
-const FB_RESERVED = ['profile.php', 'pages', 'people', 'groups', 'share', 'p', 'watch', 'events']
-
-/**
- * Opens the Vatix Facebook page in Messenger when the link is a plain page URL
- * (facebook.com/<handle>). Anything else (profile.php, groups, invalid URLs...)
- * is returned unchanged.
- */
-function vatixPageLink(url: string): string {
-  try {
-    const u = new URL(url)
-    const host = u.hostname.replace(/^(www|m|web)\./, '')
-    const seg = u.pathname.split('/').filter(Boolean)[0] ?? ''
-    if ((host === 'facebook.com' || host === 'fb.com') && seg && !FB_RESERVED.includes(seg)) {
-      return `https://m.me/${seg}`
-    }
-    return url
-  } catch {
-    return url
-  }
+/** Localizes the Facebook code errors from the backend; anything else passes through. */
+function fbError(message: string, p: { errWrongFbCode: string; fbCodeExpired: string; errNoFbCode: string }) {
+  const raw = message.toLowerCase()
+  if (raw === 'wrong code') return p.errWrongFbCode
+  if (raw.includes('facebook code has expired')) return p.fbCodeExpired
+  if (raw.includes('no facebook code was sent')) return p.errNoFbCode
+  return message
 }
 
 type Msg = { text: string; ok: boolean }
@@ -71,6 +58,7 @@ export default function VerifyScreen() {
   const [otp, setOtp] = useState('')
   const [crNumber, setCrNumber] = useState('')
   const [fbUrl, setFbUrl] = useState('')
+  const [fbCode, setFbCode] = useState('')
 
   const applyView = useCallback((next: StoreVerificationView, initial = false) => {
     setView(next)
@@ -115,7 +103,7 @@ export default function VerifyScreen() {
       if (next) applyView(next)
       if (okText) setMsg({ text: okText, ok: true })
     } catch (err) {
-      setMsg({ text: authErrorMessage(err, t) || p.error, ok: false })
+      setMsg({ text: fbError(authErrorMessage(err, t), p) || p.error, ok: false })
     } finally {
       setBusy(null)
     }
@@ -137,8 +125,16 @@ export default function VerifyScreen() {
     })
   }
 
-  function getFbCode() {
-    return run('fb', () => authPost<StoreVerificationView>(`${BASE_PATH}/facebook-code`, { pageUrl: fbUrl.trim() }))
+  function saveFbLink() {
+    return run('fb', () => authPost<StoreVerificationView>(`${BASE_PATH}/facebook`, { pageUrl: fbUrl.trim() }))
+  }
+
+  function confirmFbCode() {
+    return run('fbConfirm', async () => {
+      const next = await authPost<StoreVerificationView>(`${BASE_PATH}/facebook/confirm`, { code: fbCode.trim() })
+      setFbCode('')
+      return next
+    })
   }
 
   function submit() {
@@ -227,14 +223,13 @@ export default function VerifyScreen() {
     const hasData: Record<OptionalCheck, boolean> = {
       commercial_register: !!req?.hasCrPhoto && !!req.crNumber,
       storefront: !!req?.hasSignPhoto,
-      facebook: !!req?.facebookPageUrl && !!req.facebookCode,
+      facebook: !!req?.facebookPageUrl,
     }
     const provided = OPTIONAL.filter((c) => hasData[c] && !carried.includes(c))
     const total = OPTIONAL.filter((c) => accepted(c) || provided.includes(c)).length
 
     const fbExpiresAt = req?.facebookCodeExpiresAt ?? null
     const fbExpired = !!fbExpiresAt && new Date(fbExpiresAt).getTime() < now
-    const fbBlocked = provided.includes('facebook') && (!fbExpiresAt || fbExpired)
 
     const blocker = !draft
       ? p.needNew
@@ -244,9 +239,7 @@ export default function VerifyScreen() {
           ? p.needNew
           : total < 2
             ? p.needTwo
-            : fbBlocked
-              ? p.needCode
-              : null
+            : null
     const canSubmit = blocker === null
 
     const verifiedIdle = verified && !draft && !pending && !showAdd
@@ -262,7 +255,7 @@ export default function VerifyScreen() {
     const crDirty = !!req?.hasCrPhoto && !!req.crNumber && req.crNumber !== crNumber
     const anyBusy = busy !== null
 
-    const card = (c: OptionalCheck, children: React.ReactNode) => {
+    const card = (c: OptionalCheck, children: React.ReactNode, pendingExtra?: React.ReactNode) => {
       const reason = failReason(c)
       return (
         <View style={[styles.card, !isDark && shadow.ss]}>
@@ -286,7 +279,11 @@ export default function VerifyScreen() {
             </View>
           ) : null}
           {accepted(c) ? null : pending ? (
-            hasData[c] ? null : <Text style={[styles.hint, dirStyle]}>{p.notSubmittedYet}</Text>
+            hasData[c] ? (
+              (pendingExtra ?? null)
+            ) : (
+              <Text style={[styles.hint, dirStyle]}>{p.notSubmittedYet}</Text>
+            )
           ) : showInputs ? (
             children
           ) : null}
@@ -472,6 +469,10 @@ export default function VerifyScreen() {
           ? card(
               'facebook',
               <>
+                <Text style={[styles.bodyText, dirStyle]}>
+                  {p.fbPhoneRule} <Text style={[styles.maskedPhone, ltrStyle]}>{view.phone.masked}</Text>
+                </Text>
+                <Text style={[styles.hint, dirStyle]}>{p.fbFallback}</Text>
                 <View style={styles.field}>
                   <Text style={[styles.label, dirStyle]}>{p.fbPageUrl}</Text>
                   <TextInput
@@ -485,48 +486,58 @@ export default function VerifyScreen() {
                     autoCorrect={false}
                   />
                 </View>
-                <Button
-                  label={
-                    busy === 'fb'
-                      ? '...'
-                      : req?.facebookCode && !carried.includes('facebook')
-                        ? p.newCode
-                        : p.getCode
-                  }
-                  variant="outline"
-                  size="sm"
-                  fullWidth={false}
-                  style={styles.alignStart}
-                  disabled={anyBusy || !fbUrl.trim()}
-                  onPress={getFbCode}
-                />
-                {req?.facebookCode && !carried.includes('facebook') ? (
+                {req?.facebookPageUrl && req.facebookPageUrl === fbUrl.trim() ? (
+                  <View style={styles.uploadedRow}>
+                    <Ionicons name="checkmark-circle" size={16} color={colors.green} />
+                    <Text style={[styles.uploadedText, dirStyle]}>{p.linkSaved}</Text>
+                  </View>
+                ) : (
+                  <Button
+                    label={busy === 'fb' ? '...' : p.saveLink}
+                    variant="outline"
+                    size="sm"
+                    fullWidth={false}
+                    style={styles.alignStart}
+                    disabled={anyBusy || !fbUrl.trim()}
+                    onPress={saveFbLink}
+                  />
+                )}
+              </>,
+              req?.facebookCodeConfirmed ? (
+                <View style={[styles.pillOk, styles.alignStart]}>
+                  <Text style={styles.pillOkText}>✓ {p.fbCodeConfirmed}</Text>
+                </View>
+              ) : req?.facebookCodeSent ? (
+                fbExpired ? (
+                  <Text style={[styles.codeExpired, dirStyle]}>{p.fbCodeExpired}</Text>
+                ) : (
                   <View style={styles.codeBox}>
-                    <Text style={[styles.label, dirStyle]}>{p.yourCode}</Text>
-                    <Text selectable style={[styles.codeText, ltrStyle]}>
-                      {req.facebookCode}
-                    </Text>
+                    <Text style={[styles.bodyText, dirStyle]}>{p.fbCodeSent}</Text>
+                    <TextInput
+                      style={[styles.input, styles.codeInput]}
+                      value={fbCode}
+                      onChangeText={(x) => setFbCode(x.toUpperCase())}
+                      placeholder="VTX-XXXXXX"
+                      placeholderTextColor={colors.subtle}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                      maxLength={16}
+                    />
+                    <Button
+                      label={busy === 'fbConfirm' ? '...' : p.confirmCode}
+                      variant="y"
+                      size="md"
+                      disabled={anyBusy || fbCode.trim().length < 4}
+                      onPress={confirmFbCode}
+                    />
                     {fbExpiresAt ? (
-                      <Text style={[fbExpired ? styles.codeExpired : styles.hint, dirStyle]}>
-                        {fbExpired ? p.codeExpired : `${p.expiresOn} ${dateFmt(fbExpiresAt)}`}
+                      <Text style={[styles.hint, dirStyle]}>
+                        {p.expiresOn} {dateFmt(fbExpiresAt)}
                       </Text>
                     ) : null}
-                    {view.vatixFacebookUrl ? (
-                      <Button
-                        label={p.openVatixPage}
-                        variant="y"
-                        size="sm"
-                        fullWidth={false}
-                        style={styles.alignStart}
-                        onPress={() => {
-                          Linking.openURL(vatixPageLink(view.vatixFacebookUrl as string)).catch(() => {})
-                        }}
-                      />
-                    ) : null}
-                    <Text style={[styles.hint, dirStyle]}>{p.sendFromPage}</Text>
                   </View>
-                ) : null}
-              </>,
+                )
+              ) : null,
             )
           : null}
 
@@ -693,7 +704,7 @@ const makeStyles = (colors: ThemeColors) =>
       borderRadius: radius.md,
       padding: spacing.sm + 4,
     },
-    codeText: { fontFamily: fonts.extraBold, fontSize: 24, letterSpacing: 3, color: colors.heading },
+    codeInput: { fontFamily: fonts.bold, fontSize: 18, letterSpacing: 2, textAlign: 'left', writingDirection: 'ltr' },
     codeExpired: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.red },
     alignStart: { alignSelf: 'flex-start' },
     submitWrap: { gap: spacing.sm },

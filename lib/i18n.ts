@@ -1176,21 +1176,23 @@ export interface Translations {
       signPhoto: string
       photoHint: string
       fbPageUrl: string
-      getCode: string
-      newCode: string
-      yourCode: string
+      fbPhoneRule: string
+      fbFallback: string
+      saveLink: string
+      linkSaved: string
+      fbCodeSent: string
+      fbCodeConfirmed: string
+      fbCodeExpired: string
       expiresOn: string
-      codeExpired: string
-      openVatixPage: string
-      sendFromPage: string
       submit: string
       submitting: string
       submitted: string
       needPhone: string
       needTwo: string
       needNew: string
-      needCode: string
       error: string
+      errWrongFbCode: string
+      errNoFbCode: string
       choosePhoto: string
       replacePhoto: string
       photoUploaded: string
@@ -2375,21 +2377,24 @@ export const translations: Record<Locale, Translations> = {
         signPhoto: 'صورة اليافطة',
         photoHint: 'JPG · PNG · WebP · حجم أقصى 15 MB',
         fbPageUrl: 'رابط صفحة المتجر على فيسبوك',
-        getCode: 'احصل على الكود',
-        newCode: 'كود جديد',
-        yourCode: 'الكود الخاص بك',
+        fbPhoneRule: 'يجب أن تعرض صفحتك على فيسبوك نفس رقم الهاتف الذي تسجّل به الدخول إلى فاتكس:',
+        fbFallback:
+          'سيقارن فريقنا الرقمين. إذا لم يظهر الرقم على صفحتك، سنرسل كوداً إلى رسائل ماسنجر الخاصة بصفحتك بعد إرسال الطلب، وتدخله هنا.',
+        saveLink: 'حفظ الرابط',
+        linkSaved: 'تم حفظ الرابط',
+        fbCodeSent: 'أرسلنا كوداً إلى رسائل ماسنجر الخاصة بصفحتك. أدخله هنا.',
+        fbCodeConfirmed: 'تم تأكيد الكود',
+        fbCodeExpired: 'انتهت صلاحية الكود. سيرسل لك فريقنا كوداً جديداً.',
         expiresOn: 'ينتهي في',
-        codeExpired: 'انتهت صلاحية الكود. احصل على كود جديد.',
-        openVatixPage: 'افتح صفحة فاتكس',
-        sendFromPage: 'أرسل الكود من صفحة محلك وليس من حسابك الشخصي',
         submit: 'إرسال للمراجعة',
         submitting: 'جاري الإرسال...',
         submitted: 'تم إرسال الطلب',
         needPhone: 'تحقق من الهاتف أولاً',
         needTwo: 'أضف فحصين على الأقل بجانب الهاتف',
         needNew: 'أضف فحصاً جديداً واحداً على الأقل',
-        needCode: 'كود فيسبوك مفقود أو منتهي، احصل على كود جديد',
         error: 'حدث خطأ، حاول مرة أخرى',
+        errWrongFbCode: 'الكود غير صحيح',
+        errNoFbCode: 'لم يتم إرسال كود فيسبوك بعد',
         choosePhoto: 'اختر صورة',
         replacePhoto: 'استبدال الصورة',
         photoUploaded: 'تم رفع الصورة',
@@ -3572,21 +3577,24 @@ export const translations: Record<Locale, Translations> = {
         signPhoto: 'Shop sign photo',
         photoHint: 'JPG · PNG · WebP · Max 15 MB',
         fbPageUrl: 'Your store Facebook page link',
-        getCode: 'Get code',
-        newCode: 'New code',
-        yourCode: 'Your code',
+        fbPhoneRule: 'Your Facebook page must show the same phone number you log in to Vatix with:',
+        fbFallback:
+          "Our team compares the two numbers. If your page doesn't show it, we'll send a code to your page's Messenger inbox after you submit, and you enter it here.",
+        saveLink: 'Save link',
+        linkSaved: 'Link saved',
+        fbCodeSent: "We sent a code to your page's Messenger inbox. Enter it here.",
+        fbCodeConfirmed: 'Code confirmed',
+        fbCodeExpired: 'The code expired. Our team will send you a new one.',
         expiresOn: 'Expires',
-        codeExpired: 'The code expired. Get a new one.',
-        openVatixPage: 'Open Vatix page',
-        sendFromPage: 'Send the code from your shop page, not your personal account',
         submit: 'Submit for review',
         submitting: 'Submitting...',
         submitted: 'Request submitted',
         needPhone: 'Verify your phone first',
         needTwo: 'Add at least two checks besides the phone',
         needNew: 'Add at least one new check',
-        needCode: 'The Facebook code is missing or expired. Get a new one',
         error: 'Something went wrong, please try again',
+        errWrongFbCode: 'Wrong code',
+        errNoFbCode: 'No Facebook code has been sent yet',
         choosePhoto: 'Choose a photo',
         replacePhoto: 'Replace photo',
         photoUploaded: 'Photo uploaded',
