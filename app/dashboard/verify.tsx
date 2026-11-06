@@ -59,6 +59,7 @@ export default function VerifyScreen() {
   const [crNumber, setCrNumber] = useState('')
   const [fbUrl, setFbUrl] = useState('')
   const [fbCode, setFbCode] = useState('')
+  const [fbCodeError, setFbCodeError] = useState<string | null>(null)
 
   const applyView = useCallback((next: StoreVerificationView, initial = false) => {
     setView(next)
@@ -129,12 +130,19 @@ export default function VerifyScreen() {
     return run('fb', () => authPost<StoreVerificationView>(`${BASE_PATH}/facebook`, { pageUrl: fbUrl.trim() }))
   }
 
-  function confirmFbCode() {
-    return run('fbConfirm', async () => {
+  async function confirmFbCode() {
+    setBusy('fbConfirm')
+    setMsg(null)
+    setFbCodeError(null)
+    try {
       const next = await authPost<StoreVerificationView>(`${BASE_PATH}/facebook/confirm`, { code: fbCode.trim() })
       setFbCode('')
-      return next
-    })
+      applyView(next)
+    } catch (err) {
+      setFbCodeError(fbError(authErrorMessage(err, t), p) || p.error)
+    } finally {
+      setBusy(null)
+    }
   }
 
   function submit() {
@@ -516,13 +524,17 @@ export default function VerifyScreen() {
                     <TextInput
                       style={[styles.input, styles.codeInput]}
                       value={fbCode}
-                      onChangeText={(x) => setFbCode(x.toUpperCase())}
+                      onChangeText={(x) => {
+                        setFbCode(x.toUpperCase())
+                        setFbCodeError(null)
+                      }}
                       placeholder="VTX-XXXXXX"
                       placeholderTextColor={colors.subtle}
                       autoCapitalize="characters"
                       autoCorrect={false}
                       maxLength={16}
                     />
+                    {fbCodeError ? <Text style={[styles.codeExpired, dirStyle]}>{fbCodeError}</Text> : null}
                     <Button
                       label={busy === 'fbConfirm' ? '...' : p.confirmCode}
                       variant="y"
