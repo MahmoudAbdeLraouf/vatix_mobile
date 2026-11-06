@@ -61,7 +61,6 @@ function ProductGridCard({
   // 220px wide on mobile so 400px covers @2x/@3x displays without downloading
   // the original 2-4MB upload.
   const thumb = imgUrl(product.images[0]?.url, { w: 400 })
-  const categoryName = localeName(product.category.translations, locale)
   const locationName = product.location ? localeName(product.location.translations, locale) : ''
   const isPromoted = !!product.promotedUntil && new Date(product.promotedUntil) > new Date()
   const brandName = inStore && product.brand ? localeName(product.brand.translations ?? [], locale) : ''
@@ -114,7 +113,7 @@ function ProductGridCard({
           />
         ) : (
           <View style={[styles.image, styles.placeholder]}>
-            <Ionicons name={getCategoryIcon(categoryName)} size={44} color={colors.subtle} />
+            <Ionicons name={getCategoryIcon(product.category)} size={44} color={colors.subtle} />
           </View>
         )}
         {isPromoted ? (
@@ -203,7 +202,6 @@ function ProductRowCard({ product, style }: { product: Product; style?: ViewStyl
   const styles = themedRowStyles[mode]
   const thumb = imgUrl(product.images[0]?.url, { w: 400 })
   const photoCount = product.images.length
-  const categoryName = localeName(product.category.translations, locale)
   const locationName = product.location ? localeName(product.location.translations, locale) : ''
   const isPromoted = !!product.promotedUntil && new Date(product.promotedUntil) > new Date()
 
@@ -248,7 +246,7 @@ function ProductRowCard({ product, style }: { product: Product; style?: ViewStyl
             />
           ) : (
             <View style={[styles.thumb, styles.thumbPlaceholder]}>
-              <Ionicons name={getCategoryIcon(categoryName)} size={40} color={colors.subtle} />
+              <Ionicons name={getCategoryIcon(product.category)} size={40} color={colors.subtle} />
             </View>
           )}
           {isPromoted ? (

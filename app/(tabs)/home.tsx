@@ -649,7 +649,7 @@ export default function HomeScreen() {
         ...c.map(cat => ({
           id: cat.id,
           name: localeName(cat.translations, locale),
-          icon: getCategoryIcon(localeName(cat.translations, locale)),
+          icon: getCategoryIcon(cat),
         })),
       ])
       setBrands(b.filter(br => br.isActive))
