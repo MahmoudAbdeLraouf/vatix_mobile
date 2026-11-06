@@ -26,12 +26,13 @@ const BASE_PATH = '/stores/me/verification'
 const OPTIONAL: OptionalCheck[] = ['commercial_register', 'storefront', 'facebook']
 const CR_RE = /^\d{1,20}$/
 
-/** Localizes the Facebook code errors from the backend; anything else passes through. */
-function fbError(message: string, p: { errWrongFbCode: string; fbCodeExpired: string; errNoFbCode: string }) {
+/** Localizes the Facebook link/code errors from the backend; anything else passes through. */
+function fbError(message: string, p: { errWrongFbCode: string; fbCodeExpired: string; errNoFbCode: string; errFbUrl: string }) {
   const raw = message.toLowerCase()
   if (raw === 'wrong code') return p.errWrongFbCode
   if (raw.includes('facebook code has expired')) return p.fbCodeExpired
   if (raw.includes('no facebook code was sent')) return p.errNoFbCode
+  if (raw.includes('pageurl must be a url')) return p.errFbUrl
   return message
 }
 
@@ -60,6 +61,7 @@ export default function VerifyScreen() {
   const [fbUrl, setFbUrl] = useState('')
   const [fbCode, setFbCode] = useState('')
   const [fbCodeError, setFbCodeError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const applyView = useCallback((next: StoreVerificationView, initial = false) => {
     setView(next)
@@ -145,8 +147,23 @@ export default function VerifyScreen() {
     }
   }
 
-  function submit() {
-    return run('submit', () => authPost<StoreVerificationView>(`${BASE_PATH}/submit`, {}), p.submitted)
+  async function submit() {
+    setBusy('submit')
+    setMsg(null)
+    setSubmitError(null)
+    try {
+      // A typed-but-unsaved Facebook link is saved first so it is part of the submission.
+      const pageUrl = fbUrl.trim()
+      if (pageUrl && pageUrl !== (view?.request?.facebookPageUrl ?? '')) {
+        applyView(await authPost<StoreVerificationView>(`${BASE_PATH}/facebook`, { pageUrl }))
+      }
+      applyView(await authPost<StoreVerificationView>(`${BASE_PATH}/submit`, {}))
+      setMsg({ text: p.submitted, ok: true })
+    } catch (err) {
+      setSubmitError(fbError(authErrorMessage(err, t), p) || p.error)
+    } finally {
+      setBusy(null)
+    }
   }
 
   /**
@@ -231,7 +248,8 @@ export default function VerifyScreen() {
     const hasData: Record<OptionalCheck, boolean> = {
       commercial_register: !!req?.hasCrPhoto && !!req.crNumber,
       storefront: !!req?.hasSignPhoto,
-      facebook: !!req?.facebookPageUrl,
+      // A typed link counts too: submit saves it before sending.
+      facebook: !!req?.facebookPageUrl || !!fbUrl.trim(),
     }
     const provided = OPTIONAL.filter((c) => hasData[c] && !carried.includes(c))
     const total = OPTIONAL.filter((c) => accepted(c) || provided.includes(c)).length
@@ -486,7 +504,7 @@ export default function VerifyScreen() {
                   <TextInput
                     style={[styles.input, ltrStyle]}
                     value={fbUrl}
-                    onChangeText={setFbUrl}
+                    onChangeText={(text) => { setFbUrl(text); setSubmitError(null) }}
                     placeholder="https://facebook.com/your-shop"
                     placeholderTextColor={colors.subtle}
                     keyboardType="url"
@@ -562,7 +580,11 @@ export default function VerifyScreen() {
               disabled={!canSubmit || anyBusy}
               onPress={submit}
             />
-            {blocker ? <Text style={[styles.hint, dirStyle]}>{blocker}</Text> : null}
+            {submitError ? (
+              <Text style={[styles.hint, dirStyle, { color: colors.red }]}>{submitError}</Text>
+            ) : blocker ? (
+              <Text style={[styles.hint, dirStyle]}>{blocker}</Text>
+            ) : null}
           </View>
         ) : null}
       </View>

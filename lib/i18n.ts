@@ -1193,6 +1193,7 @@ export interface Translations {
       error: string
       errWrongFbCode: string
       errNoFbCode: string
+      errFbUrl: string
       choosePhoto: string
       replacePhoto: string
       photoUploaded: string
@@ -2395,6 +2396,7 @@ export const translations: Record<Locale, Translations> = {
         error: 'حدث خطأ، حاول مرة أخرى',
         errWrongFbCode: 'الكود غير صحيح',
         errNoFbCode: 'لم يتم إرسال كود فيسبوك بعد',
+        errFbUrl: 'رابط صفحة فيسبوك غير صحيح، تأكد منه وحاول مرة أخرى',
         choosePhoto: 'اختر صورة',
         replacePhoto: 'استبدال الصورة',
         photoUploaded: 'تم رفع الصورة',
@@ -3595,6 +3597,7 @@ export const translations: Record<Locale, Translations> = {
         error: 'Something went wrong, please try again',
         errWrongFbCode: 'Wrong code',
         errNoFbCode: 'No Facebook code has been sent yet',
+        errFbUrl: 'The Facebook page link is not valid. Check it and try again',
         choosePhoto: 'Choose a photo',
         replacePhoto: 'Replace photo',
         photoUploaded: 'Photo uploaded',
