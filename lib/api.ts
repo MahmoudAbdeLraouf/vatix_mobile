@@ -969,6 +969,8 @@ export interface SiteSettings {
   storePromotionDays: number
   storePromotionAppleProductId: string | null
   salesRecordEnabled?: boolean
+  /** Days of the free product promotion granted with every store subscription payment (0 = off). */
+  subscriptionGiftDays?: number
 }
 
 export function getSubscriptionPlans(): Promise<PlanData[]> {
