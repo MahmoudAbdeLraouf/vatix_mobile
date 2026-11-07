@@ -130,7 +130,9 @@ export function PromoGiftPicker({ gift, products, onClose, onClaimed }: Props) {
                 <Text style={[styles.headerTitle, dirStyle]} numberOfLines={1}>
                   {isAdmin
                     ? ar ? '🎁 وصلتك هدية ترويج' : '🎁 You received a promotion gift'
-                    : ar ? '🎉 مبروك! كسبت ترويج مجاني' : '🎉 Congrats! You earned a free promotion'}
+                    : gift.source === 'subscription_payment'
+                      ? ar ? '🎁 هدية اشتراك المتجر' : '🎁 Your store subscription gift'
+                      : ar ? '🎉 مبروك! كسبت ترويج مجاني' : '🎉 Congrats! You earned a free promotion'}
                 </Text>
                 <Pressable
                   onPress={onClose}

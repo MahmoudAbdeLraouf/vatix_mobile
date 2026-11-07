@@ -14,7 +14,7 @@ export interface PromoGiftOffer {
 export interface PromotionGiftItem {
   id: number
   days: number
-  source: 'three_products_offer' | 'admin'
+  source: 'three_products_offer' | 'admin' | 'subscription_payment'
   note: string | null
   expiresAt: string | null
   createdAt: string

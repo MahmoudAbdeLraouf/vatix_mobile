@@ -32,7 +32,11 @@ export function PromoGiftCard({ offer, gifts, onPick }: Props) {
     const daysText = formatGiftDays(gift.days, ar ? 'ar' : 'en')
     const title = isAdmin
       ? ar ? '🎁 وصلتك هدية ترويج' : '🎁 You received a promotion gift'
-      : ar
+      : gift.source === 'subscription_payment'
+        ? ar
+          ? `🎁 هدية اشتراكك: ترويج منتج ${daysText} — اختار الإعلان`
+          : `🎁 Your subscription gift: a ${daysText} product promotion — pick a listing`
+        : ar
         ? `🎉 كسبت ترويج مجاني ${daysText}! اختار الإعلان`
         : `🎉 You earned a free ${daysText} promotion! Pick a listing`
     return (
