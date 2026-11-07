@@ -10,6 +10,7 @@ import { useTheme } from '@/contexts/theme'
 import { getCategoryIcon } from '@/lib/category-icons'
 import { soldCountText } from '@/lib/salesRecord'
 import { FavoriteButton } from '@/components/FavoriteButton'
+import { VerifiedSeal } from '@/components/VerifiedBadge'
 
 interface ProductCardProps {
   product: Product
@@ -160,8 +161,8 @@ function ProductGridCard({
                 {storeName}
               </Text>
               {verification?.verified ? (
-                <View style={styles.verifiedCheck} accessibilityLabel={t.verified.badge}>
-                  <Text style={styles.verifiedCheckText}>✓</Text>
+                <View style={styles.verifiedSeal} accessibilityLabel={t.verified.badge}>
+                  <VerifiedSeal size={14} />
                 </View>
               ) : null}
             </View>
@@ -322,8 +323,8 @@ function ProductRowCard({ product, style }: { product: Product; style?: ViewStyl
               {storeName}
             </Text>
             {verification?.verified ? (
-              <View style={styles.verifiedCheck} accessibilityLabel={t.verified.badge}>
-                <Text style={styles.verifiedCheckText}>✓</Text>
+              <View style={styles.verifiedSeal} accessibilityLabel={t.verified.badge}>
+                <VerifiedSeal size={16} />
               </View>
             ) : null}
           </View>
@@ -513,23 +514,7 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     color: colors.heading,
     flexShrink: 1,
   },
-  verifiedCheck: {
-    width: 13,
-    height: 13,
-    borderRadius: 6.5,
-    backgroundColor: '#1A2540',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    ...(dark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' } : null),
-  },
-  verifiedCheckText: {
-    fontFamily: fonts.bold,
-    fontSize: 7.5,
-    lineHeight: 10,
-    color: '#fff',
-    includeFontPadding: false,
-  },
+  verifiedSeal: { flexShrink: 0 },
   soldPill: {
     alignSelf: 'flex-start',
     marginTop: 5,
@@ -755,24 +740,8 @@ const makeRowStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create(
     lineHeight: 18,
     color: colors.heading,
   },
-  // Compact form of VerifiedBadge (same navy + light ring) — the full pill would
-  // crowd the store name off a 1-line bar.
-  verifiedCheck: {
-    width: 15,
-    height: 15,
-    borderRadius: 7.5,
-    backgroundColor: '#1A2540',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(dark ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' } : null),
-  },
-  verifiedCheckText: {
-    fontFamily: fonts.bold,
-    fontSize: 9,
-    lineHeight: 12,
-    color: '#fff',
-    includeFontPadding: false,
-  },
+  // Bare VerifiedSeal — the full pill would crowd the store name off a 1-line bar.
+  verifiedSeal: { flexShrink: 0 },
   soldPill: {
     flexShrink: 0,
     maxWidth: '55%',
