@@ -12,11 +12,12 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, darkColors, fonts, lightColors, radius, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
-import { imgUrl, type Product } from '@/lib/api'
+import { getClientOfferPacks, imgUrl, type ClientOfferPack, type Product } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
 import {
   createBroOffer,
@@ -155,17 +156,25 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
   }, [capResult, closeBlocked, onSent, onClose])
 
   const cap = usage?.offers.cap ?? null
-  const capped = userType === 'client' && usage != null && cap != null && usage.offers.used >= cap
+  // Capped only when the free allowance is spent AND no bought offers remain (free ones are spent first).
+  const capped = userType === 'client' && usage != null && cap != null && usage.offers.used >= cap && usage.offers.purchased === 0
   const numLocale = locale === 'ar' ? 'ar-EG' : 'en-US'
 
-  function resetDate(): string {
-    if (!usage) return ''
-    const d = new Date(usage.resetsAt)
-    try {
-      return d.toLocaleDateString(numLocale, { day: 'numeric', month: 'long', timeZone: 'Africa/Cairo' })
-    } catch {
-      return d.toLocaleDateString()
-    }
+  // Pack cards are for clients only (cap !== null); a failed fetch just shows no cards.
+  const [packs, setPacks] = useState<ClientOfferPack[]>([])
+  useEffect(() => {
+    if (!capped) return
+    let alive = true
+    getClientOfferPacks()
+      .then(list => { if (alive) setPacks([...list].sort((a, c) => c.offerCount - a.offerCount)) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [capped])
+
+  function buyPack(id: number) {
+    // The sheet is a Modal that would cover the pushed screen, so close it first.
+    onClose()
+    router.push(`/dashboard/buy-offers?pack=${id}` as never)
   }
 
   function price(v: number | string): string {
@@ -376,10 +385,32 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
             </View>
           ) : capped ? (
             <View style={styles.center} accessibilityRole="alert">
-              <Text style={styles.centerTitle}>{b.capBlockTitle}</Text>
-              <Text style={styles.centerBody}>{b.capReached.replace('{date}', resetDate())}</Text>
-              <Text style={styles.centerBody}>{b.upgradeNudge}</Text>
-              <BroButton label={b.capUpgradeCta} variant="yellow" size="md" onPress={() => setShowUpgrade(true)} />
+              <Text style={styles.centerTitle}>{b.capFreeGoneTitle}</Text>
+              <Text style={styles.centerBody}>{b.capFreeGoneBody}</Text>
+              {packs.map(p => {
+                const label = b.packCardLabel
+                  .replace('{n}', String(p.offerCount))
+                  .replace('{price}', Number(p.price).toLocaleString(numLocale))
+                const name = p.translations.find(tr => tr.locale === locale)?.name || p.name
+                return (
+                  <Pressable
+                    key={p.id}
+                    style={[styles.packCard, rowDir]}
+                    onPress={() => buyPack(p.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${label} ${name}`}
+                  >
+                    <View style={styles.packInfo}>
+                      <Text style={[styles.packLabel, dirStyle]}>{label}</Text>
+                      <Text style={[styles.packName, dirStyle]}>{name}</Text>
+                    </View>
+                    <View style={styles.packBtn}>
+                      <Text style={styles.packBtnText}>{b.buyOffersCta}</Text>
+                    </View>
+                  </Pressable>
+                )
+              })}
+              <BroButton label={b.capUpgradeCta} size="md" onPress={() => setShowUpgrade(true)} />
             </View>
           ) : (
             <>
@@ -456,6 +487,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   center: { alignItems: 'center', gap: 8, paddingVertical: spacing.sm },
   centerTitle: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.heading, textAlign: 'center' },
   centerBody: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted, textAlign: 'center', lineHeight: 20 },
+  packCard: {
+    alignSelf: 'stretch', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm,
+    padding: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card,
+  },
+  packInfo: { flex: 1, minWidth: 0 },
+  packLabel: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.heading },
+  packName: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
+  packBtn: { backgroundColor: colors.y, borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 12 },
+  packBtnText: { fontFamily: fonts.bold, fontSize: 12, color: '#1A2540' },
   centerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center', marginTop: 6 },
   error: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.red },
 })

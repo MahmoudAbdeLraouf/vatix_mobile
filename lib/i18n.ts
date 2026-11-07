@@ -130,6 +130,7 @@ export interface Translations {
   promotions: string
   invoices: string
   buySlotsNav: string
+  buyOffersNav: string
   promoteStoreNav: string
   sectionActivity: string
   sectionAccount: string
@@ -1108,6 +1109,23 @@ export interface Translations {
     meterLabel: string
     capBlockTitle: string
     capUpgradeCta: string
+    meterSplit: string
+    capFreeGoneTitle: string
+    capFreeGoneBody: string
+    packCardLabel: string
+    buyOffersCta: string
+    buyOffersTitle: string
+    buyOffersIntro: string
+    buyOffersOwned: string
+    buyOffersFreeLeft: string
+    buyOffersPerOffer: string
+    buyOffersNever: string
+    buyOffersClientsOnly: string
+    buyOffersNone: string
+    buyOffersLoadFailed: string
+    buyOffersPendingBody: string
+    buyOffersWalletBody: string
+    buyOffersBackToBro: string
     offerSentToast: string
     saveAsProduct: string
     offerSentProductCreated: string
@@ -1390,6 +1408,7 @@ export const translations: Record<Locale, Translations> = {
     promotions: 'الترقيات',
     invoices: 'الفواتير',
     buySlotsNav: 'شراء خانات',
+    buyOffersNav: 'شراء عروض',
     promoteStoreNav: 'ترويج المتجر',
     sectionActivity: 'نشاطي',
     sectionAccount: 'حسابي',
@@ -2299,6 +2318,23 @@ export const translations: Record<Locale, Translations> = {
       meterLabel: 'العروض اللي قدّمتها على الطلبات',
       capBlockTitle: 'وصلت للحد الأقصى',
       capUpgradeCta: 'حوّل لحساب متجر',
+      meterSplit: 'مجاني: {free} / {cap} · مشترى: {purchased}',
+      capFreeGoneTitle: 'خلصت عروضك المجانية لهذا الشهر',
+      capFreeGoneBody: 'اشترِ عروض إضافية لا تنتهي، أو حوّل لمتجر للعروض غير المحدودة',
+      packCardLabel: '{n} عرض — {price} ج.م',
+      buyOffersCta: 'اشترِ عروض إضافية',
+      buyOffersTitle: 'شراء عروض',
+      buyOffersIntro: 'العروض المشتراة لا تنتهي، وتُستخدم بعد انتهاء عروضك المجانية الشهرية.',
+      buyOffersOwned: 'عروض مشتراة',
+      buyOffersFreeLeft: 'مجاني متبقٍ هذا الشهر',
+      buyOffersPerOffer: '{n} ج.م / عرض',
+      buyOffersNever: 'لا تنتهي أبداً',
+      buyOffersClientsOnly: 'باقات العروض متاحة للعملاء العاديين فقط',
+      buyOffersNone: 'لا توجد باقات متاحة حالياً.',
+      buyOffersLoadFailed: 'مقدرناش نحمّل الباقات، جرّب تاني',
+      buyOffersPendingBody: 'سيقوم فريق Vatix بمراجعة التحويل وإضافة العروض إلى رصيدك خلال 24 ساعة.',
+      buyOffersWalletBody: 'تم خصم المبلغ من محفظتك وإضافة العروض إلى رصيدك فوراً.',
+      buyOffersBackToBro: 'العودة إلى Bro ←',
       offerSentToast: 'عرضك اتبعت للمشتري ✓',
       saveAsProduct: 'احفظه كمنتج',
       offerSentProductCreated: 'عرضك اتبعت للمشتري ✓ واتحفظ كمنتج في إعلاناتك',
@@ -2590,6 +2626,7 @@ export const translations: Record<Locale, Translations> = {
     promotions: 'Promotions',
     invoices: 'Invoices',
     buySlotsNav: 'Buy Slots',
+    buyOffersNav: 'Buy Offers',
     promoteStoreNav: 'Promote my store',
     sectionActivity: 'My Activity',
     sectionAccount: 'My Account',
@@ -3499,6 +3536,23 @@ export const translations: Record<Locale, Translations> = {
       meterLabel: 'Offers you made on requests',
       capBlockTitle: 'You\'ve reached the limit',
       capUpgradeCta: 'Upgrade to a store account',
+      meterSplit: 'Free: {free} / {cap} · Bought: {purchased}',
+      capFreeGoneTitle: 'You\'ve used your free offers for this month',
+      capFreeGoneBody: 'Buy extra offers that never expire, or upgrade to a store for unlimited offers',
+      packCardLabel: '{n} offers — {price} EGP',
+      buyOffersCta: 'Buy extra offers',
+      buyOffersTitle: 'Buy Offers',
+      buyOffersIntro: 'Bought offers never expire and are used after your monthly free offers.',
+      buyOffersOwned: 'Offers bought',
+      buyOffersFreeLeft: 'Free left this month',
+      buyOffersPerOffer: '{n} EGP / offer',
+      buyOffersNever: 'Never expire',
+      buyOffersClientsOnly: 'Offer packs are for regular client accounts only',
+      buyOffersNone: 'No packs available right now.',
+      buyOffersLoadFailed: 'We couldn\'t load the packs, please try again',
+      buyOffersPendingBody: 'The Vatix team will review the transfer and add the offers to your balance within 24 hours.',
+      buyOffersWalletBody: 'The amount was deducted from your wallet and the offers were added to your balance instantly.',
+      buyOffersBackToBro: 'Back to Bro →',
       offerSentToast: 'Your offer was sent to the buyer ✓',
       saveAsProduct: 'Save as a product',
       offerSentProductCreated: 'Your offer was sent ✓ and saved as a product in your ads',
