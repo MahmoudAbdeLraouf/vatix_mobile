@@ -463,7 +463,10 @@ export default function MoreScreen() {
             />
           )}
           {isClient && (
-            <MoreRow {...rowProps} icon="ticket-outline" label={t.buySlotsNav} onPress={() => router.push('/dashboard/buy-slots')} last />
+            <MoreRow {...rowProps} icon="ticket-outline" label={t.buySlotsNav} onPress={() => router.push('/dashboard/buy-slots')} last={!broEnabled} />
+          )}
+          {isClient && broEnabled && (
+            <MoreRow {...rowProps} icon="chatbubbles-outline" label={t.buyOffersNav} onPress={() => router.push('/dashboard/buy-offers' as never)} last />
           )}
         </Section>
         )}

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { router } from 'expo-router'
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
 import { useLocale } from '@/contexts/locale'
 import type { BroUsage } from '@/lib/bro'
@@ -10,20 +11,21 @@ import { UpgradeModal } from '@/components/UpgradeModal'
 
 /**
  * Monthly offer meter for clients. Stores (cap null) see nothing.
- * With `upgrade`, a full meter also explains the limit and offers the store upgrade.
+ * With `upgrade`, a full meter (free spent, nothing bought) also offers the pack purchase and the store upgrade.
  */
 export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsage; style?: StyleProp<ViewStyle>; upgrade?: boolean }) {
-  const { t, locale } = useLocale()
+  const { t } = useLocale()
   const [showUpgrade, setShowUpgrade] = useState(false)
   const { colors } = useTheme()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { dirStyle, rowDir } = useBroDir()
   const b = t.bro
-  const { used, cap } = usage.offers
+  const { used, cap, purchased } = usage.offers
   if (cap == null || cap <= 0) return null
 
   const pct = Math.min(100, Math.round((used / cap) * 100))
-  const full = used >= cap
+  const full = used >= cap && purchased === 0
+  const freeLeft = Math.max(cap - used, 0)
   const fill = full ? '#dc2626' : pct >= 80 ? '#f97316' : colors.y
 
   return (
@@ -31,7 +33,10 @@ export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsa
       <View style={[styles.head, rowDir]}>
         <Text style={[styles.label, dirStyle]}>{b.meterLabel}</Text>
         <Text style={[styles.count, dirStyle]}>
-          {b.meter.replace('{used}', String(used)).replace('{cap}', String(cap))}
+          {b.meterSplit
+            .replace('{free}', String(freeLeft))
+            .replace('{cap}', String(cap))
+            .replace('{purchased}', String(purchased))}
         </Text>
       </View>
       <View
@@ -43,24 +48,15 @@ export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsa
       </View>
       {full && upgrade ? (
         <View style={styles.capBox} accessibilityRole="alert">
-          <Text style={[styles.capTitle, dirStyle]}>{b.capBlockTitle}</Text>
-          <Text style={[styles.capBody, dirStyle]}>{b.capReached.replace('{date}', resetDate(usage.resetsAt, locale))}</Text>
-          <Text style={[styles.capBody, dirStyle]}>{b.upgradeNudge}</Text>
-          <BroButton label={b.capUpgradeCta} variant="yellow" size="md" onPress={() => setShowUpgrade(true)} />
+          <Text style={[styles.capTitle, dirStyle]}>{b.capFreeGoneTitle}</Text>
+          <Text style={[styles.capBody, dirStyle]}>{b.capFreeGoneBody}</Text>
+          <BroButton label={b.buyOffersCta} variant="yellow" size="md" onPress={() => router.push('/dashboard/buy-offers' as never)} />
+          <BroButton label={b.capUpgradeCta} variant="dark" size="md" onPress={() => setShowUpgrade(true)} />
         </View>
       ) : null}
       {upgrade ? <UpgradeModal visible={showUpgrade} mode="upgrade-to-store" onClose={() => setShowUpgrade(false)} /> : null}
     </View>
   )
-}
-
-function resetDate(iso: string, locale: string): string {
-  const d = new Date(iso)
-  try {
-    return d.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { day: 'numeric', month: 'long', timeZone: 'Africa/Cairo' })
-  } catch {
-    return d.toLocaleDateString()
-  }
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({

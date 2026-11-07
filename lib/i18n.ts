@@ -130,6 +130,7 @@ export interface Translations {
   promotions: string
   invoices: string
   buySlotsNav: string
+  buyOffersNav: string
   promoteStoreNav: string
   sectionActivity: string
   sectionAccount: string
@@ -1012,7 +1013,6 @@ export interface Translations {
     badgeSearching: string
     badgeOpen: string
     badgeNew: string
-    meter: string
     tabFromProducts: string
     tabScratch: string
     tabSaved: string
@@ -1033,8 +1033,6 @@ export interface Translations {
     stateWithdrawn: string
     myOffersTitle: string
     withdraw: string
-    capReached: string
-    upgradeNudge: string
     boardTitle: string
     boardAskGeeko: string
     boardSubtitle: string
@@ -1108,6 +1106,24 @@ export interface Translations {
     meterLabel: string
     capBlockTitle: string
     capUpgradeCta: string
+    meterSplit: string
+    capFreeGoneTitle: string
+    capFreeGoneBody: string
+    packCardLabel: string
+    buyOffersCta: string
+    buyOffersTitle: string
+    buyOffersIntro: string
+    buyOffersOwned: string
+    buyOffersFreeLeft: string
+    buyOffersPerOffer: string
+    buyOffersNever: string
+    buyOffersClientsOnly: string
+    buyOffersNone: string
+    buyOffersLoadFailed: string
+    buyOffersPendingBody: string
+    buyOffersWalletBody: string
+    buyOffersAppleBody: string
+    buyOffersBackToBro: string
     offerSentToast: string
     saveAsProduct: string
     offerSentProductCreated: string
@@ -1390,6 +1406,7 @@ export const translations: Record<Locale, Translations> = {
     promotions: 'الترقيات',
     invoices: 'الفواتير',
     buySlotsNav: 'شراء خانات',
+    buyOffersNav: 'شراء عروض',
     promoteStoreNav: 'ترويج المتجر',
     sectionActivity: 'نشاطي',
     sectionAccount: 'حسابي',
@@ -2203,7 +2220,6 @@ export const translations: Record<Locale, Translations> = {
       badgeSearching: 'جيكو بيدور',
       badgeOpen: 'مفتوح',
       badgeNew: 'جديد',
-      meter: '{used} من {cap} · بيتجدد أول الشهر',
       tabFromProducts: 'من منتجاتي',
       tabScratch: 'عرض جديد',
       tabSaved: 'عروضي المحفوظة',
@@ -2224,8 +2240,6 @@ export const translations: Record<Locale, Translations> = {
       stateWithdrawn: 'اتسحب',
       myOffersTitle: 'عروضي',
       withdraw: 'اسحب العرض',
-      capReached: 'وصلت للحد الأقصى من العروض الشهر ده. هيتجدد في {date}.',
-      upgradeNudge: 'عايز تقدّم عروض من غير حد أقصى؟ حوّل حسابك لحساب متجر.',
       boardTitle: 'طلبات الشراء',
       boardAskGeeko: 'اطلب جهاز من جيكو',
       boardSubtitle: 'مشترين بيدوّروا على أجهزة دلوقتي. قدّم عرضك وكلّمهم.',
@@ -2299,6 +2313,24 @@ export const translations: Record<Locale, Translations> = {
       meterLabel: 'العروض اللي قدّمتها على الطلبات',
       capBlockTitle: 'وصلت للحد الأقصى',
       capUpgradeCta: 'حوّل لحساب متجر',
+      meterSplit: 'مجاني: {free} / {cap} · مشترى: {purchased}',
+      capFreeGoneTitle: 'خلصت عروضك المجانية لهذا الشهر',
+      capFreeGoneBody: 'اشترِ عروض إضافية لا تنتهي، أو حوّل لمتجر للعروض غير المحدودة',
+      packCardLabel: '{n} عرض — {price} ج.م',
+      buyOffersCta: 'اشترِ عروض إضافية',
+      buyOffersTitle: 'شراء عروض',
+      buyOffersIntro: 'العروض المشتراة لا تنتهي، وتُستخدم بعد انتهاء عروضك المجانية الشهرية.',
+      buyOffersOwned: 'عروض مشتراة',
+      buyOffersFreeLeft: 'مجاني متبقٍ هذا الشهر',
+      buyOffersPerOffer: '{n} ج.م / عرض',
+      buyOffersNever: 'لا تنتهي أبداً',
+      buyOffersClientsOnly: 'باقات العروض متاحة للعملاء العاديين فقط',
+      buyOffersNone: 'لا توجد باقات متاحة حالياً.',
+      buyOffersLoadFailed: 'مقدرناش نحمّل الباقات، جرّب تاني',
+      buyOffersPendingBody: 'سيقوم فريق Vatix بمراجعة التحويل وإضافة العروض إلى رصيدك خلال 24 ساعة.',
+      buyOffersWalletBody: 'تم خصم المبلغ من محفظتك وإضافة العروض إلى رصيدك فوراً.',
+      buyOffersAppleBody: 'تم تأكيد الدفع عبر App Store وإضافة العروض لرصيدك فوراً',
+      buyOffersBackToBro: 'العودة إلى Bro ←',
       offerSentToast: 'عرضك اتبعت للمشتري ✓',
       saveAsProduct: 'احفظه كمنتج',
       offerSentProductCreated: 'عرضك اتبعت للمشتري ✓ واتحفظ كمنتج في إعلاناتك',
@@ -2590,6 +2622,7 @@ export const translations: Record<Locale, Translations> = {
     promotions: 'Promotions',
     invoices: 'Invoices',
     buySlotsNav: 'Buy Slots',
+    buyOffersNav: 'Buy Offers',
     promoteStoreNav: 'Promote my store',
     sectionActivity: 'My Activity',
     sectionAccount: 'My Account',
@@ -3403,7 +3436,6 @@ export const translations: Record<Locale, Translations> = {
       badgeSearching: 'Geeko is searching',
       badgeOpen: 'Open',
       badgeNew: 'New',
-      meter: '{used} of {cap} · resets at the start of the month',
       tabFromProducts: 'From my products',
       tabScratch: 'New offer',
       tabSaved: 'My saved offers',
@@ -3424,8 +3456,6 @@ export const translations: Record<Locale, Translations> = {
       stateWithdrawn: 'Withdrawn',
       myOffersTitle: 'My offers',
       withdraw: 'Withdraw offer',
-      capReached: 'You\'ve reached this month\'s offer limit. It resets on {date}.',
-      upgradeNudge: 'Want to make unlimited offers? Upgrade your account to a store.',
       boardTitle: 'Buy requests',
       boardAskGeeko: 'Request a device by Geeko',
       boardSubtitle: 'Buyers are looking for devices right now. Make your offer and chat with them.',
@@ -3499,6 +3529,24 @@ export const translations: Record<Locale, Translations> = {
       meterLabel: 'Offers you made on requests',
       capBlockTitle: 'You\'ve reached the limit',
       capUpgradeCta: 'Upgrade to a store account',
+      meterSplit: 'Free: {free} / {cap} · Bought: {purchased}',
+      capFreeGoneTitle: 'You\'ve used your free offers for this month',
+      capFreeGoneBody: 'Buy extra offers that never expire, or upgrade to a store for unlimited offers',
+      packCardLabel: '{n} offers — {price} EGP',
+      buyOffersCta: 'Buy extra offers',
+      buyOffersTitle: 'Buy Offers',
+      buyOffersIntro: 'Bought offers never expire and are used after your monthly free offers.',
+      buyOffersOwned: 'Offers bought',
+      buyOffersFreeLeft: 'Free left this month',
+      buyOffersPerOffer: '{n} EGP / offer',
+      buyOffersNever: 'Never expire',
+      buyOffersClientsOnly: 'Offer packs are for regular client accounts only',
+      buyOffersNone: 'No packs available right now.',
+      buyOffersLoadFailed: 'We couldn\'t load the packs, please try again',
+      buyOffersPendingBody: 'The Vatix team will review the transfer and add the offers to your balance within 24 hours.',
+      buyOffersWalletBody: 'The amount was deducted from your wallet and the offers were added to your balance instantly.',
+      buyOffersAppleBody: 'Payment confirmed via App Store and the offers were added to your balance.',
+      buyOffersBackToBro: 'Back to Bro →',
       offerSentToast: 'Your offer was sent to the buyer ✓',
       saveAsProduct: 'Save as a product',
       offerSentProductCreated: 'Your offer was sent ✓ and saved as a product in your ads',

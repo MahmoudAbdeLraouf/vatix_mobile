@@ -152,15 +152,17 @@ export default function BuySlotsScreen() {
           authFetch<WalletBalance>('/payments/wallet/balance').catch(() => null),
         ])
         if (cancelled) return
-        setBundles(b)
+        // iOS can only sell bundles that have an IAP SKU; hide the rest there.
+        const visible = IS_IOS ? b.filter((x) => isSlotCount(x.slotCount)) : b
+        setBundles(visible)
         setSettings(s)
         setWallet(w)
 
         const presetId = params.bundleId ? Number(params.bundleId) : null
-        if (presetId && b.some((x) => x.id === presetId)) {
+        if (presetId && visible.some((x) => x.id === presetId)) {
           setSelectedId(presetId)
-        } else if (b.length) {
-          setSelectedId(b[0].id)
+        } else if (visible.length) {
+          setSelectedId(visible[0].id)
         }
 
         if (IS_IOS) {
@@ -199,8 +201,8 @@ export default function BuySlotsScreen() {
   }
 
   function displayPriceFor(bundle: ClientSlotBundle): string {
-    if (IS_IOS) {
-      const sku = slotSkuForCount(bundle.slotCount as 5 | 10)
+    if (IS_IOS && isSlotCount(bundle.slotCount)) {
+      const sku = slotSkuForCount(bundle.slotCount)
       return iosPriceMap[sku] ?? iosFallbackDisplayPrice(sku) ?? `${Number(bundle.price)} EGP`
     }
     return `${Number(bundle.price)} EGP`
@@ -307,7 +309,12 @@ export default function BuySlotsScreen() {
 
   async function handleAppleIapPurchase() {
     if (!selected) return
-    const sku = slotSkuForCount(selected.slotCount as 5 | 10)
+    if (!isSlotCount(selected.slotCount)) {
+      setSubmitError(authErrorMessage(new Error(AUTH_ERR.IAP_PRODUCT_UNAVAILABLE), t))
+      setStep('method')
+      return
+    }
+    const sku = slotSkuForCount(selected.slotCount)
     const product = getIapProduct(sku)
     if (!product) {
       setSubmitError(authErrorMessage(new Error(AUTH_ERR.IAP_PRODUCT_UNAVAILABLE), t))
@@ -606,6 +613,11 @@ export default function BuySlotsScreen() {
       ) : null}
     </DashboardLayout>
   )
+}
+
+// Only these slot counts have an App Store SKU.
+function isSlotCount(n: number): n is 1 | 5 | 10 {
+  return n === 1 || n === 5 || n === 10
 }
 
 type PickStepProps = {

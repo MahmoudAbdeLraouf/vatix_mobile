@@ -1003,6 +1003,26 @@ export function getClientSlotBundles(): Promise<ClientSlotBundle[]> {
   return cachedFetch('/client-slot-bundles', () => apiFetch('/client-slot-bundles'))
 }
 
+// ── Bro offer packs (client) ──────────────────────────────────────────────────
+
+export interface ClientOfferPackTranslation { locale: string; name: string; description: string | null }
+
+export interface ClientOfferPack {
+  id: number
+  name: string
+  offerCount: number
+  /** MySQL decimal: may arrive as a string ("300.00"). Coerce with Number(). */
+  price: number | string
+  description: string | null
+  appleProductId: string | null
+  translations: ClientOfferPackTranslation[]
+}
+
+/** Active packs. The API orders by `offerCount` ASC; callers sort as they need. */
+export function getClientOfferPacks(): Promise<ClientOfferPack[]> {
+  return cachedFetch('/client-offer-packs', () => apiFetch('/client-offer-packs'))
+}
+
 export function getSiteSettings(): Promise<SiteSettings> {
   return cachedFetch('/site-settings', () => apiFetch('/site-settings'))
 }
