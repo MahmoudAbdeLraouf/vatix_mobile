@@ -135,16 +135,12 @@ export default function MyAdsScreen() {
           pendingGiftIdRef.current = null
           const match = (data?.gifts ?? []).find((g) => g.id === pending)
           if (match) setPickerGift(match)
-          router.setParams({ giftId: undefined })
         }
       } catch {
         // Gifts are optional: hide the card, keep the product list working.
         setGifts(null)
         setGiftOffer(null)
-        if (pendingGiftIdRef.current !== null) {
-          pendingGiftIdRef.current = null
-          router.setParams({ giftId: undefined })
-        }
+        pendingGiftIdRef.current = null
       }
     }
   }, [])
@@ -153,10 +149,9 @@ export default function MyAdsScreen() {
   useEffect(() => {
     if (!PROMOTION_UI_ENABLED || !params.giftId) return
     const id = Number(params.giftId)
-    if (!Number.isFinite(id)) {
-      router.setParams({ giftId: undefined })
-      return
-    }
+    // Clear the param right away, while this screen is focused (not after an await).
+    router.setParams({ giftId: undefined })
+    if (!Number.isFinite(id)) return
     pendingGiftIdRef.current = id
     // Already focused and loaded once: refetch so a brand-new gift is visible.
     if (giftsLoadedRef.current) load()
@@ -1075,9 +1070,6 @@ export default function MyAdsScreen() {
           onClaimed={() => {
             setPickerGift(null)
             load() // refresh gifts + products (promoted pill, card)
-          }}
-          onClaimError={() => {
-            load() // gift/product may be stale: refetch both
           }}
         />
       )}

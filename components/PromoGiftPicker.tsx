@@ -17,15 +17,13 @@ interface Props {
   onClose: () => void
   /** Claim succeeded and the user dismissed the confirmation. */
   onClaimed: () => void
-  /** Claim failed; the parent should refetch so a stale gift/product doesn't linger. */
-  onClaimError?: (message: string) => void
 }
 
 type Stage =
   | { kind: 'pick' }
   | { kind: 'confirm'; title: string; promotedUntil: string }
 
-export function PromoGiftPicker({ gift, products, onClose, onClaimed, onClaimError }: Props) {
+export function PromoGiftPicker({ gift, products, onClose, onClaimed }: Props) {
   const { locale, t } = useLocale()
   const ar = locale === 'ar'
   const lang = ar ? 'ar' : 'en'
@@ -59,9 +57,7 @@ export function PromoGiftPicker({ gift, products, onClose, onClaimed, onClaimErr
       const res = await claimGift(gift.id, selectedId)
       setStage({ kind: 'confirm', title: res.title, promotedUntil: res.promotedUntil })
     } catch (err) {
-      const message = authErrorMessage(err, t)
-      setError(message)
-      onClaimError?.(message)
+      setError(authErrorMessage(err, t))
     } finally {
       setBusy(false)
     }
