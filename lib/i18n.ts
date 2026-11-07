@@ -1154,6 +1154,7 @@ export interface Translations {
   }
   verified: {
     badge: string
+    badgeFull: string
     labels: Record<'phone' | 'storefront' | 'commercial_register' | 'facebook', string>
     tooltipTitle: string
     tips: Record<'phone' | 'storefront' | 'commercial_register' | 'facebook', string>
@@ -2361,6 +2362,7 @@ export const translations: Record<Locale, Translations> = {
     },
     verified: {
       badge: 'موثّق',
+      badgeFull: 'متجر موثّق',
       labels: {
         phone: 'الهاتف',
         storefront: 'المحل',
@@ -3577,6 +3579,7 @@ export const translations: Record<Locale, Translations> = {
     },
     verified: {
       badge: 'Verified',
+      badgeFull: 'Verified store',
       labels: {
         phone: 'Phone',
         storefront: 'Shop',
