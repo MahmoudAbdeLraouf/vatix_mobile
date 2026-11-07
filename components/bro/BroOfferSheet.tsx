@@ -391,7 +391,7 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
                 const label = b.packCardLabel
                   .replace('{n}', String(p.offerCount))
                   .replace('{price}', Number(p.price).toLocaleString(numLocale))
-                const name = p.translations.find(tr => tr.locale === locale)?.name || p.name
+                const name = (p.translations?.find(tr => tr.locale === locale) ?? p.translations?.find(tr => tr.locale === 'en'))?.name ?? p.name
                 return (
                   <Pressable
                     key={p.id}

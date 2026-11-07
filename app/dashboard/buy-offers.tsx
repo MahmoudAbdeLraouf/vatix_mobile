@@ -526,7 +526,7 @@ export default function BuyOffersScreen() {
       ) : step === 'wallet-done' ? (
         renderDone(t.buySlots.paymentSuccessTitle, b.buyOffersWalletBody, true)
       ) : step === 'apple-iap-done' ? (
-        renderDone(t.buySlots.paymentSuccessTitle, t.buySlots.appleSuccessBody, false)
+        renderDone(t.buySlots.paymentSuccessTitle, b.buyOffersAppleBody, false)
       ) : step === 'instapay-done' || step === 'mobile-wallet-done' ? (
         renderDone(t.buySlots.requestReceivedTitle, b.buyOffersPendingBody, false)
       ) : null}
@@ -558,41 +558,41 @@ function PickStep(props: PickStepProps) {
   const { packs, selectedId, setSelectedId, displayPriceFor, perOfferLabel, translatedPack, onContinue, selected } = props
   return (
     <View style={styles.packList}>
-            {packs.map((b) => {
-              const tr = translatedPack(b)
-              const isSel = b.id === selectedId
-              return (
-                <Pressable
-                  key={b.id}
-                  onPress={() => setSelectedId(b.id)}
-                  style={[styles.packCard, isSel && styles.packCardSelected]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isSel }}
-                >
-                  <View style={[styles.packTop, rowDir]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.packName, dirStyle]}>{tr.name}</Text>
-                      {tr.description ? (
-                        <Text style={[styles.packDesc, dirStyle]}>{tr.description}</Text>
-                      ) : null}
-                    </View>
-                    <View style={styles.packCountPill}>
-                      <Text style={styles.packCountPillText}>
-                        +{b.offerCount}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={[styles.packPriceRow, rowDir]}>
-                    <Text style={[styles.packPrice, dirStyle]}>
-                      {displayPriceFor(b)}
-                    </Text>
-                    <Text style={[styles.packPerOffer, dirStyle]}>
-                      {perOfferLabel(b)}
-                    </Text>
-                  </View>
-                </Pressable>
-              )
-            })}
+      {packs.map((p) => {
+        const tr = translatedPack(p)
+        const isSel = p.id === selectedId
+        return (
+          <Pressable
+            key={p.id}
+            onPress={() => setSelectedId(p.id)}
+            style={[styles.packCard, isSel && styles.packCardSelected]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSel }}
+          >
+            <View style={[styles.packTop, rowDir]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.packName, dirStyle]}>{tr.name}</Text>
+                {tr.description ? (
+                  <Text style={[styles.packDesc, dirStyle]}>{tr.description}</Text>
+                ) : null}
+              </View>
+              <View style={styles.packCountPill}>
+                <Text style={styles.packCountPillText}>
+                  +{p.offerCount}
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.packPriceRow, rowDir]}>
+              <Text style={[styles.packPrice, dirStyle]}>
+                {displayPriceFor(p)}
+              </Text>
+              <Text style={[styles.packPerOffer, dirStyle]}>
+                {perOfferLabel(p)}
+              </Text>
+            </View>
+          </Pressable>
+        )
+      })}
 
       <Pressable
         style={[styles.primaryCta, !selected && styles.primaryCtaDisabled]}

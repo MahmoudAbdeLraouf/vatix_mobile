@@ -1013,7 +1013,6 @@ export interface Translations {
     badgeSearching: string
     badgeOpen: string
     badgeNew: string
-    meter: string
     tabFromProducts: string
     tabScratch: string
     tabSaved: string
@@ -1034,8 +1033,6 @@ export interface Translations {
     stateWithdrawn: string
     myOffersTitle: string
     withdraw: string
-    capReached: string
-    upgradeNudge: string
     boardTitle: string
     boardAskGeeko: string
     boardSubtitle: string
@@ -1125,6 +1122,7 @@ export interface Translations {
     buyOffersLoadFailed: string
     buyOffersPendingBody: string
     buyOffersWalletBody: string
+    buyOffersAppleBody: string
     buyOffersBackToBro: string
     offerSentToast: string
     saveAsProduct: string
@@ -2222,7 +2220,6 @@ export const translations: Record<Locale, Translations> = {
       badgeSearching: 'جيكو بيدور',
       badgeOpen: 'مفتوح',
       badgeNew: 'جديد',
-      meter: '{used} من {cap} · بيتجدد أول الشهر',
       tabFromProducts: 'من منتجاتي',
       tabScratch: 'عرض جديد',
       tabSaved: 'عروضي المحفوظة',
@@ -2243,8 +2240,6 @@ export const translations: Record<Locale, Translations> = {
       stateWithdrawn: 'اتسحب',
       myOffersTitle: 'عروضي',
       withdraw: 'اسحب العرض',
-      capReached: 'وصلت للحد الأقصى من العروض الشهر ده. هيتجدد في {date}.',
-      upgradeNudge: 'عايز تقدّم عروض من غير حد أقصى؟ حوّل حسابك لحساب متجر.',
       boardTitle: 'طلبات الشراء',
       boardAskGeeko: 'اطلب جهاز من جيكو',
       boardSubtitle: 'مشترين بيدوّروا على أجهزة دلوقتي. قدّم عرضك وكلّمهم.',
@@ -2334,6 +2329,7 @@ export const translations: Record<Locale, Translations> = {
       buyOffersLoadFailed: 'مقدرناش نحمّل الباقات، جرّب تاني',
       buyOffersPendingBody: 'سيقوم فريق Vatix بمراجعة التحويل وإضافة العروض إلى رصيدك خلال 24 ساعة.',
       buyOffersWalletBody: 'تم خصم المبلغ من محفظتك وإضافة العروض إلى رصيدك فوراً.',
+      buyOffersAppleBody: 'تم تأكيد الدفع عبر App Store وإضافة العروض لرصيدك فوراً',
       buyOffersBackToBro: 'العودة إلى Bro ←',
       offerSentToast: 'عرضك اتبعت للمشتري ✓',
       saveAsProduct: 'احفظه كمنتج',
@@ -3440,7 +3436,6 @@ export const translations: Record<Locale, Translations> = {
       badgeSearching: 'Geeko is searching',
       badgeOpen: 'Open',
       badgeNew: 'New',
-      meter: '{used} of {cap} · resets at the start of the month',
       tabFromProducts: 'From my products',
       tabScratch: 'New offer',
       tabSaved: 'My saved offers',
@@ -3461,8 +3456,6 @@ export const translations: Record<Locale, Translations> = {
       stateWithdrawn: 'Withdrawn',
       myOffersTitle: 'My offers',
       withdraw: 'Withdraw offer',
-      capReached: 'You\'ve reached this month\'s offer limit. It resets on {date}.',
-      upgradeNudge: 'Want to make unlimited offers? Upgrade your account to a store.',
       boardTitle: 'Buy requests',
       boardAskGeeko: 'Request a device by Geeko',
       boardSubtitle: 'Buyers are looking for devices right now. Make your offer and chat with them.',
@@ -3552,6 +3545,7 @@ export const translations: Record<Locale, Translations> = {
       buyOffersLoadFailed: 'We couldn\'t load the packs, please try again',
       buyOffersPendingBody: 'The Vatix team will review the transfer and add the offers to your balance within 24 hours.',
       buyOffersWalletBody: 'The amount was deducted from your wallet and the offers were added to your balance instantly.',
+      buyOffersAppleBody: 'Payment confirmed via App Store and the offers were added to your balance.',
       buyOffersBackToBro: 'Back to Bro →',
       offerSentToast: 'Your offer was sent to the buyer ✓',
       saveAsProduct: 'Save as a product',
