@@ -25,9 +25,11 @@ export function PromoGiftOfferDialogTrigger() {
     if (pathname && SKIP_PATH_PREFIXES.some((p) => pathname.startsWith(p))) return
 
     let cancelled = false
+    let settled = false
     checkedRef.current = true
     authFetch<UserProfile>('/user/profile')
       .then((p) => {
+        settled = true
         if (cancelled) return
         if (p?.flags?.showPromoGiftOfferDialog && p.promoGiftOffer) {
           setOffer(p.promoGiftOffer)
@@ -35,9 +37,13 @@ export function PromoGiftOfferDialogTrigger() {
           markActionSeen('promo_gift_offer_dialog')
         }
       })
-      .catch(() => { checkedRef.current = false })
+      .catch(() => { settled = true; checkedRef.current = false })
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      // Path changed mid-fetch (e.g. the redirect right after login): re-check on the next run.
+      if (!settled) checkedRef.current = false
+    }
   }, [loading, user?.isStore, pathname])
 
   if (!PROMOTION_UI_ENABLED) return null
