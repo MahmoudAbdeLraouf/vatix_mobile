@@ -8,6 +8,8 @@ import { PromoGiftOfferDialog } from './PromoGiftOfferDialog'
 
 type Offer = NonNullable<UserProfile['promoGiftOffer']>
 
+const SKIP_PATH_PREFIXES = ['/products/new', '/products/add', '/products/import']
+
 export function PromoGiftOfferDialogTrigger() {
   const { user, loading } = useAuth()
   const pathname = usePathname()
@@ -19,8 +21,8 @@ export function PromoGiftOfferDialogTrigger() {
     if (loading) return
     if (!user?.isStore) return
     if (checkedRef.current) return
-    // Don't interrupt a store that is already adding a product.
-    if (pathname?.startsWith('/products/new')) return
+    // Don't interrupt a store that is already adding or importing products.
+    if (pathname && SKIP_PATH_PREFIXES.some((p) => pathname.startsWith(p))) return
 
     let cancelled = false
     checkedRef.current = true
