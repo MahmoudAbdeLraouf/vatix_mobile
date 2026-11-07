@@ -232,7 +232,8 @@ export interface BroUsage {
   yearMonth: string
   /** ISO instant of the 1st of next month at 00:00 Cairo. */
   resetsAt: string
-  offers: { used: number; cap: number | null }
+  /** `purchased` is the bought-offer balance (never expires; free offers are spent first). */
+  offers: { used: number; cap: number | null; purchased: number }
 }
 
 export interface CreateBroOfferBody extends OfferContent {
@@ -433,7 +434,7 @@ export function getBroUsage(): Promise<BroUsage | null> {
   return authFetch<BroUsage>('/bro/usage')
 }
 
-/** Throws a `BroApiError`: 429 `BRO_CLIENT_OFFER_CAP` (body has cap/used/resetsAt), 409 `BRO_OFFER_EXISTS`. */
+/** Throws a `BroApiError`: 429 `BRO_CLIENT_OFFER_CAP` (body has cap/used/purchased/resetsAt), 409 `BRO_OFFER_EXISTS`. */
 export function createBroOffer(requestId: number, body: CreateBroOfferBody): Promise<CreateBroOfferResult> {
   return broRaw<CreateBroOfferResult>(`/bro/board/${requestId}/offers`, 'POST', body)
 }

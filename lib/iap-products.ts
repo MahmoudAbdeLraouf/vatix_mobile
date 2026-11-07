@@ -6,8 +6,11 @@ export const SKU_SUBSCRIPTION_STORE = 'com.vatix.app.subscription.store'
 export const SKU_PROMOTION_1AD = 'com.vatix.app.promo.1ad'
 export const SKU_PROMOTION_3ADS = 'com.vatix.app.promo.3ads'
 export const SKU_PROMOTION_5ADS = 'com.vatix.app.promo.5ads'
+export const SKU_SLOTS_1 = 'com.vatix.slots.1'
 export const SKU_SLOTS_5 = 'com.vatix.slots.5'
 export const SKU_SLOTS_10 = 'com.vatix.slots.10'
+export const SKU_OFFERS_50 = 'com.vatix.offers.50'
+export const SKU_OFFERS_100 = 'com.vatix.offers.100'
 
 // Backend PaymentType values (mirrors PaymentType in vatix_backend
 // src/payments/entities/payment.entity.ts). The verify endpoint keys off these
@@ -18,6 +21,7 @@ export type BackendPaymentType =
   | 'promotion_3ads'
   | 'promotion_5ads'
   | 'client_slot_bundle'
+  | 'client_offer_pack'
   | 'promotion_store'
 
 export type IapProduct = {
@@ -54,6 +58,12 @@ export const IAP_PRODUCTS: Record<string, IapProduct> = {
     paymentType: 'promotion_5ads',
     isConsumable: true,
   },
+  [SKU_SLOTS_1]: {
+    sku: SKU_SLOTS_1,
+    type: 'in-app',
+    paymentType: 'client_slot_bundle',
+    isConsumable: true,
+  },
   [SKU_SLOTS_5]: {
     sku: SKU_SLOTS_5,
     type: 'in-app',
@@ -64,6 +74,18 @@ export const IAP_PRODUCTS: Record<string, IapProduct> = {
     sku: SKU_SLOTS_10,
     type: 'in-app',
     paymentType: 'client_slot_bundle',
+    isConsumable: true,
+  },
+  [SKU_OFFERS_50]: {
+    sku: SKU_OFFERS_50,
+    type: 'in-app',
+    paymentType: 'client_offer_pack',
+    isConsumable: true,
+  },
+  [SKU_OFFERS_100]: {
+    sku: SKU_OFFERS_100,
+    type: 'in-app',
+    paymentType: 'client_offer_pack',
     isConsumable: true,
   },
 }
@@ -79,8 +101,14 @@ export const PROMOTION_SKUS: string[] = [
 ]
 
 export const SLOT_SKUS: string[] = [
+  SKU_SLOTS_1,
   SKU_SLOTS_5,
   SKU_SLOTS_10,
+]
+
+export const OFFER_SKUS: string[] = [
+  SKU_OFFERS_50,
+  SKU_OFFERS_100,
 ]
 
 export function getIapProduct(sku: string): IapProduct | undefined {
@@ -100,8 +128,14 @@ export function promotionSkuForCount(count: 1 | 3 | 5): string {
   return SKU_PROMOTION_1AD
 }
 
-export function slotSkuForCount(count: 5 | 10): string {
-  return count === 10 ? SKU_SLOTS_10 : SKU_SLOTS_5
+export function slotSkuForCount(count: 1 | 5 | 10): string {
+  if (count === 10) return SKU_SLOTS_10
+  if (count === 5) return SKU_SLOTS_5
+  return SKU_SLOTS_1
+}
+
+export function offerSkuForCount(count: 50 | 100): string {
+  return count === 100 ? SKU_OFFERS_100 : SKU_OFFERS_50
 }
 
 // EGP prices matching the tiers configured in App Store Connect.
@@ -115,8 +149,11 @@ export const IOS_FALLBACK_PRICE_EGP: Record<string, number> = {
   [SKU_PROMOTION_1AD]: 199.99,
   [SKU_PROMOTION_3ADS]: 519.99,
   [SKU_PROMOTION_5ADS]: 699.99,
+  [SKU_SLOTS_1]: 40,
   [SKU_SLOTS_5]: 150,
   [SKU_SLOTS_10]: 250,
+  [SKU_OFFERS_50]: 200,
+  [SKU_OFFERS_100]: 300,
 }
 
 export function iosFallbackDisplayPrice(sku: string): string | undefined {

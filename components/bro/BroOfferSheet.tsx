@@ -233,16 +233,17 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
     } catch (err) {
       const e = err as BroApiError
       const bodyMsg = (e.body as { message?: unknown } | undefined)?.message
-      const capBody = e.body as { code?: unknown; cap?: unknown; used?: unknown; resetsAt?: unknown } | undefined
+      const capBody = e.body as { code?: unknown; cap?: unknown; used?: unknown; purchased?: unknown; resetsAt?: unknown } | undefined
       if (e.status === 429 && capBody?.code === 'BRO_CLIENT_OFFER_CAP' && typeof capBody.cap === 'number') {
         // Monthly cap hit: switch straight to the limit + upgrade view instead of a raw error.
         const capNum = capBody.cap
         const usedNum = typeof capBody.used === 'number' ? capBody.used : capNum
+        const purchasedNum = typeof capBody.purchased === 'number' ? capBody.purchased : undefined
         const resetsAt = typeof capBody.resetsAt === 'string' ? capBody.resetsAt : undefined
         setUsage(u => ({
           yearMonth: u?.yearMonth ?? '',
           resetsAt: resetsAt ?? u?.resetsAt ?? '',
-          offers: { used: Math.max(usedNum, capNum), cap: capNum },
+          offers: { used: Math.max(usedNum, capNum), cap: capNum, purchased: purchasedNum ?? u?.offers.purchased ?? 0 },
         }))
         setPicked(null)
       } else {
