@@ -86,9 +86,8 @@ function Shine({ width }: { width: number }) {
  * Store verification badge. Light-blue pill with the blue seal so it never reads
  * as the navy/yellow Store Plus badge, and stays legible on the navy store hero
  * and in dark mode. Renders nothing for unverified or missing data. Flows
- * inline (never absolutely positioned). There is no hover on touch, so the full
- * variant lists the passed checks as visible text and expands the explanation
- * on press.
+ * inline (never absolutely positioned). The pill only says "verified"; the
+ * full variant reveals which checks passed on press.
  */
 export function VerifiedBadge({
   verification,
@@ -120,11 +119,6 @@ export function VerifiedBadge({
       <Text style={[styles.text, full ? styles.textFull : styles.textCompact, dir]}>
         {full ? v.badgeFull : v.badge}
       </Text>
-      {full && checks.length > 0 ? (
-        <Text style={[styles.text, styles.labels, dir]}>
-          · {checks.map((c) => v.labels[c]).join(' · ')}
-        </Text>
-      ) : null}
       {full ? <Shine width={pillWidth} /> : null}
     </View>
   )
@@ -188,7 +182,6 @@ const styles = StyleSheet.create({
   text: { color: BLUE_TEXT, fontFamily: fonts.extraBold, includeFontPadding: false },
   textCompact: { fontSize: 11, lineHeight: 16 },
   textFull: { fontSize: 12, lineHeight: 17 },
-  labels: { fontFamily: fonts.semiBold, fontSize: 12, lineHeight: 17, opacity: 0.75 },
   fullWrap: { alignSelf: 'flex-start', maxWidth: '100%', gap: spacing.xs },
   tips: {
     borderWidth: 1,
