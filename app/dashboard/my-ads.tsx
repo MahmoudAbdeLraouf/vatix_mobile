@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Image,
@@ -38,13 +38,16 @@ import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { SaleVerifyStep, type SaleVerifyProduct } from '@/components/SaleVerifyStep'
 import { fillTemplate, type MarkSoldResponse } from '@/lib/salesRecord'
+import { getMyGifts, type PromoGiftOffer, type PromotionGiftItem } from '@/lib/promoGift'
+import { PromoGiftCard } from '@/components/PromoGiftCard'
+import { PromoGiftPicker } from '@/components/PromoGiftPicker'
 
 export default function MyAdsScreen() {
   const { colors } = useTheme()
   const styles = useStyles()
   const { t, locale } = useLocale()
   const { user } = useAuth()
-  const params = useLocalSearchParams<{ tab?: string }>()
+  const params = useLocalSearchParams<{ tab?: string; giftId?: string }>()
   const ar = locale === 'ar'
   const isStore = user?.isStore ?? false
   // Stores have no product cap; only clients are limited.
@@ -73,6 +76,14 @@ export default function MyAdsScreen() {
   // Standalone confirm modal opened from a row's "confirm with buyer" button.
   const [verifyFor, setVerifyFor] = useState<Product | null>(null)
   const [extraSlots, setExtraSlots] = useState(0)
+  // Promotion gifts. null = not loaded / fetch failed -> card is hidden and the
+  // rest of My Ads keeps working.
+  const [gifts, setGifts] = useState<PromotionGiftItem[] | null>(null)
+  const [giftOffer, setGiftOffer] = useState<PromoGiftOffer | null>(null)
+  const [pickerGift, setPickerGift] = useState<PromotionGiftItem | null>(null)
+  // giftId from the add-product success modal, consumed once gifts have loaded.
+  const pendingGiftIdRef = useRef<number | null>(null)
+  const giftsLoadedRef = useRef(false)
 
   // Inline bundle-buy payment modal state (mirrors website's instapayFor popover)
   const [payFor, setPayFor] = useState<{ product: Product; bundle: Bundle } | null>(null)
@@ -112,7 +123,44 @@ export default function MyAdsScreen() {
     } catch {
       // non-critical
     }
+    if (PROMOTION_UI_ENABLED) {
+      try {
+        const data = await getMyGifts()
+        setGifts(data?.gifts ?? [])
+        setGiftOffer(data?.offer ?? null)
+        giftsLoadedRef.current = true
+        const pending = pendingGiftIdRef.current
+        if (pending !== null) {
+          // Open only if the gift is really there; otherwise open nothing.
+          pendingGiftIdRef.current = null
+          const match = (data?.gifts ?? []).find((g) => g.id === pending)
+          if (match) setPickerGift(match)
+          router.setParams({ giftId: undefined })
+        }
+      } catch {
+        // Gifts are optional: hide the card, keep the product list working.
+        setGifts(null)
+        setGiftOffer(null)
+        if (pendingGiftIdRef.current !== null) {
+          pendingGiftIdRef.current = null
+          router.setParams({ giftId: undefined })
+        }
+      }
+    }
   }, [])
+
+  // ?giftId=N (from the add-product success modal) auto-opens the picker.
+  useEffect(() => {
+    if (!PROMOTION_UI_ENABLED || !params.giftId) return
+    const id = Number(params.giftId)
+    if (!Number.isFinite(id)) {
+      router.setParams({ giftId: undefined })
+      return
+    }
+    pendingGiftIdRef.current = id
+    // Already focused and loaded once: refetch so a brand-new gift is visible.
+    if (giftsLoadedRef.current) load()
+  }, [params.giftId, load])
 
   useFocusEffect(
     useCallback(() => {
@@ -442,6 +490,10 @@ export default function MyAdsScreen() {
             )
           })}
         </View>
+      )}
+
+      {PROMOTION_UI_ENABLED && gifts !== null && (
+        <PromoGiftCard offer={giftOffer} gifts={gifts} onPick={setPickerGift} />
       )}
 
       {products === null && !error ? (
@@ -1014,6 +1066,21 @@ export default function MyAdsScreen() {
           </Pressable>
         </KeyboardAvoidingView>
       </Modal>
+
+      {PROMOTION_UI_ENABLED && pickerGift && (
+        <PromoGiftPicker
+          gift={pickerGift}
+          products={products ?? []}
+          onClose={() => setPickerGift(null)}
+          onClaimed={() => {
+            setPickerGift(null)
+            load() // refresh gifts + products (promoted pill, card)
+          }}
+          onClaimError={() => {
+            load() // gift/product may be stale: refetch both
+          }}
+        />
+      )}
     </DashboardLayout>
   )
 }

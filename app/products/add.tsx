@@ -35,6 +35,7 @@ import {
 } from '@/lib/api'
 import { authErrorMessage, authPost } from '@/lib/auth'
 import { track } from '@/lib/analytics'
+import { PROMOTION_UI_ENABLED } from '@/lib/platform'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
@@ -90,6 +91,8 @@ export default function AddProductScreen() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [publishedId, setPublishedId] = useState<number | string | null>(null)
+  // Set when the backend granted a free-promotion gift for this publish.
+  const [grantedGiftId, setGrantedGiftId] = useState<number | null>(null)
   const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   const hydrated = useRef(false)
@@ -275,7 +278,10 @@ export default function AddProductScreen() {
           .map((img, i) => ({ url: img.url, sortOrder: i })),
       }
 
-      const created = await authPost<{ id?: number | string }>('/products', payload)
+      const created = await authPost<{
+        id?: number | string
+        promoGiftGranted?: { giftId: number; days: number }
+      }>('/products', payload)
       await SecureStore.deleteItemAsync(DRAFT_KEY).catch(() => {})
       void track({
         name: 'post_listing',
@@ -286,6 +292,9 @@ export default function AddProductScreen() {
         },
       })
       void bumpEngagement('publish')
+      setGrantedGiftId(
+        PROMOTION_UI_ENABLED && created?.promoGiftGranted ? created.promoGiftGranted.giftId : null,
+      )
       setPublishedId(created?.id ?? '')
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : ''
@@ -308,6 +317,12 @@ export default function AddProductScreen() {
       router.replace('/dashboard/promote')
     }
   }, [publishedId])
+
+  const goPickGift = useCallback(() => {
+    const giftId = grantedGiftId
+    setPublishedId(null)
+    router.replace(`/dashboard/my-ads?giftId=${giftId}`)
+  }, [grantedGiftId])
 
   const goMyAds = useCallback(() => {
     setPublishedId(null)
@@ -650,11 +665,19 @@ export default function AddProductScreen() {
             </View>
 
             <View style={styles.modalActions}>
-              <Button
-                label={`🚀  ${ar ? 'ترقية الإعلان الآن' : 'Promote Now'}`}
-                onPress={goPromote}
-                variant="cta"
-              />
+              {grantedGiftId !== null ? (
+                <Button
+                  label={ar ? '🎁 اختار الإعلان اللي هيتروّج مجاناً' : '🎁 Pick the listing to promote free'}
+                  onPress={goPickGift}
+                  variant="cta"
+                />
+              ) : (
+                <Button
+                  label={`🚀  ${ar ? 'ترقية الإعلان الآن' : 'Promote Now'}`}
+                  onPress={goPromote}
+                  variant="cta"
+                />
+              )}
               {broEnabled && (
                 <Button
                   label={`🤝  ${ar ? 'اعرض منتجك على طلبات العملاء' : 'Offer your product to buyers'}`}
