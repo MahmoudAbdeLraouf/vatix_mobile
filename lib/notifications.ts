@@ -114,7 +114,11 @@ type NotificationDataRoute = {
 
 function routeFromData(data: NotificationDataRoute | undefined): string | null {
   if (!data) return null
-  if (data.route && typeof data.route === 'string') return data.route
+  if (data.route && typeof data.route === 'string') {
+    // Backend notification links use the website path; mobile's route is hyphenated.
+    if (data.route === '/dashboard/myads') return '/dashboard/my-ads'
+    return data.route
+  }
   if (data.broRequestId != null) return `/bro/requests/${data.broRequestId}`
   if (data.productId != null) return `/products/${data.productId}`
   if (data.storeId != null) return `/store/${data.storeId}`

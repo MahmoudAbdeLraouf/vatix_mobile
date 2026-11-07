@@ -226,6 +226,7 @@ export interface UserActionFlags {
   showUsePromoCreditsDialog?: boolean
   showStoreCategoriesBrandsDialog?: boolean
   showStoreVerifyDialog?: boolean
+  showPromoGiftOfferDialog?: boolean
   subscriptionEndsAt?: string | null
   promoCreditsBalance?: number
 }
@@ -254,6 +255,15 @@ export interface UserProfile {
   trialUsed?: boolean
   extraProductSlots?: number
   walletBalance?: number
+  promoGiftOffer?: {
+    enabled: boolean
+    threshold: number
+    days: number
+    productCount: number
+    eligible: boolean
+    gotOfferGift: boolean
+  } | null
+  promoGiftsAvailable?: number
 }
 
 export interface PendingUpgradeRequest {
