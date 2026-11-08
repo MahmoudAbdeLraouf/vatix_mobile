@@ -62,10 +62,12 @@ export default function RegisterScreen() {
     }
   }, [])
 
-  const clientItems = [
-    svText(sv, 'regClientCap', p, locale),
-    ...(p.offersOn ? [svText(sv, 'regClientOffers', p, locale)] : []),
-    sv.regClientSwitch,
+  const clientChips: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+    { icon: 'cube-outline', label: svText(sv, 'regClientChipCap', p, locale) },
+    ...(p.offersOn
+      ? [{ icon: 'pricetag-outline' as const, label: svText(sv, 'regClientChipOffers', p, locale) }]
+      : []),
+    { icon: 'swap-horizontal-outline', label: sv.regClientChipSwitch },
   ]
 
   const go = (route: SignupRoute) =>
@@ -175,36 +177,43 @@ export default function RegisterScreen() {
                 <Text style={[styles.typeLabel, dirStyle]}>{sv.regClientTitle}</Text>
                 <Text style={[styles.typeMeta, dirStyle]}>{sv.regClientSub}</Text>
               </View>
-              <View style={styles.freeTag}>
-                <Text style={styles.freeText}>{sv.regFree}</Text>
-                <Text style={styles.freeSmall}>{sv.regFreeForever}</Text>
-              </View>
             </View>
-            <View style={styles.list}>
-              {clientItems.map(item => (
-                <View key={item} style={[styles.listRow, rowDir]}>
-                  <Text style={styles.bullet}>•</Text>
-                  <Text style={[styles.listText, dirStyle]}>{item}</Text>
+            <View style={[styles.chips, rowDir]}>
+              {clientChips.map(chip => (
+                <View key={chip.icon} style={[styles.chip, rowDir]}>
+                  <Ionicons name={chip.icon} size={14} color={colors.subtle} />
+                  <Text style={[styles.chipText, dirStyle]} numberOfLines={1}>
+                    {chip.label}
+                  </Text>
                 </View>
               ))}
+            </View>
+            <View style={[styles.priceRow, rowDir]}>
+              <Text style={[styles.priceText, dirStyle]}>
+                <Text style={styles.priceBig}>{sv.regFree}</Text> {sv.regFreeForever}
+              </Text>
+              <View style={styles.noSubPill}>
+                <Text style={[styles.noSubText, dirStyle]}>{sv.regNoSub}</Text>
+              </View>
             </View>
             <View style={styles.outlineBtn}>
               <Text style={styles.outlineBtnText}>{sv.regClientCta}</Text>
             </View>
           </Pressable>
-        </ScrollView>
 
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, dirStyle]}>{t.alreadyHaveAccount} </Text>
-          <Link
-            href={redirect ? { pathname: '/(auth)/login', params: { redirect } } : '/(auth)/login'}
-            asChild
-          >
-            <Pressable>
-              <Text style={[styles.link, dirStyle]}>{t.login}</Text>
-            </Pressable>
-          </Link>
-        </View>
+          {/* Last item of the evenly spread column — never pinned to the tab bar */}
+          <View style={[styles.footer, rowDir]}>
+            <Text style={[styles.footerText, dirStyle]}>{sv.regHaveAccount} </Text>
+            <Link
+              href={redirect ? { pathname: '/(auth)/login', params: { redirect } } : '/(auth)/login'}
+              asChild
+            >
+              <Pressable hitSlop={8} style={styles.linkWrap}>
+                <Text style={[styles.link, dirStyle]}>{sv.regLoginLink}</Text>
+              </Pressable>
+            </Link>
+          </View>
+        </ScrollView>
       </View>
 
       <BottomTabBar />
@@ -219,7 +228,7 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
+    paddingBottom: 14,
     paddingHorizontal: spacing.lg,
   },
   headerRow: {
@@ -244,7 +253,7 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   },
   heroTitle: {
     fontFamily: fonts.extraBold,
-    fontSize: 24,
+    fontSize: 22,
     color: colors.white,
     textAlign: 'center',
   },
@@ -257,16 +266,22 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
 
-  scroll: { paddingTop: 6, paddingBottom: spacing.sm },
+  // Grows to the card height and spreads store / client / login evenly; scrolls on short screens.
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'space-evenly',
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+    gap: 12,
+  },
 
   storeCard: {
     borderRadius: 18,
     borderWidth: 2,
     borderColor: colors.y,
     backgroundColor: dark ? colors.card : '#FFFCF0',
-    padding: 14,
-    paddingTop: 18,
-    marginTop: 8,
+    padding: 12,
+    paddingTop: 16,
     gap: 8,
     ...(dark ? null : shadow.ss),
   },
@@ -301,14 +316,13 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   cta: {
     backgroundColor: colors.y,
     borderRadius: radius.md,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
   },
   ctaText: { fontFamily: fonts.black, fontSize: 15, color: colors.dk },
 
   clientCard: {
-    marginTop: 12,
-    padding: 14,
+    padding: 12,
     gap: 8,
     borderRadius: 18,
     borderWidth: 1.5,
@@ -316,8 +330,8 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     backgroundColor: colors.card,
   },
   typeIconWrap: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -329,24 +343,34 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     borderColor: colors.border,
   },
   typeLabel: { fontFamily: fonts.black, fontSize: 16, color: colors.heading },
-  list: { gap: 4 },
-  listRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  bullet: { fontFamily: fonts.bold, fontSize: 12, color: colors.subtle, lineHeight: 20 },
-  listText: {
-    flex: 1,
-    fontFamily: fonts.semiBold,
-    fontSize: 12,
-    lineHeight: 20,
-    color: dark ? colors.muted : colors.g600,
+  // Neutral twin of StoreValueChips — same shape, grey instead of the store's accent.
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: dark ? colors.placeholder : colors.g100,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 30,
+    paddingVertical: 3,
+    paddingHorizontal: 9,
   },
-  freeTag: { alignItems: 'center' },
-  freeText: { fontFamily: fonts.black, fontSize: 18, color: colors.heading },
-  freeSmall: { fontFamily: fonts.semiBold, fontSize: 11, color: dark ? colors.muted : colors.g600 },
+  chipText: { fontFamily: fonts.extraBold, fontSize: 12, color: dark ? colors.muted : colors.g600 },
+  noSubPill: {
+    backgroundColor: dark ? colors.placeholder : colors.g100,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  noSubText: { fontFamily: fonts.extraBold, fontSize: 12, color: dark ? colors.muted : colors.g600 },
   outlineBtn: {
     borderWidth: 1.5,
     borderColor: dark ? colors.y : colors.dk,
     borderRadius: radius.md,
-    paddingVertical: 10,
+    paddingVertical: 9,
     alignItems: 'center',
     backgroundColor: colors.card,
   },
@@ -356,18 +380,17 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    alignItems: 'center',
   },
   footerText: {
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    color: colors.muted,
+    fontFamily: fonts.semiBold,
+    fontSize: 14.5,
+    color: dark ? colors.muted : colors.g600,
   },
   link: {
-    fontFamily: fonts.bold,
-    fontSize: 14,
-    color: colors.y,
+    fontFamily: fonts.black,
+    fontSize: 14.5,
+    color: colors.heading,
   },
+  linkWrap: { borderBottomWidth: 2, borderBottomColor: colors.y },
 })

@@ -1351,6 +1351,12 @@ export interface Translations {
     regFree: string
     regFreeForever: string
     regClientCta: string
+    regClientChipCap: string
+    regClientChipOffers: string
+    regClientChipSwitch: string
+    regNoSub: string
+    regHaveAccount: string
+    regLoginLink: string
     perMonthSlash: string
     signupTrial: string
     signupThen: string
@@ -2706,6 +2712,12 @@ export const translations: Record<Locale, Translations> = {
       regFree: "مجاناً",
       regFreeForever: "على طول",
       regClientCta: "متابعة كعميل",
+      regClientChipCap: "{cap} إعلانات",
+      regClientChipOffers: "{offers} عروض / شهر",
+      regClientChipSwitch: "تحوّل لمتجر",
+      regNoSub: "بدون اشتراك",
+      regHaveAccount: "عندك حساب؟",
+      regLoginLink: "سجّل دخول",
       perMonthSlash: " / شهر",
       signupTrial: "🎉 أول {trialDays} يوم مجاناً",
       signupThen: " — بعدها {price} ج.م/شهر",
@@ -4060,6 +4072,12 @@ export const translations: Record<Locale, Translations> = {
       regFree: "Free",
       regFreeForever: "forever",
       regClientCta: "Continue as client",
+      regClientChipCap: "{cap} listings",
+      regClientChipOffers: "{offers} offers / mo",
+      regClientChipSwitch: "Upgrade anytime",
+      regNoSub: "No subscription",
+      regHaveAccount: "Have an account?",
+      regLoginLink: "Log in",
       perMonthSlash: " / month",
       signupTrial: "🎉 First {trialDays} days free",
       signupThen: " — then {price} EGP/mo",
