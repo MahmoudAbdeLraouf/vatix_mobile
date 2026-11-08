@@ -1281,6 +1281,14 @@ export interface Translations {
     previewYes: string
     previewNo: string
   }
+  promotedAnalytics: {
+    title: string
+    body: string
+    cta: string
+    empty: string
+    tileLabel: string
+    pill: string
+  }
   storeValue: {
     ribbon: string
     fullTitle: string
@@ -2642,6 +2650,14 @@ export const translations: Record<Locale, Translations> = {
       previewYes: 'أيوه، اشتريته',
       previewNo: 'لا، مش أنا',
     },
+    promotedAnalytics: {
+      title: "إحصائيات إعلاناتك المميزة فقط",
+      body: "ميّز أي إعلان لتتابع وصوله وتفاعله وتواصل المشترين معاه.",
+      cta: "ميّز إعلان ←",
+      empty: "لا توجد إعلانات مميزة بعد. ميّز إعلانك لتشوف إحصائياته.",
+      tileLabel: "إعلانات مميزة",
+      pill: "مميز",
+    },
     storeValue: {
       ribbon: "باقة المتجر",
       fullTitle: "كل ده في اشتراك واحد",
@@ -4001,6 +4017,14 @@ export const translations: Record<Locale, Translations> = {
       previewFooter: 'Vatix · Egypt’s electronics marketplace',
       previewYes: 'Yes, I bought it',
       previewNo: "No, that's not me",
+    },
+    promotedAnalytics: {
+      title: "Showing your promoted ads only",
+      body: "Promote any ad to track its reach, interactions and buyer contacts.",
+      cta: "Promote an ad →",
+      empty: "No promoted ads yet. Promote an ad to see its stats.",
+      tileLabel: "Promoted ads",
+      pill: "Promoted",
     },
     storeValue: {
       ribbon: "Store plan",
