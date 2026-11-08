@@ -1344,6 +1344,14 @@ export interface Translations {
     regStoreCta: string
     regClientTitle: string
     regClientMeta: string
+    regClientSub: string
+    regClientCap: string
+    regClientOffers: string
+    regClientSwitch: string
+    regFree: string
+    regFreeForever: string
+    regClientCta: string
+    perMonthSlash: string
     signupTrial: string
     signupThen: string
     signupUrlLabel: string
@@ -2685,12 +2693,20 @@ export const translations: Record<Locale, Translations> = {
       lossGift: "ومش هتاخد ترويج المنتج الهدية",
       regTitle: "هتبيع على ڤاتيكس إزاي؟",
       regSub: "تقدر تحوّل لمتجر في أي وقت بعدين.",
-      regStoreRibbon: "الأنسب لو بتبيع كتير",
+      regStoreRibbon: "الأنسب للتجار",
       regStoreTitle: "أنا متجر",
       regStoreMeta: "لأصحاب المحلات والتجار",
       regStoreCta: "افتح متجري مجاناً ←",
       regClientTitle: "أنا عميل",
       regClientMeta: "مجاناً · لحد {cap} إعلانات",
+      regClientSub: "لو بتبيع حاجة من وقت للتاني",
+      regClientCap: "لحد {cap} إعلانات",
+      regClientOffers: "{offers} عروض على الطلبات في الشهر",
+      regClientSwitch: "تقدر تحوّل لمتجر في أي وقت",
+      regFree: "مجاناً",
+      regFreeForever: "على طول",
+      regClientCta: "متابعة كعميل",
+      perMonthSlash: " / شهر",
       signupTrial: "🎉 أول {trialDays} يوم مجاناً",
       signupThen: " — بعدها {price} ج.م/شهر",
       signupUrlLabel: "رابط متجرك",
@@ -4031,12 +4047,20 @@ export const translations: Record<Locale, Translations> = {
       lossGift: "And you won't get the free product promotion",
       regTitle: "How will you sell on Vatix?",
       regSub: "You can switch to a store any time later.",
-      regStoreRibbon: "Best if you sell a lot",
+      regStoreRibbon: "Best for sellers",
       regStoreTitle: "I'm a store",
       regStoreMeta: "For shop owners and traders",
       regStoreCta: "Open my store for free →",
       regClientTitle: "I'm a client",
       regClientMeta: "Free · up to {cap} listings",
+      regClientSub: "If you sell something now and then",
+      regClientCap: "Up to {cap} listings",
+      regClientOffers: "{offers} offers on requests per month",
+      regClientSwitch: "Switch to a store any time",
+      regFree: "Free",
+      regFreeForever: "forever",
+      regClientCta: "Continue as client",
+      perMonthSlash: " / month",
       signupTrial: "🎉 First {trialDays} days free",
       signupThen: " — then {price} EGP/mo",
       signupUrlLabel: "Your store link",
