@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   FlatList,
   Linking,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   Share,
@@ -42,7 +45,7 @@ import { RevealPhone } from '@/components/RevealPhone'
 import { StartChatButton } from '@/components/StartChatButton'
 import { StarRating } from '@/components/StarRating'
 import { RatingSection } from '@/components/RatingSection'
-import { VerifiedBadge } from '@/components/VerifiedBadge'
+import { VerifiedBadge, VerifiedSeal } from '@/components/VerifiedBadge'
 import { SalesRecordPill } from '@/components/SalesRecordPill'
 import { SalesRecordSheet } from '@/components/SalesRecordSheet'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
@@ -55,6 +58,11 @@ const HERO_H = 420
 // 400-px thumbnail — we pass it as `placeholder` for instant paint.
 const HERO_TARGET_W = Math.min(1080, Math.round(SCREEN_W * 2))
 const THUMB_TARGET_W = 160
+// Pinned header (bar + section tabs) fades in as the hero scrolls away.
+const PIN_BAR_H = 56
+const PIN_TABS_H = 46
+const PIN_H = PIN_BAR_H + PIN_TABS_H
+type SectionKey = 'seller' | 'description' | 'details' | 'reviews' | 'similar'
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://vatix.store'
 const WA_GREEN = '#25D366'
@@ -138,6 +146,55 @@ export default function ProductDetailScreen() {
   )
   const backIcon = isRtl ? 'chevron-forward-outline' : 'chevron-back-outline'
   const forwardIcon = isRtl ? 'chevron-back-outline' : 'chevron-forward-outline'
+
+  // Pinned header state. Section offsets are measured relative to the content
+  // card, so cardY is added back when comparing against the scroll offset.
+  const scrollRef = useRef<ScrollView>(null)
+  const scrollY = useRef(new Animated.Value(0)).current
+  const cardY = useRef(0)
+  const sectionY = useRef<Partial<Record<SectionKey, number>>>({})
+  const tabKeys = useRef<SectionKey[]>([])
+  const tabLockUntil = useRef(0)
+  const pinnedRef = useRef(false)
+  const activeTabRef = useRef<SectionKey | null>(null)
+  const [pinned, setPinned] = useState(false)
+  const [activeTab, setActiveTab] = useState<SectionKey | null>(null)
+  const selectTab = (key: SectionKey | null) => {
+    if (key === activeTabRef.current) return
+    activeTabRef.current = key
+    setActiveTab(key)
+  }
+  const onScroll = useMemo(
+    () =>
+      Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+        useNativeDriver: true,
+        listener: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+          const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent
+          const y = contentOffset.y
+          const nextPinned = y > HERO_H - PIN_H + 14
+          if (nextPinned !== pinnedRef.current) {
+            pinnedRef.current = nextPinned
+            setPinned(nextPinned)
+          }
+          if (Date.now() < tabLockUntil.current) return
+          const keys = tabKeys.current
+          let next: SectionKey | null = keys[0] ?? null
+          if (keys.length && y + layoutMeasurement.height >= contentSize.height - 4) {
+            next = keys[keys.length - 1]
+          } else {
+            for (const key of keys) {
+              const sy = sectionY.current[key]
+              if (sy != null && cardY.current + sy <= y + PIN_H + 20) next = key
+            }
+          }
+          if (next !== activeTabRef.current) {
+            activeTabRef.current = next
+            setActiveTab(next)
+          }
+        },
+      }),
+    [scrollY],
+  )
 
   useEffect(() => {
     if (!id) return
@@ -265,90 +322,571 @@ export default function ProductDetailScreen() {
   const avg = product.averageRating ?? 0
   const ratingsCount = product.ratingsCount ?? 0
 
+  const onShare = () => {
+    const url = `${SITE_URL}/products/${product.slug ?? product.id}`
+    const msg = locale === 'ar'
+      ? `${product.title}\nالسعر: ${product.price} جنيه\n${url}`
+      : `${product.title}\nPrice: ${product.price} EGP\n${url}`
+    logShare('product', product.id, 'native')
+    Share.share({ message: msg, url, title: product.title }).catch(() => {})
+  }
+
+  const ar = locale === 'ar'
+  const tabs: { key: SectionKey; label: string }[] = [
+    ...(owner?.id ? [{ key: 'seller' as const, label: ar ? 'البائع' : 'Seller' }] : []),
+    ...(product.description ? [{ key: 'description' as const, label: t.description }] : []),
+    { key: 'details', label: ar ? 'التفاصيل' : 'Details' },
+    { key: 'reviews', label: t.reviews },
+    ...(similarItems.length > 0 && product.category
+      ? [{ key: 'similar' as const, label: ar ? 'مشابهة' : 'Similar' }]
+      : []),
+  ]
+  tabKeys.current = tabs.map((tab) => tab.key)
+  const currentTab = activeTab ?? tabs[0]?.key
+  const measure = (key: SectionKey) => (e: { nativeEvent: { layout: { y: number } } }) => {
+    sectionY.current[key] = e.nativeEvent.layout.y
+  }
+  const scrollToSection = (key: SectionKey) => {
+    const sy = sectionY.current[key]
+    if (sy == null) return
+    tabLockUntil.current = Date.now() + 600
+    selectTab(key)
+    scrollRef.current?.scrollTo({ y: Math.max(0, cardY.current + sy - PIN_H - 8), animated: true })
+  }
+  const pinRange = [HERO_H - PIN_H - 18, HERO_H - PIN_BAR_H]
+  const pinOpacity = scrollY.interpolate({ inputRange: pinRange, outputRange: [0, 1], extrapolate: 'clamp' })
+  const pinShift = scrollY.interpolate({ inputRange: pinRange, outputRange: [-8, 0], extrapolate: 'clamp' })
+  const pinThumb = imgUrl(images[0]?.url, { w: THUMB_TARGET_W })
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        bounces
-        contentContainerStyle={hasActions ? { paddingBottom: bottomBarH } : undefined}
-      >
-        {/* ── Dark image zone ── */}
-        <View style={styles.imageZone}>
-          <View style={styles.circle1} />
-          <View style={styles.circle2} />
+      <View style={styles.body}>
+        <Animated.ScrollView
+          ref={scrollRef}
+          showsVerticalScrollIndicator={false}
+          bounces
+          scrollEventThrottle={16}
+          onScroll={onScroll}
+          contentContainerStyle={hasActions ? { paddingBottom: bottomBarH } : undefined}
+        >
+          {/* ── Dark image zone ── */}
+          <View style={styles.imageZone}>
+            <View style={styles.circle1} />
+            <View style={styles.circle2} />
 
-          {images.length > 0 ? (
-            <FlatList
-              ref={galleryRef}
-              data={images}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) => String(item.id)}
-              renderItem={({ item }) => {
-                const u = imgUrl(item.url, { w: HERO_TARGET_W })
-                const placeholder = imgUrl(item.url, { w: 400 })
-                return u ? (
-                  <Image
-                    source={{ uri: u }}
-                    placeholder={placeholder ? { uri: placeholder } : undefined}
-                    placeholderContentFit="contain"
-                    style={styles.heroImage}
-                    contentFit="contain"
-                    cachePolicy="memory-disk"
-                    transition={150}
-                    recyclingKey={String(item.id)}
+            {images.length > 0 ? (
+              <FlatList
+                ref={galleryRef}
+                data={images}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={({ item }) => {
+                  const u = imgUrl(item.url, { w: HERO_TARGET_W })
+                  const placeholder = imgUrl(item.url, { w: 400 })
+                  return u ? (
+                    <Image
+                      source={{ uri: u }}
+                      placeholder={placeholder ? { uri: placeholder } : undefined}
+                      placeholderContentFit="contain"
+                      style={styles.heroImage}
+                      contentFit="contain"
+                      cachePolicy="memory-disk"
+                      transition={150}
+                      recyclingKey={String(item.id)}
+                    />
+                  ) : (
+                    <View style={styles.heroPlaceholder} />
+                  )
+                }}
+                viewabilityConfig={viewabilityConfig}
+                onViewableItemsChanged={onViewableItemsChanged}
+                initialNumToRender={Math.max(images.length, 1)}
+                maxToRenderPerBatch={Math.max(images.length, 1)}
+                windowSize={Math.max(images.length * 2, 3)}
+                removeClippedSubviews={false}
+              />
+            ) : (
+              <View style={styles.heroPlaceholder} />
+            )}
+
+            {/* Page dots — force row-reverse in RTL so dot[0] visually aligns
+                with image[0] (which native RTL FlatList renders at the right). */}
+            {images.length > 1 && (
+              <View
+                pointerEvents="none"
+                style={[styles.dotsRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}
+              >
+                {images.map((img, i) => (
+                  <View
+                    key={img.id}
+                    style={[styles.dot, i === imgIndex && styles.dotActive]}
                   />
-                ) : (
-                  <View style={styles.heroPlaceholder} />
-                )
-              }}
-              viewabilityConfig={viewabilityConfig}
-              onViewableItemsChanged={onViewableItemsChanged}
-              initialNumToRender={Math.max(images.length, 1)}
-              maxToRenderPerBatch={Math.max(images.length, 1)}
-              windowSize={Math.max(images.length * 2, 3)}
-              removeClippedSubviews={false}
-            />
-          ) : (
-            <View style={styles.heroPlaceholder} />
-          )}
+                ))}
+              </View>
+            )}
 
-          {/* Page dots — force row-reverse in RTL so dot[0] visually aligns
-              with image[0] (which native RTL FlatList renders at the right). */}
-          {images.length > 1 && (
-            <View
-              pointerEvents="none"
-              style={[styles.dotsRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}
-            >
-              {images.map((img, i) => (
-                <View
-                  key={img.id}
-                  style={[styles.dot, i === imgIndex && styles.dotActive]}
+            {/* Image counter pill */}
+            {images.length > 1 && (
+              <View style={styles.counterPill}>
+                <Ionicons name="images-outline" size={11} color={colors.white} />
+                <Text style={styles.counterText}>
+                  {imgIndex + 1} / {images.length}
+                </Text>
+              </View>
+            )}
+
+            {/* Floating header — back button always on the visual start side */}
+            <View style={styles.floatingHeader}>
+              <Pressable style={styles.iconBtn} onPress={() => router.back()} hitSlop={8}>
+                <Ionicons name={backIcon} size={22} color={colors.white} />
+              </Pressable>
+
+              <View style={{ flex: 1 }} />
+
+              <View style={styles.iconBtn}>
+                <FavoriteButton
+                  productId={product.id}
+                  size={20}
+                  color={colors.white}
+                  activeColor={colors.error}
                 />
-              ))}
+              </View>
+              <Pressable style={styles.iconBtn} onPress={onShare} hitSlop={8}>
+                <Ionicons name="share-social-outline" size={20} color={colors.white} />
+              </Pressable>
+              <Pressable
+                style={styles.iconBtn}
+                onPress={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
+                hitSlop={8}
+              >
+                <Ionicons name="globe-outline" size={20} color={colors.white} />
+              </Pressable>
+              <Pressable
+                style={styles.iconBtn}
+                onPress={() => {
+                  if (!requireLogin()) return
+                  router.push('/dashboard/notifications')
+                }}
+                hitSlop={8}
+              >
+                <Ionicons name="notifications-outline" size={22} color={colors.white} />
+              </Pressable>
+              <MessagesBell color={colors.white} style={styles.iconBtn} />
+              {owner?.id && user?.id === owner.id && (
+                <Pressable
+                  style={styles.iconBtn}
+                  onPress={() => router.push(`/products/edit/${product.id}`)}
+                  hitSlop={8}
+                >
+                  <Ionicons name="create-outline" size={20} color={colors.white} />
+                </Pressable>
+              )}
             </View>
-          )}
+          </View>
 
-          {/* Image counter pill */}
-          {images.length > 1 && (
-            <View style={styles.counterPill}>
-              <Ionicons name="images-outline" size={11} color={colors.white} />
-              <Text style={styles.counterText}>
-                {imgIndex + 1} / {images.length}
-              </Text>
+          {/* ── White content card ── */}
+          <View style={styles.card} onLayout={(e) => { cardY.current = e.nativeEvent.layout.y }}>
+            <View style={styles.handle} />
+
+            {!isOwnListing && isUnavailable && <BroEntryCard variant="sold" context={broContext} />}
+
+            {/* Condition + location row */}
+            <View style={styles.badgeRow}>
+              <View
+                style={[styles.conditionBadge, isNew ? styles.conditionNew : styles.conditionUsed]}
+              >
+                {isNew && <View style={styles.conditionDot} />}
+                <Text
+                  style={[
+                    styles.conditionText,
+                    isNew ? styles.conditionNewText : styles.conditionUsedText,
+                    dir,
+                  ]}
+                >
+                  {conditionLabel}
+                </Text>
+              </View>
+              <View style={styles.locationChip}>
+                <Ionicons name="location-outline" size={12} color={colors.muted} />
+                <Text style={[styles.locationText, dir]}>{locationName}</Text>
+              </View>
             </View>
-          )}
 
-          {/* Floating header — back button always on the visual start side */}
-          <View style={styles.floatingHeader}>
-            <Pressable style={styles.iconBtn} onPress={() => router.back()} hitSlop={8}>
+            {/* Title */}
+            <Text style={[styles.title, dir]}>{product.title}</Text>
+
+            {/* Rating row */}
+            {ratingsCount > 0 && (
+              <View style={styles.ratingRow}>
+                <StarRating value={avg} size={16} />
+                <Text style={[styles.ratingAvg, dir]}>{avg.toFixed(1)}</Text>
+                <Text style={[styles.ratingCount, dir]}>
+                  {locale === 'ar'
+                    ? `(${ratingsCount} تقييم${ratingsCount === 1 ? '' : 'ات'})`
+                    : `(${ratingsCount} review${ratingsCount === 1 ? '' : 's'})`}
+                </Text>
+              </View>
+            )}
+
+            {/* Price block */}
+            <View style={styles.priceBlock}>
+              <View style={styles.priceBlockGlow} />
+              <View style={styles.priceMain}>
+                <Text style={[styles.priceLabel, dir]}>{t.price}</Text>
+                <View style={styles.priceRow}>
+                  <Text style={[styles.price, dir]}>{Number(product.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}</Text>
+                  <Text style={[styles.currency, dir]}>{t.egp}</Text>
+                </View>
+              </View>
+              <View style={styles.priceAccent}>
+                <Ionicons name="pricetag" size={22} color={colors.y} />
+              </View>
+            </View>
+
+            {/* Store / seller card — only stores get the tappable "visit" CTA;
+                individual client sellers render as a plain identity block since
+                they have no storefront page to route to. */}
+            {isStore && !!owner?.id && !!owner.salesRecord?.total && (
+              <SalesRecordSheet
+                visible={salesSheetOpen}
+                storeId={owner.id}
+                onClose={() => setSalesSheetOpen(false)}
+              />
+            )}
+            {!!owner?.id && (
+              <View onLayout={measure('seller')}>
+              {isStore ? (
+                <Pressable
+                  onPress={() => router.push(`/store/${owner.id}`)}
+                  style={({ pressed }) => [styles.sellerCard, pressed && { opacity: 0.9 }]}
+                >
+                  <View style={styles.sellerLogo}>
+                    {storeLogo ? (
+                      <Image
+                        source={{ uri: storeLogo }}
+                        style={styles.sellerLogoImg}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        transition={120}
+                      />
+                    ) : (
+                      <Text style={styles.sellerLogoFallback}>🏪</Text>
+                    )}
+                  </View>
+                  <View style={styles.sellerMain}>
+                    <View style={styles.sellerHeader}>
+                      <Text style={[styles.sellerName, dir]} numberOfLines={1}>
+                        {storeName || (locale === 'ar' ? 'بائع' : 'Seller')}
+                      </Text>
+                      <View style={[styles.sellerBadge, { backgroundColor: ownerBadge.bg }]}>
+                        <Text style={[styles.sellerBadgeText, { color: ownerBadge.fg }, dir]}>
+                          {ownerBadge.label}
+                        </Text>
+                      </View>
+                    </View>
+                    {!!ownerVerification?.verified && (
+                      <View style={styles.sellerVerified}>
+                        <VerifiedBadge verification={ownerVerification} variant="full" />
+                      </View>
+                    )}
+                    {!!owner.salesRecord?.total && (
+                      <View style={styles.sellerSales}>
+                        <SalesRecordPill
+                          variant="link"
+                          total={owner.salesRecord.total}
+                          onOpen={() => setSalesSheetOpen(true)}
+                        />
+                      </View>
+                    )}
+                    <View style={styles.sellerCtaRow}>
+                      <Text style={[styles.sellerCta, dir]}>{t.visit}</Text>
+                      <Ionicons name={forwardIcon} size={13} color={colors.heading} />
+                    </View>
+                  </View>
+                </Pressable>
+              ) : (
+                <View style={styles.sellerCard}>
+                  <View style={styles.sellerLogo}>
+                    <Text style={styles.sellerLogoFallback}>👤</Text>
+                  </View>
+                  <View style={styles.sellerMain}>
+                    <View style={styles.sellerHeader}>
+                      <Text style={[styles.sellerName, dir]} numberOfLines={1}>
+                        {storeName || (locale === 'ar' ? 'بائع' : 'Seller')}
+                      </Text>
+                      <View style={[styles.sellerBadge, { backgroundColor: ownerBadge.bg }]}>
+                        <Text style={[styles.sellerBadgeText, { color: ownerBadge.fg }, dir]}>
+                          {ownerBadge.label}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+              </View>
+            )}
+
+            {!isOwnListing && !isUnavailable && <BroEntryCard variant="product" context={broContext} />}
+
+            {/* Safety tips — surfaced before contact CTAs so buyers see the
+                inspect-before-pay guidance before reaching out to any seller. */}
+            <View style={styles.safetyCard}>
+              <View style={styles.safetyHeader}>
+                <View style={styles.safetyIconBadge}>
+                  <Ionicons name="shield-checkmark" size={18} color={colors.heading} />
+                </View>
+                <Text style={[styles.safetyTitle, dir]}>{t.safetyTipsTitle}</Text>
+              </View>
+              <Text style={[styles.safetyIntro, dir]}>{t.safetyTipsIntro}</Text>
+              <View style={styles.safetyList}>
+                <SafetyTip icon="phone-portrait-outline" text={t.safetyInspectDevice} dir={dir} />
+                <SafetyTip icon="people-outline" text={t.safetyMeetPublic} dir={dir} />
+                <SafetyTip icon="checkmark-done-outline" text={t.safetyVerifyBeforePay} dir={dir} />
+                <SafetyTip icon="alert-circle-outline" text={t.safetyReportSuspicious} dir={dir} />
+              </View>
+            </View>
+
+            {/* Brand + Category chips */}
+            <View style={styles.infoRow}>
+              <InfoChip icon="ribbon-outline" label={brandName} sublabel={t.brand} dir={dir} />
+              <InfoChip icon="pricetag-outline" label={categoryName} sublabel={t.category} dir={dir} />
+            </View>
+
+            {/* Description */}
+            {!!product.description && (
+              <View style={styles.section} onLayout={measure('description')}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionAccent} />
+                  <Text style={[styles.sectionTitle, dir]}>{t.description}</Text>
+                </View>
+                <View style={styles.descriptionBox}>
+                  <Text style={[styles.description, dir]}>{product.description}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Specs */}
+            <View style={styles.section} onLayout={measure('details')}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionAccent} />
+                <Text style={[styles.sectionTitle, dir]}>{t.productDetails}</Text>
+              </View>
+              <View style={styles.specsBox}>
+                <SpecRow
+                  icon="pricetag-outline"
+                  label={t.category}
+                  value={categoryName}
+                  dir={dir}
+                  dirEnd={dirEnd}
+                />
+                <SpecRow
+                  icon="ribbon-outline"
+                  label={t.brand}
+                  value={brandName}
+                  dir={dir}
+                  dirEnd={dirEnd}
+                />
+                <SpecRow
+                  icon="location-outline"
+                  label={t.location}
+                  value={locationName}
+                  dir={dir}
+                  dirEnd={dirEnd}
+                />
+                <SpecRow
+                  icon="shield-checkmark-outline"
+                  label={t.condition}
+                  value={conditionLabel}
+                  dir={dir}
+                  dirEnd={dirEnd}
+                />
+                <SpecRow
+                  icon="calendar-outline"
+                  label={locale === 'ar' ? 'نُشر' : 'Posted'}
+                  value={formatDate(product.createdAt, locale)}
+                  dir={dir}
+                  dirEnd={dirEnd}
+                />
+                <SpecRow
+                  icon="time-outline"
+                  label={locale === 'ar' ? 'آخر تحديث' : 'Updated'}
+                  value={formatDate(product.updatedAt, locale)}
+                  dir={dir}
+                  dirEnd={dirEnd}
+                  last
+                />
+              </View>
+            </View>
+
+            {/* Ratings */}
+            <View onLayout={measure('reviews')}>
+              <RatingSection
+                productId={product.id}
+                initialAvg={avg}
+                initialCount={ratingsCount}
+                ownerId={owner?.id}
+              />
+            </View>
+
+            {/* Featured stores — spotlight rail (mirrors website product page).
+                Guarded so the header/rail collapse cleanly when the endpoint
+                returns nothing. */}
+            {spotlightStores.length > 0 && (
+              <View style={styles.railSection}>
+                <View style={styles.railHeader}>
+                  <Text style={[styles.railTitle, dir]}>
+                    {locale === 'ar' ? '⭐ متاجر مميّزة' : '⭐ Featured Stores'}
+                  </Text>
+                  <Pressable onPress={() => router.push('/(tabs)/stores')} hitSlop={8}>
+                    <Text style={[styles.railLink, dir]}>
+                      {locale === 'ar' ? 'عرض الكل' : 'View all'}
+                    </Text>
+                  </Pressable>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.railList}
+                >
+                  {spotlightStores.map((store) => {
+                    const cover = imgUrl(store.storeProfile?.cover, { w: 340 })
+                    const logo = imgUrl(store.storeProfile?.logo, { w: 68 })
+                    const name = store.storeProfile?.name ?? ''
+                    return (
+                      <Pressable
+                        key={store.id}
+                        onPress={() => router.push(`/store/${store.id}`)}
+                        style={({ pressed }) => [
+                          styles.spotCard,
+                          pressed && { opacity: 0.92 },
+                        ]}
+                      >
+                        <View style={styles.spotCover}>
+                          {cover ? (
+                            <Image
+                              source={{ uri: cover }}
+                              style={styles.spotCoverImg}
+                              contentFit="cover"
+                              cachePolicy="memory-disk"
+                              transition={120}
+                              recyclingKey={`spot-cover-${store.id}`}
+                            />
+                          ) : (
+                            <View style={styles.spotCoverPlaceholder}>
+                              <Ionicons name="image-outline" size={22} color="rgba(255,255,255,0.25)" />
+                            </View>
+                          )}
+                          <View style={[styles.spotBadge, store.isPromoted === true ? styles.spotBadgePromoted : styles.spotBadgeStd]}>
+                            <Text style={[styles.spotBadgeText, styles.spotBadgeTextStd]}>
+                              {store.isPromoted === true ? t.featured : locale === 'ar' ? '🏪 متجر' : '🏪 Store'}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.spotBody}>
+                          <View style={styles.spotLogo}>
+                            {logo ? (
+                              <Image
+                                source={{ uri: logo }}
+                                style={styles.spotLogoImg}
+                                contentFit="contain"
+                                cachePolicy="memory-disk"
+                                transition={120}
+                                recyclingKey={`spot-logo-${store.id}`}
+                              />
+                            ) : (
+                              <Text style={styles.spotLogoFallback}>🏪</Text>
+                            )}
+                          </View>
+                          <Text
+                            style={[styles.spotName, dir]}
+                            numberOfLines={2}
+                          >
+                            {name}
+                          </Text>
+                          <VerifiedBadge
+                            verification={store.verification ?? store.storeProfile?.verification}
+                          />
+                        </View>
+                      </Pressable>
+                    )
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Similar products — soft-ranked store-first via `storeFirst: true`
+                so buyers see verified store listings before individual sellers. */}
+            {similarItems.length > 0 && product.category && (
+              <View style={styles.railSection} onLayout={measure('similar')}>
+                <View style={styles.railHeader}>
+                  <Text style={[styles.railTitle, dir]}>
+                    {locale === 'ar' ? 'إعلانات مشابهة' : 'Similar Listings'}
+                  </Text>
+                  <Pressable
+                    onPress={() =>
+                      router.push(
+                        `/(tabs)/products?categoryId=${product.category!.id}`,
+                      )
+                    }
+                    hitSlop={8}
+                  >
+                    <Text style={[styles.railLink, dir]}>
+                      {locale === 'ar' ? 'عرض الكل ←' : 'View all →'}
+                    </Text>
+                  </Pressable>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.railList}
+                >
+                  {similarItems.map((item) => (
+                    <ProductCard
+                      key={item.id}
+                      product={item}
+                      style={styles.similarCard}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+        </Animated.ScrollView>
+
+        {/* ── Pinned header — product bar + section tabs, shown once the hero scrolls away ── */}
+        <Animated.View
+          pointerEvents={pinned ? 'box-none' : 'none'}
+          style={[styles.pinWrap, { opacity: pinOpacity, transform: [{ translateY: pinShift }] }]}
+        >
+          <View style={styles.pinBar}>
+            <Pressable style={styles.pinBtn} onPress={() => router.back()} hitSlop={4}>
               <Ionicons name={backIcon} size={22} color={colors.white} />
             </Pressable>
-
-            <View style={{ flex: 1 }} />
-
-            <View style={styles.iconBtn}>
+            {pinThumb ? (
+              <Image
+                source={{ uri: pinThumb }}
+                style={styles.pinThumb}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+              />
+            ) : (
+              <View style={styles.pinThumb} />
+            )}
+            <View style={styles.pinMeta}>
+              <View style={styles.pinTitleRow}>
+                <Text style={[styles.pinTitle, dir]} numberOfLines={1}>{product.title}</Text>
+                {!!ownerVerification?.verified && <VerifiedSeal size={13} />}
+              </View>
+              <View style={styles.pinPriceRow}>
+                <Text style={[styles.pinPrice, dir]}>
+                  {Number(product.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}
+                </Text>
+                <Text style={[styles.pinCurrency, dir]}>{t.egp}</Text>
+              </View>
+            </View>
+            <View style={styles.pinBtn}>
               <FavoriteButton
                 productId={product.id}
                 size={20}
@@ -356,473 +894,93 @@ export default function ProductDetailScreen() {
                 activeColor={colors.error}
               />
             </View>
-            <Pressable
-              style={styles.iconBtn}
-              onPress={() => {
-                const url = `${SITE_URL}/products/${product.slug ?? product.id}`
-                const msg = locale === 'ar'
-                  ? `${product.title}\nالسعر: ${product.price} جنيه\n${url}`
-                  : `${product.title}\nPrice: ${product.price} EGP\n${url}`
-                logShare('product', product.id, 'native')
-                Share.share({ message: msg, url, title: product.title }).catch(() => {})
-              }}
-              hitSlop={8}
-            >
+            <Pressable style={styles.pinBtn} onPress={onShare} hitSlop={4}>
               <Ionicons name="share-social-outline" size={20} color={colors.white} />
             </Pressable>
-            <Pressable
-              style={styles.iconBtn}
-              onPress={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
-              hitSlop={8}
-            >
-              <Ionicons name="globe-outline" size={20} color={colors.white} />
-            </Pressable>
-            <Pressable
-              style={styles.iconBtn}
-              onPress={() => {
-                if (!requireLogin()) return
-                router.push('/dashboard/notifications')
-              }}
-              hitSlop={8}
-            >
-              <Ionicons name="notifications-outline" size={22} color={colors.white} />
-            </Pressable>
-            <MessagesBell color={colors.white} style={styles.iconBtn} />
-            {owner?.id && user?.id === owner.id && (
-              <Pressable
-                style={styles.iconBtn}
-                onPress={() => router.push(`/products/edit/${product.id}`)}
-                hitSlop={8}
-              >
-                <Ionicons name="create-outline" size={20} color={colors.white} />
-              </Pressable>
-            )}
           </View>
-        </View>
-
-        {/* ── White content card ── */}
-        <View style={styles.card}>
-          <View style={styles.handle} />
-
-          {!isOwnListing && isUnavailable && <BroEntryCard variant="sold" context={broContext} />}
-
-          {/* Condition + location row */}
-          <View style={styles.badgeRow}>
-            <View
-              style={[styles.conditionBadge, isNew ? styles.conditionNew : styles.conditionUsed]}
-            >
-              {isNew && <View style={styles.conditionDot} />}
-              <Text
-                style={[
-                  styles.conditionText,
-                  isNew ? styles.conditionNewText : styles.conditionUsedText,
-                  dir,
-                ]}
-              >
-                {conditionLabel}
-              </Text>
-            </View>
-            <View style={styles.locationChip}>
-              <Ionicons name="location-outline" size={12} color={colors.muted} />
-              <Text style={[styles.locationText, dir]}>{locationName}</Text>
-            </View>
-          </View>
-
-          {/* Title */}
-          <Text style={[styles.title, dir]}>{product.title}</Text>
-
-          {/* Rating row */}
-          {ratingsCount > 0 && (
-            <View style={styles.ratingRow}>
-              <StarRating value={avg} size={16} />
-              <Text style={[styles.ratingAvg, dir]}>{avg.toFixed(1)}</Text>
-              <Text style={[styles.ratingCount, dir]}>
-                {locale === 'ar'
-                  ? `(${ratingsCount} تقييم${ratingsCount === 1 ? '' : 'ات'})`
-                  : `(${ratingsCount} review${ratingsCount === 1 ? '' : 's'})`}
-              </Text>
-            </View>
-          )}
-
-          {/* Price block */}
-          <View style={styles.priceBlock}>
-            <View style={styles.priceBlockGlow} />
-            <View style={styles.priceMain}>
-              <Text style={[styles.priceLabel, dir]}>{t.price}</Text>
-              <View style={styles.priceRow}>
-                <Text style={[styles.price, dir]}>{Number(product.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}</Text>
-                <Text style={[styles.currency, dir]}>{t.egp}</Text>
-              </View>
-            </View>
-            <View style={styles.priceAccent}>
-              <Ionicons name="pricetag" size={22} color={colors.y} />
-            </View>
-          </View>
-
-          {/* Store / seller card — only stores get the tappable "visit" CTA;
-              individual client sellers render as a plain identity block since
-              they have no storefront page to route to. */}
-          {isStore && !!owner?.id && !!owner.salesRecord?.total && (
-            <SalesRecordSheet
-              visible={salesSheetOpen}
-              storeId={owner.id}
-              onClose={() => setSalesSheetOpen(false)}
-            />
-          )}
-          {!!owner?.id && (
-            isStore ? (
-              <Pressable
-                onPress={() => router.push(`/store/${owner.id}`)}
-                style={({ pressed }) => [styles.sellerCard, pressed && { opacity: 0.9 }]}
-              >
-                <View style={styles.sellerLogo}>
-                  {storeLogo ? (
-                    <Image
-                      source={{ uri: storeLogo }}
-                      style={styles.sellerLogoImg}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      transition={120}
-                    />
-                  ) : (
-                    <Text style={styles.sellerLogoFallback}>🏪</Text>
-                  )}
-                </View>
-                <View style={styles.sellerMain}>
-                  <View style={styles.sellerHeader}>
-                    <Text style={[styles.sellerName, dir]} numberOfLines={1}>
-                      {storeName || (locale === 'ar' ? 'بائع' : 'Seller')}
-                    </Text>
-                    <View style={[styles.sellerBadge, { backgroundColor: ownerBadge.bg }]}>
-                      <Text style={[styles.sellerBadgeText, { color: ownerBadge.fg }, dir]}>
-                        {ownerBadge.label}
-                      </Text>
-                    </View>
-                  </View>
-                  {!!ownerVerification?.verified && (
-                    <View style={styles.sellerVerified}>
-                      <VerifiedBadge verification={ownerVerification} variant="full" />
-                    </View>
-                  )}
-                  {!!owner.salesRecord?.total && (
-                    <View style={styles.sellerSales}>
-                      <SalesRecordPill
-                        variant="link"
-                        total={owner.salesRecord.total}
-                        onOpen={() => setSalesSheetOpen(true)}
-                      />
-                    </View>
-                  )}
-                  <View style={styles.sellerCtaRow}>
-                    <Text style={[styles.sellerCta, dir]}>{t.visit}</Text>
-                    <Ionicons name={forwardIcon} size={13} color={colors.heading} />
-                  </View>
-                </View>
-              </Pressable>
-            ) : (
-              <View style={styles.sellerCard}>
-                <View style={styles.sellerLogo}>
-                  <Text style={styles.sellerLogoFallback}>👤</Text>
-                </View>
-                <View style={styles.sellerMain}>
-                  <View style={styles.sellerHeader}>
-                    <Text style={[styles.sellerName, dir]} numberOfLines={1}>
-                      {storeName || (locale === 'ar' ? 'بائع' : 'Seller')}
-                    </Text>
-                    <View style={[styles.sellerBadge, { backgroundColor: ownerBadge.bg }]}>
-                      <Text style={[styles.sellerBadgeText, { color: ownerBadge.fg }, dir]}>
-                        {ownerBadge.label}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            )
-          )}
-
-          {!isOwnListing && !isUnavailable && <BroEntryCard variant="product" context={broContext} />}
-
-          {/* Safety tips — surfaced before contact CTAs so buyers see the
-              inspect-before-pay guidance before reaching out to any seller. */}
-          <View style={styles.safetyCard}>
-            <View style={styles.safetyHeader}>
-              <View style={styles.safetyIconBadge}>
-                <Ionicons name="shield-checkmark" size={18} color={colors.heading} />
-              </View>
-              <Text style={[styles.safetyTitle, dir]}>{t.safetyTipsTitle}</Text>
-            </View>
-            <Text style={[styles.safetyIntro, dir]}>{t.safetyTipsIntro}</Text>
-            <View style={styles.safetyList}>
-              <SafetyTip icon="phone-portrait-outline" text={t.safetyInspectDevice} dir={dir} />
-              <SafetyTip icon="people-outline" text={t.safetyMeetPublic} dir={dir} />
-              <SafetyTip icon="checkmark-done-outline" text={t.safetyVerifyBeforePay} dir={dir} />
-              <SafetyTip icon="alert-circle-outline" text={t.safetyReportSuspicious} dir={dir} />
-            </View>
-          </View>
-
-          {/* Brand + Category chips */}
-          <View style={styles.infoRow}>
-            <InfoChip icon="ribbon-outline" label={brandName} sublabel={t.brand} dir={dir} />
-            <InfoChip icon="pricetag-outline" label={categoryName} sublabel={t.category} dir={dir} />
-          </View>
-
-          {/* Description */}
-          {!!product.description && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionAccent} />
-                <Text style={[styles.sectionTitle, dir]}>{t.description}</Text>
-              </View>
-              <View style={styles.descriptionBox}>
-                <Text style={[styles.description, dir]}>{product.description}</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Specs */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionAccent} />
-              <Text style={[styles.sectionTitle, dir]}>{t.productDetails}</Text>
-            </View>
-            <View style={styles.specsBox}>
-              <SpecRow
-                icon="pricetag-outline"
-                label={t.category}
-                value={categoryName}
-                dir={dir}
-                dirEnd={dirEnd}
-              />
-              <SpecRow
-                icon="ribbon-outline"
-                label={t.brand}
-                value={brandName}
-                dir={dir}
-                dirEnd={dirEnd}
-              />
-              <SpecRow
-                icon="location-outline"
-                label={t.location}
-                value={locationName}
-                dir={dir}
-                dirEnd={dirEnd}
-              />
-              <SpecRow
-                icon="shield-checkmark-outline"
-                label={t.condition}
-                value={conditionLabel}
-                dir={dir}
-                dirEnd={dirEnd}
-              />
-              <SpecRow
-                icon="calendar-outline"
-                label={locale === 'ar' ? 'نُشر' : 'Posted'}
-                value={formatDate(product.createdAt, locale)}
-                dir={dir}
-                dirEnd={dirEnd}
-              />
-              <SpecRow
-                icon="time-outline"
-                label={locale === 'ar' ? 'آخر تحديث' : 'Updated'}
-                value={formatDate(product.updatedAt, locale)}
-                dir={dir}
-                dirEnd={dirEnd}
-                last
-              />
-            </View>
-          </View>
-
-          {/* Ratings */}
-          <RatingSection
-            productId={product.id}
-            initialAvg={avg}
-            initialCount={ratingsCount}
-            ownerId={owner?.id}
-          />
-
-          {/* Featured stores — spotlight rail (mirrors website product page).
-              Guarded so the header/rail collapse cleanly when the endpoint
-              returns nothing. */}
-          {spotlightStores.length > 0 && (
-            <View style={styles.railSection}>
-              <View style={styles.railHeader}>
-                <Text style={[styles.railTitle, dir]}>
-                  {locale === 'ar' ? '⭐ متاجر مميّزة' : '⭐ Featured Stores'}
-                </Text>
-                <Pressable onPress={() => router.push('/(tabs)/stores')} hitSlop={8}>
-                  <Text style={[styles.railLink, dir]}>
-                    {locale === 'ar' ? 'عرض الكل' : 'View all'}
-                  </Text>
-                </Pressable>
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.railList}
-              >
-                {spotlightStores.map((store) => {
-                  const cover = imgUrl(store.storeProfile?.cover, { w: 340 })
-                  const logo = imgUrl(store.storeProfile?.logo, { w: 68 })
-                  const name = store.storeProfile?.name ?? ''
-                  return (
-                    <Pressable
-                      key={store.id}
-                      onPress={() => router.push(`/store/${store.id}`)}
-                      style={({ pressed }) => [
-                        styles.spotCard,
-                        pressed && { opacity: 0.92 },
-                      ]}
-                    >
-                      <View style={styles.spotCover}>
-                        {cover ? (
-                          <Image
-                            source={{ uri: cover }}
-                            style={styles.spotCoverImg}
-                            contentFit="cover"
-                            cachePolicy="memory-disk"
-                            transition={120}
-                            recyclingKey={`spot-cover-${store.id}`}
-                          />
-                        ) : (
-                          <View style={styles.spotCoverPlaceholder}>
-                            <Ionicons name="image-outline" size={22} color="rgba(255,255,255,0.25)" />
-                          </View>
-                        )}
-                        <View style={[styles.spotBadge, store.isPromoted === true ? styles.spotBadgePromoted : styles.spotBadgeStd]}>
-                          <Text style={[styles.spotBadgeText, styles.spotBadgeTextStd]}>
-                            {store.isPromoted === true ? t.featured : locale === 'ar' ? '🏪 متجر' : '🏪 Store'}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={styles.spotBody}>
-                        <View style={styles.spotLogo}>
-                          {logo ? (
-                            <Image
-                              source={{ uri: logo }}
-                              style={styles.spotLogoImg}
-                              contentFit="contain"
-                              cachePolicy="memory-disk"
-                              transition={120}
-                              recyclingKey={`spot-logo-${store.id}`}
-                            />
-                          ) : (
-                            <Text style={styles.spotLogoFallback}>🏪</Text>
-                          )}
-                        </View>
-                        <Text
-                          style={[styles.spotName, dir]}
-                          numberOfLines={2}
-                        >
-                          {name}
-                        </Text>
-                        <VerifiedBadge
-                          verification={store.verification ?? store.storeProfile?.verification}
-                        />
-                      </View>
-                    </Pressable>
-                  )
-                })}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Similar products — soft-ranked store-first via `storeFirst: true`
-              so buyers see verified store listings before individual sellers. */}
-          {similarItems.length > 0 && product.category && (
-            <View style={styles.railSection}>
-              <View style={styles.railHeader}>
-                <Text style={[styles.railTitle, dir]}>
-                  {locale === 'ar' ? 'إعلانات مشابهة' : 'Similar Listings'}
-                </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tabsRow}
+            contentContainerStyle={styles.tabsContent}
+          >
+            {tabs.map((tab) => {
+              const on = tab.key === currentTab
+              return (
                 <Pressable
-                  onPress={() =>
-                    router.push(
-                      `/(tabs)/products?categoryId=${product.category!.id}`,
-                    )
-                  }
-                  hitSlop={8}
+                  key={tab.key}
+                  style={styles.tab}
+                  onPress={() => scrollToSection(tab.key)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: on }}
                 >
-                  <Text style={[styles.railLink, dir]}>
-                    {locale === 'ar' ? 'عرض الكل ←' : 'View all →'}
-                  </Text>
+                  <Text style={[styles.tabText, on && styles.tabTextOn, dir]}>{tab.label}</Text>
+                  {on && <View style={styles.tabLine} />}
                 </Pressable>
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.railList}
-              >
-                {similarItems.map((item) => (
-                  <ProductCard
-                    key={item.id}
-                    product={item}
-                    style={styles.similarCard}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+              )
+            })}
+          </ScrollView>
+        </Animated.View>
 
-      {/* ── Sticky action bar ── */}
-      <View
-        style={[
-          styles.actionBar,
-          { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
-        ]}
-      >
-        <View style={styles.actionRow}>
-          {owner?.id ? (
-            hasPhoneReveal ? (
-              <StartChatButton recipientId={owner.id} productId={product.id} iconOnly />
-            ) : (
+        {/* ── Sticky action bar ── */}
+        <View
+          style={[
+            styles.actionBar,
+            { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
+          ]}
+        >
+          <View style={styles.actionRow}>
+            {owner?.id ? (
+              hasPhoneReveal ? (
+                <StartChatButton recipientId={owner.id} productId={product.id} iconOnly />
+              ) : (
+                <View style={styles.actionFlex}>
+                  <StartChatButton recipientId={owner.id} productId={product.id} />
+                </View>
+              )
+            ) : null}
+            {waLink ? (
+              <Pressable
+                onPress={() => {
+                  trackProductWhatsappClick(product.id)
+                  void track({
+                    name: 'contact_seller',
+                    params: { product_id: product.id, channel: 'whatsapp' },
+                  })
+                  void bumpEngagement('inquiry')
+                  Linking.openURL(waLink).catch(() => {})
+                }}
+                style={({ pressed }) => [
+                  hasPhoneReveal ? styles.waBtn : styles.waBtnWide,
+                  pressed && { opacity: 0.85 },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={locale === 'ar' ? 'واتساب' : 'WhatsApp'}
+              >
+                <Ionicons
+                  name="logo-whatsapp"
+                  size={hasPhoneReveal ? 22 : 18}
+                  color={colors.white}
+                  style={hasPhoneReveal ? undefined : styles.waIconStart}
+                />
+                {hasPhoneReveal ? null : (
+                  <Text style={styles.waBtnText} numberOfLines={1}>
+                    {locale === 'ar' ? 'واتساب' : 'WhatsApp'}
+                  </Text>
+                )}
+              </Pressable>
+            ) : null}
+            {hasPhoneReveal ? (
               <View style={styles.actionFlex}>
-                <StartChatButton recipientId={owner.id} productId={product.id} />
+                <RevealPhone
+                  productId={product.id}
+                  phone={ownerContact}
+                  waLink={null}
+                  showPhone={product.showPhone}
+                />
               </View>
-            )
-          ) : null}
-          {waLink ? (
-            <Pressable
-              onPress={() => {
-                trackProductWhatsappClick(product.id)
-                void track({
-                  name: 'contact_seller',
-                  params: { product_id: product.id, channel: 'whatsapp' },
-                })
-                void bumpEngagement('inquiry')
-                Linking.openURL(waLink).catch(() => {})
-              }}
-              style={({ pressed }) => [
-                hasPhoneReveal ? styles.waBtn : styles.waBtnWide,
-                pressed && { opacity: 0.85 },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={locale === 'ar' ? 'واتساب' : 'WhatsApp'}
-            >
-              <Ionicons
-                name="logo-whatsapp"
-                size={hasPhoneReveal ? 22 : 18}
-                color={colors.white}
-                style={hasPhoneReveal ? undefined : styles.waIconStart}
-              />
-              {hasPhoneReveal ? null : (
-                <Text style={styles.waBtnText} numberOfLines={1}>
-                  {locale === 'ar' ? 'واتساب' : 'WhatsApp'}
-                </Text>
-              )}
-            </Pressable>
-          ) : null}
-          {hasPhoneReveal ? (
-            <View style={styles.actionFlex}>
-              <RevealPhone
-                productId={product.id}
-                phone={ownerContact}
-                waLink={null}
-                showPhone={product.showPhone}
-              />
-            </View>
-          ) : null}
+            ) : null}
+          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -1655,6 +1813,92 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   // itself defers width to the parent (see ProductCard.tsx comment).
   similarCard: {
     width: 180,
+  },
+  body: { flex: 1 },
+  pinWrap: {
+    position: 'absolute',
+    top: 0,
+    start: 0,
+    end: 0,
+    zIndex: 20,
+  },
+  pinBar: {
+    height: PIN_BAR_H,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    backgroundColor: colors.hero,
+  },
+  pinBtn: {
+    width: 42,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pinThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: colors.dk2,
+  },
+  pinMeta: { flex: 1, minWidth: 0, paddingStart: 6 },
+  pinTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  pinTitle: {
+    flexShrink: 1,
+    color: 'rgba(255,255,255,0.82)',
+    fontFamily: fonts.semiBold,
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  pinPriceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  pinPrice: {
+    color: colors.y,
+    fontFamily: fonts.black,
+    fontSize: 17,
+    lineHeight: 24,
+  },
+  pinCurrency: {
+    color: colors.y,
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    opacity: 0.85,
+  },
+  tabsRow: {
+    flexGrow: 0,
+    height: PIN_TABS_H,
+    backgroundColor: colors.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    shadowColor: '#062B5B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  tabsContent: { paddingHorizontal: 8 },
+  tab: {
+    height: PIN_TABS_H,
+    paddingHorizontal: 8.5,
+    justifyContent: 'center',
+  },
+  tabText: {
+    color: colors.muted,
+    fontFamily: fonts.semiBold,
+    fontSize: 12.5,
+  },
+  tabTextOn: { color: colors.heading, fontFamily: fonts.extraBold },
+  tabLine: {
+    position: 'absolute',
+    bottom: 0,
+    start: 8,
+    end: 8,
+    height: 3,
+    borderTopStartRadius: 3,
+    borderTopEndRadius: 3,
+    backgroundColor: colors.y,
   },
 })
 
