@@ -23,6 +23,7 @@ interface ProductRow {
   chats: number
   contacts: number
   favorites: number
+  promotedUntil?: string | null
   createdAt: string
 }
 
@@ -32,6 +33,8 @@ interface DayRow {
 }
 
 interface Analytics {
+  /** 'promoted' = client view, limited to listings they have promoted */
+  scope?: 'store' | 'promoted'
   totalReach: number
   totalViews: number
   totalPhoneClicks: number
@@ -66,6 +69,7 @@ export default function AnalyticsScreen() {
   // Clients don't get store-page contacts — show the locked teaser (§8 analytics row).
   const showStoreLock = user?.type === 'client' && SUBSCRIPTION_UI_ENABLED
   const sv = t.storeValue
+  const pa = t.promotedAnalytics
 
   // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
   // RTL, `textAlign: 'right'` and `flexDirection: 'row-reverse'` resolve visually
@@ -85,6 +89,7 @@ export default function AnalyticsScreen() {
   }
 
   const [data, setData] = useState<Analytics | null>(null)
+  const promotedOnly = data?.scope === 'promoted'
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [range, setRange] = useState<7 | 14 | 30>(30)
@@ -180,7 +185,7 @@ export default function AnalyticsScreen() {
           bg: colors.redBg,
         },
         {
-          label: t.totalProducts,
+          label: promotedOnly ? pa.tileLabel : t.totalProducts,
           value: data.totalProducts,
           icon: 'list-outline',
           color: colors.heading,
@@ -213,6 +218,27 @@ export default function AnalyticsScreen() {
         <ErrorState kind="network" onRetry={load} />
       ) : (
         <View style={{ gap: spacing.md }}>
+          {/* Clients only see their promoted ads */}
+          {promotedOnly && (
+            <View style={[styles.card, styles.lockCard]}>
+              <View style={[styles.lockHead, rowDir]}>
+                <View style={styles.lockIcon}>
+                  <Ionicons name="star" size={16} color={colors.yellowText} />
+                </View>
+                <View style={[{ flex: 1 }, colDir]}>
+                  <Text style={[styles.cardTitle, dirStyle]}>{pa.title}</Text>
+                  <Text style={[styles.lockBody, dirStyle]}>{pa.body}</Text>
+                </View>
+              </View>
+              <Button
+                label={pa.cta}
+                variant="y"
+                size="sm"
+                onPress={() => router.push('/dashboard/promote' as never)}
+              />
+            </View>
+          )}
+
           {/* Summary grid */}
           <View style={styles.summaryGrid}>
             {SUMMARY.map(s => (
@@ -511,9 +537,11 @@ export default function AnalyticsScreen() {
 
             {!data?.products.length ? (
               <Text style={[styles.chartEmpty, dirStyle]}>
-                {ar
-                  ? 'لا توجد إعلانات بعد. أضف إعلانك الأول.'
-                  : 'No listings yet. Post your first ad.'}
+                {promotedOnly
+                  ? pa.empty
+                  : ar
+                    ? 'لا توجد إعلانات بعد. أضف إعلانك الأول.'
+                    : 'No listings yet. Post your first ad.'}
               </Text>
             ) : (
               <View style={{ gap: spacing.sm }}>
@@ -531,6 +559,13 @@ export default function AnalyticsScreen() {
                         >
                           {p.title}
                         </Text>
+                        {!!p.promotedUntil && new Date(p.promotedUntil).getTime() > Date.now() && (
+                          <View style={[styles.statusPill, { backgroundColor: colors.yellowBg }]}>
+                            <Text style={[styles.statusPillText, { color: colors.yellowText }]}>
+                              ★ {pa.pill}
+                            </Text>
+                          </View>
+                        )}
                         <View
                           style={[
                             styles.statusPill,
