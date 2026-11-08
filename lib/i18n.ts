@@ -124,6 +124,7 @@ export interface Translations {
   profile: string
   settings: string
   subscription: string
+  plansPricing: string
   wallet: string
   analytics: string
   branches: string
@@ -1529,6 +1530,7 @@ export const translations: Record<Locale, Translations> = {
     profile: 'الملف الشخصي',
     settings: 'الإعدادات',
     subscription: 'الاشتراك',
+    plansPricing: 'الأسعار والباقات',
     wallet: 'المحفظة',
     analytics: 'الإحصائيات',
     branches: 'الفروع',
@@ -2874,6 +2876,7 @@ export const translations: Record<Locale, Translations> = {
     profile: 'Profile',
     settings: 'Settings',
     subscription: 'Subscription',
+    plansPricing: 'Plans & pricing',
     wallet: 'Wallet',
     analytics: 'Analytics',
     branches: 'Branches',
