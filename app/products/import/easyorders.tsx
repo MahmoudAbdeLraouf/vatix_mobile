@@ -407,6 +407,7 @@ export default function EasyOrdersImportScreen() {
           </>
         ) : null}
       </ScrollView>
+      {confirm.capSheet}
     </DashboardLayout>
   )
 }

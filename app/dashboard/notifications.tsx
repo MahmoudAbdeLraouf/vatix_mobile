@@ -71,7 +71,7 @@ export default function NotificationsScreen() {
     }
   }
 
-  // Links are website paths; only the Bro request, store-verification and promo-gift ones have a matching mobile screen, so follow those.
+  // Links are website paths; only the Bro request, store-verification, promo-gift and subscription ones have a matching mobile screen, so follow those.
   function open(item: Notification) {
     if (!item.isRead) markRead(item.id)
     if (item.link?.startsWith('/bro/requests/')) router.push(item.link as never)
@@ -79,6 +79,8 @@ export default function NotificationsScreen() {
       router.push('/dashboard/verify' as never)
     } else if (item.type === 'promo_gift' || item.link === '/dashboard/myads') {
       router.push('/dashboard/my-ads' as never)
+    } else if (item.type?.startsWith('subscription_') || item.link?.startsWith('/dashboard/subscription')) {
+      router.push('/dashboard/subscription' as never)
     }
   }
 

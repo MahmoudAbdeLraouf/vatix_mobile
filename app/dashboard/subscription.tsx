@@ -18,7 +18,8 @@ import {
   SubStatus,
   WalletBalance,
 } from '@/lib/api'
-import { useBroEnabled } from '@/components/bro/BroEntryCard'
+import { StoreValue, StoreValueChips } from '@/components/StoreValue'
+import { storePriceFromPlans, useStoreValueParams } from '@/lib/storeValue'
 import { TRIAL_DAYS } from '@/lib/trial'
 import { IS_IOS, PAID_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { fetchIosProducts } from '@/lib/iap'
@@ -83,12 +84,17 @@ export default function SubscriptionScreen() {
   const [profile, setProfile] = useState<{
     trialUsed?: boolean
     extraProductSlots?: number
+    storeProfile?: { slug?: string | null } | null
   } | null>(null)
-  const broEnabled = useBroEnabled()
+  const svp = useStoreValueParams()
 
   useEffect(() => {
     getSiteSettings().then(setSettings).catch(() => {})
-    authFetch<{ trialUsed?: boolean; extraProductSlots?: number }>('/user/profile')
+    authFetch<{
+      trialUsed?: boolean
+      extraProductSlots?: number
+      storeProfile?: { slug?: string | null } | null
+    }>('/user/profile')
       .then(setProfile)
       .catch(() => {})
   }, [])
@@ -167,16 +173,7 @@ export default function SubscriptionScreen() {
 
   // Plans are keyed by (storeType, billingCycle). Older seed rows omit
   // billingCycle — treat those as monthly so pre-migration DBs still resolve.
-  const storeMonthly = useMemo(
-    () =>
-      Number(
-        subPlans.find(
-          p =>
-            p.storeType === 'store' && (p.billingCycle ?? 'monthly') === 'monthly',
-        )?.price ?? 450,
-      ),
-    [subPlans],
-  )
+  const storeMonthly = useMemo(() => storePriceFromPlans(subPlans), [subPlans])
   const fmt = (n: number) => n.toLocaleString(ar ? 'ar-EG' : 'en-EG')
 
   // On iOS the CTAs must show the App-Store price (commission-inclusive) —
@@ -258,16 +255,6 @@ export default function SubscriptionScreen() {
       ? { label: t.subStatusTrial, bg: colors.y, color: colors.dk }
       : { label: t.subStatusActive, bg: colors.green, color: colors.white }
 
-  const benefits = [
-    t.subBenefitUnlimitedAds,
-    ...(broEnabled
-      ? [fill(t.subBenefitUnlimitedOffers, { n: fmt(settings?.broClientOffersPerMonth ?? 10) })]
-      : []),
-    t.subBenefitStorePage,
-    t.subBenefitSearch,
-    t.subBenefitStats,
-  ]
-
   const renewCta = (label: string) => (
     <Pressable
       onPress={() => setModal('upgrade-to-store')}
@@ -298,16 +285,7 @@ export default function SubscriptionScreen() {
                   {fill(t.subCurrentClient, { cap: fmt(clientCap) })}
                 </Text>
               </View>
-              <View style={styles.benefits}>
-                {benefits.map(b => (
-                  <View key={b} style={[styles.benefitRow, rowDir]}>
-                    <Text style={styles.benefitCheck}>✓</Text>
-                    <View style={[styles.actionBody, colDir]}>
-                      <Text style={[styles.benefitText, dirStyle]}>{b}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
+              <StoreValueChips params={svp} short onDark style={{ marginTop: spacing.md }} />
               <View style={[styles.planPriceRow, rowDir]}>
                 <Text style={styles.planPriceLabel}>{t.planCost}</Text>
                 <Text style={styles.planPriceValue}>{storePriceLine}</Text>
@@ -334,6 +312,16 @@ export default function SubscriptionScreen() {
                     : t.subExpiringBody}
                 </Text>
               </View>
+              {/* §6: what the renewal keeps — the itemized receipt. */}
+              <StoreValue
+                variant="receipt"
+                params={svp}
+                slug={profile?.storeProfile?.slug ?? undefined}
+                priceLabel={storeIosPrice ?? null}
+                amount={storeMonthly}
+                showNow={false}
+                style={{ marginTop: spacing.md }}
+              />
               {SUBSCRIPTION_UI_ENABLED && renewCta(`${t.subRenewNow} — ${renewPrice}`)}
             </View>
           )}
@@ -638,25 +626,6 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   tagText: {
     fontFamily: fonts.extraBold,
     fontSize: 11,
-  },
-  benefits: {
-    marginTop: spacing.md,
-    gap: spacing.sm,
-  },
-  benefitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  benefitCheck: {
-    fontFamily: fonts.extraBold,
-    fontSize: 15,
-    color: colors.y,
-  },
-  benefitText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 13,
-    color: colors.white,
   },
   planPriceRow: {
     marginTop: spacing.md,

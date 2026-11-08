@@ -11,6 +11,7 @@ import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDia
 import { NotificationBell } from '@/components/NotificationBell'
 import { SalesRecordCard } from '@/components/SalesRecordCard'
 import { BroAvatar } from '@/components/bro/BroAvatar'
+import { StoreUpsellBanner } from '@/components/StoreUpsellBanner'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
@@ -20,6 +21,7 @@ import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED, SUBSCRIPTION_UI_ENABLED 
 import { getStorePromotionOffer } from '@/lib/api'
 import type { PendingUpgradeRequest, Product, PromoInfo, StorePromotionOffer, UserProfile, WalletBalance } from '@/lib/api'
 import { markRated } from '@/lib/rate-app-engagement'
+import { useStoreValueParams } from '@/lib/storeValue'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 
 type IconName = React.ComponentProps<typeof Ionicons>['name']
@@ -81,8 +83,11 @@ export default function MoreScreen() {
   const broEnabled = useBroEnabled()
   const insets = useSafeAreaInsets()
   const { rowDir, colDir, dirStyle } = useDir(ar)
+  const svParams = useStoreValueParams()
 
   const [adsCount, setAdsCount] = useState<number | null>(null)
+  const [activeAds, setActiveAds] = useState<number | null>(null)
+  const [extraSlots, setExtraSlots] = useState(0)
   const [msgUnread, setMsgUnread] = useState<number | null>(null)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [promoCredits, setPromoCredits] = useState<number | null>(null)
@@ -120,8 +125,11 @@ export default function MoreScreen() {
 
       const [adsR, paymentsR, profileR, unreadR, walletR, promoR, offerR] = results
 
-      if (adsR.status === 'fulfilled') setAdsCount((adsR.value as Product[] | null)?.length ?? 0)
-      else setAdsError(true)
+      if (adsR.status === 'fulfilled') {
+        const mine = (adsR.value as Product[] | null) ?? []
+        setAdsCount(mine.length)
+        setActiveAds(mine.filter((p) => p.isActive).length)
+      } else setAdsError(true)
 
       if (unreadR.status === 'fulfilled') setMsgUnread((unreadR.value as { count: number } | null)?.count ?? 0)
       else setMsgError(true)
@@ -154,6 +162,7 @@ export default function MoreScreen() {
         setShowLogoDialog(!!profile?.flags?.showStoreLogoDialog)
         setShowAddProductDialog(!!profile?.flags?.showAddProductDialog)
         setPendingUpgrade(profile?.pendingUpgrade ?? null)
+        setExtraSlots(Number(profile?.extraProductSlots ?? 0) || 0)
         const until = profile?.storeProfile?.promotedUntil ?? null
         setPromotedUntil(until && Date.parse(until) > Date.now() ? until : null)
         if (profile?.flags?.showSubscriptionExpiringDialog && profile?.flags?.subscriptionEndsAt) {
@@ -311,30 +320,16 @@ export default function MoreScreen() {
           </View>
         </View>
 
-        {/* Banner */}
-        {isClient && SUBSCRIPTION_UI_ENABLED && (
-          <Pressable
+        {/* Banner — passive client → store pitch (§5), dismissible for 30 days */}
+        {isClient && SUBSCRIPTION_UI_ENABLED && activeAds != null && (
+          <StoreUpsellBanner
+            used={activeAds}
+            cap={svParams.cap + extraSlots}
+            params={svParams}
             disabled={!!pendingUpgrade}
-            onPress={() => router.push('/dashboard/subscription')}
-            style={({ pressed }) => [
-              styles.banner,
-              styles.bannerNavy,
-              rowDir,
-              !!pendingUpgrade && { opacity: 0.55 },
-              pressed && { opacity: 0.9 },
-            ]}
-            accessibilityRole="button"
-          >
-            <View style={[styles.bannerText, colDir]}>
-              <Text style={[styles.bannerTitle, { color: colors.white }, dirStyle]}>{t.upgClientToStoreTitle}</Text>
-              <Text style={[styles.bannerSub, { color: 'rgba(255,255,255,0.75)' }, dirStyle]}>
-                {t.upgClientToStoreSubtitle}
-              </Text>
-            </View>
-            <View style={styles.bannerCta}>
-              <Text style={styles.bannerCtaText}>{ar ? 'ابدأ الآن' : 'Start now'}</Text>
-            </View>
-          </Pressable>
+            dismissKey="dashboard"
+            onConvert={() => router.push({ pathname: '/dashboard/subscription', params: { upgrade: 'store' } } as never)}
+          />
         )}
         {isStore && PROMOTION_UI_ENABLED && promotedUntil !== undefined && (
           <Pressable
@@ -663,7 +658,6 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   langText: { fontFamily: fonts.extraBold, fontSize: 14, color: colors.heading },
 
   banner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: spacing.md, borderRadius: radius.lg },
-  bannerNavy: { backgroundColor: colors.hero, ...(dark ? { borderWidth: 1, borderColor: colors.border } : null) },
   bannerGold: { backgroundColor: colors.yellowBg, borderWidth: 1.5, borderColor: colors.y },
   bannerText: { flex: 1, gap: 4 },
   bannerTitle: { fontFamily: fonts.extraBold, fontSize: 15 },

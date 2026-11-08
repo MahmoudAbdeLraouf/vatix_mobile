@@ -22,6 +22,8 @@ import { MultiImageUpload, ImageItem } from '@/components/MultiImageUpload'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { CapReachedChoice } from '@/components/CapReachedChoice'
+import { UpgradeModal } from '@/components/UpgradeModal'
 import { useLocale } from '@/contexts/locale'
 import {
   Brand,
@@ -33,7 +35,7 @@ import {
   getLocations,
   localeName,
 } from '@/lib/api'
-import { authErrorMessage, authPost } from '@/lib/auth'
+import { authErrorMessage, authFetch, authPost } from '@/lib/auth'
 import { track } from '@/lib/analytics'
 import { PROMOTION_UI_ENABLED } from '@/lib/platform'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
@@ -94,6 +96,10 @@ export default function AddProductScreen() {
   // Set when the backend granted a free-promotion gift for this publish.
   const [grantedGiftId, setGrantedGiftId] = useState<number | null>(null)
   const [keyboardHeight, setKeyboardHeight] = useState(0)
+  // Cap reached → two-way choice (convert to store / buy slots). The draft
+  // stays in SecureStore, so both paths resume with the form intact.
+  const [capUsed, setCapUsed] = useState<{ used?: number; cap?: number } | null>(null)
+  const [showUpgrade, setShowUpgrade] = useState(false)
 
   const hydrated = useRef(false)
   const scrollRef = useRef<ScrollView>(null)
@@ -299,7 +305,11 @@ export default function AddProductScreen() {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : ''
       if (msg.includes('CLIENT_PRODUCT_CAP_REACHED') || msg.includes('وصلت للحد الأقصى')) {
-        router.push('/dashboard/buy-slots?resumeTo=add')
+        const st = await authFetch<{ lifetimeCount: number; cap: number }>(
+          '/store/products/import/cap-status',
+        ).catch(() => null)
+        // Unknown counts fall back to the settings cap inside CapReachedChoice.
+        setCapUsed({ used: st?.lifetimeCount || undefined, cap: st?.cap || undefined })
         return
       }
       setError(authErrorMessage(e, t))
@@ -694,6 +704,24 @@ export default function AddProductScreen() {
           </View>
         </View>
       </Modal>
+
+      <CapReachedChoice
+        visible={capUsed !== null}
+        used={capUsed?.used}
+        cap={capUsed?.cap}
+        savedLine
+        publishCta
+        onClose={() => setCapUsed(null)}
+        onConvert={() => setShowUpgrade(true)}
+        onBuySlots={() => router.push('/dashboard/buy-slots?resumeTo=add')}
+      />
+      {/* After converting, the draft is still in SecureStore — the next visit
+          to this screen restores it and publishes without the cap. */}
+      <UpgradeModal
+        visible={showUpgrade}
+        mode="upgrade-to-store"
+        onClose={() => setShowUpgrade(false)}
+      />
     </DashboardLayout>
   )
 }

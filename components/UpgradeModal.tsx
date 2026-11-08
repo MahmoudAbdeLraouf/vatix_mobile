@@ -53,11 +53,14 @@ import {
   SKU_SUBSCRIPTION_STORE,
 } from '@/lib/iap-products'
 import { finalizePaymentSuccess, verifyIapPurchase } from '@/lib/payment'
+import { StoreValue } from '@/components/StoreValue'
+import { useBroEnabled } from '@/components/bro/BroEntryCard'
+import { slugify, storeValueParamsFrom, svText, type StoreValueParams } from '@/lib/storeValue'
 
 // Mirrors vatix_website/components/upgrade-modal.tsx
 // Two modes × multi-step flow:
 //   Mode: upgrade-to-store | cancel-store
-//   Step: store-info → pay-method → instapay → instapay-done
+//   Step: value → store-info → pay-method → instapay → instapay-done
 //         pay-method → mobile-wallet → mobile-wallet-done
 //         pay-method → wallet → wallet-done
 // A user who already has a store profile skips store-info (renewal).
@@ -74,6 +77,7 @@ export type CancelReason =
   | 'need_feature'
   | 'other'
 type Step =
+  | 'value'
   | 'store-info'
   | 'pay-method'
   | 'instapay'
@@ -137,7 +141,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   const needsStoreCreation = mode !== 'cancel-store' && !hasStoreAlready
 
   const [step, setStep] = useState<Step>(
-    needsStoreCreation ? 'store-info' : 'pay-method',
+    needsStoreCreation ? 'value' : 'pay-method',
   )
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -160,6 +164,9 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   // Sourced from App Store Connect so Apple's 30% commission gross-up is
   // reflected without duplicating the pricing table in the client.
   const [iosPriceMap, setIosPriceMap] = useState<Record<string, string>>({})
+  // Client lifetime listing usage for the value step's "used X of Y" line.
+  const [capUsed, setCapUsed] = useState<{ used: number; cap: number } | null>(null)
+  const offersOn = useBroEnabled()
 
   // Store-info form
   const [storeName, setStoreName] = useState('')
@@ -174,7 +181,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   // Reset when opened
   useEffect(() => {
     if (!visible) return
-    setStep(needsStoreCreation ? 'store-info' : 'pay-method')
+    setStep(needsStoreCreation ? 'value' : 'pay-method')
     setErr('')
     setBusy(false)
     setStoreName('')
@@ -193,7 +200,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
     if (!visible) return
     let live = true
     ;(async () => {
-      const [p, s, w, profile] = await Promise.all([
+      const [p, s, w, profile, capStatus] = await Promise.all([
         getSubscriptionPlans().catch(() => [] as PlanData[]),
         getSiteSettings().catch(() => null),
         // Wallet balance is peripheral: user can still pick InstaPay / mobile
@@ -205,8 +212,19 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
         needsStoreCreation
           ? authFetch<UserProfile>('/user/profile').catch(() => null)
           : Promise.resolve(null),
+        // Peripheral: the value step just omits the "used X of Y" line.
+        needsStoreCreation && user?.type === 'client'
+          ? authFetch<{ lifetimeCount: number; cap: number }>(
+              '/store/products/import/cap-status',
+            ).catch(() => null)
+          : Promise.resolve(null),
       ])
       if (!live) return
+      setCapUsed(
+        capStatus && Number.isFinite(capStatus.lifetimeCount) && capStatus.cap > 0
+          ? { used: capStatus.lifetimeCount, cap: capStatus.cap }
+          : null,
+      )
       setPlans(p)
       setSettings(s)
       setWallet(w)
@@ -252,6 +270,12 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   }, [plans])
 
   const walletBalance = wallet?.balance ?? null
+
+  const svParams = useMemo(
+    () => storeValueParamsFrom(settings, plans, offersOn),
+    [settings, plans, offersOn],
+  )
+  const previewSlug = storeName.trim() ? slugify(storeName) : undefined
 
   // On iOS, prefer the StoreKit-formatted price. Falls back to the grossed-up
   // App Store Connect tier when StoreKit is unreachable (Expo Go, dev, offline)
@@ -574,7 +598,9 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   const title =
     mode === 'cancel-store'
       ? t.cancelStore
-      : `${t.upgradeToStore} · ${priceLabel}`
+      : step === 'value'
+        ? t.storeValue.modalTitle
+        : `${t.upgradeToStore} · ${priceLabel}`
 
   return (
     <Modal
@@ -622,6 +648,17 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
                   onReasonChange={setCancelReason}
                   detail={cancelDetail}
                   onDetailChange={setCancelDetail}
+                  params={svParams}
+                />
+              ) : step === 'value' ? (
+                <ValuePanel
+                  params={svParams}
+                  capUsed={capUsed}
+                  trialUsed={trialUsed}
+                  onNext={() => {
+                    setErr('')
+                    setStep('store-info')
+                  }}
                 />
               ) : step === 'store-info' ? (
                 <StoreInfoPanel
@@ -636,13 +673,15 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
                   err={err}
                   busy={busy}
                   trialUsed={trialUsed}
-                  onBack={onClose}
+                  onBack={() => setStep('value')}
                   onSubmit={handleTrialSignup}
                 />
               ) : step === 'pay-method' ? (
                 <PayMethodPanel
                   price={selectedPlan.amount}
                   iosDisplayPrice={iosDisplayPrice}
+                  params={svParams}
+                  slug={previewSlug}
                   settings={settings}
                   walletBalance={walletBalance}
                   err={err}
@@ -770,6 +809,46 @@ function ErrorBox({ err }: { err: string }) {
   )
 }
 
+// Value step (mockup §3): what the subscription includes, before the store form.
+function ValuePanel(props: {
+  params: StoreValueParams
+  capUsed: { used: number; cap: number } | null
+  trialUsed: boolean
+  onNext: () => void
+}) {
+  const styles = useStyles()
+  const { t, locale } = useLocale()
+  const { ar, colDir, dirStyle } = useDir()
+  const sv = t.storeValue
+  const p = props.params
+  const showTrial = !props.trialUsed && p.trialDays > 0
+
+  return (
+    <View style={colDir}>
+      {props.capUsed ? (
+        <View style={styles.valueUsedPill}>
+          <Text style={[styles.valueUsedText, dirStyle]}>
+            {svText(sv, 'modalUsed', p, locale, props.capUsed)}
+          </Text>
+        </View>
+      ) : null}
+      <StoreValue variant="full" header={false} params={p} />
+      <Button
+        label={
+          showTrial
+            ? svText(sv, 'modalCta', p, locale)
+            : (ar ? 'متابعة ←' : 'Continue →')
+        }
+        variant="y"
+        size="lg"
+        onPress={props.onNext}
+        style={{ marginTop: spacing.md }}
+      />
+      <Text style={[styles.valueMicro, { textAlign: 'center' }]}>{sv.modalMicro}</Text>
+    </View>
+  )
+}
+
 function StoreInfoPanel(props: {
   storeName: string
   onStoreNameChange: (v: string) => void
@@ -854,6 +933,8 @@ function StoreInfoPanel(props: {
 function PayMethodPanel(props: {
   price: number
   iosDisplayPrice?: string
+  params: StoreValueParams
+  slug?: string
   settings: SiteSettings | null
   walletBalance: number | null
   err: string
@@ -890,6 +971,15 @@ function PayMethodPanel(props: {
           <Text style={styles.priceUnit}>/{t.monthlyBilling}</Text>
         </Text>
       </View>
+
+      <StoreValue
+        variant="receipt"
+        params={props.params}
+        amount={price}
+        priceLabel={props.iosDisplayPrice}
+        slug={props.slug}
+        style={{ marginBottom: spacing.md }}
+      />
 
       <View style={styles.methodList}>
         {IS_IOS ? (
@@ -1351,6 +1441,7 @@ function CancelStorePanel({
   onReasonChange,
   detail,
   onDetailChange,
+  params,
 }: {
   err: string
   busy: boolean
@@ -1363,6 +1454,7 @@ function CancelStorePanel({
   onReasonChange: (v: CancelReason) => void
   detail: string
   onDetailChange: (v: string) => void
+  params: StoreValueParams
 }) {
   const styles = useStyles()
   const { colors } = useTheme()
@@ -1490,6 +1582,9 @@ function CancelStorePanel({
         </View>
       </View>
 
+      {/* §7 cancel: spell out what the store loses before the destructive tap. */}
+      <StoreValue variant="loss" lossKind="downgrade" count={0} params={params} style={{ marginBottom: 12 }} />
+
       {salesTotal > 0 ? (
         <View style={[styles.salesLossBox, colDir]}>
           <Text style={[styles.salesLossText, dirStyle]}>
@@ -1574,6 +1669,25 @@ const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
     fontSize: 13,
     color: colors.heading,
     marginBottom: spacing.xs,
+  },
+  valueUsedPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.yellowBg,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginBottom: spacing.md,
+  },
+  valueUsedText: {
+    fontFamily: fonts.extraBold,
+    fontSize: 12.5,
+    color: colors.yellowText,
+  },
+  valueMicro: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: spacing.sm,
   },
   stepHeading: {
     fontFamily: fonts.bold,

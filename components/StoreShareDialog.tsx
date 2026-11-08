@@ -18,6 +18,7 @@ import { authPost, logShare } from '@/lib/auth'
 import { Button } from '@/components/ui/Button'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
+import { StoreUrl } from '@/components/StoreValue'
 
 interface Props {
   visible: boolean
@@ -124,8 +125,9 @@ export function StoreShareDialog({ visible, storeId, storeSlug, storeName, onClo
               <View>
                 <Text style={[styles.urlLabel, dirStyle]}>{t.storeShareUrlLabel}</Text>
                 <View style={styles.urlBox}>
-                  <Text style={styles.urlText} selectable numberOfLines={2}>
-                    {url}
+                  {/* Display form only (vatix.store/<slug>); copy/share still use the real /stores/ link. */}
+                  <Text style={styles.urlText} numberOfLines={2}>
+                    <StoreUrl slug={storeSlug ?? String(storeId)} style={styles.urlText} />
                   </Text>
                 </View>
               </View>
