@@ -22,7 +22,8 @@ import {
 } from '@/lib/api'
 import { authFetch, authPost, authErrorMessage, updateStoredUser, AUTH_ERR } from '@/lib/auth'
 import { finalizePaymentSuccess, verifyIapPurchase } from '@/lib/payment'
-import { IS_IOS } from '@/lib/platform'
+import { IS_IOS, PAID_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
+import { svText, useStoreValueParams } from '@/lib/storeValue'
 import {
   fetchIosProducts,
   initIap,
@@ -688,7 +689,34 @@ function PickStep(props: PickStepProps) {
           color={colors.dk}
         />
       </Pressable>
+
+      <StoreHint />
     </View>
+  )
+}
+
+/** Quiet store nudge under the bundles (mockups/store-upsell-system.html §8). */
+function StoreHint() {
+  const { t, locale } = useLocale()
+  const { user } = useAuth()
+  const { ar, rowDir, dirStyle } = useDir()
+  const { colors } = useTheme()
+  const styles = useStyles()
+  const p = useStoreValueParams()
+  if (!SUBSCRIPTION_UI_ENABLED || user?.type !== 'client') return null
+  const sv = t.storeValue
+  return (
+    <Pressable
+      onPress={() => router.push({ pathname: '/dashboard/subscription', params: { upgrade: 'store' } } as never)}
+      style={({ pressed }) => [styles.storeHint, rowDir, pressed && { opacity: 0.8 }]}
+      accessibilityRole="button"
+    >
+      <Ionicons name="storefront-outline" size={16} color={colors.yellowText} />
+      <Text style={[styles.storeHintText, dirStyle]}>
+        {PAID_UI_ENABLED ? svText(sv, 'buySlotsStoreHint', p, locale) : sv.buySlotsStoreHintIos}
+      </Text>
+      <Ionicons name={ar ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.yellowText} />
+    </Pressable>
   )
 }
 
@@ -1454,6 +1482,22 @@ const makeStyles = (colors: ThemeColors, dark?: boolean) => StyleSheet.create({
     color: colors.muted,
     textAlign: 'center',
     marginTop: spacing.xs,
+  },
+  storeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: radius.md,
+    backgroundColor: colors.yellowBg,
+  },
+  storeHintText: {
+    flex: 1,
+    fontFamily: fonts.bold,
+    fontSize: 12.5,
+    color: colors.yellowText,
   },
   doneCtaRow: {
     width: '100%',

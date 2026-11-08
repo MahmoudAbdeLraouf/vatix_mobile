@@ -191,9 +191,9 @@ function openPromo(id: PromoId, user: StoredUser | null) {
         })
       return
     case 'open':
-      if (!user) router.push('/(auth)/login')
+      if (!user) router.push('/(auth)/signup-store')
       else if (user.isStore) router.push(`/store/${user.id}`)
-      else router.push('/dashboard/subscription')
+      else router.push({ pathname: '/dashboard/subscription', params: { upgrade: 'store' } } as never)
       return
   }
 }

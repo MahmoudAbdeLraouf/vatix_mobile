@@ -395,6 +395,7 @@ export default function ExcelImportScreen() {
           </>
         ) : null}
       </ScrollView>
+      {confirm.capSheet}
     </DashboardLayout>
   )
 }

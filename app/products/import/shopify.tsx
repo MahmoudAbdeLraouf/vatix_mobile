@@ -403,6 +403,7 @@ export default function ShopifyImportScreen() {
           </>
         ) : null}
       </ScrollView>
+      {confirm.capSheet}
     </DashboardLayout>
   )
 }

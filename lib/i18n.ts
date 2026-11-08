@@ -368,7 +368,6 @@ export interface Translations {
   subBenefitUnlimitedAds: string
   subBenefitUnlimitedOffers: string
   subBenefitStorePage: string
-  subBenefitSearch: string
   subBenefitStats: string
   subUpgradeCta: string
   subTrialNote: string
@@ -1278,6 +1277,132 @@ export interface Translations {
     previewYes: string
     previewNo: string
   }
+  storeValue: {
+    ribbon: string
+    fullTitle: string
+    perMonth: string
+    perMonthShort: string
+    currency: string
+    savePct: string
+    iosOneSub: string
+    iosStoreSub: string
+    trialFirst: string
+    trialNoPay: string
+    trialPill: string
+    productsTitle: string
+    productsSub: string
+    offersTitle: string
+    offersSub: string
+    offersSubShort: string
+    giftTitle: string
+    giftSub: string
+    giftSubShort: string
+    pageTitle: string
+    verifiedTitle: string
+    verifiedSub: string
+    verifiedSubShort: string
+    analyticsTitle: string
+    analyticsSub: string
+    analyticsSubShort: string
+    chipProducts: string
+    chipOffers: string
+    chipGift: string
+    chipGiftShort: string
+    chipPage: string
+    chipVerified: string
+    chipVerifiedShort: string
+    chipAnalytics: string
+    chipAnalyticsShort: string
+    receiptTitle: string
+    rcProductsVal: string
+    rcOffersVal: string
+    rcGift: string
+    rcGiftVal: string
+    rcPage: string
+    rcIncluded: string
+    rcFree: string
+    total: string
+    totalNoteMonth: string
+    totalNoteDays: string
+    receiptNow: string
+    lossTitle: string
+    lossProducts: string
+    lossOffers: string
+    lossPage: string
+    lossVerified: string
+    lossAnalytics: string
+    lossGift: string
+    regTitle: string
+    regSub: string
+    regStoreRibbon: string
+    regStoreTitle: string
+    regStoreMeta: string
+    regStoreCta: string
+    regClientTitle: string
+    regClientMeta: string
+    signupTrial: string
+    signupThen: string
+    signupUrlLabel: string
+    signupCta: string
+    signupMicro: string
+    modalTitle: string
+    modalUsed: string
+    modalCta: string
+    modalMicro: string
+    capTitle: string
+    capSaved: string
+    capRibbon: string
+    capConvertTitle: string
+    capConvertCta: string
+    capConvertCtaPlain: string
+    capSlotsTitle: string
+    capSlotsMeta: string
+    capSlotsBuy: string
+    capCompare: string
+    offerCapTitle: string
+    offerCapSub: string
+    offerCapSubNoDate: string
+    offerCapPacksTitle: string
+    offerCapPackLine: string
+    offerCapPackLineIos: string
+    offerCapPacksNote: string
+    offerCapPacksBuy: string
+    offerCapConvertCta: string
+    offerCapCompare: string
+    offerCapCompareTrial: string
+    bannerTitle: string
+    bannerBody: string
+    bannerOpenTitle: string
+    bannerOpenBody: string
+    bannerCapTitle: string
+    bannerCapBody: string
+    bannerMeter: string
+    usedOf: string
+    bannerCta: string
+    bannerThen: string
+    dismiss: string
+    expTitle: string
+    expSub: string
+    expListings: string
+    expGift: string
+    expRenew: string
+    expRenewIos: string
+    expToClient: string
+    convTitle: string
+    convLose: string
+    convListings: string
+    convOffers: string
+    convPage: string
+    convVerified: string
+    convAnalytics: string
+    convKeep: string
+    convConfirm: string
+    analyticsLockTitle: string
+    analyticsLockBody: string
+    analyticsLockCta: string
+    buySlotsStoreHint: string
+    buySlotsStoreHintIos: string
+  }
 }
 
 export const translations: Record<Locale, Translations> = {
@@ -1545,7 +1670,7 @@ export const translations: Record<Locale, Translations> = {
     usersLabel: 'مستخدم',
     // Upgrade banner extended
     upgFeat1: 'صفحة متجر احترافية',
-    upgFeat2: 'أولوية الظهور',
+    upgFeat2: 'صفحة متجرك',
     upgFeat3: 'إحصائيات',
     upgFeat4: 'إعلانات غير محدودة',
     viewPlans: 'عرض الباقات',
@@ -1645,8 +1770,7 @@ export const translations: Record<Locale, Translations> = {
     subBenefitUnlimitedAds: 'إعلانات غير محدودة',
     subBenefitUnlimitedOffers: 'عروض غير محدودة على طلبات المشترين (بدل {n} في الشهر)',
     subBenefitStorePage: 'صفحة متجر احترافية برابط خاص',
-    subBenefitSearch: 'أولوية الظهور في البحث',
-    subBenefitStats: 'إحصائيات الزيارات والتواصل',
+    subBenefitStats: 'إحصائيات صفحة متجرك وأداء كل منتج',
     subUpgradeCta: 'ترقية إلى متجر ←',
     subTrialNote: 'تجربة مجانية {days} يوم لأول مرة — بدون دفع الآن',
     subStatusActive: 'نشط',
@@ -2496,6 +2620,132 @@ export const translations: Record<Locale, Translations> = {
       previewYes: 'أيوه، اشتريته',
       previewNo: 'لا، مش أنا',
     },
+    storeValue: {
+      ribbon: "باقة المتجر",
+      fullTitle: "كل ده في اشتراك واحد",
+      perMonth: "ج.م / شهر",
+      perMonthShort: "ج.م/شهر",
+      currency: "ج.م",
+      savePct: "وفّر {pct}٪",
+      iosOneSub: "اشتراك متجر واحد",
+      iosStoreSub: "اشتراك المتجر",
+      trialFirst: "أول {trialDays} يوم مجاناً",
+      trialNoPay: "من غير ما تدفع حاجة دلوقتي",
+      trialPill: "{trialDays} يوم مجاناً",
+      productsTitle: "منتجات بلا حدود",
+      productsSub: "بدل {cap} إعلانات بس",
+      offersTitle: "عروض بلا حدود",
+      offersSub: "رد على كل طلبات المشترين",
+      offersSubShort: "بدل {offers} في الشهر",
+      giftTitle: "ترويج منتج هدية",
+      giftSub: "{giftDays} مع كل دفعة · قيمته {giftValue} ج.م",
+      giftSubShort: "{giftDays} مع كل دفعة · {giftValue} ج.م",
+      pageTitle: "صفحة متجرك",
+      verifiedTitle: "شارة موثّق",
+      verifiedSub: "مجاناً — ثقة أكتر من المشتري",
+      verifiedSubShort: "مجاناً",
+      analyticsTitle: "إحصائيات متجرك",
+      analyticsSub: "اتصالات وواتساب صفحة متجرك + أداء كل منتج",
+      analyticsSubShort: "اتصالات صفحة متجرك + أداء كل منتج",
+      chipProducts: "منتجات ∞",
+      chipOffers: "عروض ∞",
+      chipGift: "ترويج منتج هدية",
+      chipGiftShort: "ترويج هدية",
+      chipPage: "صفحة متجرك",
+      chipVerified: "شارة موثّق",
+      chipVerifiedShort: "موثّق",
+      chipAnalytics: "إحصائيات متجرك",
+      chipAnalyticsShort: "إحصائيات",
+      receiptTitle: "اشتراكك يشمل",
+      rcProductsVal: "بدل {cap}",
+      rcOffersVal: "بدل {offers} / شهر",
+      rcGift: "ترويج منتج {giftDays}",
+      rcGiftVal: "هدية · {giftValue} ج.م",
+      rcPage: "صفحة {url}",
+      rcIncluded: "مشمولة",
+      rcFree: "مجاناً",
+      total: "الإجمالي",
+      totalNoteMonth: "شهر واحد · من غير خصم تلقائي",
+      totalNoteDays: "{days} يوم · من غير خصم تلقائي",
+      receiptNow: "🎁 بعد الدفع هتختار المنتج اللي هيتروّج {giftDays}",
+      lossTitle: "لو اشتراكك وقف، هتخسر:",
+      lossProducts: "إعلاناتك فوق الـ{cap} هتتقفل",
+      lossOffers: "العروض ترجع {offers} بس في الشهر",
+      lossPage: "صفحة {url} هتختفي",
+      lossVerified: "شارة موثّق هتتشال",
+      lossAnalytics: "إحصائيات صفحة متجرك هتختفي",
+      lossGift: "ومش هتاخد ترويج المنتج الهدية",
+      regTitle: "هتبيع على ڤاتيكس إزاي؟",
+      regSub: "تقدر تحوّل لمتجر في أي وقت بعدين.",
+      regStoreRibbon: "الأنسب لو بتبيع كتير",
+      regStoreTitle: "أنا متجر",
+      regStoreMeta: "لأصحاب المحلات والتجار",
+      regStoreCta: "افتح متجري مجاناً ←",
+      regClientTitle: "أنا عميل",
+      regClientMeta: "مجاناً · لحد {cap} إعلانات",
+      signupTrial: "🎉 أول {trialDays} يوم مجاناً",
+      signupThen: " — بعدها {price} ج.م/شهر",
+      signupUrlLabel: "رابط متجرك",
+      signupCta: "ابدأ تجربتي المجانية ←",
+      signupMicro: "مفيش أي خصم تلقائي — هنفكّرك قبل ما التجربة تخلص.",
+      modalTitle: "حوّل حسابك لمتجر",
+      modalUsed: "استخدمت {used} من {cap} إعلانات",
+      modalCta: "ابدأ {trialDays} يوم مجاناً ←",
+      modalMicro: "إعلاناتك الحالية بتنتقل معاك",
+      capTitle: "وصلت للحد — {used} من {cap}",
+      capSaved: "إعلانك محفوظ. اختار تكمّل إزاي:",
+      capRibbon: "الأوفر لو بتبيع كتير",
+      capConvertTitle: "حوّل لمتجر",
+      capConvertCta: "حوّل لمتجر وانشر ←",
+      capConvertCtaPlain: "حوّل لمتجر ←",
+      capSlotsTitle: "إعلانات إضافية",
+      capSlotsMeta: "{count} بـ {price} ج.م · مرة واحدة",
+      capSlotsBuy: "اشتري",
+      capCompare: "💡 {count} إعلانات زيادة = {total} ج.م. المتجر بلا حدود بـ {price}.",
+      offerCapTitle: "خلصت عروضك المجانية — {cap} من {cap} الشهر ده",
+      offerCapSub: "عروضك المجانية بترجع {date}. عايز تبعت دلوقتي؟ اختار:",
+      offerCapSubNoDate: "عايز تبعت عروض دلوقتي؟ اختار:",
+      offerCapPacksTitle: "عروض إضافية",
+      offerCapPackLine: "{count} عرض بـ {packPrice} ج.م",
+      offerCapPackLineIos: "{count} عرض",
+      offerCapPacksNote: "مش بتنتهي — بتفضل معاك لحد ما تستخدمها.",
+      offerCapPacksBuy: "اشتري عروض",
+      offerCapConvertCta: "حوّل لمتجر — عروض بلا حدود ←",
+      offerCapCompare: "💡 بتبعت أكتر من {offers} عروض في الشهر؟ المتجر = عروض ومنتجات بلا حدود بـ {price} ج.م.",
+      offerCapCompareTrial: "💡 بتبعت أكتر من {offers} عروض في الشهر؟ المتجر = عروض ومنتجات بلا حدود بـ {price} ج.م، وأول {trialDays} يوم مجاناً.",
+      bannerTitle: "بقيت بتبيع كتير 💪",
+      bannerBody: "حوّل لمتجر وكمّل من غير حد.",
+      bannerOpenTitle: "افتح متجرك",
+      bannerOpenBody: "صفحة باسمك، منتجات بلا حدود، وشارة موثّق مجاناً.",
+      bannerCapTitle: "وصلت للحد — {used} من {cap}",
+      bannerCapBody: "حوّل لمتجر وانشر من غير حد.",
+      bannerMeter: "إعلاناتك",
+      usedOf: "{used} من {cap}",
+      bannerCta: "حوّل لمتجر — {trialDays} يوم مجاناً",
+      bannerThen: "بعدها",
+      dismiss: "إخفاء",
+      expTitle: "متجرك متوقف مؤقتاً",
+      expSub: "جدّد ورجّع كل حاجة زي ما كانت:",
+      expListings: "{count} إعلان يرجعوا يظهروا",
+      expGift: "+ ترويج منتج {giftDays} هدية",
+      expRenew: "جدّد بـ {price} ج.م ←",
+      expRenewIos: "جدّد الاشتراك ←",
+      expToClient: "التحويل لحساب عادي",
+      convTitle: "متأكد إنك عايز تحوّل لحساب عادي؟",
+      convLose: "هتخسر:",
+      convListings: "{count} من إعلاناتك هيتقفلوا (الحد {cap})",
+      convOffers: "العروض ترجع {offers} في الشهر",
+      convPage: "صفحة {url}",
+      convVerified: "شارة موثّق — وهتحتاج توثّق من الأول",
+      convAnalytics: "إحصائيات صفحة متجرك",
+      convKeep: "لا، خلّيني متجر ←",
+      convConfirm: "أيوه، حوّلني لحساب عادي",
+      analyticsLockTitle: "إحصائيات صفحة متجرك",
+      analyticsLockBody: "مين اتصل بيك أو كلّمك واتساب أو شات من صفحة متجرك — متاحة للمتاجر بس.",
+      analyticsLockCta: "حوّل لمتجر ←",
+      buySlotsStoreHint: "أو حوّل لمتجر: منتجات بلا حدود بـ {price} ج.م/شهر.",
+      buySlotsStoreHintIos: "أو حوّل لمتجر: منتجات بلا حدود.",
+    },
   },
   en: {
     appName: 'Vatix',
@@ -2762,7 +3012,7 @@ export const translations: Record<Locale, Translations> = {
     usersLabel: 'Users',
     // Upgrade banner extended
     upgFeat1: 'Professional Store Page',
-    upgFeat2: 'Priority Placement',
+    upgFeat2: 'Your store page',
     upgFeat3: 'Analytics',
     upgFeat4: 'Unlimited Listings',
     viewPlans: 'View Plans',
@@ -2862,8 +3112,7 @@ export const translations: Record<Locale, Translations> = {
     subBenefitUnlimitedAds: 'Unlimited ads',
     subBenefitUnlimitedOffers: 'Unlimited offers on buyer requests (instead of {n} a month)',
     subBenefitStorePage: 'A professional store page with its own link',
-    subBenefitSearch: 'Priority placement in search',
-    subBenefitStats: 'Visit and contact analytics',
+    subBenefitStats: 'Store-page contacts and per-product performance',
     subUpgradeCta: 'Upgrade to store →',
     subTrialNote: '{days}-day free trial the first time — nothing to pay now',
     subStatusActive: 'Active',
@@ -3712,6 +3961,132 @@ export const translations: Record<Locale, Translations> = {
       previewFooter: 'Vatix · Egypt’s electronics marketplace',
       previewYes: 'Yes, I bought it',
       previewNo: "No, that's not me",
+    },
+    storeValue: {
+      ribbon: "Store plan",
+      fullTitle: "All of this in one subscription",
+      perMonth: "EGP / month",
+      perMonthShort: "EGP/mo",
+      currency: "EGP",
+      savePct: "Save {pct}%",
+      iosOneSub: "One store subscription",
+      iosStoreSub: "Store subscription",
+      trialFirst: "First {trialDays} days free",
+      trialNoPay: "Nothing to pay right now",
+      trialPill: "{trialDays} days free",
+      productsTitle: "Unlimited products",
+      productsSub: "Instead of just {cap} listings",
+      offersTitle: "Unlimited offers",
+      offersSub: "Reply to every buyer request",
+      offersSubShort: "Instead of {offers} a month",
+      giftTitle: "Free product promotion",
+      giftSub: "{giftDays} with every payment · worth {giftValue} EGP",
+      giftSubShort: "{giftDays} with every payment · {giftValue} EGP",
+      pageTitle: "Your store page",
+      verifiedTitle: "Verified badge",
+      verifiedSub: "Free — more trust from buyers",
+      verifiedSubShort: "Free",
+      analyticsTitle: "Store analytics",
+      analyticsSub: "Store-page calls and WhatsApp + every product's performance",
+      analyticsSubShort: "Store-page contacts + every product's performance",
+      chipProducts: "Products ∞",
+      chipOffers: "Offers ∞",
+      chipGift: "Free promotion",
+      chipGiftShort: "Free promo",
+      chipPage: "Store page",
+      chipVerified: "Verified badge",
+      chipVerifiedShort: "Verified",
+      chipAnalytics: "Store analytics",
+      chipAnalyticsShort: "Analytics",
+      receiptTitle: "Your subscription includes",
+      rcProductsVal: "Instead of {cap}",
+      rcOffersVal: "Instead of {offers} / month",
+      rcGift: "{giftDays} product promotion",
+      rcGiftVal: "Gift · {giftValue} EGP",
+      rcPage: "Page {url}",
+      rcIncluded: "Included",
+      rcFree: "Free",
+      total: "Total",
+      totalNoteMonth: "One month · no auto-charge",
+      totalNoteDays: "{days} days · no auto-charge",
+      receiptNow: "🎁 After paying, you pick the product to promote for {giftDays}",
+      lossTitle: "If your subscription stops, you lose:",
+      lossProducts: "Your listings above {cap} get deactivated",
+      lossOffers: "Offers drop back to {offers} a month",
+      lossPage: "The {url} page disappears",
+      lossVerified: "The verified badge is removed",
+      lossAnalytics: "Your store-page analytics disappear",
+      lossGift: "And you won't get the free product promotion",
+      regTitle: "How will you sell on Vatix?",
+      regSub: "You can switch to a store any time later.",
+      regStoreRibbon: "Best if you sell a lot",
+      regStoreTitle: "I'm a store",
+      regStoreMeta: "For shop owners and traders",
+      regStoreCta: "Open my store for free →",
+      regClientTitle: "I'm a client",
+      regClientMeta: "Free · up to {cap} listings",
+      signupTrial: "🎉 First {trialDays} days free",
+      signupThen: " — then {price} EGP/mo",
+      signupUrlLabel: "Your store link",
+      signupCta: "Start my free trial →",
+      signupMicro: "No automatic charge — we'll remind you before the trial ends.",
+      modalTitle: "Turn your account into a store",
+      modalUsed: "You've used {used} of {cap} listings",
+      modalCta: "Start {trialDays} days free →",
+      modalMicro: "Your current listings move with you",
+      capTitle: "You hit the limit — {used} of {cap}",
+      capSaved: "Your listing is saved. Choose how to continue:",
+      capRibbon: "Best value if you sell a lot",
+      capConvertTitle: "Switch to a store",
+      capConvertCta: "Switch to a store and publish →",
+      capConvertCtaPlain: "Switch to a store →",
+      capSlotsTitle: "Extra listings",
+      capSlotsMeta: "{count} for {price} EGP · one time",
+      capSlotsBuy: "Buy",
+      capCompare: "💡 {count} more listings = {total} EGP. A store is unlimited for {price}.",
+      offerCapTitle: "Free offers used up — {cap} of {cap} this month",
+      offerCapSub: "Your free offers come back on {date}. Want to send now? Pick one:",
+      offerCapSubNoDate: "Want to send offers now? Pick one:",
+      offerCapPacksTitle: "Extra offers",
+      offerCapPackLine: "{count} offers for {packPrice} EGP",
+      offerCapPackLineIos: "{count} offers",
+      offerCapPacksNote: "They never expire — they're yours until you use them.",
+      offerCapPacksBuy: "Buy offers",
+      offerCapConvertCta: "Switch to a store — unlimited offers →",
+      offerCapCompare: "💡 Sending more than {offers} offers a month? A store = unlimited offers and products for {price} EGP.",
+      offerCapCompareTrial: "💡 Sending more than {offers} offers a month? A store = unlimited offers and products for {price} EGP, first {trialDays} days free.",
+      bannerTitle: "You're selling a lot now 💪",
+      bannerBody: "Switch to a store and keep going with no limit.",
+      bannerOpenTitle: "Open your store",
+      bannerOpenBody: "A page with your name, unlimited products and a free verified badge.",
+      bannerCapTitle: "You hit the limit — {used} of {cap}",
+      bannerCapBody: "Switch to a store and publish with no limit.",
+      bannerMeter: "Your listings",
+      usedOf: "{used} of {cap}",
+      bannerCta: "Switch to a store — {trialDays} days free",
+      bannerThen: "then",
+      dismiss: "Dismiss",
+      expTitle: "Your store is paused",
+      expSub: "Renew and get everything back:",
+      expListings: "{count} listings show again",
+      expGift: "+ {giftDays} product promotion, free",
+      expRenew: "Renew for {price} EGP →",
+      expRenewIos: "Renew subscription →",
+      expToClient: "Switch to a regular account",
+      convTitle: "Sure you want to switch to a regular account?",
+      convLose: "You'll lose:",
+      convListings: "{count} of your listings get deactivated (limit {cap})",
+      convOffers: "Offers drop to {offers} a month",
+      convPage: "The {url} page",
+      convVerified: "Verified badge — you'll need to verify again",
+      convAnalytics: "Your store-page analytics",
+      convKeep: "No, keep me a store →",
+      convConfirm: "Yes, switch me to a regular account",
+      analyticsLockTitle: "Your store-page analytics",
+      analyticsLockBody: "Who called, messaged on WhatsApp or chatted from your store page — stores only.",
+      analyticsLockCta: "Switch to a store →",
+      buySlotsStoreHint: "Or switch to a store: unlimited products for {price} EGP/mo.",
+      buySlotsStoreHintIos: "Or switch to a store: unlimited products.",
     },
   },
 }

@@ -6,12 +6,12 @@ import type { BroUsage } from '@/lib/bro'
 import { fonts, radius, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 import { useBroDir } from '@/components/bro/BroCardParts'
-import { BroButton } from '@/components/bro/BroButton'
+import { BroOfferCapPicks } from '@/components/bro/BroOfferCapPicks'
 import { UpgradeModal } from '@/components/UpgradeModal'
 
 /**
  * Monthly offer meter for clients. Stores (cap null) see nothing.
- * With `upgrade`, a full meter (free spent, nothing bought) also offers the pack purchase and the store upgrade.
+ * With `upgrade`, a full meter (free spent, nothing bought) shows the cap picks: switch to a store or buy offers.
  */
 export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsage; style?: StyleProp<ViewStyle>; upgrade?: boolean }) {
   const { t } = useLocale()
@@ -48,10 +48,12 @@ export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsa
       </View>
       {full && upgrade ? (
         <View style={styles.capBox} accessibilityRole="alert">
-          <Text style={[styles.capTitle, dirStyle]}>{b.capFreeGoneTitle}</Text>
-          <Text style={[styles.capBody, dirStyle]}>{b.capFreeGoneBody}</Text>
-          <BroButton label={b.buyOffersCta} variant="yellow" size="md" onPress={() => router.push('/dashboard/buy-offers' as never)} />
-          <BroButton label={b.capUpgradeCta} variant="dark" size="md" onPress={() => setShowUpgrade(true)} />
+          <BroOfferCapPicks
+            cap={cap}
+            resetsAt={usage.resetsAt}
+            onUpgrade={() => setShowUpgrade(true)}
+            onBuyPack={(id) => router.push(`/dashboard/buy-offers?pack=${id}` as never)}
+          />
         </View>
       ) : null}
       {upgrade ? <UpgradeModal visible={showUpgrade} mode="upgrade-to-store" onClose={() => setShowUpgrade(false)} /> : null}
@@ -81,7 +83,5 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   count: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   track: { height: 10, backgroundColor: colors.border, borderRadius: 99, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 99 },
-  capBox: { marginTop: 12, gap: 6 },
-  capTitle: { fontFamily: fonts.bold, fontSize: 14, color: '#dc2626' },
-  capBody: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted, lineHeight: 20 },
+  capBox: { marginTop: 14 },
 })

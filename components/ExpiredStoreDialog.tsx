@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -51,12 +50,18 @@ import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 import { IS_IOS, PAID_UI_ENABLED } from '@/lib/platform'
+import { StoreValue } from '@/components/StoreValue'
+import { useStoreValueParams } from '@/lib/storeValue'
 
 // Last-resort fallback used only if the plans fetch fails or no matching plan
 // is active. Normally the dialog resolves the price from `/subscriptions/plans`
 // so admin updates to SubscriptionPlan.price are reflected in the QR / wallet
 // cards without a mobile release.
 const FALLBACK_AMOUNT = 450
+
+// Convert-to-client entry stays hidden (commit 6943316). Flip to surface the
+// quiet "التحويل لحساب عادي" link under the renew options (§6 of the upsell mockup).
+const SHOW_CONVERT_TO_CLIENT = false
 
 type Step =
   | 'choice'
@@ -110,6 +115,8 @@ export function ExpiredStoreDialog({ visible, phone, password, onClose }: Props)
   const insets = useSafeAreaInsets()
   const { colors, isDark } = useTheme()
   const styles = useStyles()
+  const sv = t.storeValue
+  const svParams = useStoreValueParams()
 
   const [step, setStep] = useState<Step>('choice')
   const [error, setError] = useState('')
@@ -355,17 +362,6 @@ export function ExpiredStoreDialog({ visible, phone, password, onClose }: Props)
     }
   }
 
-  function confirmConvert() {
-    Alert.alert(
-      t.expiredRecovery.convertConfirmTitle,
-      t.expiredRecovery.convertConfirmBody,
-      [
-        { text: t.expiredRecovery.back, style: 'cancel' },
-        { text: t.expiredRecovery.convertBtn, style: 'destructive', onPress: handleConvert },
-      ],
-    )
-  }
-
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <Pressable style={styles.backdrop} onPress={handleClose}>
@@ -378,7 +374,7 @@ export function ExpiredStoreDialog({ visible, phone, password, onClose }: Props)
               {step === 'instapay'
                 ? t.expiredRecovery.instapayTitle
                 : step === 'convert-confirm'
-                  ? t.expiredRecovery.convertConfirmTitle
+                  ? sv.convTitle
                   : step === 'instapay-done'
                     ? t.expiredRecovery.instapayDoneTitle
                     : step === 'mobile-wallet'
@@ -414,9 +410,20 @@ export function ExpiredStoreDialog({ visible, phone, password, onClose }: Props)
 
               {step === 'choice' && (
                 <>
-                  <Text style={[styles.subtitle, dirStyle]}>
-                    {t.expiredRecovery.subtitle}
-                  </Text>
+                  {/* §6 expired: pause mark + what renewing brings back. Pre-login, so no
+                      listing count or slug is known — the page row shows the placeholder. */}
+                  <View style={styles.pauseHead}>
+                    <View style={styles.pauseCircle}>
+                      <Ionicons name="pause" size={24} color={colors.red} />
+                    </View>
+                    <Text style={[styles.pauseTitle, { writingDirection: dirStyle.writingDirection }]}>
+                      {sv.expTitle}
+                    </Text>
+                    <Text style={[styles.pauseSub, { writingDirection: dirStyle.writingDirection }]}>
+                      {sv.expSub}
+                    </Text>
+                  </View>
+                  <StoreValue variant="receipt" params={svParams} showTotal={false} showNow={false} />
 
                   {/* iOS hides paid entry (App Store §3.1.1) */}
                   {PAID_UI_ENABLED && paySettings.instapayEnabled && (
@@ -463,44 +470,53 @@ export function ExpiredStoreDialog({ visible, phone, password, onClose }: Props)
                       />
                     )
                   })()}
+
+                  {SHOW_CONVERT_TO_CLIENT && (
+                    <Pressable
+                      onPress={() => setStep('convert-confirm')}
+                      disabled={busy}
+                      hitSlop={6}
+                      style={styles.quietLink}
+                    >
+                      <Text style={[styles.quietLinkText, { writingDirection: dirStyle.writingDirection }]}>
+                        {sv.expToClient}
+                      </Text>
+                    </Pressable>
+                  )}
                 </>
               )}
 
               {step === 'convert-confirm' && (
                 <>
-                  <View style={[styles.warningBox, rowDir]}>
-                    <Ionicons
-                      name="warning-outline"
-                      size={20}
-                      color={colors.red}
-                      style={{ marginTop: 2 }}
-                    />
-                    <Text style={[styles.warningText, dirStyle]}>
-                      {t.expiredRecovery.convertConfirmBody}
-                    </Text>
-                  </View>
+                  <StoreValue variant="loss" lossKind="downgrade" count={0} params={svParams} />
 
-                  <View style={[styles.actionsRow, rowDir]}>
-                    <View style={styles.actionCell}>
-                      <Button
-                        label={t.expiredRecovery.back}
-                        variant="outline"
-                        size="lg"
-                        onPress={() => setStep('choice')}
-                        disabled={busy}
-                      />
-                    </View>
-                    <View style={styles.actionCell}>
-                      <Button
-                        label={busy ? t.expiredRecovery.converting : t.expiredRecovery.convertBtn}
-                        variant="red"
-                        size="lg"
-                        onPress={confirmConvert}
-                        loading={busy}
-                        disabled={busy}
-                      />
-                    </View>
-                  </View>
+                  <Button
+                    label={sv.convKeep}
+                    variant="y"
+                    size="lg"
+                    onPress={() => setStep('choice')}
+                    disabled={busy}
+                  />
+                  <Pressable
+                    onPress={handleConvert}
+                    disabled={busy}
+                    hitSlop={6}
+                    style={styles.quietLink}
+                  >
+                    {busy ? (
+                      <ActivityIndicator size="small" color={colors.red} />
+                    ) : (
+                      <Text
+                        style={[
+                          styles.quietLinkText,
+                          styles.quietLinkDanger,
+                          { writingDirection: dirStyle.writingDirection },
+                        ]}
+                      >
+                        {sv.convConfirm}
+                      </Text>
+                    )}
+                  </Pressable>
                 </>
               )}
 
@@ -845,6 +861,27 @@ const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
   },
+  pauseHead: { alignItems: 'center', gap: 4 },
+  pauseCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.redBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  pauseTitle: { fontFamily: fonts.black, fontSize: 18, color: colors.heading, textAlign: 'center' },
+  pauseSub: { fontFamily: fonts.semiBold, fontSize: 13.5, color: colors.muted, textAlign: 'center' },
+  quietLink: { alignSelf: 'center', paddingVertical: 6, paddingHorizontal: 8 },
+  quietLinkText: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.muted,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  quietLinkDanger: { color: colors.red },
   subtitle: {
     fontFamily: fonts.regular,
     fontSize: 14,

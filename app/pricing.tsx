@@ -28,25 +28,21 @@ import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColo
 import { useTheme } from '@/contexts/theme'
 import { PAID_UI_ENABLED } from '@/lib/platform'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
-
-// List price shown struck through while the launch price is below it.
-const LIST_PRICE = 600
-// Value of the product-promotion gift granted with every subscription payment.
-const GIFT_VALUE = 200
-const TRIAL_DAYS = 14
+import { Ionicons } from '@expo/vector-icons'
+import { TRIAL_DAYS } from '@/lib/trial'
+import {
+  GIFT_VALUE,
+  LIST_PRICE,
+  storeValueParamsFrom,
+  svText,
+  toArDigits,
+  visibleStoreValueItems,
+} from '@/lib/storeValue'
 
 const WEB_SHOT = require('@/assets/pricing/pc-live-web.jpg')
 const APP_SHOT = require('@/assets/pricing/pc-live-app.jpg')
 const WEB_ASPECT = 1600 / 1458
 const APP_ASPECT = 720 / 1564
-
-const AR_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩']
-function toArDigits(input: string | number): string {
-  return String(input)
-    .split('')
-    .map((c) => (/\d/.test(c) ? AR_DIGITS[Number(c)] : c))
-    .join('')
-}
 
 type CellValue = boolean | string
 
@@ -74,7 +70,7 @@ function toTiles<T extends { id: number; price: number | string }>(
 }
 
 export default function PricingScreen() {
-  const { locale } = useLocale()
+  const { locale, t } = useLocale()
   const { colors, isDark } = useTheme()
   const { user } = useAuth()
   const broEnabled = useBroEnabled()
@@ -140,7 +136,7 @@ export default function PricingScreen() {
 
   const goConvert = () => {
     if (!user) router.push('/(auth)/signup-store')
-    else router.push('/dashboard/subscription' as never)
+    else router.push({ pathname: '/dashboard/subscription', params: { upgrade: 'store' } } as never)
   }
   const ctaLabel = tx(`حوّل لمتجر — ${trial} يوم مجاناً`, `Switch to a store — ${TRIAL_DAYS} days free`)
 
@@ -149,49 +145,20 @@ export default function PricingScreen() {
     : Infinity
 
   // ── Why-store rows ──────────────────────────────────────────────────────────
-  const whyRows: { icon: string; title: string; body: string; was?: string }[] = [
+  // The shared store-value items (lib/storeValue) + the pricing-only bulk-import row.
+  const svParams = storeValueParamsFrom(settings, plans, offersOn, loading)
+  const whyRows: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string; was?: string }[] = [
+    ...visibleStoreValueItems(svParams).map((item) => ({
+      icon: item.icon,
+      title: svText(t.storeValue, item.title, svParams, locale),
+      body:
+        item.key === 'page'
+          ? tx('vatix.store/yourstore — شاركه مع زباينك على واتساب وفيسبوك.', 'vatix.store/yourstore — share it with customers on WhatsApp and Facebook.')
+          : svText(t.storeValue, item.sub, svParams, locale),
+      was: item.key === 'products' ? tx(`العميل: ${fmt(clientMax)} مدى الحياة`, `Client: ${clientMax} for life`) : undefined,
+    })),
     {
-      icon: '∞',
-      title: tx('منتجات بلا حدود', 'Unlimited products'),
-      body: tx('اعرض كل اللي عندك — مفيش عدّ ولا باقات منتجات.', 'List everything you have — no counting, no slot packs.'),
-      was: tx(`العميل: ${fmt(clientMax)} مدى الحياة`, `Client: ${clientMax} for life`),
-    },
-    ...(offersOn
-      ? [
-          {
-            icon: '💬',
-            title: tx('عروض بلا حدود', 'Unlimited offers'),
-            body: tx(
-              'ابعت عرضك على كل طلب شراء — من غير حد شهري ومن غير باقات.',
-              'Reply to every buyer request — no monthly limit, no packs.',
-            ),
-          },
-        ]
-      : []),
-    ...(giftDays > 0
-      ? [
-          {
-            icon: '🎁',
-            title: tx('ترويج منتج هدية مع كل دفعة', 'A free product promotion with every payment'),
-            body: tx(
-              `منتج من اختيارك يطلع في الأول لمدة ${fmt(giftDays)} أيام — قيمته ${fmt(GIFT_VALUE)} ج.م.`,
-              `A product of your choice shows first for ${giftDays} days — worth ${GIFT_VALUE} EGP.`,
-            ),
-          },
-        ]
-      : []),
-    {
-      icon: '🔗',
-      title: tx('صفحة متجر باسمك', 'A store page with your name'),
-      body: tx('vatix.store/yourstore — شاركه مع زباينك على واتساب وفيسبوك.', 'vatix.store/yourstore — share it with customers on WhatsApp and Facebook.'),
-    },
-    {
-      icon: '✓',
-      title: tx('علامة "موثّق" مجاناً', 'Free "Verified" badge'),
-      body: tx('وثّق متجرك وخلّي المشتري يثق فيك من أول نظرة.', 'Verify your store so buyers trust you at first glance.'),
-    },
-    {
-      icon: '⚡',
+      icon: 'flash-outline',
       title: tx('استيراد بالجملة', 'Bulk import'),
       body: tx('انقل منتجاتك من Excel أو Shopify أو EasyOrders في دقايق.', 'Bring your products from Excel, Shopify or EasyOrders in minutes.'),
     },
@@ -211,6 +178,7 @@ export default function PricingScreen() {
       : []),
     { label: tx('صفحة متجر', 'Store page'), client: false, store: 'vatix.store/yourstore' },
     { label: tx('علامة موثّق', 'Verified badge'), client: false, store: true },
+    { label: tx('إحصائيات المتجر', 'Store analytics'), client: false, store: true },
     ...(giftDays > 0 ? [{ label: tx('ترويج منتج هدية', 'Free product promotion'), client: false, store: true }] : []),
     { label: tx('استيراد بالجملة', 'Bulk import'), client: false, store: true },
   ]
@@ -460,7 +428,7 @@ export default function PricingScreen() {
             {whyRows.map((r, i) => (
               <View key={i} style={[s.whyRow, i > 0 && s.whyRowBorder]}>
                 <View style={s.whyIcon}>
-                  <Text style={s.whyIconText}>{r.icon}</Text>
+                  <Ionicons name={r.icon} size={20} color={colors.yellowText} />
                 </View>
                 <View style={s.whyBody}>
                   <Text style={s.whyTitle}>{r.title}</Text>

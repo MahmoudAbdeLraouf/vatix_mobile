@@ -1,9 +1,10 @@
-import { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { Alert } from 'react-native'
 import { router } from 'expo-router'
 import { useLocale } from '@/contexts/locale'
 import { authErrorMessage } from '@/lib/auth'
 import { buySlotsForImportHref, type ImportScreen } from '@/components/import/ClientCapCard'
+import { CapReachedChoice } from '@/components/CapReachedChoice'
 import { ImportApiError, type ImportConfirmResult } from '@/lib/import'
 import type { Translations } from '@/lib/i18n'
 
@@ -19,7 +20,7 @@ export function describeImportError(err: unknown, t: Translations, fallback: str
 
 /**
  * Wraps a confirm call shared by the Shopify, EasyOrders and Excel screens:
- * busy flag, listing-cap prompt (buy slots, then resume this screen), row-specific category/brand errors, and the
+ * busy flag, listing-cap choice sheet (convert to store, or buy slots then resume this screen), row-specific category/brand errors, and the
  * success alert that lands on My Ads.
  */
 export function useImportConfirm(screen: ImportScreen) {
@@ -28,6 +29,7 @@ export function useImportConfirm(screen: ImportScreen) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inFlight = useRef(false)
+  const [capInfo, setCapInfo] = useState<{ cap?: number } | null>(null)
 
   const run = useCallback(
     async (confirm: () => Promise<ImportConfirmResult>) => {
@@ -52,10 +54,8 @@ export function useImportConfirm(screen: ImportScreen) {
             const msg =
               err.cap != null ? ip.capReachedError.replace('{cap}', String(err.cap)) : ip.capReached
             setError(msg)
-            Alert.alert(ip.capTitle, msg, [
-              { text: ip.ok, style: 'cancel' },
-              { text: ip.capBuySlots, onPress: () => router.push(buySlotsForImportHref(screen) as never) },
-            ])
+            // §4 two-way choice: convert to store (recommended) or buy slots.
+            setCapInfo({ cap: err.cap ?? undefined })
             return
           }
           if (err.code === 'CATEGORY_NOT_FOUND' && err.rowNumber != null) {
@@ -76,5 +76,15 @@ export function useImportConfirm(screen: ImportScreen) {
     [ip, t, screen],
   )
 
-  return { busy, error, setError, run }
+  /** Render once in the screen: the cap-reached choice sheet. */
+  const capSheet = React.createElement(CapReachedChoice, {
+    visible: capInfo != null,
+    onClose: () => setCapInfo(null),
+    cap: capInfo?.cap,
+    onConvert: () =>
+      router.push({ pathname: '/dashboard/subscription', params: { upgrade: 'store' } } as never),
+    onBuySlots: () => router.push(buySlotsForImportHref(screen) as never),
+  })
+
+  return { busy, error, setError, run, capSheet }
 }

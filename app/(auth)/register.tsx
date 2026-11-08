@@ -1,54 +1,52 @@
 import React, { useMemo } from 'react'
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { SvgXml } from 'react-native-svg'
 import { Link, router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
-import { accountTypeXml } from '@/assets/auth/account-type'
+import { StoreValueChips } from '@/components/StoreValue'
+import { PAID_UI_ENABLED } from '@/lib/platform'
+import { fmtPrice, svText, useStoreValueParams } from '@/lib/storeValue'
 
-type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
+type SignupRoute = '/(auth)/signup-client' | '/(auth)/signup-store'
 
-interface AccountTypeCard {
-  icon: IoniconsName
-  label: string
-  description: string
-  route: '/(auth)/signup-client' | '/(auth)/signup-store'
+function useDir() {
+  const { locale } = useLocale()
+  const ar = locale === 'ar'
+  return {
+    ar,
+    rowDir: ar ? { direction: 'ltr' as const, flexDirection: 'row-reverse' as const } : null,
+    colDir: ar ? { direction: 'rtl' as const } : null,
+    dirStyle: {
+      writingDirection: ar ? ('rtl' as const) : ('ltr' as const),
+      textAlign: 'auto' as const,
+    },
+  }
 }
 
+// Account-type chooser (mockups/store-upsell-system.html §1): the store card is
+// the hero (all value items, price, trial); the client card stays small and honest.
 export default function RegisterScreen() {
   const { t, locale, isRtl, setLocale } = useLocale()
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
   const { colors, isDark } = useTheme()
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
-  const { width } = useWindowDimensions()
-  const dirStyle = { writingDirection: isRtl ? 'rtl' as const : 'ltr' as const }
-  const artSize = Math.min(width * 0.6, 220)
+  const { ar, rowDir, colDir, dirStyle } = useDir()
+  const p = useStoreValueParams()
+  const sv = t.storeValue
 
-  const cards: AccountTypeCard[] = [
-    {
-      icon: 'bag-handle-outline',
-      label: t.iAmClient,
-      description: t.clientDescription ?? '',
-      route: '/(auth)/signup-client',
-    },
-    {
-      icon: 'storefront-outline',
-      label: t.iAmStore,
-      description: t.storeDescription ?? '',
-      route: '/(auth)/signup-store',
-    },
-  ]
+  const go = (route: SignupRoute) =>
+    router.push(redirect ? { pathname: route, params: { redirect } } : route)
 
   return (
     <SafeAreaView style={[styles.flex, { direction: isRtl ? 'rtl' : 'ltr' }]} edges={['top']}>
@@ -87,48 +85,87 @@ export default function RegisterScreen() {
           </View>
         </View>
 
-        <Text style={[styles.heroTitle, dirStyle]}>{t.registerTitle}</Text>
-        <Text style={[styles.heroSubtitle, dirStyle]}>{t.registerSubtitle}</Text>
+        <Text style={[styles.heroTitle, dirStyle]}>{sv.regTitle}</Text>
+        <Text style={[styles.heroSubtitle, dirStyle]}>{sv.regSub}</Text>
       </View>
 
       {/* White card */}
       <View style={styles.card}>
-        <View style={styles.illustration}>
-          <SvgXml xml={accountTypeXml} width={artSize} height={artSize} />
-        </View>
-        <View style={styles.cards}>
-          {cards.map(item => (
-            <Pressable
-              key={item.route}
-              style={({ pressed }) => [styles.typeCard, pressed && { opacity: 0.85 }]}
-              onPress={() =>
-                router.push(
-                  redirect ? { pathname: item.route, params: { redirect } } : item.route,
-                )
-              }
-            >
-              <View style={styles.typeIconWrap}>
-                <Ionicons name={item.icon} size={22} color={isDark ? colors.y : colors.dk} />
-              </View>
-              <Text style={[styles.typeLabel, dirStyle]}>{item.label}</Text>
-              {!!item.description && (
-                <Text style={[styles.typeDesc, dirStyle]}>{item.description}</Text>
-              )}
-            </Pressable>
-          ))}
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, dirStyle]}>{t.alreadyHaveAccount} </Text>
-          <Link
-            href={redirect ? { pathname: '/(auth)/login', params: { redirect } } : '/(auth)/login'}
-            asChild
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {/* Store — recommended */}
+          <Pressable
+            style={({ pressed }) => [styles.storeCard, pressed && { opacity: 0.92 }]}
+            onPress={() => go('/(auth)/signup-store')}
           >
-            <Pressable>
-              <Text style={[styles.link, dirStyle]}>{t.login}</Text>
-            </Pressable>
-          </Link>
-        </View>
+            <View style={[styles.rib, ar ? { right: 14 } : { left: 14 }]}>
+              <Text style={styles.ribText}>{sv.regStoreRibbon}</Text>
+            </View>
+            <View style={[styles.optHead, rowDir]}>
+              <View style={[styles.typeIconWrap, styles.typeIconStore]}>
+                <Ionicons name="storefront-outline" size={22} color={colors.dk} />
+              </View>
+              <View style={[{ flex: 1 }, colDir]}>
+                <Text style={[styles.typeLabel, dirStyle]}>{sv.regStoreTitle}</Text>
+                <Text style={[styles.typeMeta, dirStyle]}>{svText(sv, 'regStoreMeta', p, locale)}</Text>
+              </View>
+            </View>
+            <StoreValueChips params={p} short />
+            <View style={[styles.priceRow, rowDir]}>
+              {PAID_UI_ENABLED ? (
+                <Text style={[styles.priceText, dirStyle]}>
+                  <Text style={styles.priceBig}>{fmtPrice(p.price)}</Text> {sv.perMonthShort}
+                  {p.list > p.price ? (
+                    <>
+                      {' '}
+                      <Text style={styles.strike}>{fmtPrice(p.list)}</Text>
+                    </>
+                  ) : null}
+                </Text>
+              ) : (
+                <Text style={[styles.priceText, dirStyle]}>{sv.iosStoreSub}</Text>
+              )}
+              {p.trialDays > 0 ? (
+                <View style={styles.trialPill}>
+                  <Text style={[styles.trialPillText, dirStyle]}>{svText(sv, 'trialPill', p, locale)}</Text>
+                </View>
+              ) : null}
+            </View>
+            <View style={styles.cta}>
+              <Text style={styles.ctaText}>{sv.regStoreCta}</Text>
+            </View>
+          </Pressable>
+
+          {/* Client — small and honest */}
+          <Pressable
+            style={({ pressed }) => [styles.clientCard, rowDir, pressed && { opacity: 0.85 }]}
+            onPress={() => go('/(auth)/signup-client')}
+          >
+            <View style={styles.typeIconWrap}>
+              <Ionicons name="person-outline" size={20} color={isDark ? colors.y : colors.dk} />
+            </View>
+            <View style={[{ flex: 1 }, colDir]}>
+              <Text style={[styles.clientLabel, dirStyle]}>{sv.regClientTitle}</Text>
+              <Text style={[styles.typeMeta, dirStyle]}>{svText(sv, 'regClientMeta', p, locale)}</Text>
+            </View>
+            <Ionicons
+              name={ar ? 'chevron-back' : 'chevron-forward'}
+              size={18}
+              color={colors.subtle}
+            />
+          </Pressable>
+
+          <View style={styles.footer}>
+            <Text style={[styles.footerText, dirStyle]}>{t.alreadyHaveAccount} </Text>
+            <Link
+              href={redirect ? { pathname: '/(auth)/login', params: { redirect } } : '/(auth)/login'}
+              asChild
+            >
+              <Pressable>
+                <Text style={[styles.link, dirStyle]}>{t.login}</Text>
+              </Pressable>
+            </Link>
+          </View>
+        </ScrollView>
       </View>
 
       <BottomTabBar />
@@ -188,28 +225,64 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     paddingBottom: spacing.xl,
   },
 
-  illustration: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: spacing.lg,
-  },
+  scroll: { paddingTop: 6, paddingBottom: spacing.lg },
 
-  cards: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  typeCard: {
-    flex: 1,
-    borderRadius: radius.md,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
+  storeCard: {
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.y,
+    backgroundColor: dark ? colors.card : '#FFFCF0',
+    padding: 16,
+    paddingTop: 20,
+    marginTop: 8,
+    gap: 10,
     ...(dark ? null : shadow.ss),
+  },
+  rib: {
+    position: 'absolute',
+    top: -11,
+    backgroundColor: colors.y,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 1,
+  },
+  ribText: { fontFamily: fonts.black, fontSize: 11, color: colors.dk },
+  optHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 2,
+  },
+  priceText: { fontFamily: fonts.bold, fontSize: 13, color: dark ? colors.muted : colors.g600 },
+  priceBig: { fontFamily: fonts.black, fontSize: 22, color: colors.heading },
+  strike: { textDecorationLine: 'line-through', color: colors.subtle },
+  trialPill: {
+    backgroundColor: dark ? 'rgba(16,185,129,0.16)' : '#E7F8F1',
+    borderRadius: radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  trialPillText: { fontFamily: fonts.extraBold, fontSize: 12, color: dark ? colors.green : '#0b7a57' },
+  cta: {
+    backgroundColor: colors.y,
+    borderRadius: radius.md,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  ctaText: { fontFamily: fonts.black, fontSize: 15, color: colors.dk },
+
+  clientCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
   },
   typeIconWrap: {
     width: 44,
@@ -219,18 +292,10 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  typeLabel: {
-    fontFamily: fonts.bold,
-    fontSize: 13,
-    color: colors.heading,
-    textAlign: 'center',
-  },
-  typeDesc: {
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    color: colors.muted,
-    textAlign: 'center',
-  },
+  typeIconStore: { backgroundColor: colors.y },
+  typeLabel: { fontFamily: fonts.black, fontSize: 16, color: colors.heading },
+  clientLabel: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.heading },
+  typeMeta: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.muted },
 
   footer: {
     flexDirection: 'row',

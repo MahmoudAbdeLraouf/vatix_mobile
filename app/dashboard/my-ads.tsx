@@ -41,6 +41,8 @@ import { fillTemplate, type MarkSoldResponse } from '@/lib/salesRecord'
 import { getMyGifts, type PromoGiftOffer, type PromotionGiftItem } from '@/lib/promoGift'
 import { PromoGiftCard } from '@/components/PromoGiftCard'
 import { PromoGiftPicker } from '@/components/PromoGiftPicker'
+import { CapReachedChoice } from '@/components/CapReachedChoice'
+import { StoreUpsellBanner } from '@/components/StoreUpsellBanner'
 
 export default function MyAdsScreen() {
   const { colors } = useTheme()
@@ -98,6 +100,7 @@ export default function MyAdsScreen() {
   const [soldFor, setSoldFor] = useState<Product | null>(null)
   const [soldDialogMode, setSoldDialogMode] = useState<'sell' | 'delete'>('sell')
   const [markingSold, setMarkingSold] = useState(false)
+  const [capOpen, setCapOpen] = useState(false)
 
   useEffect(() => {
     getSiteSettings().then(setSettings).catch(() => {})
@@ -187,6 +190,8 @@ export default function MyAdsScreen() {
     ? 0
     : Math.min(100, Math.round((usedForLimit / limit) * 100))
   const isAtLimit = !isStore && usedForLimit >= limit
+  const goConvert = () =>
+    router.push({ pathname: '/dashboard/subscription', params: { upgrade: 'store' } } as never)
 
   function confirmDelete(id: number) {
     Alert.alert(
@@ -371,61 +376,33 @@ export default function MyAdsScreen() {
                 </View>
               )}
             </View>
-            {(() => {
-              const iosClientAtLimit = !isStore && IS_IOS && isAtLimit
-              // Non-iOS clients hit a hard cap; iOS clients can top up slots via IAP.
-              const postCtaDisabled = isAtLimit && !iosClientAtLimit
-              return (
-                <View style={styles.ctaGroup}>
-                  {iosClientAtLimit && (
-                    <Pressable
-                      onPress={() => router.push('/dashboard/buy-slots?resumeTo=add')}
-                      style={({ pressed }) => [
-                        styles.buySlotsChip,
-                        pressed && { opacity: 0.85 },
-                      ]}
-                      accessibilityRole="button"
-                    >
-                      <Ionicons name="ticket" size={14} color={colors.heading} />
-                      <Text style={styles.buySlotsChipText}>
-                        {ar ? 'شراء خانات' : 'Buy slots'}
-                      </Text>
-                    </Pressable>
-                  )}
-                  <Pressable
-                    onPress={() => {
-                      if (iosClientAtLimit) {
-                        router.push('/dashboard/buy-slots?resumeTo=add')
-                        return
-                      }
-                      if (isAtLimit) return
-                      router.push('/products/new')
-                    }}
-                    disabled={postCtaDisabled}
-                    style={({ pressed }) => [
-                      styles.postCta,
-                      postCtaDisabled && styles.postCtaDisabled,
-                      pressed && !postCtaDisabled && { opacity: 0.85 },
-                    ]}
-                    accessibilityRole="button"
-                  >
-                    <Ionicons
-                      name={postCtaDisabled ? 'lock-closed' : 'add'}
-                      size={16}
-                      color={postCtaDisabled ? colors.muted : colors.dk}
-                    />
-                    <Text
-                      style={[
-                        styles.postCtaText,
-                        postCtaDisabled && { color: colors.muted },
-                      ]}
-                    >
-                      {ar ? 'إضافة إعلان' : 'Post Ad'}
-                    </Text>
-                  </Pressable>
-                </View>
-              )
-            })()}
+            <View style={styles.ctaGroup}>
+              {/* At the cap the post CTA opens the convert / buy-slots choice (§4). */}
+              <Pressable
+                onPress={() => {
+                  if (isAtLimit) {
+                    setCapOpen(true)
+                    return
+                  }
+                  router.push('/products/new')
+                }}
+                style={({ pressed }) => [
+                  styles.postCta,
+                  isAtLimit && styles.postCtaDisabled,
+                  pressed && { opacity: 0.85 },
+                ]}
+                accessibilityRole="button"
+              >
+                <Ionicons
+                  name={isAtLimit ? 'lock-closed' : 'add'}
+                  size={16}
+                  color={isAtLimit ? colors.muted : colors.dk}
+                />
+                <Text style={[styles.postCtaText, isAtLimit && { color: colors.muted }]}>
+                  {ar ? 'إضافة إعلان' : 'Post Ad'}
+                </Text>
+              </Pressable>
+            </View>
           </View>
 
           {/* Progress bar */}
@@ -466,6 +443,17 @@ export default function MyAdsScreen() {
             />
           </View>
         </View>
+      )}
+
+      {/* Client → store banner with the real listings meter (§5). */}
+      {hasData && !isStore && (
+        <StoreUpsellBanner
+          used={usedForLimit}
+          cap={limit}
+          onConvert={goConvert}
+          dismissKey="my_ads"
+          style={{ marginBottom: spacing.md }}
+        />
       )}
 
       {hasData && salesOn && products!.length > 0 && (
@@ -1073,6 +1061,14 @@ export default function MyAdsScreen() {
           }}
         />
       )}
+      <CapReachedChoice
+        visible={capOpen}
+        onClose={() => setCapOpen(false)}
+        used={usedForLimit}
+        cap={limit}
+        onConvert={goConvert}
+        onBuySlots={() => router.push('/dashboard/buy-slots?resumeTo=add' as never)}
+      />
     </DashboardLayout>
   )
 }

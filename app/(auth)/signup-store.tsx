@@ -36,6 +36,23 @@ import { OtpCodeInput } from '@/components/OtpCodeInput'
 import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 import { validatePassword } from '@/lib/password-policy'
+import { PLACEHOLDER_SLUG, StoreUrl, StoreValueChips } from '@/components/StoreValue'
+import { PAID_UI_ENABLED } from '@/lib/platform'
+import { fmtPrice, slugify, svText, useStoreValueParams } from '@/lib/storeValue'
+
+function useDir() {
+  const { locale } = useLocale()
+  const ar = locale === 'ar'
+  return {
+    ar,
+    rowDir: ar ? { direction: 'ltr' as const, flexDirection: 'row-reverse' as const } : null,
+    colDir: ar ? { direction: 'rtl' as const } : null,
+    dirStyle: {
+      writingDirection: ar ? ('rtl' as const) : ('ltr' as const),
+      textAlign: 'auto' as const,
+    },
+  }
+}
 
 type Step = 'phone' | 'otp' | 'info'
 
@@ -51,6 +68,9 @@ export default function SignupStoreScreen() {
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
   const { colors, isDark } = useTheme()
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
+  const { rowDir, dirStyle } = useDir()
+  const svp = useStoreValueParams()
+  const sv = t.storeValue
 
   const [step, setStep] = useState<Step>('phone')
   // null = settings not loaded yet. The OTP step stays hidden unless OTP is
@@ -297,6 +317,29 @@ export default function SignupStoreScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {step !== 'otp' && (
+            <View style={styles.trialStrip}>
+              <Text style={[styles.trialLine, dirStyle]}>
+                {svp.trialDays > 0 ? svText(sv, 'signupTrial', svp, locale) : null}
+                {PAID_UI_ENABLED ? (
+                  <Text style={styles.trialThen}>
+                    {(() => {
+                      const then = svText(sv, 'signupThen', svp, locale, { price: fmtPrice(svp.price) })
+                      return svp.trialDays > 0 ? then : then.replace(/^\s*—\s*/, '')
+                    })()}
+                    {svp.list > svp.price ? (
+                      <>
+                        {' '}
+                        <Text style={styles.strike}>{fmtPrice(svp.list)}</Text>
+                      </>
+                    ) : null}
+                  </Text>
+                ) : null}
+              </Text>
+              <StoreValueChips params={svp} />
+            </View>
+          )}
+
           {step === 'phone' && (
             <>
               <Input
@@ -353,6 +396,13 @@ export default function SignupStoreScreen() {
           {step === 'info' && (
             <>
               <Input label={t.storeName} value={storeName} onChangeText={setStoreName} autoCapitalize="words" />
+              <View style={[styles.urlRow, rowDir]}>
+                <Ionicons name="link-outline" size={15} color={colors.muted} />
+                <Text style={[styles.urlLabel, dirStyle]}>{sv.signupUrlLabel}</Text>
+                <Text style={styles.urlValue} numberOfLines={1}>
+                  <StoreUrl slug={storeName.trim() ? slugify(storeName) : PLACEHOLDER_SLUG} />
+                </Text>
+              </View>
 
               <Text style={styles.sectionLabel}>{t.storeDescription}</Text>
               <TextInput
@@ -415,7 +465,8 @@ export default function SignupStoreScreen() {
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               )}
-              <Button label={t.createStoreAccount} onPress={handleSubmit} loading={loading} />
+              <Button label={sv.signupCta} onPress={handleSubmit} loading={loading} />
+              <Text style={[styles.micro, { writingDirection: dirStyle.writingDirection }]}>{sv.signupMicro}</Text>
             </>
           )}
         </ScrollView>
@@ -497,6 +548,33 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: spacing.xl,
+  },
+
+  trialStrip: {
+    backgroundColor: colors.yellowBg,
+    borderRadius: radius.md,
+    padding: 12,
+    gap: 8,
+    marginBottom: spacing.md,
+  },
+  trialLine: { fontFamily: fonts.extraBold, fontSize: 13, color: dark ? colors.y : colors.dk },
+  trialThen: { fontFamily: fonts.semiBold, fontSize: 12.5, color: dark ? colors.muted : colors.g600 },
+  strike: { textDecorationLine: 'line-through', color: colors.subtle },
+  urlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: -spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  urlLabel: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.muted },
+  urlValue: { flex: 1, fontFamily: fonts.bold, fontSize: 12.5, color: colors.heading, writingDirection: 'ltr' },
+  micro: {
+    fontFamily: fonts.semiBold,
+    fontSize: 11.5,
+    color: colors.muted,
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
 
 

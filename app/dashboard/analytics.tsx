@@ -6,6 +6,9 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useLocale } from '@/contexts/locale'
 import { useTheme } from '@/contexts/theme'
+import { useAuth } from '@/contexts/auth'
+import { Button } from '@/components/ui/Button'
+import { SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { authFetch } from '@/lib/auth'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 
@@ -59,6 +62,10 @@ export default function AnalyticsScreen() {
   const { colors, isDark } = useTheme()
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const ar = locale === 'ar'
+  const { user } = useAuth()
+  // Clients don't get store-page contacts — show the locked teaser (§8 analytics row).
+  const showStoreLock = user?.type === 'client' && SUBSCRIPTION_UI_ENABLED
+  const sv = t.storeValue
 
   // LocaleProvider applies `direction: 'rtl'` at the tree root. Under inherited
   // RTL, `textAlign: 'right'` and `flexDirection: 'row-reverse'` resolve visually
@@ -290,6 +297,37 @@ export default function AnalyticsScreen() {
                     </View>
                   </View>
                 )}
+            </View>
+          )}
+
+          {/* Store-page analytics — locked for clients */}
+          {showStoreLock && (
+            <View style={[styles.card, styles.lockCard]}>
+              <View style={[styles.lockHead, rowDir]}>
+                <View style={styles.lockIcon}>
+                  <Ionicons name="lock-closed" size={16} color={colors.yellowText} />
+                </View>
+                <View style={[{ flex: 1 }, colDir]}>
+                  <Text style={[styles.cardTitle, dirStyle]}>{sv.analyticsLockTitle}</Text>
+                  <Text style={[styles.lockBody, dirStyle]}>{sv.analyticsLockBody}</Text>
+                </View>
+              </View>
+              <View style={[styles.lockStats, rowDir]}>
+                {(['call-outline', 'logo-whatsapp', 'chatbubbles-outline'] as const).map((icon) => (
+                  <View key={icon} style={styles.lockStat}>
+                    <Ionicons name={icon} size={16} color={colors.subtle} />
+                    <Text style={styles.lockStatValue}>••</Text>
+                  </View>
+                ))}
+              </View>
+              <Button
+                label={sv.analyticsLockCta}
+                variant="y"
+                size="sm"
+                onPress={() =>
+                  router.push({ pathname: '/dashboard/subscription', params: { upgrade: 'store' } } as never)
+                }
+              />
             </View>
           )}
 
@@ -634,6 +672,27 @@ export default function AnalyticsScreen() {
 }
 
 const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  lockCard: { gap: spacing.sm, borderWidth: 1.5, borderColor: colors.y, borderStyle: 'dashed' },
+  lockHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  lockIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.yellowBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockBody: { fontFamily: fonts.semiBold, fontSize: 12.5, color: colors.muted, marginTop: 2 },
+  lockStats: { flexDirection: 'row', gap: spacing.sm },
+  lockStat: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    backgroundColor: dark ? colors.pressed : colors.g100,
+  },
+  lockStatValue: { fontFamily: fonts.black, fontSize: 15, color: colors.subtle, letterSpacing: 2 },
   loader: {
     paddingVertical: spacing.xxl,
     alignItems: 'center',

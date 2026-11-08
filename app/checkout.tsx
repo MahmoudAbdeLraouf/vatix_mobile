@@ -40,6 +40,8 @@ import {
   payWithWalletForSubscription,
 } from '@/lib/payment'
 import { PAID_UI_ENABLED } from '@/lib/platform'
+import { StoreValue } from '@/components/StoreValue'
+import { useStoreValueParams } from '@/lib/storeValue'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -84,6 +86,7 @@ export default function CheckoutScreen() {
   const insets = useSafeAreaInsets()
   const { colors, isDark } = useTheme()
   const styles = useStyles()
+  const svParams = useStoreValueParams()
   const ar = locale === 'ar'
   const currency = t.egp
 
@@ -319,6 +322,11 @@ export default function CheckoutScreen() {
               </View>
             </View>
           </View>
+
+          {/* What the store plan includes (store-upsell-system §7) */}
+          {context === 'subscription' && subType === 'subscription_store' ? (
+            <StoreValue variant="receipt" params={svParams} amount={amount} />
+          ) : null}
 
           {/* Method picker */}
           {panel === 'pick' && (

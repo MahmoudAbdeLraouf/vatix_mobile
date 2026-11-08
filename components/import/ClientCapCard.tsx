@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/Button'
 import { UpgradeModal } from '@/components/UpgradeModal'
 import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
-import { TRIAL_DAYS } from '@/lib/trial'
+import { StoreValue } from '@/components/StoreValue'
+import { CapReachedChoiceBody } from '@/components/CapReachedChoice'
+import { useStoreValueParams } from '@/lib/storeValue'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -42,6 +44,8 @@ export function ClientCapCard({ screen }: { screen: ImportScreen }) {
     ? { direction: 'ltr' as const, flexDirection: 'row-reverse' as const }
     : null
 
+  const sv = t.storeValue
+  const svp = useStoreValueParams()
   const [status, setStatus] = useState<CapStatus | null>(null)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
@@ -96,27 +100,39 @@ export function ClientCapCard({ screen }: { screen: ImportScreen }) {
       </Text>
       <Text style={[styles.hint, dirStyle]}>{ip.capHint.replace('{cap}', String(status.baseCap))}</Text>
 
-      <View style={[styles.actions, rowDir]}>
-        <Button
-          label={ip.capBuySlots}
-          variant="y"
-          size="sm"
-          fullWidth={false}
-          style={styles.action}
-          onPress={() => router.push(buySlotsForImportHref(screen) as never)}
+      {full ? (
+        // §4: at the cap — convert (recommended) vs buy slots, with the comparison.
+        <CapReachedChoiceBody
+          used={status.lifetimeCount}
+          cap={status.cap}
+          params={svp}
+          onConvert={() => setShowUpgrade(true)}
+          onBuySlots={() => router.push(buySlotsForImportHref(screen) as never)}
         />
-        <Button
-          label={ip.capConvertStore}
-          variant="outline"
-          size="sm"
-          fullWidth={false}
-          style={styles.action}
-          onPress={() => setShowUpgrade(true)}
-        />
-      </View>
-      <Text style={[styles.trialHint, dirStyle]}>
-        {ip.capStoreTrialHint.replace('{days}', String(TRIAL_DAYS))}
-      </Text>
+      ) : (
+        // Under the cap: compact store pitch, convert first, slots second.
+        <>
+          <StoreValue variant="compact" params={svp} shortChips style={styles.pitch} />
+          <View style={[styles.actions, rowDir]}>
+            <Button
+              label={sv.capConvertCtaPlain}
+              variant="y"
+              size="sm"
+              fullWidth={false}
+              style={styles.action}
+              onPress={() => setShowUpgrade(true)}
+            />
+            <Button
+              label={ip.capBuySlots}
+              variant="outline"
+              size="sm"
+              fullWidth={false}
+              style={styles.action}
+              onPress={() => router.push(buySlotsForImportHref(screen) as never)}
+            />
+          </View>
+        </>
+      )}
 
       <UpgradeModal
         visible={showUpgrade}
@@ -151,5 +167,5 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   hint: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   actions: { flexDirection: 'row', gap: 10, marginTop: spacing.xs },
   action: { flex: 1 },
-  trialHint: { fontFamily: fonts.bold, fontSize: 11, color: colors.green },
+  pitch: { marginTop: spacing.xs },
 })
