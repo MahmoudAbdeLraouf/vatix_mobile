@@ -474,6 +474,7 @@ export default function MoreScreen() {
 
         {/* Payments */}
         <Section title={ar ? 'المدفوعات' : 'Payments'} dirStyle={dirStyle}>
+          <MoreRow {...rowProps} icon="cash-outline" label={t.plansPricing} onPress={() => router.push('/pricing' as never)} />
           {SUBSCRIPTION_UI_ENABLED && (
             <MoreRow {...rowProps} icon="diamond-outline" label={t.subscription} onPress={() => router.push('/dashboard/subscription')} />
           )}
