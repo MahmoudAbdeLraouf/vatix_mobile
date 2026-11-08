@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native'
 import { Stack, router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -76,6 +77,9 @@ export default function PricingScreen() {
   const broEnabled = useBroEnabled()
   const s = useStyles()
   const ar = locale === 'ar'
+  const { width: winW } = useWindowDimensions()
+  // Both screenshots share one height and fill the row (section padding, gap, card borders).
+  const shotH = (winW - spacing.md * 2 - spacing.sm - 4) / (WEB_ASPECT + APP_ASPECT)
   const tx = (a: string, e: string) => (ar ? a : e)
 
   const [plans, setPlans] = useState<PlanData[]>([])
@@ -410,12 +414,12 @@ export default function PricingScreen() {
             <Text style={s.urlPillText}>vatix.store/phone-corner</Text>
           </View>
           <View style={s.shotsRow}>
-            <View style={[s.shotCard, { flex: WEB_ASPECT }]}>
-              <Image source={WEB_SHOT} style={[s.shotImg, { aspectRatio: WEB_ASPECT }]} resizeMode="cover" />
+            <View style={[s.shotCard, { width: shotH * WEB_ASPECT }]}>
+              <Image source={WEB_SHOT} style={{ width: shotH * WEB_ASPECT, height: shotH }} resizeMode="cover" />
               <Text style={s.shotCaption}>{tx('💻 الموقع', '💻 Website')}</Text>
             </View>
-            <View style={[s.shotCard, { flex: APP_ASPECT }]}>
-              <Image source={APP_SHOT} style={[s.shotImg, { aspectRatio: APP_ASPECT }]} resizeMode="cover" />
+            <View style={[s.shotCard, { width: shotH * APP_ASPECT }]}>
+              <Image source={APP_SHOT} style={{ width: shotH * APP_ASPECT, height: shotH }} resizeMode="cover" />
               <Text style={s.shotCaption}>{tx('📱 التطبيق', '📱 App')}</Text>
             </View>
           </View>
@@ -748,7 +752,6 @@ const makeStyles = (colors: ThemeColors, dark = false) =>
       overflow: 'hidden',
       ...(dark ? {} : shadow.ss),
     },
-    shotImg: { width: '100%' },
     shotCaption: {
       fontFamily: fonts.bold,
       fontSize: 12,
