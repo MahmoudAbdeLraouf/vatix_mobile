@@ -109,7 +109,6 @@ export default function RegisterScreen() {
         </View>
 
         <Text style={[styles.heroTitle, dirStyle]}>{sv.regTitle}</Text>
-        <Text style={[styles.heroSubtitle, dirStyle]}>{sv.regSub}</Text>
       </View>
 
       {/* White card */}
@@ -176,6 +175,10 @@ export default function RegisterScreen() {
                 <Text style={[styles.typeLabel, dirStyle]}>{sv.regClientTitle}</Text>
                 <Text style={[styles.typeMeta, dirStyle]}>{sv.regClientSub}</Text>
               </View>
+              <View style={styles.freeTag}>
+                <Text style={styles.freeText}>{sv.regFree}</Text>
+                <Text style={styles.freeSmall}>{sv.regFreeForever}</Text>
+              </View>
             </View>
             <View style={styles.list}>
               {clientItems.map(item => (
@@ -185,26 +188,23 @@ export default function RegisterScreen() {
                 </View>
               ))}
             </View>
-            <Text style={[styles.freeText, dirStyle]}>
-              {sv.regFree} <Text style={styles.freeSmall}>{sv.regFreeForever}</Text>
-            </Text>
             <View style={styles.outlineBtn}>
               <Text style={styles.outlineBtnText}>{sv.regClientCta}</Text>
             </View>
           </Pressable>
-
-          <View style={styles.footer}>
-            <Text style={[styles.footerText, dirStyle]}>{t.alreadyHaveAccount} </Text>
-            <Link
-              href={redirect ? { pathname: '/(auth)/login', params: { redirect } } : '/(auth)/login'}
-              asChild
-            >
-              <Pressable>
-                <Text style={[styles.link, dirStyle]}>{t.login}</Text>
-              </Pressable>
-            </Link>
-          </View>
         </ScrollView>
+
+        <View style={styles.footer}>
+          <Text style={[styles.footerText, dirStyle]}>{t.alreadyHaveAccount} </Text>
+          <Link
+            href={redirect ? { pathname: '/(auth)/login', params: { redirect } } : '/(auth)/login'}
+            asChild
+          >
+            <Pressable>
+              <Text style={[styles.link, dirStyle]}>{t.login}</Text>
+            </Pressable>
+          </Link>
+        </View>
       </View>
 
       <BottomTabBar />
@@ -217,9 +217,9 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
 
   hero: {
     alignItems: 'center',
-    gap: spacing.sm,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xl,
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
   },
   headerRow: {
@@ -227,7 +227,7 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
   },
   headerActions: {
     flexDirection: 'row',
@@ -244,14 +244,8 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   },
   heroTitle: {
     fontFamily: fonts.extraBold,
-    fontSize: 26,
+    fontSize: 24,
     color: colors.white,
-    textAlign: 'center',
-  },
-  heroSubtitle: {
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.65)',
     textAlign: 'center',
   },
   card: {
@@ -259,22 +253,21 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     backgroundColor: colors.card,
     borderTopStartRadius: radius.xl,
     borderTopEndRadius: radius.xl,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
   },
 
-  scroll: { paddingTop: 6, paddingBottom: spacing.lg },
+  scroll: { paddingTop: 6, paddingBottom: spacing.sm },
 
   storeCard: {
     borderRadius: 18,
     borderWidth: 2,
     borderColor: colors.y,
     backgroundColor: dark ? colors.card : '#FFFCF0',
-    padding: 16,
-    paddingTop: 20,
+    padding: 14,
+    paddingTop: 18,
     marginTop: 8,
-    gap: 10,
+    gap: 8,
     ...(dark ? null : shadow.ss),
   },
   rib: {
@@ -308,15 +301,15 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   cta: {
     backgroundColor: colors.y,
     borderRadius: radius.md,
-    paddingVertical: 13,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   ctaText: { fontFamily: fonts.black, fontSize: 15, color: colors.dk },
 
   clientCard: {
-    marginTop: 14,
-    padding: 16,
-    gap: 10,
+    marginTop: 12,
+    padding: 14,
+    gap: 8,
     borderRadius: 18,
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -346,13 +339,14 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     lineHeight: 20,
     color: dark ? colors.muted : colors.g600,
   },
-  freeText: { fontFamily: fonts.black, fontSize: 20, color: colors.heading },
-  freeSmall: { fontFamily: fonts.semiBold, fontSize: 12, color: dark ? colors.muted : colors.g600 },
+  freeTag: { alignItems: 'center' },
+  freeText: { fontFamily: fonts.black, fontSize: 18, color: colors.heading },
+  freeSmall: { fontFamily: fonts.semiBold, fontSize: 11, color: dark ? colors.muted : colors.g600 },
   outlineBtn: {
     borderWidth: 1.5,
     borderColor: dark ? colors.y : colors.dk,
     borderRadius: radius.md,
-    paddingVertical: 11,
+    paddingVertical: 10,
     alignItems: 'center',
     backgroundColor: colors.card,
   },
@@ -362,7 +356,9 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingTop: spacing.lg,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
   },
   footerText: {
     fontFamily: fonts.regular,
