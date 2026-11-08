@@ -3,14 +3,13 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native'
-import { Stack, router } from 'expo-router'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { router } from 'expo-router'
+import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import {
@@ -301,17 +300,7 @@ export default function PricingScreen() {
   )
 
   return (
-    <SafeAreaView style={s.safe} edges={['bottom']}>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: ar ? 'الأسعار' : 'Pricing',
-          headerStyle: { backgroundColor: colors.card },
-          headerTitleStyle: { fontFamily: fonts.black, color: colors.heading },
-          headerTintColor: colors.heading,
-        }}
-      />
-      <ScrollView contentContainerStyle={s.scroll}>
+    <DashboardLayout title={ar ? 'الأسعار' : 'Pricing'} contentPadding={false}>
         {/* Hero */}
         <View style={s.hero}>
           <View style={s.pill}>
@@ -615,8 +604,7 @@ export default function PricingScreen() {
             </Pressable>
           </View>
         )}
-      </ScrollView>
-    </SafeAreaView>
+    </DashboardLayout>
   )
 }
 
@@ -624,8 +612,6 @@ export default function PricingScreen() {
 
 const makeStyles = (colors: ThemeColors, dark = false) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bg },
-    scroll: { paddingBottom: spacing.xxl },
 
     // Hero
     hero: {
