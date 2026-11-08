@@ -163,11 +163,11 @@ export default function BuyOffersScreen() {
         const visible = IS_IOS ? list.filter((x) => isOfferCount(x.offerCount)) : list
         setPacks(visible)
 
-        // The cap sheet deep-links with ?pack=<id>; only honour ids that are actually offered.
+        // Cap cards deep-link with ?pack=<id> to preselect it; the user still lands on the same
+        // pack list as the dashboard entry. Only honour ids that are actually offered.
         const presetId = params.pack ? Number(params.pack) : null
         if (presetId && visible.some((x) => x.id === presetId)) {
           setSelectedId(presetId)
-          setStep('method')
         } else if (visible.length) {
           setSelectedId(visible[0].id)
         }
