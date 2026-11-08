@@ -468,7 +468,7 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     justifyContent: 'center',
   },
 
-  meter: { marginBottom: 0, borderWidth: dark ? 1 : 0, borderRadius: radius.lg, ...(dark ? null : shadow.ss) },
+  meter: { marginBottom: 0 },
 
   // Sort + brand/area filters.
   filterCard: {

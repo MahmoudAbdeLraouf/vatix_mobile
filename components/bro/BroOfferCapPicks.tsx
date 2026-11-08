@@ -1,6 +1,6 @@
 // Monthly Bro offer cap reached (mockups/store-upsell-implemented.html §8): switch
 // to a store (recommended, unlimited offers) or buy an extra-offers pack.
-// Shared by BroUsageMeter and BroOfferSheet; mirrors the website BroOfferCapPicks.
+// Used by BroOfferSheet; mirrors the website BroOfferCapPicks.
 import React, { useEffect, useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { fonts, type ThemeColors } from '@/constants/theme'

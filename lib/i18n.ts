@@ -1105,7 +1105,10 @@ export interface Translations {
     meterLabel: string
     capBlockTitle: string
     capUpgradeCta: string
-    meterSplit: string
+    meterLeftRest: string
+    capBannerTitle: string
+    capBannerResets: string
+    capBannerStore: string
     capFreeGoneTitle: string
     capFreeGoneBody: string
     packCardLabel: string
@@ -2435,10 +2438,13 @@ export const translations: Record<Locale, Translations> = {
       offerSubmitting: 'ببعت…',
       errOfferTitle: 'اكتب عنوان للعرض',
       errOfferPrice: 'اكتب سعر أكبر من صفر (لحد رقمين بعد العلامة العشرية)',
-      meterLabel: 'العروض اللي قدّمتها على الطلبات',
+      meterLabel: 'عروضك المجانية الشهر ده',
       capBlockTitle: 'وصلت للحد الأقصى',
       capUpgradeCta: 'حوّل لحساب متجر',
-      meterSplit: 'مجاني: {free} / {cap} · مشترى: {purchased}',
+      meterLeftRest: 'من {cap} فاضلين · مشترى: {purchased}',
+      capBannerTitle: 'خلصت عروضك المجانية ({used}/{cap})',
+      capBannerResets: 'بترجع {date}',
+      capBannerStore: 'حوّل لمتجر — بلا حدود',
       capFreeGoneTitle: 'خلصت عروضك المجانية لهذا الشهر',
       capFreeGoneBody: 'اشترِ عروض إضافية لا تنتهي، أو حوّل لمتجر للعروض غير المحدودة',
       packCardLabel: '{n} عرض — {price} ج.م',
@@ -3777,10 +3783,13 @@ export const translations: Record<Locale, Translations> = {
       offerSubmitting: 'Sending…',
       errOfferTitle: 'Enter a title for the offer',
       errOfferPrice: 'Enter a price above zero (up to two decimals)',
-      meterLabel: 'Offers you made on requests',
+      meterLabel: 'Your free offers this month',
       capBlockTitle: 'You\'ve reached the limit',
       capUpgradeCta: 'Upgrade to a store account',
-      meterSplit: 'Free: {free} / {cap} · Bought: {purchased}',
+      meterLeftRest: 'of {cap} left · Bought: {purchased}',
+      capBannerTitle: 'Free offers used up ({used}/{cap})',
+      capBannerResets: 'Back on {date}',
+      capBannerStore: 'Switch to a store — unlimited',
       capFreeGoneTitle: 'You\'ve used your free offers for this month',
       capFreeGoneBody: 'Buy extra offers that never expire, or upgrade to a store for unlimited offers',
       packCardLabel: '{n} offers — {price} EGP',
