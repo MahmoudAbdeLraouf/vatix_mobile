@@ -162,6 +162,8 @@ function RootStack() {
       key={locale}
       screenOptions={{
         headerShown: false,
+        // Chevron only — otherwise iOS labels it with the group name, e.g. "(tabs)".
+        headerBackButtonDisplayMode: 'minimal',
         contentStyle: { direction: isRtl ? 'rtl' : 'ltr', backgroundColor: isDark ? colors.bg : '#1A2540' },
       }}
     />
