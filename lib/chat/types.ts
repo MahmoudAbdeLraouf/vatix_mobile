@@ -35,15 +35,16 @@ export type ChatMessage = {
 }
 
 /**
- * A file picked/recorded locally and not yet confirmed by the server.
- * `previewUrl` is an object URL owned by the UI layer: whoever creates it must
- * `URL.revokeObjectURL` it once the bubble is confirmed, discarded or unmounted.
- * `mergeMessages` drops confirmed pending bubbles without revoking anything.
+ * A file picked/recorded locally and not yet confirmed by the server. `uri` is a local
+ * `file://` (or `ph://`) uri from the picker / recorder: nothing to free once the bubble is
+ * confirmed. `mergeMessages` drops confirmed pending bubbles (and their local files).
  */
 export type LocalUpload = {
-  file: Blob
+  uri: string
+  mime: string
   kind: 'image' | 'voice'
-  previewUrl: string
+  width?: number
+  height?: number
   durationMs?: number
   waveform?: number[]
 }

@@ -1,10 +1,13 @@
-import React, { memo, useMemo } from 'react'
+import React, { memo, useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { BroMessage } from '@/components/bro/BroMessage'
+import { ImageGrid } from '@/components/chat/ImageGrid'
+import { ImageViewer } from '@/components/chat/ImageViewer'
 import { useLocale } from '@/contexts/locale'
 import { useTheme } from '@/contexts/theme'
 import { fonts, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { gridSources } from '@/lib/chat/images'
 import type { LocalMessage } from '@/lib/chat/types'
 
 function timeLabel(iso: string, ar: boolean): string {
@@ -33,6 +36,12 @@ export const MessageBubble = memo(function MessageBubble({ message: m, mine, onR
   const { colors, isDark } = useTheme()
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
+  // Local uris while the draft is pending, server attachments (stable cache keys) once echoed.
+  const images = useMemo(
+    () => (m.type === 'image' ? gridSources(m) : []),
+    [m],
+  )
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
 
   if (m.meta?.bro) {
     return (
@@ -62,17 +71,32 @@ export const MessageBubble = memo(function MessageBubble({ message: m, mine, onR
         </View>
       </Pressable>
     )
+  } else if (images.length) {
+    body = (
+      <>
+        <ImageGrid sources={images} onOpen={setViewerIndex} />
+        {m.caption ? <Text style={[styles.text, styles.caption, textColor, dirStyle]}>{m.caption}</Text> : null}
+        <ImageViewer sources={images} index={viewerIndex} onClose={() => setViewerIndex(null)} />
+      </>
+    )
   } else {
-    // Images arrive with a legacy text `content`; rich image bubbles come with attachments support.
+    // Legacy image rows without attachments carry a text `content`.
     body = <Text style={[styles.text, textColor, dirStyle]}>{m.content}</Text>
   }
 
   // Website intentionally aligns "mine" to flex-start; mirror that here.
   return (
     <View style={[styles.row, { alignItems: mine ? 'flex-start' : 'flex-end' }]}>
-      <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs, failed && styles.failed]}>
+      <View
+        style={[
+          styles.bubble,
+          mine ? styles.bubbleMine : styles.bubbleTheirs,
+          images.length > 0 && styles.bubbleImage,
+          failed && styles.failed,
+        ]}
+      >
         {body}
-        <Text style={[styles.time, mine ? styles.timeMine : styles.timeTheirs]}>
+        <Text style={[styles.time, mine ? styles.timeMine : styles.timeTheirs, images.length > 0 && styles.timeImage]}>
           {timeLabel(m.createdAt, ar)}
           {status}
         </Text>
@@ -116,12 +140,14 @@ const makeStyles = (colors: ThemeColors, dark = false) =>
       borderWidth: 1,
       borderColor: colors.border,
     },
+    bubbleImage: { paddingHorizontal: 4, paddingTop: 4, paddingBottom: 6 },
     failed: { opacity: 0.6 },
     text: {
       fontFamily: fonts.regular,
       fontSize: 14,
       lineHeight: 20,
     },
+    caption: { paddingHorizontal: spacing.sm, paddingTop: 6 },
     textMine: { color: colors.white },
     textTheirs: { color: colors.text },
     voiceRow: {
@@ -154,6 +180,7 @@ const makeStyles = (colors: ThemeColors, dark = false) =>
       textAlign: 'right',
     },
     timeTheirs: { color: colors.muted },
+    timeImage: { paddingHorizontal: spacing.sm },
     retry: {
       marginTop: 4,
       paddingVertical: 2,

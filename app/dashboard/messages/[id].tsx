@@ -25,10 +25,13 @@ import { authFetch, authPatch, authPost } from '@/lib/auth'
 import { BroAvatar, BroBadge } from '@/components/bro/BroAvatar'
 import { MessageBubble } from '@/components/chat/MessageBubble'
 import { Composer } from '@/components/chat/Composer'
+import { ImageTray } from '@/components/chat/ImageTray'
+import { useImageTray } from '@/components/chat/useImageTray'
 import { QuickReplies } from '@/components/chat/QuickReplies'
 import { getChatSocket, useChatEvents, useFallbackPoll, useSocketStatus } from '@/lib/chatSocket'
 import { mergeMessages } from '@/lib/chat/merge'
 import { shouldShowChips } from '@/lib/chat/rules'
+import { makeImageDraft } from '@/lib/chat/images'
 import {
   DEFAULT_QUICK_REPLIES,
   firstServerId,
@@ -85,6 +88,11 @@ function dateKey(iso: string): string {
 type Row =
   | { kind: 'separator'; id: string; label: string }
   | { kind: 'message'; id: string; message: LocalMessage }
+
+/** Image send body; the server field is `content` (the caption), never `body`. */
+function imageBody(caption: string, attachmentIds: number[], clientMsgId: string) {
+  return { type: 'image', content: caption.trim() || undefined, attachmentIds, clientMsgId }
+}
 
 export default function ConversationScreen() {
   const { t, locale } = useLocale()
@@ -382,8 +390,8 @@ export default function ConversationScreen() {
 
   // ── Sending (optimistic) ──────────────────────────────────────────────────
   const post = useCallback(
-    (tempId: number, content: string, clientMsgId: string) => {
-      authPost<ChatMessage>(`/conversations/${conversationId}/messages`, { type: 'text', content, clientMsgId })
+    (tempId: number, body: Record<string, unknown>) => {
+      authPost<ChatMessage>(`/conversations/${conversationId}/messages`, body)
         .then((msg) => setMessages((prev) => mergeMessages(prev, [msg])))
         .catch(() => setMessages((prev) => setLocalState(prev, tempId, 'failed')))
     },
@@ -407,10 +415,34 @@ export default function ConversationScreen() {
       })
       setMessages((prev) => [...prev, draft])
       listRef.current?.scrollToOffset({ offset: 0, animated: true })
-      post(tempId, content, clientMsgId)
+      post(tempId, { type: 'text', content, clientMsgId })
     },
     [me, conversationId, post, stopTyping],
   )
+
+  // Images: the tray only allows send once every upload is done, so the ids are final here.
+  const tray = useImageTray(conversationId)
+  const takeImages = tray.take
+  const sendImages = useCallback(() => {
+    if (!me || !conversationId) return
+    const taken = takeImages()
+    if (!taken) return
+    const clientMsgId = uuidv4()
+    const tempId = tempIdRef.current--
+    const draft = makeImageDraft({
+      tempId,
+      conversationId,
+      senderId: me,
+      caption: taken.caption,
+      attachments: taken.attachments,
+      localFiles: taken.localFiles,
+      clientMsgId,
+      now: new Date().toISOString(),
+    })
+    setMessages((prev) => [...prev, draft])
+    listRef.current?.scrollToOffset({ offset: 0, animated: true })
+    post(tempId, imageBody(taken.caption, taken.attachments.map((a) => a.id), clientMsgId))
+  }, [me, conversationId, takeImages, post])
 
   const handleSend = useCallback(() => {
     const content = text
@@ -424,7 +456,12 @@ export default function ConversationScreen() {
     (m: LocalMessage) => {
       if (m.id >= 0 || !m.clientMsgId) return
       setMessages((prev) => setLocalState(prev, m.id, 'sending'))
-      post(m.id, m.content, m.clientMsgId)
+      post(
+        m.id,
+        m.type === 'image'
+          ? imageBody(m.caption ?? '', (m.attachments ?? []).map((a) => a.id), m.clientMsgId)
+          : { type: 'text', content: m.content, clientMsgId: m.clientMsgId },
+      )
     },
     [post],
   )
@@ -689,6 +726,8 @@ export default function ConversationScreen() {
       >
         {broFormOpen ? (
           <Text style={styles.broFormHint}>{t.bro.formComposerHint}</Text>
+        ) : tray.open ? (
+          <ImageTray tray={tray} onSend={sendImages} />
         ) : (
           <>
             {showChips ? <QuickReplies items={quickReplies} onPick={sendText} /> : null}
@@ -698,6 +737,7 @@ export default function ConversationScreen() {
               onChangeText={onChangeText}
               onSend={handleSend}
               onBlur={stopTyping}
+              onAttach={tray.openPicker}
             />
           </>
         )}

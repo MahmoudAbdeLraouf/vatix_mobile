@@ -10,14 +10,19 @@ type Props = {
   onChangeText: (text: string) => void
   onSend: () => void
   onBlur?: () => void
+  /** The ＋ button (camera / photo library); hidden when not given. */
+  onAttach?: () => void
 }
 
 /**
- * Text composer. Always editable: sending is optimistic, so the field is cleared at once and
- * a failed send is retried from its bubble rather than restored here. (No mic: voice notes
- * need a native module this OTA-shipped build does not have.)
+ * Text composer with an optional ＋ (attach photos). Always editable: sending is optimistic,
+ * so the field is cleared at once and a failed send is retried from its bubble rather than
+ * restored here. (No mic: voice notes need a native module this OTA-shipped build does not have.)
  */
-export const Composer = forwardRef<TextInput, Props>(function Composer({ value, onChangeText, onSend, onBlur }, ref) {
+export const Composer = forwardRef<TextInput, Props>(function Composer(
+  { value, onChangeText, onSend, onBlur, onAttach },
+  ref,
+) {
   const { t, locale } = useLocale()
   const ar = locale === 'ar'
   const { colors, isDark } = useTheme()
@@ -27,6 +32,16 @@ export const Composer = forwardRef<TextInput, Props>(function Composer({ value, 
 
   return (
     <View style={styles.bar}>
+      {onAttach ? (
+        <Pressable
+          style={({ pressed }) => [styles.attachBtn, pressed && styles.attachBtnPressed]}
+          onPress={onAttach}
+          accessibilityRole="button"
+          accessibilityLabel={t.chat.attach}
+        >
+          <Ionicons name="add" size={26} color={colors.text} />
+        </Pressable>
+      ) : null}
       <View style={styles.pill}>
         <TextInput
           ref={ref}
@@ -104,6 +119,17 @@ const makeStyles = (colors: ThemeColors, dark = false) =>
       shadowOpacity: 0,
       elevation: 0,
     },
+    attachBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.inputBg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    attachBtnPressed: { opacity: 0.7 },
     sendBtnPressed: {
       opacity: 0.9,
       transform: [{ scale: 0.94 }],

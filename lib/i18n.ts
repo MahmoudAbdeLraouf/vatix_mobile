@@ -708,6 +708,13 @@ export interface Translations {
     uploadFailed: string
     tooManyImages: string
     updateToListen: string
+    attach: string
+    camera: string
+    gallery: string
+    addCaption: string
+    cameraDenied: string
+    tooLarge: string
+    removePhoto: string
   }
   buySlots: {
     navLabel: string
@@ -2160,6 +2167,13 @@ export const translations: Record<Locale, Translations> = {
       uploadFailed: 'فشل رفع الملف، حاول مرة أخرى',
       tooManyImages: 'الحد الأقصى 10 صور في الرسالة الواحدة',
       updateToListen: 'حدّث التطبيق لسماع الرسائل الصوتية',
+      attach: 'إرفاق صور',
+      camera: 'الكاميرا',
+      gallery: 'معرض الصور',
+      addCaption: 'أضف تعليقًا…',
+      cameraDenied: 'اسمح للتطبيق باستخدام الكاميرا من الإعدادات',
+      tooLarge: 'الصورة أكبر من 15 ميجا',
+      removePhoto: 'إزالة الصورة',
     },
     buySlots: {
       navLabel: 'إعلانات إضافية',
@@ -3545,6 +3559,13 @@ export const translations: Record<Locale, Translations> = {
       uploadFailed: 'Upload failed, please try again',
       tooManyImages: 'You can send up to 10 photos per message',
       updateToListen: 'Update the app to hear voice messages',
+      attach: 'Attach photos',
+      camera: 'Camera',
+      gallery: 'Photo library',
+      addCaption: 'Add a caption…',
+      cameraDenied: 'Allow the app to use the camera in Settings',
+      tooLarge: 'Photo is larger than 15 MB',
+      removePhoto: 'Remove photo',
     },
     buySlots: {
       navLabel: 'Extra Ad Slots',
