@@ -19,7 +19,7 @@ import { useAuth } from '@/contexts/auth'
 import { imgUrl } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
 import { useChatEvents, useFallbackPoll } from '@/lib/chatSocket'
-import { appendPage, applyLiveUpdate, refreshFirstPage } from '@/lib/chat/inbox'
+import { appendPage, applyLiveUpdate, markRowRead, refreshFirstPage } from '@/lib/chat/inbox'
 import type { InboxItem, InboxPage } from '@/lib/chat/types'
 import { BroAvatar, BroBadge } from '@/components/bro/BroAvatar'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
@@ -180,6 +180,8 @@ export default function MessagesScreen() {
   const qRef = useRef('')
   const cursorRef = useRef<string | null>(null)
   const loadingMoreRef = useRef(false)
+  // True once a page beyond page one is loaded (reset with the list). Then page one's cursor is stale.
+  const deepRef = useRef(false)
   qRef.current = debouncedQuery
   cursorRef.current = nextCursor
 
@@ -189,6 +191,7 @@ export default function MessagesScreen() {
   const loadFirst = useCallback(async () => {
     const gen = ++genRef.current
     loadingMoreRef.current = false
+    deepRef.current = false
     setLoadingMore(false)
     setError(null)
     try {
@@ -210,12 +213,10 @@ export default function MessagesScreen() {
       const page = await authFetch<InboxPage>(inboxPath(qRef.current, null))
       if (gen !== genRef.current || !page) return
       setError(null)
-      setConversations((prev) => {
-        if (!prev) return page.items
-        const merged = refreshFirstPage(prev, cursorRef.current, page.items, page.nextCursor)
-        setNextCursor(merged.nextCursor)
-        return merged.items
-      })
+      setConversations((prev) => (prev ? refreshFirstPage(prev, page.items) : page.items))
+      // Page one's cursor only applies while no deeper page is loaded or loading; otherwise
+      // the current cursor already points past it.
+      if (!deepRef.current && !loadingMoreRef.current) setNextCursor(page.nextCursor)
     } catch {
       // Keep what is on screen; the next poll / focus retries.
     }
@@ -230,6 +231,7 @@ export default function MessagesScreen() {
     try {
       const page = await authFetch<InboxPage>(inboxPath(qRef.current, cursor))
       if (gen !== genRef.current || !page) return
+      deepRef.current = true
       setConversations((prev) => appendPage(prev ?? [], page.items))
       setNextCursor(page.nextCursor)
     } catch {
@@ -542,7 +544,10 @@ export default function MessagesScreen() {
 
               return (
                 <Pressable
-                  onPress={() => router.push(`/dashboard/messages/${item.id}`)}
+                  onPress={() => {
+                    setConversations((prev) => (prev ? markRowRead(prev, item.id) : prev))
+                    router.push(`/dashboard/messages/${item.id}`)
+                  }}
                   style={({ pressed }) => [
                     styles.item,
                     unread > 0 && styles.itemUnread,

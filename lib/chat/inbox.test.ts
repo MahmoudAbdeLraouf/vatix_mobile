@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { appendPage, applyLiveUpdate, refreshFirstPage, upsertToTop } from './inbox.ts'
+import { appendPage, applyLiveUpdate, markRowRead, refreshFirstPage, upsertToTop } from './inbox.ts'
 import type { InboxItem } from './types.ts'
 
 function conv(id: number, over: Partial<InboxItem> = {}): InboxItem {
@@ -56,14 +56,25 @@ test('appendPage de-duplicates within the incoming page', () => {
 })
 
 test('refreshFirstPage puts fresh rows first and keeps deeper loaded rows', () => {
-  const out = refreshFirstPage([conv(1), conv(2), conv(3)], 'deep', [conv(2, { unreadCount: 2 }), conv(1)], 'p1')
-  assert.deepEqual(ids(out.items), [2, 1, 3])
-  assert.equal(out.items[0].unreadCount, 2)
-  assert.equal(out.nextCursor, 'deep')
+  const out = refreshFirstPage([conv(1), conv(2), conv(3)], [conv(2, { unreadCount: 2 }), conv(1)])
+  assert.deepEqual(ids(out), [2, 1, 3])
+  assert.equal(out[0].unreadCount, 2)
 })
 
-test('refreshFirstPage adopts the fresh cursor when only page one was loaded', () => {
-  const out = refreshFirstPage([conv(1), conv(2)], 'old', [conv(2), conv(1), conv(3)], 'p1')
-  assert.deepEqual(ids(out.items), [2, 1, 3])
-  assert.equal(out.nextCursor, 'p1')
+test('refreshFirstPage adopts rows that are new on page one', () => {
+  assert.deepEqual(ids(refreshFirstPage([conv(1), conv(2)], [conv(2), conv(1), conv(3)])), [2, 1, 3])
+})
+
+test('markRowRead zeroes only that row, wherever it sits', () => {
+  const list = [conv(1, { unreadCount: 2 }), conv(2, { unreadCount: 3 }), conv(3, { unreadCount: 1 })]
+  const out = markRowRead(list, 3)
+  assert.deepEqual(out.map((c) => c.unreadCount), [2, 3, 0])
+  assert.equal(out[0], list[0])
+  assert.equal(list[2].unreadCount, 1)
+})
+
+test('markRowRead returns the same array when there is nothing to clear', () => {
+  const list = [conv(1), conv(2, { unreadCount: 1 })]
+  assert.equal(markRowRead(list, 1), list)
+  assert.equal(markRowRead(list, 99), list)
 })

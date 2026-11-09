@@ -35,15 +35,19 @@ export function appendPage(list: InboxItem[], page: InboxItem[]): InboxItem[] {
 /**
  * Silent refresh of page one (focus, reconnect, poll) without throwing away pages already
  * scrolled in: fresh rows first, then the loaded rows that were not in the fresh page.
- * `nextCursor` stays the old one when deeper pages were loaded, else it is the fresh page's.
+ * The paging cursor is not part of this: the caller decides whether page one's cursor applies.
  */
-export function refreshFirstPage(
-  list: InboxItem[],
-  nextCursor: string | null,
-  page: InboxItem[],
-  pageCursor: string | null,
-): { items: InboxItem[]; nextCursor: string | null } {
+export function refreshFirstPage(list: InboxItem[], page: InboxItem[]): InboxItem[] {
   const fresh = new Set(page.map((c) => c.id))
-  const rest = list.filter((c) => !fresh.has(c.id))
-  return { items: [...page, ...rest], nextCursor: rest.length > 0 ? nextCursor : pageCursor }
+  return [...page, ...list.filter((c) => !fresh.has(c.id))]
+}
+
+/**
+ * Zero one row's unread badge locally. Opening a thread marks it read on the server, which pushes
+ * only `unread:count` (no `conversation:updated`), so rows beyond page one would stay stale.
+ * Returns the same array when nothing changes.
+ */
+export function markRowRead(list: InboxItem[], id: number): InboxItem[] {
+  if (!list.some((c) => c.id === id && c.unreadCount > 0)) return list
+  return list.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c))
 }
