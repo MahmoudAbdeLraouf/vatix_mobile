@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
-import { FlatList, I18nManager, Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
+import { FlatList, Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { Image } from 'expo-image'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -181,7 +181,8 @@ function ZoomablePage({
  * Images reuse the grid cache keys, so reopening never re-downloads.
  */
 export function ImageViewer({ sources, index, onClose }: Props) {
-  const { t } = useLocale()
+  // App locale, not I18nManager.isRTL: the native flag can disagree with the chosen language (see lib/rtl.ts).
+  const { t, isRtl: rtl } = useLocale()
   const insets = useSafeAreaInsets()
   const { width, height } = useWindowDimensions()
   const [current, setCurrent] = useState(index ?? 0)
@@ -189,7 +190,6 @@ export function ImageViewer({ sources, index, onClose }: Props) {
   const dismissY = useSharedValue(0)
   const listRef = useRef<FlatList<GridSource>>(null)
   const visible = index !== null && sources.length > 0
-  const rtl = I18nManager.isRTL
   const count = sources.length
   // The list is forced to LTR (see pagerPage); in RTL the pages run in reverse so the first
   // image is on the right.
