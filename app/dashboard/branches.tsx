@@ -208,7 +208,9 @@ export default function BranchesScreen() {
   const bBranches = branches.filter(b => b.type === 'branch')
   const bGeneral = branches.filter(b => b.type === 'general')
 
-  const dir = ar ? 'right' : 'left'
+  // Root is already direction:rtl in Arabic; 'right' would double-flip to the
+  // visual left, so align to the start side instead (see wallet.tsx).
+  const dir = 'auto' as const
 
   return (
     <DashboardLayout title={ar ? 'الفروع' : 'Branches'} scroll={false}>
@@ -488,8 +490,6 @@ export default function BranchesScreen() {
                 keyboardType="phone-pad"
                 autoCapitalize="none"
                 autoCorrect={false}
-                // Digits stay LTR; the line aligns to the locale side.
-                style={{ textAlign: dir, writingDirection: 'ltr' }}
               />
               <Text style={[styles.hintSmall, { textAlign: dir, writingDirection: ar ? 'rtl' : 'ltr' }]}>
                 {ar
@@ -586,7 +586,9 @@ function BranchCard({
   const isBranch = branch.type === 'branch'
   const iconBg = isBranch ? colors.blueBg : colors.greenBg
   const iconColor = isBranch ? colors.blue : colors.green
-  const dir = ar ? 'right' : 'left'
+  // Root is already direction:rtl in Arabic; 'right' would double-flip to the
+  // visual left, so align to the start side instead (see wallet.tsx).
+  const dir = 'auto' as const
   const dirContainer = ar ? { direction: 'rtl' as const } : null
 
   return (
