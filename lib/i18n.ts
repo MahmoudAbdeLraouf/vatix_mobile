@@ -692,6 +692,23 @@ export interface Translations {
     positiveCta: string
     negativeCta: string
   }
+  chat: {
+    quickReplies: string
+    photosSelected: string
+    photo: string
+    photos: string
+    voiceMessage: string
+    recording: string
+    micDenied: string
+    notSent: string
+    typing: string
+    recordingVoice: string
+    online: string
+    loadOlder: string
+    uploadFailed: string
+    tooManyImages: string
+    updateToListen: string
+  }
   buySlots: {
     navLabel: string
     heading: string
@@ -2127,6 +2144,23 @@ export const translations: Record<Locale, Translations> = {
       positiveCta: 'نعم، أُقيّم',
       negativeCta: 'أرسل ملاحظة',
     },
+    chat: {
+      quickReplies: 'ردود سريعة',
+      photosSelected: '{n} صور مختارة · الحد الأقصى 10',
+      photo: 'صورة',
+      photos: 'صور',
+      voiceMessage: 'رسالة صوتية',
+      recording: 'جاري التسجيل…',
+      micDenied: 'اسمح للتطبيق باستخدام الميكروفون',
+      notSent: 'لم تُرسل — اضغط لإعادة المحاولة',
+      typing: 'يكتب…',
+      recordingVoice: 'بيسجل رسالة صوتية…',
+      online: 'متصل الآن',
+      loadOlder: 'تحميل رسائل أقدم',
+      uploadFailed: 'فشل رفع الملف، حاول مرة أخرى',
+      tooManyImages: 'الحد الأقصى 10 صور في الرسالة الواحدة',
+      updateToListen: 'حدّث التطبيق لسماع الرسائل الصوتية',
+    },
     buySlots: {
       navLabel: 'إعلانات إضافية',
       heading: 'اشتري إعلانات إضافية 🎟',
@@ -3494,6 +3528,23 @@ export const translations: Record<Locale, Translations> = {
       body: 'Your feedback matters. If you love the experience, rate us on the store — if not, tell us what could be better.',
       positiveCta: 'Yes, rate it',
       negativeCta: 'Send feedback',
+    },
+    chat: {
+      quickReplies: 'Quick replies',
+      photosSelected: '{n} photos selected · max 10',
+      photo: 'Photo',
+      photos: 'Photos',
+      voiceMessage: 'Voice message',
+      recording: 'Recording…',
+      micDenied: 'Allow the app to use the microphone',
+      notSent: 'Not sent — tap to retry',
+      typing: 'typing…',
+      recordingVoice: 'recording a voice message…',
+      online: 'Online now',
+      loadOlder: 'Load older messages',
+      uploadFailed: 'Upload failed, please try again',
+      tooManyImages: 'You can send up to 10 photos per message',
+      updateToListen: 'Update the app to hear voice messages',
     },
     buySlots: {
       navLabel: 'Extra Ad Slots',
