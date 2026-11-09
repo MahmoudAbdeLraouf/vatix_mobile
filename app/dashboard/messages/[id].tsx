@@ -592,12 +592,16 @@ export default function ConversationScreen() {
   }, [])
 
   useEffect(() => {
-    const ios = Platform.OS === 'ios'
-    const subs = [
-      Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardOpen(true)),
-      Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboardOpen(false)),
-      Keyboard.addListener('keyboardDidShow', revealFocusedInput),
-    ]
+    const subs = [Keyboard.addListener('keyboardDidShow', revealFocusedInput)]
+    // iOS only: Android's adjustPan has already placed the bar by the time
+    // keyboardDidShow fires, so shrinking its padding then drops the input
+    // under the keyboard.
+    if (Platform.OS === 'ios') {
+      subs.push(
+        Keyboard.addListener('keyboardWillShow', () => setKeyboardOpen(true)),
+        Keyboard.addListener('keyboardWillHide', () => setKeyboardOpen(false)),
+      )
+    }
     return () => subs.forEach((s) => s.remove())
   }, [revealFocusedInput])
 
@@ -815,9 +819,9 @@ export default function ConversationScreen() {
         style={[
           styles.inputBarWrap,
           {
-            // The keyboard covers the home-indicator inset. iOS lifts the bar via
-            // DashboardLayout's KeyboardAvoidingView, Android via adjustPan —
-            // padding by the keyboard height here would lift it twice.
+            // On iOS the keyboard covers the home-indicator inset, so it drops
+            // while open; DashboardLayout's KeyboardAvoidingView lifts the bar.
+            // Android lifts it via adjustPan and keeps the padding unchanged.
             paddingBottom: keyboardOpen ? spacing.sm : Math.max(insets.bottom, spacing.sm),
           },
         ]}
