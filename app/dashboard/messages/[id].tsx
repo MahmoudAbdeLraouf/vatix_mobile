@@ -138,6 +138,8 @@ export default function ConversationScreen() {
   const tempIdRef = useRef(-1)
   const loadingOlderRef = useRef(false)
   const catchingUpRef = useRef(false)
+  // A catch-up was skipped while unfocused (its GET would mark the thread read server-side).
+  const pendingCatchUpRef = useRef(false)
   const settingsRef = useRef<SiteSettings | null>(null)
   const focusedRef = useRef(isFocused)
   const readTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -233,11 +235,22 @@ export default function ConversationScreen() {
 
   // Forward catch-up after a socket gap (and after a Bro answer): page `afterId`
   // until the server has nothing newer.
+  // The GET marks messages read and clears notifications, so it only runs while focused;
+  // otherwise it is deferred and run once when the screen regains focus.
   const catchUp = useCallback(async () => {
-    if (!conversationId || catchingUpRef.current) return
+    if (!conversationId) return
+    if (!focusedRef.current) {
+      pendingCatchUpRef.current = true
+      return
+    }
+    if (catchingUpRef.current) return
     catchingUpRef.current = true
     try {
       for (let i = 0; i < CATCH_UP_MAX_PAGES; i++) {
+        if (!focusedRef.current) {
+          pendingCatchUpRef.current = true
+          break
+        }
         const after = lastServerId(messagesRef.current)
         const data = await authFetch<ThreadPage>(
           after
@@ -263,6 +276,13 @@ export default function ConversationScreen() {
   }, [conversationId, me, scheduleRead])
 
   useFallbackPoll(() => { void catchUp() }, FALLBACK_POLL_MS)
+
+  // Run exactly one deferred catch-up when focus returns (nothing extra if none was skipped).
+  useEffect(() => {
+    if (!isFocused || !pendingCatchUpRef.current) return
+    pendingCatchUpRef.current = false
+    void catchUp()
+  }, [isFocused, catchUp])
 
   // ── Realtime ──────────────────────────────────────────────────────────────
   const clearPeerTyping = useCallback(() => {
