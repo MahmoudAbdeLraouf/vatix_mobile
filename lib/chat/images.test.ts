@@ -9,6 +9,8 @@ import {
   gridSources,
   imagePreviewText,
   makeImageDraft,
+  pagerIndexFromOffset,
+  pagerPage,
   singleImageHeight,
   trayError,
   trayReady,
@@ -152,4 +154,43 @@ test('gridSources ignores voice attachments', () => {
     attachments: [{ ...att(5, 0), kind: 'voice' }],
   }
   assert.deepEqual(gridSources(m), [])
+})
+
+test('pagerPage maps an image index to its pager page (LTR identity, RTL mirrored, clamped)', () => {
+  assert.equal(pagerPage(0, 4, false), 0)
+  assert.equal(pagerPage(2, 4, false), 2)
+  assert.equal(pagerPage(0, 4, true), 3)
+  assert.equal(pagerPage(3, 4, true), 0)
+  assert.equal(pagerPage(1, 4, true), 2)
+  assert.equal(pagerPage(9, 4, false), 3)
+  assert.equal(pagerPage(-1, 4, true), 3)
+  assert.equal(pagerPage(0, 1, true), 0)
+  assert.equal(pagerPage(0, 0, true), 0)
+})
+
+test('pagerIndexFromOffset turns an LTR contentOffset.x into the image index', () => {
+  const w = 390
+  // LTR: page = offset / width.
+  assert.equal(pagerIndexFromOffset(0, w, 5, false), 0)
+  assert.equal(pagerIndexFromOffset(w * 3, w, 5, false), 3)
+  assert.equal(pagerIndexFromOffset(w * 2 + 0.4, w, 5, false), 2) // sub-pixel snap
+  // RTL: pages are laid out reversed, so the leftmost page is the last image.
+  assert.equal(pagerIndexFromOffset(0, w, 5, true), 4)
+  assert.equal(pagerIndexFromOffset(w * 4, w, 5, true), 0)
+  assert.equal(pagerIndexFromOffset(w, w, 5, true), 3)
+  // Overscroll / bounce and degenerate sizes stay in range.
+  assert.equal(pagerIndexFromOffset(-40, w, 5, false), 0)
+  assert.equal(pagerIndexFromOffset(w * 9, w, 5, false), 4)
+  assert.equal(pagerIndexFromOffset(-40, w, 5, true), 4)
+  assert.equal(pagerIndexFromOffset(500, 0, 5, false), 0)
+  assert.equal(pagerIndexFromOffset(500, w, 0, true), 0)
+})
+
+test('pagerPage and pagerIndexFromOffset round-trip in both directions', () => {
+  const w = 400
+  for (const rtl of [false, true]) {
+    for (let i = 0; i < 6; i++) {
+      assert.equal(pagerIndexFromOffset(pagerPage(i, 6, rtl) * w, w, 6, rtl), i)
+    }
+  }
 })

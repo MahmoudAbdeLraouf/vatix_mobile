@@ -58,14 +58,18 @@ export async function uploadAttachment(
   onProgress?: (pct: number) => void,
   signal?: AbortSignal,
 ): Promise<ChatAttachment> {
+  if (signal?.aborted) throw abortError()
   let refreshed = false
   for (;;) {
-    if (signal?.aborted) throw abortError()
+    // Each await below is a window where the user can hit ✕; re-check before doing more work.
     const token = await getToken()
+    if (signal?.aborted) throw abortError()
+    const visitor = await visitorIdHeader()
+    if (signal?.aborted) throw abortError()
     const headers: Record<string, string> = {
       Accept: 'application/json',
       'X-Client-Platform': Platform.OS,
-      ...(await visitorIdHeader()),
+      ...visitor,
     }
     if (token) headers.Authorization = `Bearer ${token}`
 
@@ -93,23 +97,27 @@ export async function uploadAttachment(
       aborted = true
       task.cancelAsync().catch(() => {})
     }
+    // Registered before uploadAsync starts; nothing awaits between creation and here, so an
+    // abort can only land after this point, where onAbort cancels the native task.
     signal?.addEventListener('abort', onAbort)
 
     let res: Awaited<ReturnType<UploadTask['uploadAsync']>>
     try {
       res = await task.uploadAsync()
     } catch (e) {
-      if (aborted) throw abortError()
+      if (aborted || signal?.aborted) throw abortError()
       throw new UploadError(e instanceof Error ? e.message : 'Network error', 0)
     } finally {
       signal?.removeEventListener('abort', onAbort)
     }
     // A cancelled task resolves to null / undefined.
-    if (aborted || !res) throw abortError()
+    if (aborted || !res || signal?.aborted) throw abortError()
 
     if (res.status === 401 && !refreshed) {
       refreshed = true
-      if (await refreshAccessToken()) continue
+      const ok = await refreshAccessToken()
+      if (signal?.aborted) throw abortError()
+      if (ok) continue
     }
     if (res.status < 200 || res.status >= 300) {
       throw new UploadError(errorMessage(res.body, res.status), res.status)

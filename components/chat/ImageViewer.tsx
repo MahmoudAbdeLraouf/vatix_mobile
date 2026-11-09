@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
-import { FlatList, Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
+import { FlatList, I18nManager, Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { Image } from 'expo-image'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useLocale } from '@/contexts/locale'
 import { fonts } from '@/constants/theme'
-import type { GridSource } from '@/lib/chat/images'
+import { pagerIndexFromOffset, pagerPage, type GridSource } from '@/lib/chat/images'
 
 const MAX_SCALE = 4
 const DOUBLE_TAP_SCALE = 2.5
@@ -189,6 +189,11 @@ export function ImageViewer({ sources, index, onClose }: Props) {
   const dismissY = useSharedValue(0)
   const listRef = useRef<FlatList<GridSource>>(null)
   const visible = index !== null && sources.length > 0
+  const rtl = I18nManager.isRTL
+  const count = sources.length
+  // The list is forced to LTR (see pagerPage); in RTL the pages run in reverse so the first
+  // image is on the right.
+  const pages = useMemo(() => (rtl ? [...sources].reverse() : sources), [rtl, sources])
 
   const onShow = useCallback(() => {
     dismissY.value = 0
@@ -225,18 +230,21 @@ export function ImageViewer({ sources, index, onClose }: Props) {
         <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]} />
         <FlatList
           ref={listRef}
-          data={sources}
+          data={pages}
+          style={styles.pager}
           keyExtractor={(s) => s.key}
           renderItem={renderItem}
           horizontal
           pagingEnabled
           scrollEnabled={!zoomed}
           showsHorizontalScrollIndicator={false}
-          initialScrollIndex={Math.min(index ?? 0, sources.length - 1)}
+          initialScrollIndex={pagerPage(index ?? 0, count, rtl)}
           getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
           initialNumToRender={1}
           windowSize={3}
-          onMomentumScrollEnd={(e) => setCurrent(Math.round(e.nativeEvent.contentOffset.x / width))}
+          onMomentumScrollEnd={(e) =>
+            setCurrent(pagerIndexFromOffset(e.nativeEvent.contentOffset.x, width, count, rtl))
+          }
         />
         <Animated.View
           pointerEvents="box-none"
@@ -266,6 +274,8 @@ export function ImageViewer({ sources, index, onClose }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  // LTR so contentOffset.x / getItemLayout offsets count from the left on iOS and Android alike.
+  pager: { direction: 'ltr' },
   backdrop: { backgroundColor: '#000000' },
   chrome: {
     position: 'absolute',

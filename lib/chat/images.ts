@@ -145,3 +145,23 @@ export function gridSources(m: LocalMessage): GridSource[] {
       }
     })
 }
+
+/*
+ * Full-screen viewer pager. The list is forced to LTR layout so contentOffset.x always counts
+ * from the left edge on both platforms (RTL Android mirrors it, RTL iOS lays page 0 out on the
+ * right). In RTL the pages are fed in reverse, so the first image sits on the right and
+ * swiping right-to-left reads forward, like the grid. These map image index <-> pager page.
+ */
+
+/** Pager page that shows image `index` (an involution: also maps a page back to its index). */
+export function pagerPage(index: number, count: number, rtl: boolean): number {
+  if (count <= 0) return 0
+  const i = Math.min(count - 1, Math.max(0, index))
+  return rtl ? count - 1 - i : i
+}
+
+/** Image index shown at an LTR `contentOffset.x` once the pager settles. */
+export function pagerIndexFromOffset(offsetX: number, width: number, count: number, rtl: boolean): number {
+  if (count <= 0 || width <= 0) return 0
+  return pagerPage(Math.round(offsetX / width), count, rtl)
+}
