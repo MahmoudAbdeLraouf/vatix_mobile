@@ -1,12 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
-  AppState,
-  AppStateStatus,
   FlatList,
   Image,
   Keyboard,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -16,23 +14,54 @@ import {
 } from 'react-native'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as StoreReview from 'expo-store-review'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
-import { ConversationDetail, ConversationListItem, imgUrl, Message } from '@/lib/api'
+import { getSiteSettings, imgUrl, type SiteSettings } from '@/lib/api'
 import { authFetch, authPatch, authPost } from '@/lib/auth'
-import { BroMessage } from '@/components/bro/BroMessage'
 import { BroAvatar, BroBadge } from '@/components/bro/BroAvatar'
+import { MessageBubble } from '@/components/chat/MessageBubble'
+import { Composer } from '@/components/chat/Composer'
+import { ImageTray } from '@/components/chat/ImageTray'
+import { useImageTray } from '@/components/chat/useImageTray'
+import type { RecordedVoice } from '@/components/chat/voiceComponents'
+import { QuickReplies } from '@/components/chat/QuickReplies'
+import { getChatSocket, useChatEvents, useFallbackPoll, useSocketStatus } from '@/lib/chatSocket'
+import { mergeMessages } from '@/lib/chat/merge'
+import { shouldShowChips } from '@/lib/chat/rules'
+import { makeImageDraft } from '@/lib/chat/images'
+import { uploadAttachment } from '@/lib/chat/upload'
+import { makeVoiceDraft, voiceMessageBody, voiceUploadFields, withUploadedVoice } from '@/lib/chat/waveform'
+import {
+  DEFAULT_QUICK_REPLIES,
+  firstServerId,
+  lastServerId,
+  makeTextDraft,
+  resolveQuickReplies,
+  setLocalState,
+  uuidv4,
+} from '@/lib/chat/thread'
+import type { ChatConversation, ChatMessage, LocalMessage, LocalUpload, QuickReply, TypingKind } from '@/lib/chat/types'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
-function timeLabel(iso: string, ar: boolean): string {
-  if (!iso) return ''
-  const locale = ar ? 'ar-EG' : 'en-US'
-  return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-}
+const PAGE_SIZE = 30
+/** Socket-down fallback cadence (the socket carries live traffic; no polling while it is up). */
+const FALLBACK_POLL_MS = 15_000
+const READ_DEBOUNCE_MS = 1_000
+/** Re-send `typing on` this often while keystrokes continue (server throttles to 2 s). */
+const TYPING_RESEND_MS = 3_000
+/** Stop advertising typing after this long without a keystroke. */
+const TYPING_IDLE_MS = 5_000
+/** Drop the peer's typing line if no refresh/stop arrives (lost `on:false`). */
+const PEER_TYPING_TTL_MS = 6_000
+/** Bound on forward pages fetched per catch-up. */
+const CATCH_UP_MAX_PAGES = 5
+
+type ThreadPage = { conversation: ChatConversation; messages: ChatMessage[]; hasMore: boolean }
 
 function dateLabel(iso: string, ar: boolean): string {
   if (!iso) return ''
@@ -61,7 +90,12 @@ function dateKey(iso: string): string {
 
 type Row =
   | { kind: 'separator'; id: string; label: string }
-  | { kind: 'message'; id: string; message: Message }
+  | { kind: 'message'; id: string; message: LocalMessage }
+
+/** Image send body; the server field is `content` (the caption), never `body`. */
+function imageBody(caption: string, attachmentIds: number[], clientMsgId: string) {
+  return { type: 'image', content: caption.trim() || undefined, attachmentIds, clientMsgId }
+}
 
 export default function ConversationScreen() {
   const { t, locale } = useLocale()
@@ -79,78 +113,94 @@ export default function ConversationScreen() {
     writingDirection: ar ? ('rtl' as const) : ('ltr' as const),
     textAlign: 'auto' as const,
   }
-  const trailAlign = {
-    alignItems: (ar ? 'flex-start' : 'flex-end') as 'flex-start' | 'flex-end',
-  }
   const { user } = useAuth()
+  const me = user?.id ?? 0
   const { id } = useLocalSearchParams<{ id: string }>()
+  const conversationId = Number(id) || 0
   const insets = useSafeAreaInsets()
   const { colors, isDark } = useTheme()
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
+  // Focus via expo-router (no direct @react-navigation import): true while this screen is on top.
+  const [isFocused, setIsFocused] = useState(true)
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true)
+      return () => setIsFocused(false)
+    }, []),
+  )
+  const { connected } = useSocketStatus()
 
-  const [detail, setDetail] = useState<ConversationDetail | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [other, setOther] = useState<ConversationListItem['otherUser'] | null>(null)
+  const [conversation, setConversation] = useState<ChatConversation | null>(null)
+  const [messages, setMessages] = useState<LocalMessage[]>([])
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingOlder, setLoadingOlder] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [text, setText] = useState('')
-  const [sending, setSending] = useState(false)
-  const listRef = useRef<FlatList>(null)
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>(DEFAULT_QUICK_REPLIES)
+  const [otherTyping, setOtherTyping] = useState<TypingKind | null>(null)
+  const [online, setOnline] = useState(false)
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
+
+  const listRef = useRef<FlatList<Row>>(null)
   const composerRef = useRef<TextInput>(null)
   const scrollYRef = useRef(0)
-  const [keyboardOpen, setKeyboardOpen] = useState(false)
-  const lastIdRef = useRef<number>(0)
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const inFlightRef = useRef<boolean>(false)
+  const messagesRef = useRef<LocalMessage[]>([])
+  const tempIdRef = useRef(-1)
+  const loadingOlderRef = useRef(false)
+  const catchingUpRef = useRef(false)
+  // A catch-up was skipped while unfocused (its GET would mark the thread read server-side).
+  const pendingCatchUpRef = useRef(false)
+  const settingsRef = useRef<SiteSettings | null>(null)
+  const focusedRef = useRef(isFocused)
+  const readTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const peerTypingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const typingOnRef = useRef(false)
+  const lastTypingEmitRef = useRef(0)
+  const typingIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const markAsRead = useCallback(() => {
-    if (!id) return
-    authPatch<{ success: boolean }>(`/conversations/${id}/read`, {}).catch(() => {})
-  }, [id])
+  useEffect(() => { messagesRef.current = messages }, [messages])
+  useEffect(() => { focusedRef.current = isFocused }, [isFocused])
 
+  const other = conversation?.otherUser ?? null
+  const otherId = other?.id ?? 0
+  const otherIsBro = other?.isBro ?? false
+
+  // ── Read state ────────────────────────────────────────────────────────────
+  // Debounced so a burst of incoming messages costs one PATCH; skipped when the
+  // screen is not focused (the message stays unread until the user is back).
+  const scheduleRead = useCallback(() => {
+    if (!conversationId) return
+    if (readTimerRef.current) clearTimeout(readTimerRef.current)
+    readTimerRef.current = setTimeout(() => {
+      readTimerRef.current = null
+      if (!focusedRef.current) return
+      authPatch<{ success: boolean }>(`/conversations/${conversationId}/read`, {}).catch(() => {})
+    }, READ_DEBOUNCE_MS)
+  }, [conversationId])
+
+  useEffect(() => {
+    if (isFocused) scheduleRead()
+  }, [isFocused, scheduleRead])
+
+  // ── Loading ───────────────────────────────────────────────────────────────
   const load = useCallback(async () => {
+    if (!conversationId) return
     setLoadError(false)
     try {
-      const data = await authFetch<ConversationDetail>(`/conversations/${id}/messages`)
+      const data = await authFetch<ThreadPage>(`/conversations/${conversationId}/messages?limit=${PAGE_SIZE}`)
       if (data) {
-        setDetail(data)
-        const msgs = data.messages ?? []
-        setMessages(msgs)
-        lastIdRef.current = msgs.length > 0 ? msgs[msgs.length - 1].id : 0
+        setConversation(data.conversation)
+        setHasMore(!!data.hasMore)
+        // Keep this thread's still-pending bubbles (a reload must not eat an unsent message).
+        setMessages((prev) =>
+          mergeMessages(prev.filter((m) => m.conversationId === conversationId), data.messages ?? []),
+        )
       }
     } catch {
       setLoadError(true)
     }
-  }, [id])
-
-  const poll = useCallback(async () => {
-    if (!id) return
-    if (inFlightRef.current) return
-    inFlightRef.current = true
-    try {
-      const data = await authFetch<ConversationDetail>(
-        `/conversations/${id}/messages?afterId=${lastIdRef.current}`,
-      )
-      if (!data) return
-      const incoming = data.messages ?? []
-      if (incoming.length === 0) return
-      let appended = false
-      setMessages((prev) => {
-        const seen = new Set(prev.map((m) => m.id))
-        const fresh = incoming.filter((m) => !seen.has(m.id))
-        if (fresh.length === 0) return prev
-        appended = true
-        const maxId = fresh[fresh.length - 1].id
-        if (maxId > lastIdRef.current) lastIdRef.current = maxId
-        return [...prev, ...fresh]
-      })
-      if (appended) markAsRead()
-    } catch {
-      // silent
-    } finally {
-      inFlightRef.current = false
-    }
-  }, [id, markAsRead])
+  }, [conversationId])
 
   useEffect(() => {
     setLoading(true)
@@ -163,46 +213,368 @@ export default function ConversationScreen() {
   }, [load])
 
   useEffect(() => {
-    if (!detail || !user) return
-    // Peripheral header enrichment: pulls the counterparty for the title bar
-    // only. If /conversations is flaky we keep the messages screen usable
-    // rather than blocking the whole thread on a header field.
-    authFetch<ConversationListItem[]>('/conversations')
-      .then((list) => {
-        const found = list?.find((c) => c.id === Number(id))
-        if (found) setOther(found.otherUser)
+    getSiteSettings()
+      .then((s) => {
+        settingsRef.current = s
+        setQuickReplies(resolveQuickReplies(s.chatQuickReplies))
       })
-      .catch(() => {})
-  }, [detail, user, id])
+      .catch(() => setQuickReplies(DEFAULT_QUICK_REPLIES))
+  }, [])
 
-  useEffect(() => {
-    markAsRead()
-  }, [markAsRead])
-
-  useEffect(() => {
-    pollingRef.current = setInterval(poll, 3000)
-    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
-      if (state === 'active') poll()
-    })
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current)
-      sub.remove()
+  // Inverted list: the "end" is the top, i.e. the oldest loaded message.
+  const loadOlder = useCallback(async () => {
+    if (!conversationId || !hasMore || loadingOlderRef.current) return
+    const before = firstServerId(messagesRef.current)
+    if (!before) return
+    loadingOlderRef.current = true
+    setLoadingOlder(true)
+    try {
+      const data = await authFetch<ThreadPage>(
+        `/conversations/${conversationId}/messages?beforeId=${before}&limit=${PAGE_SIZE}`,
+      )
+      if (data) {
+        setHasMore(!!data.hasMore)
+        setMessages((prev) => mergeMessages(prev, data.messages ?? []))
+      }
+    } catch {
+      // silent: the next scroll to the top tries again
+    } finally {
+      loadingOlderRef.current = false
+      setLoadingOlder(false)
     }
-  }, [poll])
+  }, [conversationId, hasMore])
 
-  useFocusEffect(
-    useCallback(() => {
-      poll()
-      markAsRead()
-    }, [poll, markAsRead]),
+  // Forward catch-up after a socket gap (and after a Bro answer): page `afterId`
+  // until the server has nothing newer.
+  // The GET marks messages read and clears notifications, so it only runs while focused;
+  // otherwise it is deferred and run once when the screen regains focus.
+  const catchUp = useCallback(async () => {
+    if (!conversationId) return
+    if (!focusedRef.current) {
+      pendingCatchUpRef.current = true
+      return
+    }
+    if (catchingUpRef.current) return
+    catchingUpRef.current = true
+    try {
+      for (let i = 0; i < CATCH_UP_MAX_PAGES; i++) {
+        if (!focusedRef.current) {
+          pendingCatchUpRef.current = true
+          break
+        }
+        const after = lastServerId(messagesRef.current)
+        const data = await authFetch<ThreadPage>(
+          after
+            ? `/conversations/${conversationId}/messages?afterId=${after}`
+            : `/conversations/${conversationId}/messages?limit=${PAGE_SIZE}`,
+        )
+        if (!data) break
+        const incoming = data.messages ?? []
+        if (!after) setHasMore(!!data.hasMore)
+        if (incoming.length) {
+          messagesRef.current = mergeMessages(messagesRef.current, incoming)
+          setMessages((prev) => mergeMessages(prev, incoming))
+          if (incoming.some((m) => m.senderId !== me)) scheduleRead()
+        }
+        // Without a cursor the page is the newest one and `hasMore` means "older exist".
+        if (!after || !data.hasMore || incoming.length === 0) break
+      }
+    } catch {
+      // silent: the fallback poll or next reconnect retries
+    } finally {
+      catchingUpRef.current = false
+    }
+  }, [conversationId, me, scheduleRead])
+
+  useFallbackPoll(() => { void catchUp() }, FALLBACK_POLL_MS)
+
+  // Run exactly one deferred catch-up when focus returns (nothing extra if none was skipped).
+  useEffect(() => {
+    if (!isFocused || !pendingCatchUpRef.current) return
+    pendingCatchUpRef.current = false
+    void catchUp()
+  }, [isFocused, catchUp])
+
+  // ── Realtime ──────────────────────────────────────────────────────────────
+  const clearPeerTyping = useCallback(() => {
+    if (peerTypingTimerRef.current) clearTimeout(peerTypingTimerRef.current)
+    peerTypingTimerRef.current = null
+    setOtherTyping(null)
+  }, [])
+
+  useChatEvents({
+    'message:new': ({ message }) => {
+      if (message.conversationId !== conversationId) return
+      setMessages((prev) => mergeMessages(prev, [message]))
+      if (message.senderId !== me) {
+        clearPeerTyping()
+        if (focusedRef.current) scheduleRead()
+      }
+    },
+    typing: (e) => {
+      if (e.conversationId !== conversationId || e.userId !== otherId) return
+      if (!e.on) {
+        clearPeerTyping()
+        return
+      }
+      setOtherTyping(e.kind)
+      if (peerTypingTimerRef.current) clearTimeout(peerTypingTimerRef.current)
+      peerTypingTimerRef.current = setTimeout(() => {
+        peerTypingTimerRef.current = null
+        setOtherTyping(null)
+      }, PEER_TYPING_TTL_MS)
+    },
+    presence: (e) => {
+      if (e.userId === otherId) setOnline(e.online)
+    },
+  })
+
+  // The server forgets presence rooms on reconnect, so watch again on every connect.
+  useEffect(() => {
+    if (!connected) {
+      setOnline(false)
+      return
+    }
+    if (!otherId || otherIsBro) return
+    getChatSocket()?.emit('presence:watch', { userId: otherId })
+  }, [connected, otherId, otherIsBro])
+
+  // ── Typing (outgoing) ─────────────────────────────────────────────────────
+  const emitTyping = useCallback(
+    (on: boolean, kind: TypingKind = 'text') => {
+      if (!conversationId || otherIsBro) return
+      getChatSocket()?.emit('typing', { conversationId, kind, on })
+    },
+    [conversationId, otherIsBro],
   )
 
-  const scrollToBottom = (animated = true) => {
-    setTimeout(() => listRef.current?.scrollToEnd({ animated }), 80)
-  }
+  const stopTyping = useCallback(() => {
+    if (typingIdleRef.current) clearTimeout(typingIdleRef.current)
+    typingIdleRef.current = null
+    if (!typingOnRef.current) return
+    typingOnRef.current = false
+    emitTyping(false)
+  }, [emitTyping])
 
+  const onChangeText = useCallback(
+    (v: string) => {
+      setText(v)
+      if (!v.trim()) {
+        stopTyping()
+        return
+      }
+      const now = Date.now()
+      if (!typingOnRef.current || now - lastTypingEmitRef.current >= TYPING_RESEND_MS) {
+        typingOnRef.current = true
+        lastTypingEmitRef.current = now
+        emitTyping(true)
+      }
+      if (typingIdleRef.current) clearTimeout(typingIdleRef.current)
+      typingIdleRef.current = setTimeout(stopTyping, TYPING_IDLE_MS)
+    },
+    [emitTyping, stopTyping],
+  )
+
+  useEffect(() => {
+    if (!isFocused) stopTyping()
+  }, [isFocused, stopTyping])
+
+  // "Recording a voice note..." for the peer: re-sent while the mic is held (the server
+  // throttles, and the peer drops the line after PEER_TYPING_TTL_MS without a refresh).
+  const voiceTypingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const onVoiceActive = useCallback(
+    (active: boolean) => {
+      if (voiceTypingRef.current) clearInterval(voiceTypingRef.current)
+      voiceTypingRef.current = null
+      if (active) {
+        stopTyping()
+        emitTyping(true, 'voice')
+        voiceTypingRef.current = setInterval(() => emitTyping(true, 'voice'), TYPING_RESEND_MS)
+      } else {
+        emitTyping(false, 'voice')
+      }
+    },
+    [emitTyping, stopTyping],
+  )
+  useEffect(
+    () => () => {
+      if (voiceTypingRef.current) clearInterval(voiceTypingRef.current)
+    },
+    [],
+  )
+  // Belt and braces with the recorder's own cancel-on-blur: never keep advertising "recording"
+  // from a screen that is no longer on top.
+  useEffect(() => {
+    if (!isFocused && voiceTypingRef.current) onVoiceActive(false)
+  }, [isFocused, onVoiceActive])
+
+  // Unmount: stop advertising typing and drop pending timers.
+  const stopTypingRef = useRef(stopTyping)
+  useEffect(() => { stopTypingRef.current = stopTyping }, [stopTyping])
+  useEffect(
+    () => () => {
+      stopTypingRef.current()
+      if (readTimerRef.current) clearTimeout(readTimerRef.current)
+      if (peerTypingTimerRef.current) clearTimeout(peerTypingTimerRef.current)
+    },
+    [],
+  )
+
+  // ── Sending (optimistic) ──────────────────────────────────────────────────
+  const post = useCallback(
+    (tempId: number, body: Record<string, unknown>) => {
+      authPost<ChatMessage>(`/conversations/${conversationId}/messages`, body)
+        .then((msg) => setMessages((prev) => mergeMessages(prev, [msg])))
+        .catch(() => setMessages((prev) => setLocalState(prev, tempId, 'failed')))
+    },
+    [conversationId],
+  )
+
+  const sendText = useCallback(
+    (raw: string) => {
+      const content = raw.trim()
+      if (!content || !me || !conversationId) return
+      stopTyping()
+      const clientMsgId = uuidv4()
+      const tempId = tempIdRef.current--
+      const draft = makeTextDraft({
+        tempId,
+        conversationId,
+        senderId: me,
+        text: content,
+        clientMsgId,
+        now: new Date().toISOString(),
+      })
+      setMessages((prev) => [...prev, draft])
+      listRef.current?.scrollToOffset({ offset: 0, animated: true })
+      post(tempId, { type: 'text', content, clientMsgId })
+    },
+    [me, conversationId, post, stopTyping],
+  )
+
+  // Images: the tray only allows send once every upload is done, so the ids are final here.
+  const tray = useImageTray(conversationId)
+  const takeImages = tray.take
+  const sendImages = useCallback(() => {
+    if (!me || !conversationId) return
+    const taken = takeImages()
+    if (!taken) return
+    const clientMsgId = uuidv4()
+    const tempId = tempIdRef.current--
+    const draft = makeImageDraft({
+      tempId,
+      conversationId,
+      senderId: me,
+      caption: taken.caption,
+      attachments: taken.attachments,
+      localFiles: taken.localFiles,
+      clientMsgId,
+      now: new Date().toISOString(),
+    })
+    setMessages((prev) => [...prev, draft])
+    listRef.current?.scrollToOffset({ offset: 0, animated: true })
+    post(tempId, imageBody(taken.caption, taken.attachments.map((a) => a.id), clientMsgId))
+  }, [me, conversationId, takeImages, post])
+
+  // Voice: upload first (progress is just the sending clock), then POST by attachment id. The id is
+  // kept on the bubble once uploaded, so a retry after a failed POST does not upload twice.
+  const deliverVoice = useCallback(
+    async (tempId: number, clientMsgId: string, file: LocalUpload, uploadedId: number | null) => {
+      try {
+        let attachmentId = uploadedId
+        if (attachmentId === null) {
+          const attachment = await uploadAttachment(
+            conversationId,
+            file.uri,
+            file.mime,
+            voiceUploadFields(file.durationMs ?? 0, file.waveform ?? []),
+          )
+          attachmentId = attachment.id
+          setMessages((prev) => withUploadedVoice(prev, tempId, attachment))
+        }
+        post(tempId, voiceMessageBody(attachmentId, clientMsgId))
+      } catch {
+        setMessages((prev) => setLocalState(prev, tempId, 'failed'))
+      }
+    },
+    [conversationId, post],
+  )
+
+  const sendVoice = useCallback(
+    (v: RecordedVoice) => {
+      if (!me || !conversationId) return
+      const clientMsgId = uuidv4()
+      const tempId = tempIdRef.current--
+      const file: LocalUpload = {
+        uri: v.uri,
+        mime: v.mime,
+        kind: 'voice',
+        durationMs: v.durationMs,
+        waveform: v.waveform,
+      }
+      const draft = makeVoiceDraft({
+        tempId,
+        conversationId,
+        senderId: me,
+        localFile: file,
+        clientMsgId,
+        now: new Date().toISOString(),
+      })
+      setMessages((prev) => [...prev, draft])
+      listRef.current?.scrollToOffset({ offset: 0, animated: true })
+      void deliverVoice(tempId, clientMsgId, file, null)
+    },
+    [me, conversationId, deliverVoice],
+  )
+
+  const handleSend = useCallback(() => {
+    const content = text
+    setText('')
+    sendText(content)
+  }, [text, sendText])
+
+  // Retry re-sends the same bubble with the same clientMsgId, so the server
+  // de-duplicates if the first attempt actually landed.
+  const retry = useCallback(
+    (m: LocalMessage) => {
+      if (m.id >= 0 || !m.clientMsgId) return
+      setMessages((prev) => setLocalState(prev, m.id, 'sending'))
+      if (m.type === 'voice') {
+        const file = m.localFiles?.find((f) => f.kind === 'voice')
+        const uploaded = m.attachments?.[0]?.id ?? null
+        if (file || uploaded !== null) {
+          void deliverVoice(m.id, m.clientMsgId, file ?? { uri: '', mime: 'audio/mp4', kind: 'voice' }, uploaded)
+        } else {
+          setMessages((prev) => setLocalState(prev, m.id, 'failed'))
+        }
+        return
+      }
+      post(
+        m.id,
+        m.type === 'image'
+          ? imageBody(m.caption ?? '', (m.attachments ?? []).map((a) => a.id), m.clientMsgId)
+          : { type: 'text', content: m.content, clientMsgId: m.clientMsgId },
+      )
+    },
+    [post, deliverVoice],
+  )
+
+  const openStore = useCallback(() => {
+    try {
+      const s = settingsRef.current
+      const url = StoreReview.storeUrl() ?? (Platform.OS === 'ios' ? s?.iosStoreUrl : s?.androidStoreUrl)
+      if (url) Linking.openURL(url).catch(() => {})
+    } catch {
+      // silent: nothing actionable
+    }
+  }, [])
+
+  const onBroAnswered = useCallback(() => { void catchUp() }, [catchUp])
+
+  // ── Keyboard / Bro form ───────────────────────────────────────────────────
   // A FlatList doesn't scroll a focused field into view, so a Bro form input
-  // can end up hidden under the keyboard. Bring it near the top of the list.
+  // can end up hidden. The list is inverted: offset 0 is the bottom and a larger
+  // offset moves content down, so the delta is applied with the opposite sign.
   const revealFocusedInput = useCallback(() => {
     const input = TextInput.State.currentlyFocusedInput()
     const list = listRef.current?.getNativeScrollRef() as View | null | undefined
@@ -212,7 +584,7 @@ export default function ConversationScreen() {
         const margin = spacing.lg
         if (y >= listY + margin && y + h <= listY + listH - margin) return
         listRef.current?.scrollToOffset({
-          offset: Math.max(0, scrollYRef.current + y - listY - margin),
+          offset: Math.max(0, scrollYRef.current - (y - listY - margin)),
           animated: true,
         })
       })
@@ -229,36 +601,29 @@ export default function ConversationScreen() {
     return () => subs.forEach((s) => s.remove())
   }, [revealFocusedInput])
 
-  async function handleSend() {
-    const content = text.trim()
-    if (!content || sending) return
-    setSending(true)
-    setText('')
-    try {
-      const msg = await authPost<Message>(`/conversations/${id}/messages`, { content })
-      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]))
-      if (msg.id > lastIdRef.current) lastIdRef.current = msg.id
-      scrollToBottom()
-    } catch {
-      setText(content)
-      Alert.alert(t.error, t.errorRetryHint)
-    } finally {
-      setSending(false)
-    }
-  }
-
-  const conversation = detail?.conversation
-  const product = conversation?.product
+  // ── Derived ───────────────────────────────────────────────────────────────
+  const product = conversation?.product ?? null
   const productImg = imgUrl(product?.image)
-
-  const otherIsBro = other?.isBro ?? false
   const otherName = otherIsBro ? t.bro.name : (other?.displayName ?? t.messages)
   const otherIsStore = other?.isStore ?? false
   const otherLogo = imgUrl(other?.logo)
+  const subline = otherTyping
+    ? otherTyping === 'voice'
+      ? t.chat.recordingVoice
+      : t.chat.typing
+    : online
+      ? t.chat.online
+      : otherIsStore
+        ? t.store
+        : t.user
+  const sublineLive = !!otherTyping || online
   // Bro's details form takes text input itself; composer text is ignored by Bro until it's submitted.
   const broFormOpen = !!messages[messages.length - 1]?.meta?.bro?.actions?.includes('details')
+  const showChips =
+    !!conversation && !!me && !broFormOpen && shouldShowChips({ me, conversation, messageCount: messages.length })
 
-  // Build rows: date separators + messages
+  // Rows are built oldest -> newest (each date separator before its day), then
+  // reversed for the inverted list so the newest message sits at the bottom.
   const rows: Row[] = useMemo(() => {
     const out: Row[] = []
     let lastDay = ''
@@ -268,14 +633,38 @@ export default function ConversationScreen() {
         out.push({ kind: 'separator', id: `sep-${k}`, label: dateLabel(m.createdAt, ar) })
         lastDay = k
       }
-      out.push({ kind: 'message', id: `msg-${m.id}`, message: m })
+      // Key by clientMsgId when present so the optimistic bubble keeps its row once confirmed.
+      out.push({ kind: 'message', id: m.clientMsgId ? `c-${m.clientMsgId}` : `m-${m.id}`, message: m })
     }
-    return out
+    return out.reverse()
   }, [messages, ar])
 
-  return (
-    <DashboardLayout title={otherName} scroll={false} contentPadding={false}>
-        {/* Custom header row with avatar + role */}
+  const renderItem = useCallback(
+    ({ item }: { item: Row }) => {
+      if (item.kind === 'separator') {
+        return (
+          <View style={styles.dateSepWrap}>
+            <View style={styles.dateSepLine} />
+            <Text style={styles.dateSepText}>{item.label}</Text>
+            <View style={styles.dateSepLine} />
+          </View>
+        )
+      }
+      return (
+        <MessageBubble
+          message={item.message}
+          mine={item.message.senderId === me}
+          onRetry={retry}
+          onBroAnswered={onBroAnswered}
+          onOpenStore={openStore}
+        />
+      )
+    },
+    [styles, me, retry, onBroAnswered, openStore],
+  )
+
+  const header = (
+    <>
         <View style={[styles.headerRow, rowDir]}>
           {otherIsBro ? (
             <BroAvatar size={44} radius={14} />
@@ -325,9 +714,9 @@ export default function ConversationScreen() {
             ) : (
               <Text
                 numberOfLines={1}
-                style={[styles.headerRole, dirStyle]}
+                style={[styles.headerRole, sublineLive && styles.headerRoleLive, dirStyle]}
               >
-                {otherIsStore ? t.store : t.user}
+                {subline}
               </Text>
             )}
           </View>
@@ -372,141 +761,82 @@ export default function ConversationScreen() {
             </Pressable>
           </View>
         ) : null}
+    </>
+  )
 
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={colors.y} size="large" />
-          </View>
-        ) : loadError ? (
-          <ErrorState kind="network" onRetry={retryLoad} style={styles.flex} />
-        ) : (
-          <FlatList
-            ref={listRef}
-            data={rows}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
-            onContentSizeChange={() => {
-              // Don't yank the list while the user is typing in the Bro form.
-              if (broFormOpen && keyboardOpen) return
-              scrollToBottom(false)
-            }}
-            onScroll={(e) => {
-              scrollYRef.current = e.nativeEvent.contentOffset.y
-            }}
-            scrollEventThrottle={16}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={styles.empty}>
-                <View style={styles.emptyIcon}>
-                  <Ionicons name="chatbubbles-outline" size={30} color={colors.yd} />
-                </View>
-                <Text style={styles.emptyTitle}>{t.startConversation}</Text>
-                <Text style={styles.emptyText}>
-                  {ar
-                    ? 'اكتب أول رسالة لبدء المحادثة'
-                    : 'Send your first message to start the conversation'}
-                </Text>
-              </View>
-            }
-            renderItem={({ item }) => {
-              if (item.kind === 'separator') {
-                return (
-                  <View style={styles.dateSepWrap}>
-                    <View style={styles.dateSepLine} />
-                    <Text style={styles.dateSepText}>{item.label}</Text>
-                    <View style={styles.dateSepLine} />
-                  </View>
-                )
-              }
-              const m = item.message
-              if (m.meta?.bro) {
-                return (
-                  <BroMessage
-                    message={{ id: m.id, content: m.content, meta: m.meta, createdAt: m.createdAt }}
-                    onAnswered={poll}
-                  />
-                )
-              }
-              const mine = m.senderId === user?.id
-              // Website intentionally aligns "mine" to flex-start; mirror that here.
-              return (
-                <View
-                  style={[
-                    styles.bubbleRow,
-                    { justifyContent: mine ? 'flex-start' : 'flex-end' },
-                  ]}
-                >
-                  <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
-                    <Text
-                      style={[
-                        styles.bubbleText,
-                        mine ? styles.bubbleTextMine : styles.bubbleTextTheirs,
-                        dirStyle,
-                      ]}
-                    >
-                      {m.content}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.bubbleTime,
-                        mine ? styles.bubbleTimeMine : styles.bubbleTimeTheirs,
-                      ]}
-                    >
-                      {timeLabel(m.createdAt, ar)}
-                      {mine ? (m.isRead ? '  ✓✓' : '  ✓') : ''}
-                    </Text>
-                  </View>
-                </View>
-              )
-            }}
-          />
-        )}
+  const emptyView = (
+    <View style={styles.empty}>
+      <View style={styles.emptyIcon}>
+        <Ionicons name="chatbubbles-outline" size={30} color={colors.yd} />
+      </View>
+      <Text style={styles.emptyTitle}>{t.startConversation}</Text>
+      <Text style={styles.emptyText}>
+        {ar ? 'اكتب أول رسالة لبدء المحادثة' : 'Send your first message to start the conversation'}
+      </Text>
+    </View>
+  )
 
-        <View style={[styles.inputBarWrap, { paddingBottom: keyboardOpen ? spacing.sm : Math.max(insets.bottom, spacing.sm) }]}>
-          {broFormOpen ? (
-            <Text style={styles.broFormHint}>{t.bro.formComposerHint}</Text>
-          ) : (
-          <View style={styles.inputBar}>
-            <View style={styles.inputPill}>
-              <TextInput
-                ref={composerRef}
-                style={[styles.input, dirStyle]}
-                value={text}
-                onChangeText={setText}
-                placeholder={t.typeMessage}
-                placeholderTextColor={colors.subtle}
-                multiline
-                maxLength={2000}
-                editable={!sending}
-              />
-            </View>
-            <Pressable
-              style={({ pressed }) => [
-                styles.sendBtn,
-                (!text.trim() || sending) && styles.sendBtnDisabled,
-                pressed && !(!text.trim() || sending) && styles.sendBtnPressed,
-              ]}
-              onPress={handleSend}
-              disabled={!text.trim() || sending}
-            >
-              {sending ? (
-                <ActivityIndicator
-                  color={!text.trim() ? colors.subtle : colors.dk}
-                  size="small"
-                />
-              ) : (
-                <Ionicons
-                  name="send"
-                  size={20}
-                  color={!text.trim() ? colors.subtle : colors.dk}
-                  style={ar ? { transform: [{ scaleX: -1 }] } : undefined}
-                />
-              )}
-            </Pressable>
-          </View>
-          )}
+  return (
+    <DashboardLayout title={otherName} scroll={false} contentPadding={false}>
+      {header}
+
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator color={colors.y} size="large" />
         </View>
+      ) : loadError ? (
+        <ErrorState kind="network" onRetry={retryLoad} style={styles.flex} />
+      ) : rows.length === 0 ? (
+        // Rendered outside the list: an inverted list would draw its empty view upside down.
+        emptyView
+      ) : (
+        <FlatList
+          ref={listRef}
+          inverted
+          data={rows}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.list}
+          onEndReached={() => { void loadOlder() }}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            loadingOlder ? <ActivityIndicator color={colors.y} style={styles.olderSpinner} /> : null
+          }
+          onScroll={(e) => {
+            scrollYRef.current = e.nativeEvent.contentOffset.y
+          }}
+          scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      <View
+        style={[
+          styles.inputBarWrap,
+          { paddingBottom: keyboardOpen ? spacing.sm : Math.max(insets.bottom, spacing.sm) },
+        ]}
+      >
+        {broFormOpen ? (
+          <Text style={styles.broFormHint}>{t.bro.formComposerHint}</Text>
+        ) : tray.open ? (
+          <ImageTray tray={tray} onSend={sendImages} />
+        ) : (
+          <>
+            {showChips ? <QuickReplies items={quickReplies} onPick={sendText} /> : null}
+            <Composer
+              ref={composerRef}
+              value={text}
+              onChangeText={onChangeText}
+              onSend={handleSend}
+              onBlur={stopTyping}
+              onAttach={tray.openPicker}
+              onVoice={sendVoice}
+              onVoiceActive={onVoiceActive}
+            />
+          </>
+        )}
+      </View>
     </DashboardLayout>
   )
 }
@@ -713,51 +1043,12 @@ const makeStyles = (colors: ThemeColors, dark = false) =>
     color: colors.muted,
   },
 
-  bubbleRow: {
-    flexDirection: 'row',
-    marginBottom: 2,
+  headerRoleLive: {
+    fontFamily: fonts.semiBold,
+    color: colors.green,
   },
-  bubble: {
-    maxWidth: '78%',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  bubbleMine: {
-    backgroundColor: colors.dk,
-    borderTopStartRadius: 4,
-    borderTopEndRadius: 14,
-    borderBottomStartRadius: 14,
-    borderBottomEndRadius: 14,
-    ...(dark ? null : shadow.ss),
-  },
-  bubbleTheirs: {
-    backgroundColor: colors.card,
-    borderTopStartRadius: 14,
-    borderTopEndRadius: 4,
-    borderBottomStartRadius: 14,
-    borderBottomEndRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  bubbleText: {
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  bubbleTextMine: { color: colors.white },
-  bubbleTextTheirs: { color: colors.text },
-  bubbleTime: {
-    fontFamily: fonts.regular,
-    fontSize: 10,
-    marginTop: 4,
-  },
-  bubbleTimeMine: {
-    color: colors.white,
-    opacity: 0.7,
-    textAlign: 'right',
-  },
-  bubbleTimeTheirs: {
-    color: colors.muted,
+  olderSpinner: {
+    marginVertical: spacing.md,
   },
 
   inputBarWrap: {
@@ -774,53 +1065,5 @@ const makeStyles = (colors: ThemeColors, dark = false) =>
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     paddingBottom: spacing.xs,
-  },
-  inputBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm + 2,
-    paddingBottom: spacing.xs,
-  },
-  inputPill: {
-    flex: 1,
-    backgroundColor: colors.inputBg,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    justifyContent: 'center',
-    minHeight: 48,
-    maxHeight: 140,
-  },
-  input: {
-    fontFamily: fonts.regular,
-    fontSize: 15,
-    lineHeight: 20,
-    color: colors.text,
-    paddingVertical: Platform.OS === 'ios' ? 13 : 9,
-    padding: 0,
-    margin: 0,
-  },
-  sendBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.y,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(dark ? null : shadow.sm),
-  },
-  sendBtnDisabled: {
-    backgroundColor: colors.placeholder,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  sendBtnPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.94 }],
   },
 })

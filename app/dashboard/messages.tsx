@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   Pressable,
@@ -15,8 +16,11 @@ import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
-import { imgUrl, type ConversationListItem } from '@/lib/api'
+import { imgUrl } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
+import { useChatEvents, useFallbackPoll } from '@/lib/chatSocket'
+import { appendPage, applyLiveUpdate, markRowRead, refreshFirstPage } from '@/lib/chat/inbox'
+import type { InboxItem, InboxPage } from '@/lib/chat/types'
 import { BroAvatar, BroBadge } from '@/components/bro/BroAvatar'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
@@ -25,6 +29,19 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 
 type Filter = 'all' | 'unread' | 'stores' | 'people'
+
+const PAGE_SIZE = 30
+const SEARCH_DEBOUNCE_MS = 300
+const FALLBACK_POLL_MS = 30_000
+/** A `typing` event with no follow-up (lost `on: false`) stops showing after this long. */
+const PEER_TYPING_TTL_MS = 4000
+
+function inboxPath(q: string, cursor: string | null): string {
+  let path = `/conversations?limit=${PAGE_SIZE}`
+  if (q) path += `&q=${encodeURIComponent(q)}`
+  if (cursor) path += `&cursor=${encodeURIComponent(cursor)}`
+  return path
+}
 
 function timeLabel(iso: string, ar: boolean): string {
   if (!iso) return ''
@@ -145,37 +162,168 @@ export default function MessagesScreen() {
   }
   const { user } = useAuth()
 
-  const [conversations, setConversations] = useState<ConversationListItem[] | null>(null)
+  const [conversations, setConversations] = useState<InboxItem[] | null>(null)
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
+  // conversationId -> the other user is typing (any kind) right now.
+  const [typing, setTyping] = useState<Record<number, true>>({})
   const searchRef = useRef<TextInput>(null)
+  const typingTimers = useRef(new Map<number, ReturnType<typeof setTimeout>>())
+  // Bumped whenever the list is reset (new search, pull-to-refresh, retry): in-flight responses
+  // that started before the reset are dropped.
+  const genRef = useRef(0)
+  const qRef = useRef('')
+  const cursorRef = useRef<string | null>(null)
+  const loadingMoreRef = useRef(false)
+  // True once a page beyond page one is loaded (reset with the list). Then page one's cursor is stale.
+  const deepRef = useRef(false)
+  qRef.current = debouncedQuery
+  cursorRef.current = nextCursor
 
-  const load = useCallback(async () => {
+  const myId = user?.id
+
+  /** Replace the list with page one for the current search. */
+  const loadFirst = useCallback(async () => {
+    const gen = ++genRef.current
+    loadingMoreRef.current = false
+    deepRef.current = false
+    setLoadingMore(false)
     setError(null)
     try {
-      const data = await authFetch<ConversationListItem[]>('/conversations')
-      setConversations(data ?? [])
+      const page = await authFetch<InboxPage>(inboxPath(qRef.current, null))
+      if (gen !== genRef.current) return
+      setConversations(page?.items ?? [])
+      setNextCursor(page?.nextCursor ?? null)
     } catch (e) {
+      if (gen !== genRef.current) return
       setError(e as Error)
-      setConversations([])
+      setConversations((prev) => prev ?? [])
     }
   }, [])
 
-  // Reload on every focus, not just mount: the list stays mounted under the
-  // thread screen, so coming back from a chat would otherwise show stale unread.
+  /** Catch-up for focus / reconnect / poll: page one merged in, loaded pages kept, errors ignored. */
+  const refreshSilently = useCallback(async () => {
+    const gen = genRef.current
+    try {
+      const page = await authFetch<InboxPage>(inboxPath(qRef.current, null))
+      if (gen !== genRef.current || !page) return
+      setError(null)
+      setConversations((prev) => (prev ? refreshFirstPage(prev, page.items) : page.items))
+      // Page one's cursor only applies while no deeper page is loaded or loading; otherwise
+      // the current cursor already points past it.
+      if (!deepRef.current && !loadingMoreRef.current) setNextCursor(page.nextCursor)
+    } catch {
+      // Keep what is on screen; the next poll / focus retries.
+    }
+  }, [])
+
+  const loadMore = useCallback(async () => {
+    const cursor = cursorRef.current
+    if (!cursor || loadingMoreRef.current) return
+    const gen = genRef.current
+    loadingMoreRef.current = true
+    setLoadingMore(true)
+    try {
+      const page = await authFetch<InboxPage>(inboxPath(qRef.current, cursor))
+      if (gen !== genRef.current || !page) return
+      deepRef.current = true
+      setConversations((prev) => appendPage(prev ?? [], page.items))
+      setNextCursor(page.nextCursor)
+    } catch {
+      // Stay on the same cursor; scrolling to the end again retries.
+    } finally {
+      if (gen === genRef.current) {
+        loadingMoreRef.current = false
+        setLoadingMore(false)
+      }
+    }
+  }, [])
+
+  // Server-side search, debounced; a new query resets the paging.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query.trim()), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(id)
+  }, [query])
+
+  const firstRun = useRef(true)
+  useEffect(() => {
+    // The mount load is done by the focus effect below.
+    if (firstRun.current) {
+      firstRun.current = false
+      return
+    }
+    void loadFirst()
+  }, [debouncedQuery, loadFirst])
+
+  // Reload on every focus, not just mount: reading a thread does not push a row update,
+  // so coming back from a chat would otherwise show stale unread. The first focus is a full load.
+  const loadedOnce = useRef(false)
   useFocusEffect(
     useCallback(() => {
-      load()
-    }, [load]),
+      if (!loadedOnce.current) {
+        loadedOnce.current = true
+        void loadFirst()
+      } else {
+        void refreshSilently()
+      }
+    }, [loadFirst, refreshSilently]),
   )
+
+  useFallbackPoll(() => { void refreshSilently() }, FALLBACK_POLL_MS)
+
+  const clearTyping = useCallback((conversationId: number) => {
+    const timer = typingTimers.current.get(conversationId)
+    if (timer) clearTimeout(timer)
+    typingTimers.current.delete(conversationId)
+    setTyping((prev) => {
+      if (!prev[conversationId]) return prev
+      const { [conversationId]: _drop, ...rest } = prev
+      return rest
+    })
+  }, [])
+
+  useEffect(() => {
+    const timers = typingTimers.current
+    return () => {
+      timers.forEach((t) => clearTimeout(t))
+      timers.clear()
+    }
+  }, [])
+
+  useChatEvents({
+    'conversation:updated': ({ conversation }) => {
+      setConversations((prev) => (prev ? applyLiveUpdate(prev, conversation, !!qRef.current) : prev))
+    },
+    'message:new': ({ message }) => {
+      // The sender's message ends their "typing…" even if the `on: false` was lost.
+      if (message.senderId !== myId) clearTyping(message.conversationId)
+    },
+    typing: (e) => {
+      if (e.userId === myId) return
+      if (!e.on) {
+        clearTyping(e.conversationId)
+        return
+      }
+      setTyping((prev) => (prev[e.conversationId] ? prev : { ...prev, [e.conversationId]: true }))
+      const existing = typingTimers.current.get(e.conversationId)
+      if (existing) clearTimeout(existing)
+      typingTimers.current.set(
+        e.conversationId,
+        setTimeout(() => clearTyping(e.conversationId), PEER_TYPING_TTL_MS),
+      )
+    },
+  })
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    await load()
+    await loadFirst()
     setRefreshing(false)
-  }, [load])
+  }, [loadFirst])
 
   const counts = useMemo(() => {
     const list = conversations ?? []
@@ -190,20 +338,16 @@ export default function MessagesScreen() {
     return { all: list.length, unread, stores, people }
   }, [conversations])
 
+  // Chips are client-side filters over the loaded rows; text search is server-side.
   const filtered = useMemo(() => {
     const list = conversations ?? []
-    const q = query.trim().toLowerCase()
     return list.filter((c) => {
       if (filter === 'unread' && !(c.unreadCount ?? 0)) return false
       if (filter === 'stores' && !c.otherUser?.isStore) return false
       if (filter === 'people' && c.otherUser?.isStore) return false
-      if (!q) return true
-      const name = (c.otherUser?.isBro ? t.bro.name : (c.otherUser?.displayName ?? '')).toLowerCase()
-      const product = (c.product?.title ?? '').toLowerCase()
-      const preview = (c.lastMessage?.content ?? '').toLowerCase()
-      return name.includes(q) || product.includes(q) || preview.includes(q)
+      return true
     })
-  }, [conversations, query, filter, t])
+  }, [conversations, filter])
 
   const heroSubtitle = useMemo(() => {
     if (conversations === null || error) return ''
@@ -218,8 +362,10 @@ export default function MessagesScreen() {
       : `${counts.all} conversation${counts.all === 1 ? '' : 's'}`
   }, [ar, conversations, error, counts])
 
-  const showToolbar = conversations !== null && !error && counts.all > 0
-  const showSearchEmpty = filtered.length === 0 && counts.all > 0
+  const searching = query.length > 0 || debouncedQuery.length > 0
+  // Keep the toolbar mounted while a search is typed, even when it has no results.
+  const showToolbar = conversations !== null && !error && (counts.all > 0 || searching)
+  const showSearchEmpty = filtered.length === 0 && (counts.all > 0 || searching)
 
   return (
     <DashboardLayout title={t.messages} scroll={false} contentPadding={false}>
@@ -326,9 +472,9 @@ export default function MessagesScreen() {
           </View>
         ) : error ? (
           <View style={styles.errorWrap}>
-            <ErrorState kind="network" onRetry={load} />
+            <ErrorState kind="network" onRetry={loadFirst} />
           </View>
-        ) : counts.all === 0 ? (
+        ) : counts.all === 0 && !searching ? (
           <View style={styles.emptyWrap}>
             <EmptyState
               icon={<Ionicons name="chatbubbles-outline" size={28} color={colors.subtle} />}
@@ -368,6 +514,11 @@ export default function MessagesScreen() {
             }
             ItemSeparatorComponent={() => <View style={styles.sep} />}
             contentContainerStyle={styles.list}
+            onEndReached={() => { void loadMore() }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              loadingMore ? <ActivityIndicator color={colors.y} style={styles.footerSpinner} /> : null
+            }
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => {
@@ -375,7 +526,10 @@ export default function MessagesScreen() {
               const name = isBro ? t.bro.name : (item.otherUser?.displayName ?? t.profile)
               const isOwnLast = item.lastMessage?.senderId === user?.id
               const rawPreview = item.lastMessage?.content ?? ''
-              const preview = rawPreview
+              const isTyping = !!typing[item.id]
+              const preview = isTyping
+                ? (ar ? 'يكتب…' : 'typing…')
+                : rawPreview
                 ? isOwnLast
                   ? `${t.you}: ${rawPreview}`
                   : rawPreview
@@ -390,7 +544,10 @@ export default function MessagesScreen() {
 
               return (
                 <Pressable
-                  onPress={() => router.push(`/dashboard/messages/${item.id}`)}
+                  onPress={() => {
+                    setConversations((prev) => (prev ? markRowRead(prev, item.id) : prev))
+                    router.push(`/dashboard/messages/${item.id}`)
+                  }}
                   style={({ pressed }) => [
                     styles.item,
                     unread > 0 && styles.itemUnread,
@@ -484,6 +641,7 @@ export default function MessagesScreen() {
                         style={[
                           styles.preview,
                           unread > 0 && styles.previewUnread,
+                          isTyping && styles.previewTyping,
                           dirStyle,
                         ]}
                       >
@@ -692,6 +850,7 @@ const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
     paddingTop: 2,
   },
   sep: { height: spacing.sm },
+  footerSpinner: { paddingVertical: spacing.md },
 
   item: {
     flexDirection: 'row',
@@ -863,6 +1022,10 @@ const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 12,
     color: colors.muted,
+  },
+  previewTyping: {
+    fontFamily: fonts.semiBold,
+    color: colors.yd,
   },
   previewUnread: {
     fontFamily: fonts.semiBold,

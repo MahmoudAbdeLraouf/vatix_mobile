@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react-native'
 import { AUTH_ERR, normalizeUserType } from '@/lib/auth'
 import { getOrCreateVisitorId, visitorIdHeader } from '@/lib/visitor-id'
 import type { BroMessageMeta } from '@/lib/bro'
+import type { QuickReply } from '@/lib/chat/types'
 
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3005'
 const MINIO_PUBLIC = process.env.EXPO_PUBLIC_MINIO_URL ?? 'http://localhost:9000'
@@ -941,6 +942,7 @@ export interface Analytics {
 }
 
 export interface SiteSettings {
+  chatQuickReplies?: QuickReply[]
   instapayEnabled: boolean
   instapayAccount: string | null
   instapayName: string | null

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { useTheme } from '@/contexts/theme'
 import { authFetch } from '@/lib/auth'
+import { useChatEvents, useFallbackPoll } from '@/lib/chatSocket'
 import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { getStorePromotionOffer } from '@/lib/api'
 import type { PendingUpgradeRequest, Product, PromoInfo, StorePromotionOffer, UserProfile, WalletBalance } from '@/lib/api'
@@ -106,10 +107,38 @@ export default function MoreScreen() {
   const [promotionOffer, setPromotionOffer] = useState<StorePromotionOffer | null>(null)
   const [guestSettingsOpen, setGuestSettingsOpen] = useState(false)
 
+  // Bumped by every `unread:count` socket push. A REST read that started before a push is stale
+  // and must not overwrite the newer socket count.
+  const unreadSeq = useRef(0)
+
+  useChatEvents({
+    'unread:count': ({ count }) => {
+      unreadSeq.current += 1
+      setMsgError(false)
+      setMsgUnread(count)
+    },
+  })
+
+  // Catch-up while the socket is down / after reconnect / on foreground.
+  const refreshUnread = useCallback(async () => {
+    if (!isAuthenticated) return
+    const seq = unreadSeq.current
+    try {
+      const r = await authFetch<{ count: number }>('/conversations/unread-count')
+      if (seq !== unreadSeq.current) return
+      setMsgError(false)
+      setMsgUnread(r?.count ?? 0)
+    } catch {
+      // Keep the last known count; the next poll retries.
+    }
+  }, [isAuthenticated])
+  useFallbackPoll(() => { void refreshUnread() }, 30_000)
+
   useEffect(() => {
     if (!isAuthenticated) return
     let cancelled = false
     const load = async () => {
+      const unreadSeqAtStart = unreadSeq.current
       // Promise.allSettled — one failed sub-fetch must not zero-out unrelated values.
       // See feedback: silent `?? 0` fallbacks previously made real ads look deleted.
       const results = await Promise.allSettled([
@@ -131,8 +160,11 @@ export default function MoreScreen() {
         setActiveAds(mine.filter((p) => p.isActive).length)
       } else setAdsError(true)
 
-      if (unreadR.status === 'fulfilled') setMsgUnread((unreadR.value as { count: number } | null)?.count ?? 0)
-      else setMsgError(true)
+      // A socket push that landed while this batch was in flight is newer than the REST result.
+      if (unreadSeq.current === unreadSeqAtStart) {
+        if (unreadR.status === 'fulfilled') setMsgUnread((unreadR.value as { count: number } | null)?.count ?? 0)
+        else setMsgError(true)
+      }
 
       if (walletR.status === 'fulfilled') {
         const w = walletR.value as WalletBalance | null

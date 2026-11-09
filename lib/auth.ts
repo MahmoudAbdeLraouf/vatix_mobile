@@ -95,6 +95,24 @@ const SECURE_WRITE_OPTIONS: SecureStore.SecureStoreOptions = {
   keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
 }
 
+// ─── Session hooks ───────────────────────────────────────────────────────────
+// Lets the chat socket follow the session without auth.ts importing it (no cycle).
+
+type SessionHooks = {
+  /** Tokens were written (login or any refresh): lets the chat socket start late. */
+  onTokensSaved?: () => void
+  /** A refresh succeeded and a fresh access token is stored. */
+  onTokenRefreshed?: () => void
+  /** The session was wiped (logout / forced logout). */
+  onSessionCleared?: () => void
+}
+
+const _sessionHooks: SessionHooks = {}
+
+export function registerSessionHooks(hooks: SessionHooks): void {
+  Object.assign(_sessionHooks, hooks)
+}
+
 // ─── Token storage ────────────────────────────────────────────────────────────
 
 export async function getToken(): Promise<string | null> {
@@ -118,6 +136,7 @@ export async function saveTokens(accessToken: string, refreshToken: string): Pro
     SecureStore.setItemAsync(KEY_TOKEN, accessToken, SECURE_WRITE_OPTIONS),
     SecureStore.setItemAsync(KEY_REFRESH, refreshToken, SECURE_WRITE_OPTIONS),
   ])
+  _sessionHooks.onTokensSaved?.()
 }
 
 export async function clearSession(): Promise<void> {
@@ -126,6 +145,8 @@ export async function clearSession(): Promise<void> {
     SecureStore.deleteItemAsync(KEY_REFRESH).catch(() => {}),
     SecureStore.deleteItemAsync(KEY_USER).catch(() => {}),
   ])
+  // After the wipe, so anything that re-checks the session sees it gone.
+  _sessionHooks.onSessionCleared?.()
 }
 
 export async function isLoggedIn(): Promise<boolean> {
@@ -313,6 +334,7 @@ async function _doRefresh(): Promise<RefreshResult> {
       refreshToken: string
     }
     await saveTokens(accessToken, newRefresh)
+    _sessionHooks.onTokenRefreshed?.()
     return 'ok'
   } catch {
     return 'unavailable'
