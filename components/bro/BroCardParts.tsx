@@ -28,9 +28,9 @@ export interface BroFactInput {
 export function useBroDir() {
   const { locale } = useLocale()
   const ar = locale === 'ar'
-  const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
+  const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: ar ? ('right' as const) : ('left' as const) }
   const rowDir = ar ? ({ direction: 'ltr', flexDirection: 'row-reverse' } as const) : null
-  // Text columns inside a rowDir row inherit its ltr direction; colDir restores rtl so 'auto' text sits right.
+  // Text columns inside a rowDir row inherit its ltr direction; colDir restores rtl so wrapped text keeps rtl order.
   const colDir = ar ? ({ direction: 'rtl' } as const) : null
   return { ar, dirStyle, rowDir, colDir }
 }

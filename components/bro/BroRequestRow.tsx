@@ -24,7 +24,7 @@ export function BroRequestRow({
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const b = t.bro
   const ar = locale === 'ar'
-  const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
+  const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: ar ? ('right' as const) : ('left' as const) }
   const rowDir = ar ? ({ direction: 'ltr', flexDirection: 'row-reverse' } as const) : null
   const searching = r.status === 'searching'
   const hasOffers = (offerCount ?? 0) > 0

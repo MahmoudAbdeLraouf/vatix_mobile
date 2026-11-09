@@ -35,7 +35,7 @@ function OffersView({ id }: { id: number }) {
   const { locale, t } = useLocale()
   const b = t.bro
   const ar = locale === 'ar'
-  const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
+  const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: ar ? ('right' as const) : ('left' as const) }
   const insets = useSafeAreaInsets()
   const { colors, isDark } = useTheme()
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
