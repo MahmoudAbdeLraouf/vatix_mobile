@@ -56,7 +56,7 @@ function RequestView({ id }: { id: number }) {
   const styles = useStyles()
   const b = t.bro
   const ar = locale === 'ar'
-  const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
+  const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: ar ? ('right' as const) : ('left' as const) }
   const rowDir = ar ? ({ direction: 'ltr', flexDirection: 'row-reverse' } as const) : null
 
   const [view, setView] = useState<BroRequestView | null>(null)

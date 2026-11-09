@@ -255,7 +255,7 @@ export default function BranchesScreen() {
                   variant="y"
                   size="md"
                   fullWidth={false}
-                  style={{ alignSelf: ar ? 'flex-end' : 'flex-start', marginTop: spacing.sm }}
+                  style={{ alignSelf: 'flex-start', marginTop: spacing.sm }}
                 />
 
                 {msg && (
@@ -308,9 +308,9 @@ export default function BranchesScreen() {
               ) : (
                 <>
                   {bBranches.length > 0 && (
-                    <View style={styles.section}>
+                    <View style={[styles.section, dirContainer]}>
                       <View style={[styles.pill, { backgroundColor: colors.blueBg }]}>
-                        <Text style={[styles.pillText, { color: colors.blue }]}>
+                        <Text style={[styles.pillText, { color: colors.blue, textAlign: dir, writingDirection: ar ? 'rtl' : 'ltr' }]}>
                           📍 {ar ? `فروع بمواقع محددة (${bBranches.length})` : `Branches with locations (${bBranches.length})`}
                         </Text>
                       </View>
@@ -336,9 +336,9 @@ export default function BranchesScreen() {
                   )}
 
                   {bGeneral.length > 0 && (
-                    <View style={styles.section}>
+                    <View style={[styles.section, dirContainer]}>
                       <View style={[styles.pill, { backgroundColor: colors.greenBg }]}>
-                        <Text style={[styles.pillText, { color: colors.green }]}>
+                        <Text style={[styles.pillText, { color: colors.green, textAlign: dir, writingDirection: ar ? 'rtl' : 'ltr' }]}>
                           📞 {ar ? `أرقام عامة (${bGeneral.length})` : `General numbers (${bGeneral.length})`}
                         </Text>
                       </View>
@@ -384,7 +384,7 @@ export default function BranchesScreen() {
             onPress={e => e.stopPropagation()}
           >
             <View style={[styles.sheetHeader, dirContainer]}>
-              <Text style={styles.sheetTitle}>
+              <Text style={[styles.sheetTitle, { flex: 1, textAlign: dir, writingDirection: ar ? 'rtl' : 'ltr' }]}>
                 {editingId != null
                   ? ar
                     ? 'تعديل فرع/رقم'
@@ -488,8 +488,8 @@ export default function BranchesScreen() {
                 keyboardType="phone-pad"
                 autoCapitalize="none"
                 autoCorrect={false}
-                // Phone numbers render LTR regardless of UI locale.
-                style={{ textAlign: 'left', writingDirection: 'ltr' }}
+                // Digits stay LTR; the line aligns to the locale side.
+                style={{ textAlign: dir, writingDirection: 'ltr' }}
               />
               <Text style={[styles.hintSmall, { textAlign: dir, writingDirection: ar ? 'rtl' : 'ltr' }]}>
                 {ar
@@ -605,7 +605,7 @@ function BranchCard({
             </Text>
           ) : null}
           {branch.phone ? (
-            <Text style={styles.branchPhone} numberOfLines={1}>
+            <Text style={[styles.branchPhone, { textAlign: dir }]} numberOfLines={1}>
               {branch.phone}
             </Text>
           ) : (
@@ -735,7 +735,6 @@ const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
     fontSize: 13,
     color: colors.heading,
     marginTop: 4,
-    textAlign: 'left',
     writingDirection: 'ltr',
   },
   branchPhoneEmpty: {

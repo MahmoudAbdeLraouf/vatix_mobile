@@ -21,6 +21,7 @@ export function DashboardBroRequests() {
   const b = t.bro
   const ar = locale === 'ar'
   const rowDir = ar ? ({ direction: 'ltr', flexDirection: 'row-reverse' } as const) : null
+  const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: ar ? ('right' as const) : ('left' as const) }
 
   const [requests, setRequests] = useState<BroRequest[] | null>(null)
   const [offerCounts, setOfferCounts] = useState<Record<number, number>>({})
@@ -99,7 +100,7 @@ export function DashboardBroRequests() {
   return (
     <View style={styles.section}>
       <View style={[styles.head, rowDir]}>
-        <Text style={styles.title}>{b.listTitle}</Text>
+        <Text style={[styles.title, dirStyle]}>{b.listTitle}</Text>
         <View style={[styles.actions, rowDir]}>
           <Button label={b.newRequest} variant="outline" size="sm" onPress={() => router.push('/bro/new' as never)} />
           <Button label={b.seeAll} variant="dk" size="sm" onPress={() => router.push('/bro' as never)} />
