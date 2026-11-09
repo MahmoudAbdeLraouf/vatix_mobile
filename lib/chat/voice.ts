@@ -82,3 +82,17 @@ export function playedFraction(positionMs: number, durationMs: number): number {
   if (!(durationMs > 0) || !Number.isFinite(positionMs)) return 0
   return Math.max(0, Math.min(1, positionMs / durationMs))
 }
+
+export type InterruptAction = 'none' | 'abort-start' | 'cancel'
+
+/**
+ * What the recorder does when the app's state changes (or the screen loses focus, which passes
+ * 'background'-like input via `appState`). Leaving `active` while recording or locked cancels
+ * (nothing is sent, the mic is released); during the start-up window it aborts the start.
+ */
+export function interruptAction(phase: string, appState: string): InterruptAction {
+  if (appState === 'active') return 'none'
+  if (phase === 'recording' || phase === 'locked') return 'cancel'
+  if (phase === 'starting') return 'abort-start'
+  return 'none'
+}

@@ -402,6 +402,11 @@ export default function ConversationScreen() {
     },
     [],
   )
+  // Belt and braces with the recorder's own cancel-on-blur: never keep advertising "recording"
+  // from a screen that is no longer on top.
+  useEffect(() => {
+    if (!isFocused && voiceTypingRef.current) onVoiceActive(false)
+  }, [isFocused, onVoiceActive])
 
   // Unmount: stop advertising typing and drop pending timers.
   const stopTypingRef = useRef(stopTyping)

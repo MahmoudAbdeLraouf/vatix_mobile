@@ -8,8 +8,9 @@
  * send button and a trash button discards. Letting go while recording sends. Under 1 s is dropped.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Linking, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, AppState, Linking, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useFocusEffect } from 'expo-router'
 import {
   RecordingPresets,
   getRecordingPermissionsAsync,
@@ -23,7 +24,7 @@ import { useLocale } from '@/contexts/locale'
 import { useTheme } from '@/contexts/theme'
 import { fonts, spacing, type ThemeColors } from '@/constants/theme'
 import { haptic } from '@/lib/chat/nativeCaps'
-import { cancelProgress, clampDuration, finishDecision, meterToAmplitude, recorderTick, slideIntent } from '@/lib/chat/voice'
+import { cancelProgress, clampDuration, finishDecision, interruptAction, meterToAmplitude, recorderTick, slideIntent } from '@/lib/chat/voice'
 import { MAX_VOICE_MS, downsamplePeaks, formatDuration } from '@/lib/chat/waveform'
 import { pauseVoicePlayback } from './VoicePlayer'
 
@@ -154,19 +155,21 @@ export function VoiceRecorder({ onRecorded, onActiveChange, disabled }: VoiceRec
       onActiveChange?.(true)
       haptic('medium')
       timer.current = setInterval(() => {
+        // A tick that lands after finish() began (or after an interruption) must never send.
+        if (phaseRef.current !== 'recording' && phaseRef.current !== 'locked') return
         const ms = Date.now() - startedAt.current
         setElapsed(ms)
         const amp = Math.round(meterToAmplitude(meterRef.current) * 100)
         samples.current.push(amp)
         setLive(prev => [...prev.slice(-(LIVE_BARS - 1)), amp])
-        if (recorderTick(ms) === 'autostop') void finish(true)
+        if (recorderTick(ms) === 'autostop') void api.current.finish(true)
       }, 100)
     } catch {
       setPhase('idle')
       onActiveChange?.(false)
       stopTimer()
     }
-  }, [finish, flashHint, onActiveChange, recorder, setPhase, stopTimer, t])
+  }, [flashHint, onActiveChange, recorder, setPhase, stopTimer, t])
 
   // The gesture handlers are created once, so they call through this always-fresh bag.
   const api = useRef({ start, finish, isRtl, disabled })
@@ -211,6 +214,24 @@ export function VoiceRecorder({ onRecorded, onActiveChange, disabled }: VoiceRec
       },
     }),
   ).current
+
+  // Leaving the foreground cancels: a locked recording has no gesture to end it, and on iOS the
+  // OS interrupts the recorder while wall-clock time keeps running. finish() is single-shot
+  // (phase guard), so this cannot race the 3:00 auto-stop or a release into a double finish.
+  const interrupt = useCallback((appState: string) => {
+    const action = interruptAction(phaseRef.current, appState)
+    if (action === 'cancel') void api.current.finish(false)
+    else if (action === 'abort-start') startAborted.current = true
+  }, [])
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', interrupt)
+    return () => sub.remove()
+  }, [interrupt])
+  // The thread stays mounted under a pushed screen, so unmount cleanup never runs: cancel on blur.
+  // finish(false) also reports onActiveChange(false), which stops the 'voice' typing re-emit.
+  useFocusEffect(
+    useCallback(() => () => interrupt('blur'), [interrupt]),
+  )
 
   useEffect(
     () => () => {

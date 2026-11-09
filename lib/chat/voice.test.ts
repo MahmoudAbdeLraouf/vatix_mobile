@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { CANCEL_DX, LOCK_DY, PLAYBACK_RATES, cancelProgress, clampDuration, finishDecision, meterToAmplitude, nextRate, playedFraction, rateLabel, recorderTick, seekFraction, slideIntent } from './voice.ts'
+import { CANCEL_DX, LOCK_DY, PLAYBACK_RATES, cancelProgress, clampDuration, finishDecision, interruptAction, meterToAmplitude, nextRate, playedFraction, rateLabel, recorderTick, seekFraction, slideIntent } from './voice.ts'
 
 test('recorderTick: continues below 3:00, auto-stops at and past it', () => {
   assert.equal(recorderTick(0), 'continue')
@@ -92,4 +92,16 @@ test('playedFraction', () => {
   assert.equal(playedFraction(5_000, 4_000), 1)
   assert.equal(playedFraction(-1, 4_000), 0)
   assert.equal(playedFraction(1_000, 0), 0)
+})
+
+test('interruptAction: leaving active cancels a live recording, aborts a start, else nothing', () => {
+  for (const st of ['background', 'inactive', 'blur']) {
+    assert.equal(interruptAction('recording', st), 'cancel')
+    assert.equal(interruptAction('locked', st), 'cancel')
+    assert.equal(interruptAction('starting', st), 'abort-start')
+    assert.equal(interruptAction('idle', st), 'none')
+    assert.equal(interruptAction('stopping', st), 'none')
+  }
+  assert.equal(interruptAction('recording', 'active'), 'none')
+  assert.equal(interruptAction('locked', 'active'), 'none')
 })
