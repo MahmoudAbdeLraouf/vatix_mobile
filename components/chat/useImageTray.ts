@@ -3,6 +3,7 @@ import { ActionSheetIOS, Alert, Platform } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { useLocale } from '@/contexts/locale'
 import { isAbortError, uploadAttachment, UploadError } from '@/lib/chat/upload'
+import { resizeForUpload } from '@/lib/chat/nativeCaps'
 import { MAX_IMAGES_PER_MESSAGE, MAX_IMAGE_BYTES, assetMime, capImages, trayError, trayReady } from '@/lib/chat/images'
 import type { ChatAttachment, LocalUpload } from '@/lib/chat/types'
 
@@ -77,16 +78,22 @@ export function useImageTray(conversationId: number) {
       controllers.get(item.key)?.abort()
       const ctrl = new AbortController()
       controllers.set(item.key, ctrl)
-      uploadAttachment(
-        conversationId,
-        item.uri,
-        item.mime,
-        { kind: 'image' },
-        (pct) => {
-          if (controllers.get(item.key) === ctrl) patch(item.key, { progress: pct })
-        },
-        ctrl.signal,
-      )
+      // Downscale to 1600 px first (a no-op on runtimes without expo-image-manipulator); the tray
+      // keeps showing the original, only the uploaded bytes shrink.
+      resizeForUpload(item.uri, item.mime, item.width, item.height)
+        .then((file) => {
+          if (controllers.get(item.key) !== ctrl) throw Object.assign(new Error('aborted'), { name: 'AbortError' })
+          return uploadAttachment(
+            conversationId,
+            file.uri,
+            file.mime,
+            { kind: 'image' },
+            (pct) => {
+              if (controllers.get(item.key) === ctrl) patch(item.key, { progress: pct })
+            },
+            ctrl.signal,
+          )
+        })
         .then((attachment) => {
           if (controllers.get(item.key) !== ctrl) return
           controllers.delete(item.key)

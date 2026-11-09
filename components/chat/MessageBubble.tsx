@@ -7,8 +7,10 @@ import { ImageViewer } from '@/components/chat/ImageViewer'
 import { useLocale } from '@/contexts/locale'
 import { useTheme } from '@/contexts/theme'
 import { fonts, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { getVoicePlayer } from '@/components/chat/voiceComponents'
 import { gridSources } from '@/lib/chat/images'
 import type { LocalMessage } from '@/lib/chat/types'
+import { voiceSource } from '@/lib/chat/waveform'
 
 function timeLabel(iso: string, ar: boolean): string {
   if (!iso) return ''
@@ -22,7 +24,7 @@ type Props = {
   onRetry: (message: LocalMessage) => void
   /** A Bro action was answered: catch up on the reply. */
   onBroAnswered: () => void
-  /** Voice notes can't play in this build: send the user to the store listing. */
+  /** Voice notes can't play on a binary without expo-audio (< 1.3.8): send the user to the store listing. */
   onOpenStore: () => void
 }
 
@@ -42,6 +44,9 @@ export const MessageBubble = memo(function MessageBubble({ message: m, mine, onR
     [m],
   )
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  // Null on binaries without expo-audio: those keep the "update to listen" fallback below.
+  const VoicePlayer = m.type === 'voice' ? getVoicePlayer() : null
+  const voice = useMemo(() => (m.type === 'voice' ? voiceSource(m) : null), [m])
 
   if (m.meta?.bro) {
     return (
@@ -57,7 +62,9 @@ export const MessageBubble = memo(function MessageBubble({ message: m, mine, onR
   const textColor = mine ? styles.textMine : styles.textTheirs
 
   let body: React.ReactNode
-  if (m.type === 'voice') {
+  if (m.type === 'voice' && VoicePlayer && voice) {
+    body = <VoicePlayer url={voice.url} durationMs={voice.durationMs} waveform={voice.waveform} mine={mine} />
+  } else if (m.type === 'voice') {
     body = (
       <Pressable
         onPress={onOpenStore}

@@ -27,11 +27,14 @@ import { MessageBubble } from '@/components/chat/MessageBubble'
 import { Composer } from '@/components/chat/Composer'
 import { ImageTray } from '@/components/chat/ImageTray'
 import { useImageTray } from '@/components/chat/useImageTray'
+import type { RecordedVoice } from '@/components/chat/voiceComponents'
 import { QuickReplies } from '@/components/chat/QuickReplies'
 import { getChatSocket, useChatEvents, useFallbackPoll, useSocketStatus } from '@/lib/chatSocket'
 import { mergeMessages } from '@/lib/chat/merge'
 import { shouldShowChips } from '@/lib/chat/rules'
 import { makeImageDraft } from '@/lib/chat/images'
+import { uploadAttachment } from '@/lib/chat/upload'
+import { makeVoiceDraft, voiceMessageBody, voiceUploadFields, withUploadedVoice } from '@/lib/chat/waveform'
 import {
   DEFAULT_QUICK_REPLIES,
   firstServerId,
@@ -41,7 +44,7 @@ import {
   setLocalState,
   uuidv4,
 } from '@/lib/chat/thread'
-import type { ChatConversation, ChatMessage, LocalMessage, QuickReply, TypingKind } from '@/lib/chat/types'
+import type { ChatConversation, ChatMessage, LocalMessage, LocalUpload, QuickReply, TypingKind } from '@/lib/chat/types'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -338,9 +341,9 @@ export default function ConversationScreen() {
 
   // ── Typing (outgoing) ─────────────────────────────────────────────────────
   const emitTyping = useCallback(
-    (on: boolean) => {
+    (on: boolean, kind: TypingKind = 'text') => {
       if (!conversationId || otherIsBro) return
-      getChatSocket()?.emit('typing', { conversationId, kind: 'text', on })
+      getChatSocket()?.emit('typing', { conversationId, kind, on })
     },
     [conversationId, otherIsBro],
   )
@@ -375,6 +378,30 @@ export default function ConversationScreen() {
   useEffect(() => {
     if (!isFocused) stopTyping()
   }, [isFocused, stopTyping])
+
+  // "Recording a voice note..." for the peer: re-sent while the mic is held (the server
+  // throttles, and the peer drops the line after PEER_TYPING_TTL_MS without a refresh).
+  const voiceTypingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const onVoiceActive = useCallback(
+    (active: boolean) => {
+      if (voiceTypingRef.current) clearInterval(voiceTypingRef.current)
+      voiceTypingRef.current = null
+      if (active) {
+        stopTyping()
+        emitTyping(true, 'voice')
+        voiceTypingRef.current = setInterval(() => emitTyping(true, 'voice'), TYPING_RESEND_MS)
+      } else {
+        emitTyping(false, 'voice')
+      }
+    },
+    [emitTyping, stopTyping],
+  )
+  useEffect(
+    () => () => {
+      if (voiceTypingRef.current) clearInterval(voiceTypingRef.current)
+    },
+    [],
+  )
 
   // Unmount: stop advertising typing and drop pending timers.
   const stopTypingRef = useRef(stopTyping)
@@ -444,6 +471,57 @@ export default function ConversationScreen() {
     post(tempId, imageBody(taken.caption, taken.attachments.map((a) => a.id), clientMsgId))
   }, [me, conversationId, takeImages, post])
 
+  // Voice: upload first (progress is just the sending clock), then POST by attachment id. The id is
+  // kept on the bubble once uploaded, so a retry after a failed POST does not upload twice.
+  const deliverVoice = useCallback(
+    async (tempId: number, clientMsgId: string, file: LocalUpload, uploadedId: number | null) => {
+      try {
+        let attachmentId = uploadedId
+        if (attachmentId === null) {
+          const attachment = await uploadAttachment(
+            conversationId,
+            file.uri,
+            file.mime,
+            voiceUploadFields(file.durationMs ?? 0, file.waveform ?? []),
+          )
+          attachmentId = attachment.id
+          setMessages((prev) => withUploadedVoice(prev, tempId, attachment))
+        }
+        post(tempId, voiceMessageBody(attachmentId, clientMsgId))
+      } catch {
+        setMessages((prev) => setLocalState(prev, tempId, 'failed'))
+      }
+    },
+    [conversationId, post],
+  )
+
+  const sendVoice = useCallback(
+    (v: RecordedVoice) => {
+      if (!me || !conversationId) return
+      const clientMsgId = uuidv4()
+      const tempId = tempIdRef.current--
+      const file: LocalUpload = {
+        uri: v.uri,
+        mime: v.mime,
+        kind: 'voice',
+        durationMs: v.durationMs,
+        waveform: v.waveform,
+      }
+      const draft = makeVoiceDraft({
+        tempId,
+        conversationId,
+        senderId: me,
+        localFile: file,
+        clientMsgId,
+        now: new Date().toISOString(),
+      })
+      setMessages((prev) => [...prev, draft])
+      listRef.current?.scrollToOffset({ offset: 0, animated: true })
+      void deliverVoice(tempId, clientMsgId, file, null)
+    },
+    [me, conversationId, deliverVoice],
+  )
+
   const handleSend = useCallback(() => {
     const content = text
     setText('')
@@ -456,6 +534,16 @@ export default function ConversationScreen() {
     (m: LocalMessage) => {
       if (m.id >= 0 || !m.clientMsgId) return
       setMessages((prev) => setLocalState(prev, m.id, 'sending'))
+      if (m.type === 'voice') {
+        const file = m.localFiles?.find((f) => f.kind === 'voice')
+        const uploaded = m.attachments?.[0]?.id ?? null
+        if (file || uploaded !== null) {
+          void deliverVoice(m.id, m.clientMsgId, file ?? { uri: '', mime: 'audio/mp4', kind: 'voice' }, uploaded)
+        } else {
+          setMessages((prev) => setLocalState(prev, m.id, 'failed'))
+        }
+        return
+      }
       post(
         m.id,
         m.type === 'image'
@@ -463,7 +551,7 @@ export default function ConversationScreen() {
           : { type: 'text', content: m.content, clientMsgId: m.clientMsgId },
       )
     },
-    [post],
+    [post, deliverVoice],
   )
 
   const openStore = useCallback(() => {
@@ -738,6 +826,8 @@ export default function ConversationScreen() {
               onSend={handleSend}
               onBlur={stopTyping}
               onAttach={tray.openPicker}
+              onVoice={sendVoice}
+              onVoiceActive={onVoiceActive}
             />
           </>
         )}

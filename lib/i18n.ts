@@ -715,6 +715,14 @@ export interface Translations {
     cameraDenied: string
     tooLarge: string
     removePhoto: string
+    slideToCancel: string
+    holdToRecord: string
+    recordVoice: string
+    discardVoice: string
+    sendVoice: string
+    playVoice: string
+    pauseVoice: string
+    playbackSpeed: string
   }
   buySlots: {
     navLabel: string
@@ -2174,6 +2182,14 @@ export const translations: Record<Locale, Translations> = {
       cameraDenied: 'اسمح للتطبيق باستخدام الكاميرا من الإعدادات',
       tooLarge: 'الصورة أكبر من 15 ميجا',
       removePhoto: 'إزالة الصورة',
+      slideToCancel: 'اسحب للإلغاء',
+      holdToRecord: 'اضغط مطولاً عشان تسجل',
+      recordVoice: 'سجّل رسالة صوتية',
+      discardVoice: 'امسح التسجيل',
+      sendVoice: 'ابعت الرسالة الصوتية',
+      playVoice: 'شغّل',
+      pauseVoice: 'وقّف مؤقتًا',
+      playbackSpeed: 'سرعة التشغيل',
     },
     buySlots: {
       navLabel: 'إعلانات إضافية',
@@ -3566,6 +3582,14 @@ export const translations: Record<Locale, Translations> = {
       cameraDenied: 'Allow the app to use the camera in Settings',
       tooLarge: 'Photo is larger than 15 MB',
       removePhoto: 'Remove photo',
+      slideToCancel: 'Slide to cancel',
+      holdToRecord: 'Hold to record',
+      recordVoice: 'Record a voice message',
+      discardVoice: 'Discard recording',
+      sendVoice: 'Send voice message',
+      playVoice: 'Play',
+      pauseVoice: 'Pause',
+      playbackSpeed: 'Playback speed',
     },
     buySlots: {
       navLabel: 'Extra Ad Slots',
