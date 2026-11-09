@@ -141,9 +141,6 @@ export default function ConversationScreen() {
   const [otherTyping, setOtherTyping] = useState<TypingKind | null>(null)
   const [online, setOnline] = useState(false)
   const [keyboardOpen, setKeyboardOpen] = useState(false)
-  // Android only: edge-to-edge means adjustPan never lifts the composer, so
-  // we pad the input bar by the keyboard's height ourselves.
-  const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0)
 
   const listRef = useRef<FlatList<Row>>(null)
   const composerRef = useRef<TextInput>(null)
@@ -597,14 +594,8 @@ export default function ConversationScreen() {
   useEffect(() => {
     const ios = Platform.OS === 'ios'
     const subs = [
-      Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
-        setKeyboardOpen(true)
-        if (!ios) setAndroidKeyboardHeight(e.endCoordinates?.height ?? 0)
-      }),
-      Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () => {
-        setKeyboardOpen(false)
-        if (!ios) setAndroidKeyboardHeight(0)
-      }),
+      Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardOpen(true)),
+      Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboardOpen(false)),
       Keyboard.addListener('keyboardDidShow', revealFocusedInput),
     ]
     return () => subs.forEach((s) => s.remove())
@@ -824,11 +815,10 @@ export default function ConversationScreen() {
         style={[
           styles.inputBarWrap,
           {
-            paddingBottom: keyboardOpen
-              // RN reports the Android keyboard height minus the nav bar, which
-              // edge-to-edge still draws under — add the bottom inset back.
-              ? spacing.sm + (androidKeyboardHeight > 0 ? androidKeyboardHeight + insets.bottom : 0)
-              : Math.max(insets.bottom, spacing.sm),
+            // The keyboard covers the home-indicator inset. iOS lifts the bar via
+            // DashboardLayout's KeyboardAvoidingView, Android via adjustPan —
+            // padding by the keyboard height here would lift it twice.
+            paddingBottom: keyboardOpen ? spacing.sm : Math.max(insets.bottom, spacing.sm),
           },
         ]}
       >
