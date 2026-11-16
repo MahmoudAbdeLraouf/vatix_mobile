@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -173,14 +173,29 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   const [description, setDescription] = useState('')
   const [logo, setLogo] = useState('')
   const [cover, setCover] = useState('')
+  // Mirrors of logo/cover so a re-render mid-flow can't drop an upload the
+  // user already made on the store-info step.
+  const logoRef = useRef('')
+  const coverRef = useRef('')
+  const handleLogoChange = (v: string) => { logoRef.current = v; setLogo(v) }
+  const handleCoverChange = (v: string) => { coverRef.current = v; setCover(v) }
+  const effLogo = logo || logoRef.current
+  const effCover = cover || coverRef.current
 
   // InstaPay form
   const [screenshotKey, setScreenshotKey] = useState('')
   const [buyerPhone, setBuyerPhone] = useState('')
 
-  // Reset when opened
+  // Reset only on the closed → open transition. Depending on user-derived
+  // values (needsStoreCreation) used to re-run this mid-flow whenever the
+  // auth user refreshed, wiping the uploaded logo before payment submit.
+  const wasVisibleRef = useRef(false)
   useEffect(() => {
-    if (!visible) return
+    if (!visible) { wasVisibleRef.current = false; return }
+    if (wasVisibleRef.current) return
+    wasVisibleRef.current = true
+    logoRef.current = ''
+    coverRef.current = ''
     setStep(needsStoreCreation ? 'value' : 'pay-method')
     setErr('')
     setBusy(false)
@@ -330,7 +345,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
       return
     }
-    if (!logo) {
+    if (!effLogo) {
       setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
       return
     }
@@ -346,8 +361,8 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
         storeName: storeName.trim(),
         storeType: 'store',
         description: description.trim() || undefined,
-        logo: logo || undefined,
-        cover: cover || undefined,
+        logo: effLogo || undefined,
+        cover: effCover || undefined,
       })
       await updateStoredUser((res as { user?: Parameters<typeof updateStoredUser>[0] })?.user ?? null)
       await refetchUser()
@@ -380,8 +395,8 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       storeName: storeName.trim(),
       storeType: 'store',
       description: description.trim() || undefined,
-      logo: logo || undefined,
-      cover: cover || undefined,
+      logo: effLogo || undefined,
+      cover: effCover || undefined,
     }
   }
 
@@ -390,7 +405,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
       return
     }
-    if (needsStoreCreation && !logo) {
+    if (needsStoreCreation && !effLogo) {
       setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
       return
     }
@@ -425,7 +440,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
       return
     }
-    if (needsStoreCreation && !logo) {
+    if (needsStoreCreation && !effLogo) {
       setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
       return
     }
@@ -460,7 +475,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
       return
     }
-    if (needsStoreCreation && !logo) {
+    if (needsStoreCreation && !effLogo) {
       setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
       return
     }
@@ -499,7 +514,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       setErr(ar ? 'اسم المتجر مطلوب' : 'Store name is required')
       return
     }
-    if (needsStoreCreation && !logo) {
+    if (needsStoreCreation && !effLogo) {
       setErr(ar ? 'شعار المتجر مطلوب' : 'Store logo is required')
       return
     }
@@ -666,10 +681,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
                   onStoreNameChange={setStoreName}
                   description={description}
                   onDescriptionChange={setDescription}
-                  logo={logo}
-                  onLogoChange={setLogo}
-                  cover={cover}
-                  onCoverChange={setCover}
+                  logo={effLogo}
+                  onLogoChange={handleLogoChange}
+                  cover={effCover}
+                  onCoverChange={handleCoverChange}
                   err={err}
                   busy={busy}
                   trialUsed={trialUsed}
