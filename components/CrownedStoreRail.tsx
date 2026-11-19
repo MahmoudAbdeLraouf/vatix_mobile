@@ -55,6 +55,13 @@ type Stops = [number, string][]
 const FOIL: Stops = [[0, '#FFE27A'], [0.3, '#8A6200'], [0.55, '#F5B800'], [0.8, '#FFF3C4'], [1, '#B88400']]
 const GOLD_BTN: Stops = [[0, '#FFE27A'], [0.55, '#F5B800'], [1, '#E0A400']]
 
+// react-native-svg drops the alpha of an rgba() stopColor on device, so a "transparent"
+// stop paints solid — split it into stopColor + stopOpacity instead.
+function stopProps(c: string) {
+  const m = c.match(/^rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)$/)
+  return m ? { stopColor: `rgb(${m[1]},${m[2]},${m[3]})`, stopOpacity: Number(m[4]) } : { stopColor: c }
+}
+
 function useGid(prefix: string) {
   return `${prefix}-${useId().replace(/:/g, '')}`
 }
@@ -111,7 +118,7 @@ export function GoldFill({
           <Defs>
             <LinearGradient id={gid} x1="0" y1="0" x2={vertical ? '0' : '1'} y2="1">
               {stops.map(([o, c]) => (
-                <Stop key={o} offset={o} stopColor={c} />
+                <Stop key={o} offset={o} {...stopProps(c)} />
               ))}
             </LinearGradient>
           </Defs>
