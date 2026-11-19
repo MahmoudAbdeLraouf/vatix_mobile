@@ -201,10 +201,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.lg,
   },
-  // Rail is full-bleed: cancel the list padding on the sides and top.
+  // Cancel the list side padding; the rail insets itself as a rounded panel.
   railBleed: {
     marginHorizontal: -spacing.lg,
-    marginTop: -spacing.lg,
   },
   row: {
     gap: spacing.lg,

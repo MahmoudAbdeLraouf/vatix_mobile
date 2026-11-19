@@ -37,6 +37,8 @@ const CARD_W = 292
 const GAP = 12
 const INTERVAL = CARD_W + GAP
 const PAD = 16
+// Rail is an inset rounded panel: PAD from the screen edge, INNER from the panel edge.
+const INNER = 12
 const IDLE_MS = 5000
 const TOUCH_IDLE_MS = 8000
 
@@ -621,8 +623,6 @@ export function CrownedStoreRail({
     <>
       <View style={styles.rail}>
         <GoldFill vertical stops={[[0, '#16203A'], [1, '#0F1729']]} />
-        <View pointerEvents="none" style={[styles.hairline, { top: 0 }]} />
-        <View pointerEvents="none" style={[styles.hairline, { bottom: 0 }]} />
 
         <View style={styles.head}>
           <CrownIcon size={20} />
@@ -646,8 +646,8 @@ export function CrownedStoreRail({
         </View>
 
         {solo ? (
-          <View style={{ paddingHorizontal: PAD }}>
-            <StoreCard store={stores[0]} width={screenW - PAD * 2} solo animate={focused} />
+          <View style={{ paddingHorizontal: INNER }}>
+            <StoreCard store={stores[0]} width={screenW - PAD * 2 - INNER * 2 - 2} solo animate={focused} />
           </View>
         ) : (
           <ScrollView
@@ -765,27 +765,35 @@ export function CrownedStrip({
 
 const styles = StyleSheet.create({
   // rail
-  rail: { paddingTop: 14, paddingBottom: 12, overflow: 'hidden', backgroundColor: '#121A2E' },
-  hairline: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,216,77,0.7)' },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: PAD, marginBottom: 10 },
+  rail: {
+    marginHorizontal: PAD,
+    paddingTop: 14,
+    paddingBottom: 12,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,216,77,0.45)',
+    overflow: 'hidden',
+    backgroundColor: '#121A2E',
+  },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: INNER + 2, marginBottom: 10 },
   title: { fontFamily: fonts.black, fontSize: 15.5, color: GOLD, includeFontPadding: false },
   subtitle: { fontFamily: fonts.semiBold, fontSize: 11, color: MUTED, includeFontPadding: false },
   link: { fontFamily: fonts.extraBold, fontSize: 12, color: GOLD },
   adTag: {
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 5,
+    borderRadius: 6,
     paddingHorizontal: 5,
   },
   adTagText: { fontFamily: fonts.bold, fontSize: 10, lineHeight: 15, color: MUTED, includeFontPadding: false },
-  track: { gap: GAP, paddingHorizontal: PAD },
+  track: { gap: GAP, paddingHorizontal: INNER },
   dots: { flexDirection: 'row', direction: 'ltr', justifyContent: 'center', gap: 6, marginTop: 10 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.25)' },
   dotOn: { width: 18, borderRadius: 4, backgroundColor: '#F5B800' },
 
   // card
   foil: { borderRadius: 20, padding: 1.5, overflow: 'hidden', backgroundColor: '#C99A1A' },
-  cardInner: { borderRadius: 19, overflow: 'hidden', backgroundColor: '#18223B' },
+  cardInner: { borderRadius: 18.5, overflow: 'hidden', backgroundColor: '#18223B' },
   cover: { height: 72, backgroundColor: '#0E1526', overflow: 'hidden' },
   coverAd: { position: 'absolute', top: 8, start: 10, backgroundColor: 'rgba(14,21,38,0.55)' },
   ribbon: {
@@ -822,10 +830,10 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   name: { flexShrink: 1, fontFamily: fonts.black, fontSize: 14, color: GOLD, includeFontPadding: false },
   sub: { fontFamily: fonts.regular, fontSize: 11, color: MUTED, includeFontPadding: false },
-  visit: { flexShrink: 0, borderRadius: 9, paddingHorizontal: 11, overflow: 'hidden', marginBottom: 2 },
+  visit: { flexShrink: 0, borderRadius: 8, paddingHorizontal: 11, overflow: 'hidden', marginBottom: 2 },
   visitText: { fontFamily: fonts.extraBold, fontSize: 11.5, lineHeight: 30, color: NAVY, includeFontPadding: false },
   thumbs: { flexDirection: 'row', gap: 7, paddingTop: 10, paddingHorizontal: 12, paddingBottom: 12 },
-  thumb: { borderRadius: 11, backgroundColor: '#fff', overflow: 'hidden' },
+  thumb: { borderRadius: 8, backgroundColor: '#fff', overflow: 'hidden' },
   priceChip: {
     position: 'absolute',
     bottom: 5,

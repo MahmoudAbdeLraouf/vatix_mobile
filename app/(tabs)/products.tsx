@@ -940,10 +940,9 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   },
 
   // ── Crowned stores rail ────────────────────────────────────────────
-  // Cancels out the parent `list` horizontal padding so the navy band
-  // bleeds flush with the screen edges.
+  // Cancels out the parent `list` horizontal padding; the rail insets
+  // itself as a rounded panel.
   railSection: {
     marginHorizontal: -spacing.lg,
-    marginTop: -spacing.sm,
   },
 })
