@@ -7,7 +7,6 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,7 +17,6 @@ import {
   ViewStyle,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Image } from 'expo-image'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useLocale } from '@/contexts/locale'
@@ -27,19 +25,18 @@ import {
   getCategories,
   getLocations,
   getProducts,
-  getSpotlightStores,
-  imgUrl,
+  getCrownedStores,
   localeName,
   Brand,
   Category,
   LocationNode,
   Product,
-  Store,
+  type CrownedStore,
 } from '@/lib/api'
 import { ProductCard } from '@/components/ProductCard'
 import { MessagesBell } from '@/components/MessagesBell'
 import { CategoryBar } from '@/components/CategoryBar'
-import { VerifiedBadge } from '@/components/VerifiedBadge'
+import { CrownedStoreRail } from '@/components/CrownedStoreRail'
 import { FilterCombobox, ComboOption } from '@/components/FilterCombobox'
 import { trackSearch } from '@/lib/analytics'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
@@ -109,7 +106,7 @@ export default function ProductsScreen() {
   const [categories, setCategories] = useState<Category[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
   const [locations, setLocations] = useState<LocationNode[]>([])
-  const [spotlightStores, setSpotlightStores] = useState<Store[]>([])
+  const [crownedStores, setCrownedStores] = useState<CrownedStore[]>([])
 
   useEffect(() => {
     getCategories()
@@ -121,10 +118,22 @@ export default function ProductsScreen() {
     getLocations('governorate')
       .then(locs => setLocations(locs.filter(l => l.isActive)))
       .catch(() => {})
-    getSpotlightStores(10)
-      .then(setSpotlightStores)
-      .catch(() => {})
   }, [])
+
+  // Crowned stores for the current category; falls back to any category so
+  // the rail isn't hidden just because no crowned store sells this one.
+  useEffect(() => {
+    let cancelled = false
+    getCrownedStores({ limit: 10, categoryId })
+      .then(async list => {
+        if (list.length === 0 && categoryId) list = await getCrownedStores({ limit: 10 })
+        if (!cancelled) setCrownedStores(list)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [categoryId])
 
   useEffect(() => {
     setCategoryId(params.categoryId ? Number(params.categoryId) : undefined)
@@ -327,10 +336,6 @@ export default function ProductsScreen() {
   // errors) don't rebuild the header JSX — which would otherwise force the FlatList
   // to reconcile & re-measure it, producing the "items scroll up and down" jitter.
   const listHeader = useMemo(() => {
-    const dir = {
-      writingDirection: isRtl ? ('rtl' as const) : ('ltr' as const),
-      textAlign: 'auto' as const,
-    }
     return (
     <View
       style={styles.listHeader}
@@ -338,92 +343,14 @@ export default function ProductsScreen() {
     >
       {/* Covers the iOS pull-down bounce so the skeleton backdrop never peeks above the header. */}
       <View style={styles.bounceTop} pointerEvents="none" />
-      {/* ─── Spotlight stores rail ─────────────────────────────────
-          Mirrors website /products placement: directly below the sticky
-          category strip, above the hero block. Bleeds to the screen edges
-          by cancelling out `list`'s horizontal padding. */}
-      {spotlightStores.length > 0 && (
-        <View style={styles.railSection}>
-          <View style={styles.railHeader}>
-            <Text style={[styles.railTitle, dir]}>
-              {locale === 'ar' ? '⭐ متاجر مميّزة' : '⭐ Featured Stores'}
-            </Text>
-            <Pressable onPress={() => router.push('/(tabs)/stores')} hitSlop={8}>
-              <Text style={[styles.railLink, dir]}>
-                {locale === 'ar' ? 'عرض الكل' : 'View all'}
-              </Text>
-            </Pressable>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.railList}
-          >
-            {spotlightStores.map((store) => {
-              const cover = imgUrl(store.storeProfile?.cover, { w: 340 })
-              const logo = imgUrl(store.storeProfile?.logo, { w: 68 })
-              const name = store.storeProfile?.name ?? ''
-              return (
-                <Pressable
-                  key={store.id}
-                  onPress={() => router.push(`/store/${store.id}`)}
-                  style={({ pressed }) => [
-                    styles.spotCard,
-                    pressed && { opacity: 0.92 },
-                  ]}
-                >
-                  <View style={styles.spotCover}>
-                    {cover ? (
-                      <Image
-                        source={{ uri: cover }}
-                        style={styles.spotCoverImg}
-                        contentFit="cover"
-                        cachePolicy="memory-disk"
-                        transition={120}
-                        recyclingKey={`spot-cover-${store.id}`}
-                      />
-                    ) : (
-                      <View style={styles.spotCoverPlaceholder}>
-                        <Ionicons name="image-outline" size={22} color="rgba(255,255,255,0.25)" />
-                      </View>
-                    )}
-                    <View style={[styles.spotBadge, store.isPromoted === true ? styles.spotBadgePromoted : styles.spotBadgeStd]}>
-                      <Text style={[styles.spotBadgeText, styles.spotBadgeTextStd]}>
-                        {store.isPromoted === true ? t.featured : locale === 'ar' ? '🏪 متجر' : '🏪 Store'}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.spotBody}>
-                    <View style={styles.spotLogo}>
-                      {logo ? (
-                        <Image
-                          source={{ uri: logo }}
-                          style={styles.spotLogoImg}
-                          contentFit="contain"
-                          cachePolicy="memory-disk"
-                          transition={120}
-                          recyclingKey={`spot-logo-${store.id}`}
-                        />
-                      ) : (
-                        <Text style={styles.spotLogoFallback}>🏪</Text>
-                      )}
-                    </View>
-                    <Text
-                      style={[styles.spotName, dir]}
-                      numberOfLines={2}
-                    >
-                      {name}
-                    </Text>
-                    <VerifiedBadge
-                      verification={store.verification ?? store.storeProfile?.verification}
-                    />
-                  </View>
-                </Pressable>
-              )
-            })}
-          </ScrollView>
-        </View>
-      )}
+      {/* ─── Crowned (paid-promoted) stores rail ───────────────────
+          Directly below the sticky category strip, above the hero block.
+          Bleeds to the screen edges by cancelling out `list`'s padding.
+          Renders nothing (or only the owner upsell slot) when no store
+          is crowned. */}
+      <View style={styles.railSection}>
+        <CrownedStoreRail stores={crownedStores} />
+      </View>
 
       {/* ─── Hero block ────────────────────────────────────────────── */}
       <View style={styles.hero}>
@@ -606,7 +533,7 @@ export default function ProductsScreen() {
     brandPlaceholder,
     locationPlaceholder,
     locale,
-    spotlightStores,
+    crownedStores,
     isRtl,
     styles,
     colors,
@@ -1012,114 +939,11 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
 
-  // ── Spotlight stores rail ──────────────────────────────────────────
-  // Sits at the very top of the FlatList header. Cancels out the parent
-  // `list` horizontal padding (marginHorizontal: -spacing.lg) so the rail
-  // bleeds flush with the screen edges — cards can scroll past the safe
-  // zone while the header row + link stay inset via railHeader padding.
+  // ── Crowned stores rail ────────────────────────────────────────────
+  // Cancels out the parent `list` horizontal padding so the navy band
+  // bleeds flush with the screen edges.
   railSection: {
     marginHorizontal: -spacing.lg,
     marginTop: -spacing.sm,
-  },
-  railHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.sm + 2,
-    gap: spacing.sm,
-  },
-  railTitle: {
-    flex: 1,
-    fontFamily: fonts.extraBold,
-    fontSize: 15,
-    color: colors.text,
-    letterSpacing: 0.1,
-  },
-  railLink: {
-    fontFamily: fonts.semiBold,
-    fontSize: 12,
-    color: colors.heading,
-  },
-  railList: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-  },
-  spotCard: {
-    width: 170,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    overflow: 'hidden',
-    ...(dark ? null : shadow.ss),
-  },
-  spotCover: {
-    position: 'relative',
-    height: 90,
-    backgroundColor: colors.placeholder,
-  },
-  spotCoverImg: {
-    width: '100%',
-    height: '100%',
-  },
-  spotCoverPlaceholder: {
-    flex: 1,
-    backgroundColor: colors.dk2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spotBadge: {
-    position: 'absolute',
-    top: spacing.sm,
-    end: spacing.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-  },
-  spotBadgeStd: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-  },
-  spotBadgePromoted: {
-    backgroundColor: colors.y,
-  },
-  spotBadgeText: {
-    fontFamily: fonts.extraBold,
-    fontSize: 10,
-    letterSpacing: 0.2,
-  },
-  spotBadgeTextStd: {
-    color: colors.dk,
-  },
-  spotBody: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  spotLogo: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.sm,
-    borderWidth: 1.5,
-    borderColor: colors.g200,
-    padding: 2,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  spotLogoImg: {
-    width: '100%',
-    height: '100%',
-  },
-  spotLogoFallback: {
-    fontSize: 18,
-  },
-  spotName: {
-    fontFamily: fonts.bold,
-    fontSize: 12,
-    lineHeight: 15,
-    color: colors.heading,
-    minHeight: 30,
   },
 })

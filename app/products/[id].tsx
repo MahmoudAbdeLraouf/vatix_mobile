@@ -25,14 +25,15 @@ import { useLoginGate } from '@/contexts/loginGate'
 import {
   ExpiredResource,
   getProduct,
+  getCrownedStores,
   getProducts,
-  getSpotlightStores,
+  getStoreProducts,
   imgUrl,
   isExpiredResource,
   localeName,
   Product,
   ProductImage,
-  Store,
+  type CrownedStore,
 } from '@/lib/api'
 import { ProductCard } from '@/components/ProductCard'
 import { logShare } from '@/lib/auth'
@@ -48,10 +49,17 @@ import { RatingSection } from '@/components/RatingSection'
 import { VerifiedBadge, VerifiedSeal } from '@/components/VerifiedBadge'
 import { SalesRecordPill } from '@/components/SalesRecordPill'
 import { SalesRecordSheet } from '@/components/SalesRecordSheet'
+import { CrownedPill, CrownedStoreRail, CrownedStrip, CrownIcon, GoldFill } from '@/components/CrownedStoreRail'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
 const { width: SCREEN_W } = Dimensions.get('window')
+
+/** Seller is a store with a live paid promotion ("crowned"). */
+function isOwnerPromoted(product: Product): boolean {
+  const until = product.owner?.type === 'store' ? product.owner.storeProfile?.promotedUntil : null
+  return !!until && new Date(until) > new Date()
+}
 const HERO_H = 420
 // Hero targets the device pixel width (capped) so we don't ship a 3000-px
 // original when the screen is 390 pt wide. The list card already caches a
@@ -116,7 +124,8 @@ export default function ProductDetailScreen() {
   const [imgIndex, setImgIndex] = useState(0)
   const [salesSheetOpen, setSalesSheetOpen] = useState(false)
   const [similarItems, setSimilarItems] = useState<Product[]>([])
-  const [spotlightStores, setSpotlightStores] = useState<Store[]>([])
+  const [crownedStores, setCrownedStores] = useState<CrownedStore[]>([])
+  const [ownerProducts, setOwnerProducts] = useState<Product[]>([])
   const galleryRef = useRef<FlatList<ProductImage>>(null)
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current
   const onViewableItemsChanged = useRef(
@@ -212,21 +221,31 @@ export default function ProductDetailScreen() {
     }
   }, [id])
 
-  // Similar-products query mirrors website: soft-rank store listings first so
-  // spotlight stores' items surface before individual sellers'. Fetch 7 to
-  // guarantee 6 after excluding the current product.
+  // Mirrors the website product page: similar listings soft-ranked store-first
+  // (fetch 7 to guarantee 6 after excluding the current product), plus either
+  // the crowned seller's other listings or the crowned-stores rail.
   useEffect(() => {
     if (!product || isExpiredResource(product) || !product.category) return
     const categoryId = product.category.id
     const currentId = product.id
+    const seller = product.owner
+    const promoted = isOwnerPromoted(product)
     void Promise.all([
       getProducts({ categoryId, limit: 7, storeFirst: true })
         .then((r) => r.items.filter((p) => p.id !== currentId).slice(0, 6))
         .catch(() => [] as Product[]),
-      getSpotlightStores(10).catch(() => [] as Store[]),
-    ]).then(([sim, spot]) => {
+      promoted
+        ? Promise.resolve([] as CrownedStore[])
+        : getCrownedStores({ limit: 4, categoryId, excludeStoreId: seller?.id }).catch(() => [] as CrownedStore[]),
+      promoted && seller
+        ? getStoreProducts(seller.id)
+            .then((r) => r.items.filter((p) => p.id !== currentId).slice(0, 5))
+            .catch(() => [] as Product[])
+        : Promise.resolve([] as Product[]),
+    ]).then(([sim, crowned, more]) => {
       setSimilarItems(sim)
-      setSpotlightStores(spot)
+      setCrownedStores(crowned)
+      setOwnerProducts(more)
     })
   }, [product])
 
@@ -284,6 +303,7 @@ export default function ProductDetailScreen() {
       : '')
   const storeLogo = imgUrl(owner?.storeProfile?.logo, { w: THUMB_TARGET_W })
   const ownerVerification = owner?.storeProfile?.verification ?? owner?.verification
+  const ownerPromoted = isOwnerPromoted(product)
   const ownerBadge =
     isStore
       ? { label: locale === 'ar' ? 'متجر 🏪' : 'Store 🏪', bg: colors.placeholder, fg: colors.text }
@@ -560,31 +580,50 @@ export default function ProductDetailScreen() {
               {isStore ? (
                 <Pressable
                   onPress={() => router.push(`/store/${owner.id}`)}
-                  style={({ pressed }) => [styles.sellerCard, pressed && { opacity: 0.9 }]}
+                  style={({ pressed }) => [
+                    styles.sellerCard,
+                    ownerPromoted && styles.sellerCardCrowned,
+                    pressed && { opacity: 0.9 },
+                  ]}
                 >
-                  <View style={styles.sellerLogo}>
-                    {storeLogo ? (
-                      <Image
-                        source={{ uri: storeLogo }}
-                        style={styles.sellerLogoImg}
-                        contentFit="cover"
-                        cachePolicy="memory-disk"
-                        transition={120}
-                      />
-                    ) : (
-                      <Text style={styles.sellerLogoFallback}>🏪</Text>
+                  {ownerPromoted && <GoldFill vertical stops={[[0, '#1B2640'], [1, '#121A2E']]} />}
+                  <View>
+                    <View style={[styles.sellerLogo, ownerPromoted && styles.sellerLogoCrowned]}>
+                      {storeLogo ? (
+                        <Image
+                          source={{ uri: storeLogo }}
+                          style={styles.sellerLogoImg}
+                          contentFit="cover"
+                          cachePolicy="memory-disk"
+                          transition={120}
+                        />
+                      ) : (
+                        <Text style={styles.sellerLogoFallback}>🏪</Text>
+                      )}
+                    </View>
+                    {ownerPromoted && (
+                      <View style={styles.sellerCrown} pointerEvents="none">
+                        <CrownIcon size={20} />
+                      </View>
                     )}
                   </View>
                   <View style={styles.sellerMain}>
                     <View style={styles.sellerHeader}>
-                      <Text style={[styles.sellerName, dir]} numberOfLines={1}>
+                      <Text
+                        style={[styles.sellerName, ownerPromoted && styles.sellerNameCrowned, dir]}
+                        numberOfLines={1}
+                      >
                         {storeName || (locale === 'ar' ? 'بائع' : 'Seller')}
                       </Text>
-                      <View style={[styles.sellerBadge, { backgroundColor: ownerBadge.bg }]}>
-                        <Text style={[styles.sellerBadgeText, { color: ownerBadge.fg }, dir]}>
-                          {ownerBadge.label}
-                        </Text>
-                      </View>
+                      {ownerPromoted ? (
+                        <CrownedPill />
+                      ) : (
+                        <View style={[styles.sellerBadge, { backgroundColor: ownerBadge.bg }]}>
+                          <Text style={[styles.sellerBadgeText, { color: ownerBadge.fg }, dir]}>
+                            {ownerBadge.label}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     {!!ownerVerification?.verified && (
                       <View style={styles.sellerVerified}>
@@ -600,10 +639,18 @@ export default function ProductDetailScreen() {
                         />
                       </View>
                     )}
-                    <View style={styles.sellerCtaRow}>
-                      <Text style={[styles.sellerCta, dir]}>{t.visit}</Text>
-                      <Ionicons name={forwardIcon} size={13} color={colors.heading} />
-                    </View>
+                    {ownerPromoted ? (
+                      <View style={styles.sellerCtaCrowned}>
+                        <GoldFill />
+                        <Text style={[styles.sellerCtaCrownedText, dir]}>{t.visit}</Text>
+                        <Ionicons name={forwardIcon} size={13} color="#1A2540" />
+                      </View>
+                    ) : (
+                      <View style={styles.sellerCtaRow}>
+                        <Text style={[styles.sellerCta, dir]}>{t.visit}</Text>
+                        <Ionicons name={forwardIcon} size={13} color={colors.heading} />
+                      </View>
+                    )}
                   </View>
                 </Pressable>
               ) : (
@@ -730,89 +777,15 @@ export default function ProductDetailScreen() {
               />
             </View>
 
-            {/* Featured stores — spotlight rail (mirrors website product page).
-                Guarded so the header/rail collapse cleanly when the endpoint
-                returns nothing. */}
-            {spotlightStores.length > 0 && (
-              <View style={styles.railSection}>
-                <View style={styles.railHeader}>
-                  <Text style={[styles.railTitle, dir]}>
-                    {locale === 'ar' ? '⭐ متاجر مميّزة' : '⭐ Featured Stores'}
-                  </Text>
-                  <Pressable onPress={() => router.push('/(tabs)/stores')} hitSlop={8}>
-                    <Text style={[styles.railLink, dir]}>
-                      {locale === 'ar' ? 'عرض الكل' : 'View all'}
-                    </Text>
-                  </Pressable>
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.railList}
-                >
-                  {spotlightStores.map((store) => {
-                    const cover = imgUrl(store.storeProfile?.cover, { w: 340 })
-                    const logo = imgUrl(store.storeProfile?.logo, { w: 68 })
-                    const name = store.storeProfile?.name ?? ''
-                    return (
-                      <Pressable
-                        key={store.id}
-                        onPress={() => router.push(`/store/${store.id}`)}
-                        style={({ pressed }) => [
-                          styles.spotCard,
-                          pressed && { opacity: 0.92 },
-                        ]}
-                      >
-                        <View style={styles.spotCover}>
-                          {cover ? (
-                            <Image
-                              source={{ uri: cover }}
-                              style={styles.spotCoverImg}
-                              contentFit="cover"
-                              cachePolicy="memory-disk"
-                              transition={120}
-                              recyclingKey={`spot-cover-${store.id}`}
-                            />
-                          ) : (
-                            <View style={styles.spotCoverPlaceholder}>
-                              <Ionicons name="image-outline" size={22} color="rgba(255,255,255,0.25)" />
-                            </View>
-                          )}
-                          <View style={[styles.spotBadge, store.isPromoted === true ? styles.spotBadgePromoted : styles.spotBadgeStd]}>
-                            <Text style={[styles.spotBadgeText, styles.spotBadgeTextStd]}>
-                              {store.isPromoted === true ? t.featured : locale === 'ar' ? '🏪 متجر' : '🏪 Store'}
-                            </Text>
-                          </View>
-                        </View>
-                        <View style={styles.spotBody}>
-                          <View style={styles.spotLogo}>
-                            {logo ? (
-                              <Image
-                                source={{ uri: logo }}
-                                style={styles.spotLogoImg}
-                                contentFit="contain"
-                                cachePolicy="memory-disk"
-                                transition={120}
-                                recyclingKey={`spot-logo-${store.id}`}
-                              />
-                            ) : (
-                              <Text style={styles.spotLogoFallback}>🏪</Text>
-                            )}
-                          </View>
-                          <Text
-                            style={[styles.spotName, dir]}
-                            numberOfLines={2}
-                          >
-                            {name}
-                          </Text>
-                          <VerifiedBadge
-                            verification={store.verification ?? store.storeProfile?.verification}
-                          />
-                        </View>
-                      </Pressable>
-                    )
-                  })}
-                </ScrollView>
+            {/* Crowned seller — more of their listings, above similar ones. */}
+            {ownerPromoted && !!owner && ownerProducts.length > 0 && (
+              <View style={styles.crownedSection}>
+                <CrownedStrip
+                  title={(locale === 'ar' ? 'المزيد من ' : 'More from ') + storeName}
+                  storeId={owner.id}
+                  linkLabel={locale === 'ar' ? 'زيارة المتجر ←' : 'Visit store →'}
+                  products={ownerProducts}
+                />
               </View>
             )}
 
@@ -850,6 +823,18 @@ export default function ProductDetailScreen() {
                     />
                   ))}
                 </ScrollView>
+              </View>
+            )}
+
+            {/* Crowned (paid) stores selling in this category — hidden when the
+                seller is crowned themselves or nobody is crowned yet. */}
+            {!ownerPromoted && crownedStores.length > 0 && (
+              <View style={styles.crownedSection}>
+                <CrownedStoreRail
+                  stores={crownedStores}
+                  subtitle={categoryName ? (locale === 'ar' ? 'تبيع ' : 'Sells ') + categoryName : undefined}
+                  showOwnerSlot={false}
+                />
               </View>
             )}
           </View>
@@ -1508,6 +1493,41 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  // Crowned (promoted) seller — navy card, gold ring + crown, gold CTA.
+  sellerCardCrowned: {
+    borderColor: '#F5B800',
+    overflow: 'hidden',
+  },
+  sellerLogoCrowned: {
+    borderColor: '#FFD84D',
+    backgroundColor: '#121A2E',
+  },
+  sellerCrown: {
+    position: 'absolute',
+    top: -11,
+    start: 0,
+    end: 0,
+    alignItems: 'center',
+  },
+  sellerNameCrowned: {
+    color: '#FFD84D',
+  },
+  sellerCtaCrowned: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: radius.full,
+    overflow: 'hidden',
+  },
+  sellerCtaCrownedText: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: '#1A2540',
+  },
   sellerLogoImg: {
     width: 52,
     height: 52,
@@ -1697,7 +1717,7 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     color: colors.white,
   },
 
-  // ── Horizontal rails (spotlight stores + similar products) ──
+  // ── Horizontal rails (similar products) ──
   railSection: {
     marginTop: spacing.lg,
     marginBottom: spacing.lg,
@@ -1730,83 +1750,10 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     gap: spacing.sm,
   },
 
-  // Spotlight store card
-  spotCard: {
-    width: 170,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    overflow: 'hidden',
-    ...(dark ? null : shadow.ss),
-  },
-  spotCover: {
-    position: 'relative',
-    height: 90,
-    backgroundColor: colors.placeholder,
-  },
-  spotCoverImg: {
-    width: '100%',
-    height: '100%',
-  },
-  spotCoverPlaceholder: {
-    flex: 1,
-    backgroundColor: colors.dk2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spotBadge: {
-    position: 'absolute',
-    top: spacing.sm,
-    end: spacing.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-  },
-  spotBadgeStd: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-  },
-  spotBadgePromoted: {
-    backgroundColor: colors.y,
-  },
-  spotBadgeText: {
-    fontFamily: fonts.extraBold,
-    fontSize: 10,
-    letterSpacing: 0.2,
-  },
-  spotBadgeTextStd: {
-    color: colors.dk,
-  },
-  spotBody: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  spotLogo: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.sm,
-    borderWidth: 1.5,
-    borderColor: colors.g200,
-    padding: 2,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  spotLogoImg: {
-    width: '100%',
-    height: '100%',
-  },
-  spotLogoFallback: {
-    fontSize: 18,
-  },
-  spotName: {
-    fontFamily: fonts.bold,
-    fontSize: 12,
-    lineHeight: 15,
-    color: colors.heading,
-    minHeight: 30,
+  // Crowned strip / rail — bleed to the screen edges like the rails above.
+  crownedSection: {
+    marginHorizontal: -spacing.lg,
+    marginBottom: spacing.lg,
   },
 
   // ProductCard sizing when used inside the similar-products rail — the card

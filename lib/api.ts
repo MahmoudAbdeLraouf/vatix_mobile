@@ -126,6 +126,7 @@ export interface Product {
       name: string
       slug: string | null
       logo: string | null
+      promotedUntil?: string | null
       verification?: StoreVerification
     } | null
     verification?: StoreVerification
@@ -538,6 +539,33 @@ export function getFeaturedStores(): Promise<Store[]> {
 
 export function getSpotlightStores(limit = 10): Promise<Store[]> {
   const path = `/stores/spotlight?limit=${limit}`
+  return cachedFetch(path, () => apiFetch(path))
+}
+
+// Paid ("crowned") stores for the gold rail. `id` is the store's user id.
+export interface CrownedStore {
+  id: number
+  slug: string | null
+  name: string
+  logo: string | null
+  cover: string | null
+  city: { ar: string | null; en: string | null } | null
+  isPromoted: true
+  promotedUntil: string
+  verification: StoreVerification
+  salesRecord?: SalesCounts
+  products: { id: number; slug: string | null; title: string; price: number; image: string | null }[]
+}
+
+export function getCrownedStores(
+  opts: { limit?: number; categoryId?: number; excludeStoreId?: number } = {},
+): Promise<CrownedStore[]> {
+  const qs = new URLSearchParams()
+  if (opts.limit) qs.set('limit', String(opts.limit))
+  if (opts.categoryId) qs.set('categoryId', String(opts.categoryId))
+  if (opts.excludeStoreId) qs.set('excludeStoreId', String(opts.excludeStoreId))
+  const q = qs.toString()
+  const path = `/stores/crowned${q ? `?${q}` : ''}`
   return cachedFetch(path, () => apiFetch(path))
 }
 
