@@ -373,11 +373,11 @@ export default function MoreScreen() {
               <Text style={[styles.bannerTitle, { color: colors.heading }, dirStyle]}>
                 {promotedUntil
                   ? ar
-                    ? `🚀 متجرك مروّج حتى ${formatPromoDate(promotedUntil, locale)}`
-                    : `🚀 Your store is promoted until ${formatPromoDate(promotedUntil, locale)}`
+                    ? `👑 متجرك متوّج حتى ${formatPromoDate(promotedUntil, locale)}`
+                    : `👑 Your store is crowned until ${formatPromoDate(promotedUntil, locale)}`
                   : ar
-                    ? '🚀 روّج متجرك واظهر أولاً'
-                    : '🚀 Promote your store and appear first'}
+                    ? '👑 توّج متجرك واظهر أولاً'
+                    : '👑 Crown your store and appear first'}
               </Text>
               {!!promoPriceLine && (
                 <Text style={[styles.bannerSub, { color: colors.yellowText }, dirStyle]}>{promoPriceLine}</Text>
@@ -385,7 +385,7 @@ export default function MoreScreen() {
             </View>
             <View style={[styles.bannerCta, { backgroundColor: colors.fab }]}>
               <Text style={[styles.bannerCtaText, { color: colors.y }]}>
-                {promotedUntil ? (ar ? 'تمديد الترويج' : 'Extend promotion') : ar ? 'روّج متجرك الآن' : 'Promote my store'}
+                {promotedUntil ? (ar ? 'مدّد التتويج' : 'Extend crown') : ar ? 'توّج متجرك الآن' : 'Crown my store'}
               </Text>
             </View>
           </Pressable>
