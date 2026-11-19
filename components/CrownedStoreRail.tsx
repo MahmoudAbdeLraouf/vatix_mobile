@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
 import {
   AccessibilityInfo,
   Animated,
@@ -14,9 +14,9 @@ import {
   View,
   ViewStyle,
 } from 'react-native'
-import Svg, { Circle, Defs, LinearGradient, Path, Polygon, Rect, Stop } from 'react-native-svg'
+import Svg, { Circle, Defs, LinearGradient, Path, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { Image } from 'expo-image'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { authFetch } from '@/lib/auth'
@@ -73,6 +73,18 @@ function useReduceMotion() {
   return reduce
 }
 
+/** True while the hosting screen is focused — loops stop when the user switches tabs. */
+function useScreenFocused() {
+  const [focused, setFocused] = useState(true)
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true)
+      return () => setFocused(false)
+    }, []),
+  )
+  return focused
+}
+
 /** Absolute-fill gradient behind a View's children (no expo-linear-gradient in this app). */
 export function GoldFill({
   stops = GOLD_BTN,
@@ -82,17 +94,31 @@ export function GoldFill({
   vertical?: boolean
 }) {
   const gid = useGid('gf')
+  // Measured in px: a "100%" Svg keeps its first size when the parent later grows
+  // (images/fonts loading), which left the rail and card backgrounds cut short.
+  const [size, setSize] = useState({ w: 0, h: 0 })
   return (
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
-      <Defs>
-        <LinearGradient id={gid} x1="0" y1="0" x2={vertical ? '0' : '1'} y2="1">
-          {stops.map(([o, c]) => (
-            <Stop key={o} offset={o} stopColor={c} />
-          ))}
-        </LinearGradient>
-      </Defs>
-      <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gid})`} />
-    </Svg>
+    <View
+      pointerEvents="none"
+      style={StyleSheet.absoluteFill}
+      onLayout={e => {
+        const { width: w, height: h } = e.nativeEvent.layout
+        setSize(s => (s.w === w && s.h === h ? s : { w, h }))
+      }}
+    >
+      {size.w > 0 && size.h > 0 ? (
+        <Svg width={size.w} height={size.h}>
+          <Defs>
+            <LinearGradient id={gid} x1="0" y1="0" x2={vertical ? '0' : '1'} y2="1">
+              {stops.map(([o, c]) => (
+                <Stop key={o} offset={o} stopColor={c} />
+              ))}
+            </LinearGradient>
+          </Defs>
+          <Rect x={0} y={0} width={size.w} height={size.h} fill={`url(#${gid})`} />
+        </Svg>
+      ) : null}
+    </View>
   )
 }
 
@@ -189,11 +215,17 @@ function StoreCover({ store }: { store: CrownedStore }) {
   return <GoldFill stops={[[0, '#3A2C00'], [0.7, '#0E1526'], [1, '#0E1526']]} />
 }
 
-function Glint({ width }: { width: number }) {
+/** One soft shine across the card header. Physical LTR box so RTL doesn't flip `left` under an un-flipped translateX. */
+function Glint({ width, active }: { width: number; active: boolean }) {
+  const { isRtl } = useLocale()
   const reduce = useReduceMotion()
   const x = useRef(new Animated.Value(0)).current
+  const on = active && !reduce && width > 0
   useEffect(() => {
-    if (reduce || width <= 0) return
+    if (!on) {
+      x.setValue(0)
+      return
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.delay(2400),
@@ -204,19 +236,35 @@ function Glint({ width }: { width: number }) {
     )
     loop.start()
     return () => loop.stop()
-  }, [reduce, width, x])
-  if (reduce || width <= 0) return null
-  const translateX = x.interpolate({ inputRange: [0, 1], outputRange: [-width * 0.5, width * 1.2] })
+  }, [on, x])
+  if (!on) return null
+  const band = width * 0.34
+  // Sweep in reading direction: left→right in English, right→left in Arabic.
+  const from = -band * 1.4
+  const to = width + band * 0.4
+  const translateX = x.interpolate({ inputRange: [0, 1], outputRange: isRtl ? [to, from] : [from, to] })
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.glintClip]}>
-      <Animated.View style={[styles.glint, { width: width * 0.34, transform: [{ translateX }, { skewX: '-12deg' }] }]}>
+      <Animated.View
+        style={[styles.glint, { width: band, transform: [{ translateX }, { skewX: isRtl ? '12deg' : '-12deg' }] }]}
+      >
         <GoldFill stops={[[0, 'rgba(255,240,190,0)'], [0.5, 'rgba(255,240,190,0.14)'], [1, 'rgba(255,240,190,0)']]} />
       </Animated.View>
     </View>
   )
 }
 
-function StoreCard({ store, width, solo }: { store: CrownedStore; width: number; solo: boolean }) {
+function StoreCard({
+  store,
+  width,
+  solo,
+  animate,
+}: {
+  store: CrownedStore
+  width: number
+  solo: boolean
+  animate: boolean
+}) {
   const { locale, isRtl } = useLocale()
   const ar = locale === 'ar'
   const dir = { writingDirection: isRtl ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
@@ -296,9 +344,13 @@ function StoreCard({ store, width, solo }: { store: CrownedStore; width: number;
             </View>
             <View style={styles.visit}>
               <GoldFill />
-              <Text style={styles.visitText}>{ar ? 'زيارة المتجر' : 'Visit store'}</Text>
+              <Text style={styles.visitText} numberOfLines={1}>
+                {ar ? 'زيارة المتجر' : 'Visit store'}
+              </Text>
             </View>
           </View>
+
+          <Glint width={innerW} active={animate} />
         </Pressable>
 
         {thumbs.length > 0 && (
@@ -316,7 +368,7 @@ function StoreCard({ store, width, solo }: { store: CrownedStore; width: number;
                     <Image
                       source={{ uri: src }}
                       style={StyleSheet.absoluteFill}
-                      contentFit="contain"
+                      contentFit="cover"
                       cachePolicy="memory-disk"
                       transition={120}
                       recyclingKey={`cr-p-${p.id}`}
@@ -332,8 +384,6 @@ function StoreCard({ store, width, solo }: { store: CrownedStore; width: number;
             })}
           </View>
         )}
-
-        <Glint width={innerW} />
       </View>
     </View>
   )
@@ -422,6 +472,7 @@ export function CrownedStoreRail({
   const { width: screenW } = useWindowDimensions()
   const slot = useOwnerSlot(stores, showOwnerSlot)
   const reduce = useReduceMotion()
+  const focused = useScreenFocused()
   const n = stores.length
   const solo = n === 1
 
@@ -441,7 +492,7 @@ export function CrownedStoreRail({
   }
 
   useEffect(() => {
-    if (n < 2 || reduce) return
+    if (n < 2 || reduce || !focused) return
     const id = setInterval(() => {
       if (touchingRef.current || Date.now() - lastMoveRef.current < IDLE_MS) return
       const next = (activeRef.current + 1) % n
@@ -449,7 +500,7 @@ export function CrownedStoreRail({
       lastMoveRef.current = Date.now()
     }, 1000)
     return () => clearInterval(id)
-  }, [n, reduce])
+  }, [n, reduce, focused])
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.max(0, Math.min(n - 1, Math.round(e.nativeEvent.contentOffset.x / INTERVAL)))
@@ -466,7 +517,15 @@ export function CrownedStoreRail({
     <>
       <View style={styles.rail}>
         <GoldFill vertical stops={[[0, '#16203A'], [1, '#0F1729']]} />
-        <View pointerEvents="none" style={[styles.glow, isRtl ? { left: -60 } : { right: -60 }]} />
+        <Svg pointerEvents="none" width={260} height={200} style={[styles.glow, isRtl ? { left: -70 } : { right: -70 }]}>
+          <Defs>
+            <RadialGradient id="crown-rail-glow" cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor="#F5B800" stopOpacity={0.22} />
+              <Stop offset="1" stopColor="#F5B800" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Rect x={0} y={0} width={260} height={200} fill="url(#crown-rail-glow)" />
+        </Svg>
         <View pointerEvents="none" style={[styles.hairline, { top: 0 }]} />
         <View pointerEvents="none" style={[styles.hairline, { bottom: 0 }]} />
 
@@ -493,7 +552,7 @@ export function CrownedStoreRail({
 
         {solo ? (
           <View style={{ paddingHorizontal: PAD }}>
-            <StoreCard store={stores[0]} width={screenW - PAD * 2} solo />
+            <StoreCard store={stores[0]} width={screenW - PAD * 2} solo animate={focused} />
           </View>
         ) : (
           <ScrollView
@@ -512,8 +571,8 @@ export function CrownedStoreRail({
             onScrollBeginDrag={hold}
             onScrollEndDrag={release}
           >
-            {stores.map(s => (
-              <StoreCard key={s.id} store={s} width={CARD_W} solo={false} />
+            {stores.map((s, i) => (
+              <StoreCard key={s.id} store={s} width={CARD_W} solo={false} animate={focused && i === active} />
             ))}
           </ScrollView>
         )}
@@ -611,15 +670,8 @@ export function CrownedStrip({
 
 const styles = StyleSheet.create({
   // rail
-  rail: { paddingTop: 14, paddingBottom: 12, overflow: 'hidden' },
-  glow: {
-    position: 'absolute',
-    top: -90,
-    width: 220,
-    height: 180,
-    borderRadius: 110,
-    backgroundColor: 'rgba(245,184,0,0.16)',
-  },
+  rail: { paddingTop: 14, paddingBottom: 12, overflow: 'hidden', backgroundColor: '#121A2E' },
+  glow: { position: 'absolute', top: -100 },
   hairline: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,216,77,0.7)' },
   head: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: PAD, marginBottom: 10 },
   title: { fontFamily: fonts.black, fontSize: 15.5, color: GOLD, includeFontPadding: false },
@@ -638,9 +690,9 @@ const styles = StyleSheet.create({
   dotOn: { width: 18, borderRadius: 4, backgroundColor: '#F5B800' },
 
   // card
-  foil: { borderRadius: 20, padding: 1.5, overflow: 'hidden' },
-  cardInner: { borderRadius: 19, overflow: 'hidden' },
-  cover: { height: 92, backgroundColor: '#0E1526', overflow: 'hidden' },
+  foil: { borderRadius: 20, padding: 1.5, overflow: 'hidden', backgroundColor: '#C99A1A' },
+  cardInner: { borderRadius: 19, overflow: 'hidden', backgroundColor: '#18223B' },
+  cover: { height: 72, backgroundColor: '#0E1526', overflow: 'hidden' },
   coverAd: { position: 'absolute', top: 8, start: 10, backgroundColor: 'rgba(14,21,38,0.55)' },
   ribbon: {
     position: 'absolute',
@@ -658,7 +710,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 9,
     paddingHorizontal: 12,
-    marginTop: -26,
+    marginTop: -24,
   },
   logoWrap: { width: 52, height: 52 },
   ring: { width: 52, height: 52, borderRadius: 26, padding: 2.5, overflow: 'hidden' },
@@ -676,7 +728,7 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   name: { flexShrink: 1, fontFamily: fonts.black, fontSize: 14, color: GOLD, includeFontPadding: false },
   sub: { fontFamily: fonts.regular, fontSize: 11, color: MUTED, includeFontPadding: false },
-  visit: { borderRadius: 9, paddingHorizontal: 11, overflow: 'hidden', marginBottom: 2 },
+  visit: { flexShrink: 0, borderRadius: 9, paddingHorizontal: 11, overflow: 'hidden', marginBottom: 2 },
   visitText: { fontFamily: fonts.extraBold, fontSize: 11.5, lineHeight: 30, color: NAVY, includeFontPadding: false },
   thumbs: { flexDirection: 'row', gap: 7, paddingTop: 10, paddingHorizontal: 12, paddingBottom: 12 },
   thumb: { borderRadius: 11, backgroundColor: '#fff', overflow: 'hidden' },
@@ -690,7 +742,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15,23,41,0.86)',
   },
   priceText: { fontFamily: fonts.extraBold, fontSize: 10.5, lineHeight: 18, color: GOLD, includeFontPadding: false },
-  glintClip: { borderRadius: 19, overflow: 'hidden' },
+  glintClip: { overflow: 'hidden', direction: 'ltr' },
   glint: { position: 'absolute', top: '-50%', bottom: '-50%', left: 0 },
 
   // crowned pill
