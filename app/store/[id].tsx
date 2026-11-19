@@ -38,6 +38,7 @@ import { trackStorePhoneClick, trackStoreView, trackStoreWhatsappClick } from '@
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { FollowButton } from '@/components/FollowButton'
 import { VerifiedBadge } from '@/components/VerifiedBadge'
+import { BobbingCrown, CrownedPill, SpinningFoil, useScreenFocused } from '@/components/CrownedStoreRail'
 import { SalesRecordPill } from '@/components/SalesRecordPill'
 import { SalesRecordSheet } from '@/components/SalesRecordSheet'
 import { ProductCard } from '@/components/ProductCard'
@@ -48,6 +49,14 @@ import { useTheme } from '@/contexts/theme'
 
 const COVER_HEIGHT = 180
 const LOGO_SIZE = 76
+const CROWN_RING = 4
+const CROWN_RING_STOPS: [number, string][] = [
+  [0, '#FFE27A'],
+  [0.35, '#E0A400'],
+  [0.6, '#8A6200'],
+  [0.85, '#FFD84D'],
+  [1, '#FFE27A'],
+]
 
 type SocialKey = 'instagram' | 'facebook' | 'twitter' | 'tiktok' | 'youtube' | 'linkedin'
 
@@ -92,6 +101,7 @@ export default function StoreDetailScreen() {
   const insets = useSafeAreaInsets()
   const { colors, isDark } = useTheme()
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
+  const screenFocused = useScreenFocused()
 
   const dir = {
     writingDirection: (isRtl ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
@@ -243,6 +253,7 @@ export default function StoreDetailScreen() {
   }
 
   const { storeProfile } = store
+  const crowned = !!store.isPromoted
   const logo = imgUrl(storeProfile.logo)
   const cover = imgUrl(storeProfile.cover)
   const storeIdent = storeProfile.slug ?? store.id
@@ -412,7 +423,7 @@ export default function StoreDetailScreen() {
         )}
         <View style={styles.circle1} />
         <View style={styles.circle2} />
-        <View style={styles.coverOverlay} />
+        <View style={[styles.coverOverlay, crowned && styles.coverOverlayCrowned]} />
       </View>
 
       {/* Floating header */}
@@ -467,28 +478,43 @@ export default function StoreDetailScreen() {
 
           {/* Hero: logo + name column (follow lives up in the cover header) */}
           <View style={styles.heroRow}>
-            <View style={styles.logoWrap}>
-              {logo ? (
-                <Image source={{ uri: logo }} style={styles.logo} resizeMode="cover" />
-              ) : (
-                <View style={[styles.logo, styles.logoFallback]}>
-                  <Text style={[styles.logoInitial, dir]}>
-                    {(storeProfile.name?.charAt(0) ?? '?').toUpperCase()}
-                  </Text>
+            <View style={[styles.logoWrap, crowned && styles.logoShadow]}>
+              <View style={crowned ? styles.crownRing : null}>
+                {crowned && <SpinningFoil active={screenFocused} stops={CROWN_RING_STOPS} />}
+                {logo ? (
+                  <Image
+                    source={{ uri: logo }}
+                    style={[styles.logo, crowned && styles.logoCrowned]}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.logo, styles.logoFallback, crowned && styles.logoCrowned]}>
+                    <Text style={[styles.logoInitial, dir]}>
+                      {(storeProfile.name?.charAt(0) ?? '?').toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {crowned && (
+                <View style={styles.logoCrown} pointerEvents="none">
+                  <BobbingCrown size={28} active={screenFocused} />
                 </View>
               )}
             </View>
 
             <View style={styles.heroTextCol}>
               <View style={styles.nameRow}>
-                <Text style={[styles.storeName, dir]} numberOfLines={2}>
+                <Text style={[styles.storeName, crowned && styles.storeNameCrowned, dir]} numberOfLines={2}>
                   {storeProfile.name ?? ''}
                 </Text>
               </View>
-              <VerifiedBadge
-                verification={store.verification ?? storeProfile.verification}
-                variant="full"
-              />
+              <View style={styles.badgeRow}>
+                {crowned && <CrownedPill full />}
+                <VerifiedBadge
+                  verification={store.verification ?? storeProfile.verification}
+                  variant="full"
+                />
+              </View>
               <View style={styles.metaRow}>
                 <Text style={[styles.metaText, dir]} numberOfLines={1}>
                   {[
@@ -1015,6 +1041,48 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 12,
     elevation: 8,
+  },
+  // Crowned (paid-promoted) store: spinning gold ring + bobbing crown. The ring clips the
+  // spinning foil, so its shadow lives on the unclipped wrapper instead.
+  logoShadow: {
+    shadowColor: '#B8860B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
+    borderRadius: LOGO_SIZE / 2 + CROWN_RING,
+  },
+  crownRing: {
+    width: LOGO_SIZE + CROWN_RING * 2,
+    height: LOGO_SIZE + CROWN_RING * 2,
+    borderRadius: LOGO_SIZE / 2 + CROWN_RING,
+    padding: CROWN_RING,
+    overflow: 'hidden',
+  },
+  logoCrowned: {
+    borderWidth: 2,
+    borderColor: '#121A2E',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  logoCrown: {
+    position: 'absolute',
+    top: -22,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+  },
+  storeNameCrowned: {
+    color: dark ? '#FFD84D' : '#A87A00',
+  },
+  coverOverlayCrowned: {
+    backgroundColor: 'rgba(15,23,41,0.62)',
   },
   logoFallback: {
     backgroundColor: colors.fab,

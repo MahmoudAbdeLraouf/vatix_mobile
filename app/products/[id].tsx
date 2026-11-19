@@ -49,7 +49,15 @@ import { RatingSection } from '@/components/RatingSection'
 import { VerifiedBadge, VerifiedSeal } from '@/components/VerifiedBadge'
 import { SalesRecordPill } from '@/components/SalesRecordPill'
 import { SalesRecordSheet } from '@/components/SalesRecordSheet'
-import { CrownedPill, CrownedStoreRail, CrownedStrip, CrownIcon, GoldFill } from '@/components/CrownedStoreRail'
+import {
+  BobbingCrown,
+  CrownedPill,
+  CrownedStoreRail,
+  CrownedStrip,
+  GoldFill,
+  SpinningFoil,
+  useScreenFocused,
+} from '@/components/CrownedStoreRail'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -74,6 +82,13 @@ type SectionKey = 'seller' | 'description' | 'details' | 'reviews' | 'similar'
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://vatix.store'
 const WA_GREEN = '#25D366'
+const SELLER_RING: [number, string][] = [
+  [0, '#FFE27A'],
+  [0.35, '#E0A400'],
+  [0.6, '#8A6200'],
+  [0.85, '#FFD84D'],
+  [1, '#FFE27A'],
+]
 
 function normalizeWhatsapp(raw: string | null | undefined): string | null {
   if (!raw) return null
@@ -119,6 +134,7 @@ export default function ProductDetailScreen() {
   const { user } = useAuth()
   const { requireLogin } = useLoginGate()
   const insets = useSafeAreaInsets()
+  const screenFocused = useScreenFocused()
   const [product, setProduct] = useState<Product | ExpiredResource | null>(null)
   const [loading, setLoading] = useState(true)
   const [imgIndex, setImgIndex] = useState(0)
@@ -588,22 +604,25 @@ export default function ProductDetailScreen() {
                 >
                   {ownerPromoted && <GoldFill vertical stops={[[0, '#1B2640'], [1, '#121A2E']]} />}
                   <View>
-                    <View style={[styles.sellerLogo, ownerPromoted && styles.sellerLogoCrowned]}>
-                      {storeLogo ? (
-                        <Image
-                          source={{ uri: storeLogo }}
-                          style={styles.sellerLogoImg}
-                          contentFit="cover"
-                          cachePolicy="memory-disk"
-                          transition={120}
-                        />
-                      ) : (
-                        <Text style={styles.sellerLogoFallback}>🏪</Text>
-                      )}
+                    <View style={ownerPromoted ? styles.sellerRing : null}>
+                      {ownerPromoted && <SpinningFoil active={screenFocused} stops={SELLER_RING} />}
+                      <View style={[styles.sellerLogo, ownerPromoted && styles.sellerLogoCrowned]}>
+                        {storeLogo ? (
+                          <Image
+                            source={{ uri: storeLogo }}
+                            style={[styles.sellerLogoImg, ownerPromoted && styles.sellerLogoImgCrowned]}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                            transition={120}
+                          />
+                        ) : (
+                          <Text style={styles.sellerLogoFallback}>🏪</Text>
+                        )}
+                      </View>
                     </View>
                     {ownerPromoted && (
                       <View style={styles.sellerCrown} pointerEvents="none">
-                        <CrownIcon size={20} />
+                        <BobbingCrown size={20} active={screenFocused} />
                       </View>
                     )}
                   </View>
@@ -1498,9 +1517,22 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     borderColor: '#F5B800',
     overflow: 'hidden',
   },
+  sellerRing: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    padding: 2.5,
+    overflow: 'hidden',
+  },
   sellerLogoCrowned: {
-    borderColor: '#FFD84D',
+    width: 47,
+    height: 47,
+    borderWidth: 0,
     backgroundColor: '#121A2E',
+  },
+  sellerLogoImgCrowned: {
+    width: 47,
+    height: 47,
   },
   sellerCrown: {
     position: 'absolute',

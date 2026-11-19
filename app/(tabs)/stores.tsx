@@ -11,8 +11,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
-import { getStores, Store } from '@/lib/api'
+import { getCrownedStores, getStores, type CrownedStore, Store } from '@/lib/api'
 import { StoreCard } from '@/components/StoreCard'
+import { CrownedStoreRail } from '@/components/CrownedStoreRail'
 import { MessagesBell } from '@/components/MessagesBell'
 import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
@@ -25,6 +26,7 @@ export default function StoresScreen() {
   const { colors } = useTheme()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const [stores, setStores] = useState<Store[]>([])
+  const [crowned, setCrowned] = useState<CrownedStore[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -32,6 +34,10 @@ export default function StoresScreen() {
   const load = useCallback(() => {
     setLoading(true)
     setError(null)
+    // Secondary — a failed crowned fetch just hides the rail, the grid still loads.
+    getCrownedStores({ limit: 10 })
+      .then(setCrowned)
+      .catch(() => setCrowned([]))
     getStores()
       .then(setStores)
       .catch(e => setError(e as Error))
@@ -47,9 +53,25 @@ export default function StoresScreen() {
   // otherwise every render forces the virtualizer to recompute cell layouts.
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return stores
+    if (!q) {
+      // Crowned stores already sit in the rail above — don't list them twice.
+      if (!crowned.length) return stores
+      const ids = new Set(crowned.map(c => c.id))
+      return stores.filter(s => !ids.has(s.id))
+    }
     return stores.filter(s => s.storeProfile?.name?.toLowerCase().includes(q))
-  }, [stores, search])
+  }, [stores, search, crowned])
+
+  const searching = search.trim().length > 0
+  const listHeader = useMemo(
+    () =>
+      searching ? null : (
+        <View style={styles.railBleed}>
+          <CrownedStoreRail stores={crowned} />
+        </View>
+      ),
+    [searching, crowned, styles],
+  )
 
   const renderStore = useCallback(
     ({ item }: { item: Store }) => <StoreCard store={item} style={styles.gridItem} />,
@@ -106,6 +128,7 @@ export default function StoresScreen() {
             numColumns={2}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.list}
+            ListHeaderComponent={listHeader}
             ListEmptyComponent={<EmptyState title={t.noResults} subtitle={t.notFoundHint} />}
             renderItem={renderStore}
             initialNumToRender={8}
@@ -177,6 +200,11 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   list: {
     padding: spacing.lg,
     gap: spacing.lg,
+  },
+  // Rail is full-bleed: cancel the list padding on the sides and top.
+  railBleed: {
+    marginHorizontal: -spacing.lg,
+    marginTop: -spacing.lg,
   },
   row: {
     gap: spacing.lg,

@@ -26,7 +26,9 @@ import { useLocale } from '@/contexts/locale'
 import { useLoginGate } from '@/contexts/loginGate'
 import {
   Brand,
+  type CrownedStore,
   getCategories,
+  getCrownedStores,
   getBrands,
   getProducts,
   getRateAppEnabled,
@@ -48,6 +50,7 @@ import { getCategoryIcon, type IoniconName as SharedIoniconName } from '@/lib/ca
 import { IS_IOS } from '@/lib/platform'
 import { ProductCard } from '@/components/ProductCard'
 import { StoreCard } from '@/components/StoreCard'
+import { CrownedStoreRail } from '@/components/CrownedStoreRail'
 import { MessagesBell } from '@/components/MessagesBell'
 import { GuestNudgeBanner } from '@/components/GuestNudgeBanner'
 import { RateAppDialog } from '@/components/RateAppDialog'
@@ -558,6 +561,7 @@ export default function HomeScreen() {
 
   const [requests, setRequests] = useState<BroBoardItem[]>([])
   const [allStores, setAllStores] = useState<Store[]>([])
+  const [crowned, setCrowned] = useState<CrownedStore[]>([])
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
@@ -601,12 +605,13 @@ export default function HomeScreen() {
       // promoted products, all stores) must not nuke the whole home screen.
       // Each secondary rejection is logged to Sentry so we can see what's
       // actually failing on user devices.
-      const [cRes, lpRes, bRes, fpRes, allSRes] = await Promise.allSettled([
+      const [cRes, lpRes, bRes, fpRes, allSRes, crRes] = await Promise.allSettled([
         getCategories(),
         getProducts({ limit: 12, sort: 'newest_pure' }),
         IS_IOS ? Promise.resolve([] as Brand[]) : getBrands(),
         getProducts({ limit: 8, promoted: true }),
         getStores(),
+        getCrownedStores({ limit: 10 }),
       ])
 
       if (cRes.status === 'rejected') throw cRes.reason
@@ -624,6 +629,7 @@ export default function HomeScreen() {
       const b = pick(bRes, 'brands', [] as Brand[])
       const fp = pick(fpRes, 'featuredProducts', { items: [] as Product[] } as Awaited<ReturnType<typeof getProducts>>)
       const allS = pick(allSRes, 'allStores', [] as Store[])
+      const cr = pick(crRes, 'crownedStores', [] as CrownedStore[])
 
       // Categories is a curated list that is never empty in production. If BOTH
       // categories AND latest products came back 200-OK-but-empty, something is
@@ -644,6 +650,7 @@ export default function HomeScreen() {
         return
       }
       setAllStores(allS)
+      setCrowned(cr)
       setCategories([
         { id: null, name: t.all, icon: 'grid-outline' },
         ...c.map(cat => ({
@@ -824,18 +831,32 @@ export default function HomeScreen() {
     ],
   )
 
+  // Crowned stores already show in their own rail, so keep them out of the plain list.
+  const plainStores = useMemo(() => {
+    if (crowned.length === 0) return allStores
+    const ids = new Set(crowned.map(c => c.id))
+    return allStores.filter(s => !ids.has(s.id))
+  }, [allStores, crowned])
+
   const listFooter = useMemo(
     () => (
       <>
+        {/* Crowned (paid-promoted) stores rail — full width, renders nothing when empty */}
+        {crowned.length > 0 && (
+          <View style={styles.section}>
+            <CrownedStoreRail stores={crowned} />
+          </View>
+        )}
+
         {/* All Stores */}
-        {allStores.length > 0 && (
+        {plainStores.length > 0 && (
           <Section title={t.allStores} onMore={() => router.push('/(tabs)/stores')}>
             <ScrollView
               horizontal
               contentContainerStyle={styles.hList}
               showsHorizontalScrollIndicator={false}
             >
-              {allStores.map(item => (
+              {plainStores.map(item => (
                 <StoreCard key={item.id} store={item} style={styles.storeCardWide} />
               ))}
             </ScrollView>
@@ -857,7 +878,7 @@ export default function HomeScreen() {
         </Text>
       </>
     ),
-    [t, allStores, brands, locale, styles],
+    [t, crowned, plainStores, brands, locale, styles],
   )
 
   return (

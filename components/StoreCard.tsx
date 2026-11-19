@@ -4,7 +4,6 @@ import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { Store, imgUrl } from '@/lib/api'
-import { useLocale } from '@/contexts/locale'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 import { VerifiedBadge } from '@/components/VerifiedBadge'
@@ -19,7 +18,6 @@ interface StoreCardProps {
 }
 
 function StoreCardImpl({ store, style }: StoreCardProps) {
-  const { t } = useLocale()
   const { mode } = useTheme()
   const styles = themedStyles[mode]
   if (!store.storeProfile) return null
@@ -53,11 +51,6 @@ function StoreCardImpl({ store, style }: StoreCardProps) {
         )}
         {/* Subtle bottom fade */}
         <View style={styles.coverFade} />
-        {store.isPromoted === true ? (
-          <View style={styles.featuredBadge}>
-            <Text style={styles.featuredBadgeText}>{t.featured}</Text>
-          </View>
-        ) : null}
       </View>
 
       {/* Logo overlapping cover */}
@@ -131,20 +124,6 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.18)',
   },
 
-  featuredBadge: {
-    position: 'absolute',
-    top: spacing.sm,
-    end: spacing.sm,
-    backgroundColor: colors.y,
-    borderRadius: 999,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-  },
-  featuredBadgeText: {
-    fontFamily: fonts.bold,
-    fontSize: 10,
-    color: colors.dk,
-  },
 
   logoRow: {
     alignItems: 'center',

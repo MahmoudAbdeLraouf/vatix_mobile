@@ -59,7 +59,7 @@ function useGid(prefix: string) {
   return `${prefix}-${useId().replace(/:/g, '')}`
 }
 
-function useReduceMotion() {
+export function useReduceMotion() {
   const [reduce, setReduce] = useState(true)
   useEffect(() => {
     let alive = true
@@ -74,7 +74,7 @@ function useReduceMotion() {
 }
 
 /** True while the hosting screen is focused — loops stop when the user switches tabs. */
-function useScreenFocused() {
+export function useScreenFocused() {
   const [focused, setFocused] = useState(true)
   useFocusEffect(
     useCallback(() => {
@@ -122,6 +122,97 @@ export function GoldFill({
   )
 }
 
+// Bright bands on a dark-gold base: rotating it walks the light around the border (RN has no conic gradient).
+const SPIN: Stops = [
+  [0, '#8A6200'],
+  [0.22, '#FFF3C4'],
+  [0.36, '#F5B800'],
+  [0.5, '#8A6200'],
+  [0.64, '#F5B800'],
+  [0.78, '#FFF3C4'],
+  [1, '#8A6200'],
+]
+
+/**
+ * Gold foil that slowly turns (website `cr-spin`, 5s). Absolute-fill — the parent's
+ * padding is the visible border width and it must clip (`overflow: 'hidden'`).
+ */
+export function SpinningFoil({ active, stops = FOIL }: { active: boolean; stops?: Stops }) {
+  const reduce = useReduceMotion()
+  const spin = useRef(new Animated.Value(0)).current
+  const [size, setSize] = useState({ w: 0, h: 0 })
+  const on = active && !reduce && size.w > 0 && size.h > 0
+  useEffect(() => {
+    if (!on) {
+      spin.setValue(0)
+      return
+    }
+    const loop = Animated.loop(
+      Animated.timing(spin, { toValue: 1, duration: 5000, easing: Easing.linear, useNativeDriver: true }),
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [on, spin])
+  const side = Math.ceil(Math.hypot(size.w, size.h))
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] })
+  return (
+    <View
+      pointerEvents="none"
+      style={StyleSheet.absoluteFill}
+      onLayout={e => {
+        const { width: w, height: h } = e.nativeEvent.layout
+        setSize(s => (s.w === w && s.h === h ? s : { w, h }))
+      }}
+    >
+      <GoldFill stops={stops} />
+      {on ? (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            width: side,
+            height: side,
+            top: (size.h - side) / 2,
+            left: (size.w - side) / 2,
+            transform: [{ rotate }],
+          }}
+        >
+          <GoldFill stops={SPIN} />
+        </Animated.View>
+      ) : null}
+    </View>
+  )
+}
+
+/** Crown that bobs and tilts on its base (website `cr-bob`, 3.2s). */
+export function BobbingCrown({ size = 20, active = true }: { size?: number; active?: boolean }) {
+  const reduce = useReduceMotion()
+  const t = useRef(new Animated.Value(0)).current
+  const on = active && !reduce
+  useEffect(() => {
+    if (!on) {
+      t.setValue(0)
+      return
+    }
+    const ease = Easing.inOut(Easing.ease)
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(t, { toValue: 1, duration: 1600, easing: ease, useNativeDriver: true }),
+        Animated.timing(t, { toValue: 0, duration: 1600, easing: ease, useNativeDriver: true }),
+      ]),
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [on, t])
+  if (!on) return <CrownIcon size={size} />
+  const translateY = t.interpolate({ inputRange: [0, 1], outputRange: [0, -3] })
+  const rotate = t.interpolate({ inputRange: [0, 1], outputRange: ['-4deg', '4deg'] })
+  return (
+    <Animated.View style={{ transformOrigin: 'bottom', transform: [{ translateY }, { rotate }] }}>
+      <CrownIcon size={size} />
+    </Animated.View>
+  )
+}
+
 const CROWN_PATH = 'M3 8.5l4.2 3.6L12 5l4.8 7.1L21 8.5l-1.8 9.5H4.8z'
 
 export function CrownIcon({
@@ -160,14 +251,17 @@ export function CrownIcon({
   )
 }
 
-/** Small gold "Crowned" pill — used on the crowned seller card. */
-export function CrownedPill() {
+/** Gold "Crowned" pill — short on the seller card, `full` («متجر متوّج») on the store page. */
+export function CrownedPill({ full = false }: { full?: boolean }) {
   const { locale } = useLocale()
+  const label = full
+    ? locale === 'ar' ? 'متجر متوّج' : 'Crowned store'
+    : locale === 'ar' ? 'متوّج' : 'Crowned'
   return (
-    <View style={styles.pill}>
+    <View style={[styles.pill, full && styles.pillFull]}>
       <GoldFill />
-      <CrownIcon size={11} compact />
-      <Text style={styles.pillText}>{locale === 'ar' ? 'متوّج' : 'Crowned'}</Text>
+      <CrownIcon size={full ? 13 : 11} compact />
+      <Text style={[styles.pillText, full && styles.pillTextFull]}>{label}</Text>
     </View>
   )
 }
@@ -228,9 +322,9 @@ function Glint({ width, active }: { width: number; active: boolean }) {
     }
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.delay(2400),
+        Animated.delay(600),
         Animated.timing(x, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.delay(2000),
+        Animated.delay(3800),
         Animated.timing(x, { toValue: 0, duration: 0, useNativeDriver: true }),
       ]),
     )
@@ -248,7 +342,7 @@ function Glint({ width, active }: { width: number; active: boolean }) {
       <Animated.View
         style={[styles.glint, { width: band, transform: [{ translateX }, { skewX: isRtl ? '12deg' : '-12deg' }] }]}
       >
-        <GoldFill stops={[[0, 'rgba(255,240,190,0)'], [0.5, 'rgba(255,240,190,0.14)'], [1, 'rgba(255,240,190,0)']]} />
+        <GoldFill stops={[[0, 'rgba(255,240,190,0)'], [0.5, 'rgba(255,240,190,0.3)'], [1, 'rgba(255,240,190,0)']]} />
       </Animated.View>
     </View>
   )
@@ -281,7 +375,7 @@ function StoreCard({
 
   return (
     <View style={[styles.foil, { width }]}>
-      <GoldFill stops={FOIL} />
+      <SpinningFoil active={animate} />
       <View style={[styles.cardInner, { direction: isRtl ? 'rtl' : 'ltr' }]}>
         <GoldFill vertical stops={[[0, '#1F2B47'], [1, '#141C31']]} />
 
@@ -309,7 +403,10 @@ function StoreCard({
           <View style={styles.idRow}>
             <View style={styles.logoWrap}>
               <View style={styles.ring}>
-                <GoldFill stops={[[0, '#FFE27A'], [0.35, '#E0A400'], [0.6, '#8A6200'], [0.85, '#FFD84D'], [1, '#FFE27A']]} />
+                <SpinningFoil
+                  active={animate}
+                  stops={[[0, '#FFE27A'], [0.35, '#E0A400'], [0.6, '#8A6200'], [0.85, '#FFD84D'], [1, '#FFE27A']]}
+                />
                 <View style={styles.logoInner}>
                   {logo ? (
                     <Image
@@ -326,7 +423,7 @@ function StoreCard({
                 </View>
               </View>
               <View style={styles.logoCrown} pointerEvents="none">
-                <CrownIcon size={23} />
+                <BobbingCrown size={23} active={animate} />
               </View>
             </View>
             <View style={styles.who}>
@@ -756,6 +853,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   pillText: { fontFamily: fonts.black, fontSize: 11, lineHeight: 20, color: NAVY, includeFontPadding: false },
+  pillFull: { gap: 4, paddingHorizontal: 10 },
+  pillTextFull: { fontSize: 12, lineHeight: 24 },
 
   // owner slot
   slotWrap: { marginTop: 12, marginBottom: 4, marginHorizontal: PAD },
