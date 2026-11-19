@@ -14,7 +14,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native'
-import Svg, { Circle, Defs, LinearGradient, Path, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg'
+import Svg, { Circle, Defs, LinearGradient, Path, Polygon, Rect, Stop } from 'react-native-svg'
 import { Image } from 'expo-image'
 import { router, useFocusEffect } from 'expo-router'
 import { useLocale } from '@/contexts/locale'
@@ -614,15 +614,6 @@ export function CrownedStoreRail({
     <>
       <View style={styles.rail}>
         <GoldFill vertical stops={[[0, '#16203A'], [1, '#0F1729']]} />
-        <Svg pointerEvents="none" width={260} height={200} style={[styles.glow, isRtl ? { left: -70 } : { right: -70 }]}>
-          <Defs>
-            <RadialGradient id="crown-rail-glow" cx="50%" cy="50%" r="50%">
-              <Stop offset="0" stopColor="#F5B800" stopOpacity={0.22} />
-              <Stop offset="1" stopColor="#F5B800" stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Rect x={0} y={0} width={260} height={200} fill="url(#crown-rail-glow)" />
-        </Svg>
         <View pointerEvents="none" style={[styles.hairline, { top: 0 }]} />
         <View pointerEvents="none" style={[styles.hairline, { bottom: 0 }]} />
 
@@ -768,7 +759,6 @@ export function CrownedStrip({
 const styles = StyleSheet.create({
   // rail
   rail: { paddingTop: 14, paddingBottom: 12, overflow: 'hidden', backgroundColor: '#121A2E' },
-  glow: { position: 'absolute', top: -100 },
   hairline: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,216,77,0.7)' },
   head: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: PAD, marginBottom: 10 },
   title: { fontFamily: fonts.black, fontSize: 15.5, color: GOLD, includeFontPadding: false },
