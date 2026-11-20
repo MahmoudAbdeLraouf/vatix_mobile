@@ -43,12 +43,14 @@ import { PromoGiftCard } from '@/components/PromoGiftCard'
 import { PromoGiftPicker } from '@/components/PromoGiftPicker'
 import { CapReachedChoice } from '@/components/CapReachedChoice'
 import { StoreUpsellBanner } from '@/components/StoreUpsellBanner'
+import { ConvertOrDivider, ConvertToStorePick, goConvertToStore, useConvertPickEligible } from '@/components/ConvertToStorePick'
 
 export default function MyAdsScreen() {
   const { colors } = useTheme()
   const styles = useStyles()
   const { t, locale } = useLocale()
   const { user } = useAuth()
+  const convertPick = useConvertPickEligible()
   const params = useLocalSearchParams<{ tab?: string; giftId?: string }>()
   const ar = locale === 'ar'
   const isStore = user?.isStore ?? false
@@ -606,6 +608,19 @@ export default function MyAdsScreen() {
                 })
               )}
             </View>
+
+            {convertPick && (
+              <>
+                <ConvertOrDivider />
+                <ConvertToStorePick
+                  variant="row"
+                  onPress={() => {
+                    setNoCreditsProduct(null)
+                    goConvertToStore()
+                  }}
+                />
+              </>
+            )}
 
             <Pressable
               onPress={() => noCreditsProduct && goPromote(noCreditsProduct.id)}

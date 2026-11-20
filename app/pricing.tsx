@@ -12,6 +12,7 @@ import { router } from 'expo-router'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
+import { ConvertToStorePick, useConvertPickEligible } from '@/components/ConvertToStorePick'
 import {
   Bundle,
   ClientOfferPack,
@@ -73,6 +74,7 @@ export default function PricingScreen() {
   const { locale, t } = useLocale()
   const { colors, isDark } = useTheme()
   const { user } = useAuth()
+  const convertPick = useConvertPickEligible()
   const broEnabled = useBroEnabled()
   const s = useStyles()
   const ar = locale === 'ar'
@@ -572,6 +574,11 @@ export default function PricingScreen() {
                 </View>
               )
             })
+          )}
+          {convertPick && (
+            <View style={{ marginTop: spacing.sm }}>
+              <ConvertToStorePick dark onPress={goConvert} />
+            </View>
           )}
         </View>
 

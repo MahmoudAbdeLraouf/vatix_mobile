@@ -20,6 +20,7 @@ import { InstapayQrCard } from '@/components/InstapayQrCard'
 import { MobileWalletCard } from '@/components/MobileWalletCard'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
+import { ConvertToStorePick, useConvertPickEligible } from '@/components/ConvertToStorePick'
 import {
   AUTH_ERR,
   authDelete,
@@ -142,6 +143,7 @@ export default function PromoteScreen() {
   const styles = useStyles()
   const { locale, t } = useLocale()
   const { user } = useAuth()
+  const convertPick = useConvertPickEligible()
   const { ar, rowDir, colDir, dirStyle, trailAlign } = useDir()
   const params = useLocalSearchParams<{
     bundleId?: string
@@ -723,6 +725,11 @@ export default function PromoteScreen() {
                       </Pressable>
                     )
                   })}
+                  {convertPick && (
+                    <View style={{ marginTop: spacing.md }}>
+                      <ConvertToStorePick />
+                    </View>
+                  )}
                 </View>
               )}
             </View>
