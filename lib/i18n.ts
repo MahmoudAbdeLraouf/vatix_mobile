@@ -1133,6 +1133,48 @@ export interface Translations {
     chipHaveSaved: string
     chipCategory: string
     chipBrand: string
+    deskTitleA: string
+    deskTitleHi: string
+    deskTitleB: string
+    deskSub: string
+    mbarLabel: string
+    interestsHintBold: string
+    interestsHintAsk: string
+    interestsConfirmYes: string
+    interestsConfirmEdit: string
+    setupTitle: string
+    setupBody: string
+    setupOpenCount: string
+    setupSkip: string
+    ribbonFirst: string
+    customOffer: string
+    noMatchProduct: string
+    matchFromProducts: string
+    matchFromSaved: string
+    emptyMatchTitle: string
+    emptyMatchBody: string
+    emptyNoOffersTitle: string
+    emptyNoOffersBody: string
+    emptyAllTitle: string
+    emptyWiden: string
+    sheetSmall: string
+    srcProducts: string
+    srcSaved: string
+    srcScratch: string
+    srcMatched: string
+    bestForThis: string
+    bestTag: string
+    otherOptions: string
+    priceYourOffer: string
+    inBudgetTag: string
+    overBudgetTag: string
+    afterSend: string
+    saveAsProductTitle: string
+    saveAsProductSub: string
+    saveOfferTitle: string
+    saveOfferSub: string
+    scratchPrefillNote: string
+    linkedPriceNote: string
     sendIt: string
     bestPick: string
     reasonModel: string
@@ -2564,6 +2606,48 @@ export const translations: Record<Locale, Translations> = {
       chipHaveSaved: 'عندك عرض جاهز',
       chipCategory: 'من فئتك',
       chipBrand: 'من ماركاتك',
+      deskTitleA: 'ناس عايزة تشتري ',
+      deskTitleHi: 'دلوقتي',
+      deskTitleB: '. قدّم عرضك وبيع.',
+      deskSub: 'طلبات حقيقية من مشترين بميزانية محددة. اختار الطلب وابعت عرضك في أقل من دقيقة.',
+      mbarLabel: '🎯 بنجيبلك طلبات:',
+      interestsHintBold: 'اخترناها من نشاطك.',
+      interestsHintAsk: 'تمام؟',
+      interestsConfirmYes: 'أيوه، احفظها',
+      interestsConfirmEdit: 'عدّل',
+      setupTitle: 'بتبيع إيه؟ وإحنا نجيبلك المشترين اللي عايزينه',
+      setupBody: 'اختار فئة واحدة على الأقل. الماركات اختياري، ولو سبتها هنجيبلك كل الماركات.',
+      setupOpenCount: 'طلب مفتوح دلوقتي',
+      setupSkip: 'مش دلوقتي، وريني الكل',
+      ribbonFirst: 'كن أول عرض',
+      customOffer: 'عرض مخصص',
+      noMatchProduct: 'معندكش منتج مطابق',
+      matchFromProducts: 'من إعلاناتك · هيتحدد لوحده في العرض',
+      matchFromSaved: 'عرضك الجاهز · هيتحدد لوحده في العرض',
+      emptyMatchTitle: 'مفيش طلبات في اهتماماتك دلوقتي',
+      emptyMatchBody: 'اختيارك ضيّق شوية. وسّعه بفئات أو ماركات تانية، أو شوف كل الطلبات.',
+      emptyNoOffersTitle: 'كل الطلبات عليها عروض',
+      emptyNoOffersBody: 'كل الطلبات المفتوحة عليها عروض دلوقتي. لسه تقدر تنافس عليها.',
+      emptyAllTitle: 'مفيش طلبات مفتوحة دلوقتي',
+      emptyWiden: 'وسّع اهتماماتك',
+      sheetSmall: 'عرضك على طلب',
+      srcProducts: '📦 منتجاتك',
+      srcSaved: '📄 المحفوظة',
+      srcScratch: '✍️ عرض جديد',
+      srcMatched: '{n} مطابق',
+      bestForThis: 'الأنسب للطلب ده',
+      bestTag: 'الأنسب',
+      otherOptions: 'اختيارات تانية',
+      priceYourOffer: 'سعر عرضك',
+      inBudgetTag: '✓ جوه ميزانيته',
+      overBudgetTag: 'أعلى من ميزانيته',
+      afterSend: 'بعد ما تبعت',
+      saveAsProductTitle: 'اعرضه كإعلان في Vatix',
+      saveAsProductSub: 'باقي المشترين هيشوفوه كمان.',
+      saveOfferTitle: 'احفظه كعرض جاهز',
+      saveOfferSub: 'هنقترحه عليك لوحده في الطلبات المشابهة.',
+      scratchPrefillNote: '✨ ملّينا الموديل من الطلب. راجعه وضيف السعر والصور.',
+      linkedPriceNote: 'ℹ️ تغيير السعر هنا بيغيّر العرض بس، إعلانك بيفضل بسعره.',
       sendIt: 'ابعته',
       bestPick: '⭐ الأنسب',
       reasonModel: 'نفس الموديل',
@@ -4004,6 +4088,48 @@ export const translations: Record<Locale, Translations> = {
       chipHaveSaved: 'You have a ready offer',
       chipCategory: 'In your category',
       chipBrand: 'Your brand',
+      deskTitleA: 'People want to buy ',
+      deskTitleHi: 'right now',
+      deskTitleB: '. Make your offer and sell.',
+      deskSub: 'Real requests from buyers with a set budget. Pick one and send your offer in under a minute.',
+      mbarLabel: '🎯 Showing requests for:',
+      interestsHintBold: 'We picked these from your activity.',
+      interestsHintAsk: 'Look right?',
+      interestsConfirmYes: 'Yes, save them',
+      interestsConfirmEdit: 'Edit',
+      setupTitle: 'What do you sell? We will bring you the buyers who want it',
+      setupBody: 'Pick at least one category. Brands are optional; leave them empty and we will show every brand.',
+      setupOpenCount: 'open requests right now',
+      setupSkip: 'Not now, show me all',
+      ribbonFirst: 'Be the first offer',
+      customOffer: 'Custom offer',
+      noMatchProduct: 'No matching product',
+      matchFromProducts: 'From your listings · picked for you in the offer',
+      matchFromSaved: 'Your ready offer · picked for you in the offer',
+      emptyMatchTitle: 'No requests in your interests right now',
+      emptyMatchBody: 'Your picks are a bit narrow. Add more categories or brands, or browse all requests.',
+      emptyNoOffersTitle: 'Every request has offers',
+      emptyNoOffersBody: 'All open requests already have offers. You can still compete on them.',
+      emptyAllTitle: 'No open requests right now',
+      emptyWiden: 'Widen your interests',
+      sheetSmall: 'Your offer on',
+      srcProducts: '📦 Your products',
+      srcSaved: '📄 Saved',
+      srcScratch: '✍️ New offer',
+      srcMatched: '{n} match',
+      bestForThis: 'Best fit for this request',
+      bestTag: 'Best',
+      otherOptions: 'Other options',
+      priceYourOffer: 'Your offer price',
+      inBudgetTag: '✓ Within budget',
+      overBudgetTag: 'Over budget',
+      afterSend: 'After you send',
+      saveAsProductTitle: 'List it on Vatix',
+      saveAsProductSub: 'Other buyers will see it too.',
+      saveOfferTitle: 'Save as a ready offer',
+      saveOfferSub: 'We will suggest it for similar requests.',
+      scratchPrefillNote: '✨ We filled in the model from the request. Check it and add the price and photos.',
+      linkedPriceNote: 'ℹ️ Changing the price here only changes the offer; your listing keeps its price.',
       sendIt: 'Send it',
       bestPick: '⭐ Best match',
       reasonModel: 'Same model',

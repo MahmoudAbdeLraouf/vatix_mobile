@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -13,7 +13,6 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 import { colors, darkColors, fonts, lightColors, radius, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
@@ -40,7 +39,7 @@ import { BroButton } from '@/components/bro/BroButton'
 import { useBroDir } from '@/components/bro/BroCardParts'
 import { UpgradeModal } from '@/components/UpgradeModal'
 import { BroOfferCapPicks } from '@/components/bro/BroOfferCapPicks'
-import type { BroOfferPick } from '@/components/bro/BroBoardCard'
+import { categoryIcon, type BroOfferPick } from '@/components/bro/BroBoardCard'
 
 type Tab = 'products' | 'scratch' | 'saved'
 
@@ -114,6 +113,8 @@ interface Props {
   userType: 'client' | 'store'
   /** Shown in the header ("for request: <model>") when known. */
   modelText?: string
+  /** Picks the header tile icon. */
+  categoryName?: string | null
   budgetMin?: number | null
   budgetMax?: number | null
   /** Open straight into this listing / saved offer (the board card's "matched" shortcut). */
@@ -144,10 +145,10 @@ function Notice({ text, onRetry, retryLabel, busy }: { text?: string; onRetry?: 
   )
 }
 
-function SheetBody({ requestId, userType, modelText, budgetMin = null, budgetMax = null, initialPick, onClose, onSent }: Props) {
+function SheetBody({ requestId, userType, modelText, categoryName = null, budgetMin = null, budgetMax = null, initialPick, onClose, onSent }: Props) {
   const { locale, t } = useLocale()
   const b = t.bro
-  const { dirStyle, rowDir, colDir } = useBroDir()
+  const { ar, dirStyle, rowDir, colDir } = useBroDir()
   const styles = useStyles()
   const insets = useSafeAreaInsets()
 
@@ -352,26 +353,75 @@ function SheetBody({ requestId, userType, modelText, budgetMin = null, budgetMax
   }) {
     const reason = reasonLabel(o.hint.reason)
     const dim = o.disabled || (!o.best && o.hint.reason === 'other')
+    const sub = o.best ? styles.subBest : styles.sub
     return (
-      <View key={o.key} style={[styles.row, rowDir, o.best && styles.rowBest, dim && styles.rowDim]}>
-        {o.best ? <Text style={[styles.bestLabel, dirStyle]}>{b.bestPick}</Text> : null}
-        {o.img ? <Image source={{ uri: o.img }} style={styles.thumb} /> : <View style={styles.thumb} />}
+      <Pressable
+        key={o.key}
+        onPress={o.onPick}
+        disabled={o.disabled}
+        accessibilityRole="button"
+        accessibilityLabel={`${b.useThis}: ${o.title}`}
+        style={[styles.row, rowDir, o.best && styles.rowBest, dim && styles.rowDim]}
+      >
+        {o.best ? (
+          <View style={[styles.bestTag, ar ? { right: 14 } : { left: 14 }]}>
+            <Text style={styles.bestTagText}>{b.bestTag}</Text>
+          </View>
+        ) : null}
+        <View style={[styles.radio, o.best && styles.radioOn]} />
+        {o.img ? <Image source={{ uri: o.img }} style={o.best ? styles.thumbBest : styles.thumb} /> : <View style={o.best ? styles.thumbBest : styles.thumb} />}
         <View style={[styles.rowText, colDir]}>
-          <Text style={[styles.rowTitle, dirStyle]} numberOfLines={1}>{o.title}</Text>
-          <Text style={[styles.rowPrice, dirStyle]}>{price(o.priceValue)}</Text>
-          {reason || o.hint.fit ? (
-            <View style={[styles.rowMeta, rowDir]}>
-              {reason ? <Text style={styles.rowReason}>{reason}</Text> : null}
-              {o.hint.fit ? <Text style={[styles.rowFit, { color: FIT_COLOR[o.hint.fit] }]}>{fitLabel(o.hint.fit)}</Text> : null}
-            </View>
+          <Text style={[o.best ? styles.rowTitleBest : styles.rowTitle, dirStyle]} numberOfLines={1}>{o.title}</Text>
+          {reason || o.hint.fit || o.hint.linkedSold || o.note ? (
+            <Text style={[sub, dirStyle]} numberOfLines={2}>
+              {[
+                reason ? <Text key="r" style={o.best ? styles.reasonBest : styles.reason}>{reason}</Text> : null,
+                o.hint.fit ? <Text key="f" style={{ color: FIT_COLOR[o.hint.fit] }}>{fitLabel(o.hint.fit)}</Text> : null,
+                o.hint.linkedSold ? <Text key="s" style={styles.sold}>{b.linkedSold}</Text> : null,
+                o.note ? <Text key="n" style={styles.note}>{o.note}</Text> : null,
+              ].filter(Boolean).flatMap((el, i) => (i === 0 ? [el] : [<Text key={`d${i}`} style={styles.reason}> · </Text>, el]))}
+            </Text>
           ) : null}
-          {o.hint.linkedSold ? <Text style={[styles.rowSold, dirStyle]}>{b.linkedSold}</Text> : null}
-          {o.note ? <Text style={[styles.rowHint, dirStyle]}>{o.note}</Text> : null}
         </View>
-        <BroButton label={b.useThis} variant="yellow" disabled={o.disabled} onPress={o.onPick} />
+        <Text style={o.best ? styles.rowPriceBest : styles.rowPrice}>{price(o.priceValue)}</Text>
+      </Pressable>
+    )
+  }
+
+  /** Best pick first under its own label, the rest under "other options". */
+  function optionList(best: ReactNode | null, rows: ReactNode[], intro?: string) {
+    return (
+      <View style={styles.list}>
+        {best ? (
+          <>
+            <Text style={[styles.lbl, dirStyle]}>{b.bestForThis}</Text>
+            {best}
+            {rows.length > 0 ? <Text style={[styles.lbl, dirStyle, { marginTop: 4 }]}>{b.otherOptions}</Text> : null}
+          </>
+        ) : intro ? <Text style={[styles.lbl, dirStyle]}>{intro}</Text> : null}
+        {rows}
       </View>
     )
   }
+
+  function tabCount(k: Tab): { n: number; matched: boolean } | null {
+    if (k === 'scratch') return null
+    const ranked = k === 'products' ? options?.products : options?.saved
+    const matched = ranked?.filter(r => r.reason !== 'other').length ?? 0
+    if (matched > 0) return { n: matched, matched: true }
+    const list = k === 'products' ? products : saved
+    return list ? { n: list.length, matched: false } : null
+  }
+
+  const nf = (v: number) => Number(v).toLocaleString(numLocale)
+  const tile = categoryIcon(categoryName)
+  const min = Number(budgetMin ?? 0)
+  const max = Number(budgetMax ?? 0)
+  const budgetText = max > 0
+    ? `${min > 0 && min < max
+      ? b.budgetAmtRange.replace('{min}', nf(min)).replace('{max}', nf(max))
+      : b.budgetAmtUpTo.replace('{max}', nf(max))} ${b.budgetCurrency}`
+    : null
 
   const budget = { min: budgetMin, max: budgetMax }
 
@@ -380,10 +430,19 @@ function SheetBody({ requestId, userType, modelText, budgetMin = null, budgetMax
       return (
         <View style={{ gap: spacing.md }}>
           <View style={[styles.backRow, rowDir]}>
-            <BroButton label={b.backToList} icon="arrow-back" onPress={() => { setPicked(null); setError(null) }} disabled={submitting || uploading} />
+            <Pressable
+              onPress={() => { setPicked(null); setError(null) }}
+              disabled={submitting || uploading}
+              hitSlop={8}
+              accessibilityRole="button"
+              style={{ opacity: submitting || uploading ? 0.5 : 1 }}
+            >
+              <Text style={styles.backText}>{ar ? `→ ${b.backToList}` : `← ${b.backToList}`}</Text>
+            </Pressable>
           </View>
           <BroOfferForm
             key={picked.key}
+            notice={picked.kind === 'product' ? b.linkedPriceNote : undefined}
             initial={picked.initial}
             productImages={picked.kind === 'product' ? picked.images : []}
             showSave={false}
@@ -403,6 +462,7 @@ function SheetBody({ requestId, userType, modelText, budgetMin = null, budgetMax
       return (
         <BroOfferForm
           key="scratch"
+          notice={modelText ? b.scratchPrefillNote : undefined}
           initial={{ title: modelText ?? '', price: 0 }}
           productImages={[]}
           showSave
@@ -422,24 +482,20 @@ function SheetBody({ requestId, userType, modelText, budgetMin = null, budgetMax
       const meta = new Map(options?.products.map(o => [o.id, o]))
       const bestId = options?.suggested.source === 'product' ? options.suggested.productId : undefined
       const ranked = rankBy(products, options?.products)
-      const list = bestId == null ? ranked : [...ranked.filter(p => p.id === bestId), ...ranked.filter(p => p.id !== bestId)]
-      return (
-        <View style={styles.list}>
-          <Text style={[styles.hint, dirStyle]}>{b.pickProduct}</Text>
-          {list.map(p => {
-            const m = meta.get(p.id)
-            return optionRow({
-              key: p.id,
-              title: p.title,
-              priceValue: p.price,
-              img: imgUrl(p.images[0]?.url, { w: 160 }),
-              hint: { reason: m?.reason ?? null, fit: m ? m.budgetFit : budgetFitOf(Number(p.price), budgetMax) },
-              best: p.id === bestId,
-              onPick: () => pick(productPick(p)),
-            })
-          })}
-        </View>
-      )
+      const best = bestId == null ? undefined : ranked.find(p => p.id === bestId)
+      const row = (p: MyProduct) => {
+        const m = meta.get(p.id)
+        return optionRow({
+          key: p.id,
+          title: p.title,
+          priceValue: p.price,
+          img: imgUrl(p.images[0]?.url, { w: 160 }),
+          hint: { reason: m?.reason ?? null, fit: m ? m.budgetFit : budgetFitOf(Number(p.price), budgetMax) },
+          best: p === best,
+          onPick: () => pick(productPick(p)),
+        })
+      }
+      return optionList(best ? row(best) : null, ranked.filter(p => p !== best).map(row), b.pickProduct)
     }
 
     if (savedFailed) return <Notice text={b.sheetLoadFailed} retryLabel={b.retry} onRetry={() => { setSavedFailed(false); setSaved(null); setSavedNonce(n => n + 1) }} />
@@ -448,25 +504,22 @@ function SheetBody({ requestId, userType, modelText, budgetMin = null, budgetMax
     const meta = new Map(options?.saved.map(o => [o.id, o]))
     const bestId = options?.suggested.source === 'saved' ? options.suggested.savedOfferId : undefined
     const ranked = rankBy(saved, options?.saved)
-    const list = bestId == null ? ranked : [...ranked.filter(s => s.id === bestId), ...ranked.filter(s => s.id !== bestId)]
-    return (
-      <View style={styles.list}>
-        {list.map(s => {
-          const m = meta.get(s.id)
-          return optionRow({
-            key: s.id,
-            title: s.title,
-            priceValue: s.price,
-            img: imgUrl(s.images[0], { w: 160 }),
-            hint: { reason: m?.reason ?? null, fit: m ? m.budgetFit : budgetFitOf(Number(s.price), budgetMax), linkedSold: m?.linkedSold },
-            best: s.id === bestId && s.available,
-            disabled: !s.available,
-            note: s.available ? undefined : b.savedUnavailableHint,
-            onPick: () => pick(savedPick(s)),
-          })
-        })}
-      </View>
-    )
+    const best = bestId == null ? undefined : ranked.find(s => s.id === bestId && s.available)
+    const row = (s: BroSavedOffer) => {
+      const m = meta.get(s.id)
+      return optionRow({
+        key: s.id,
+        title: s.title,
+        priceValue: s.price,
+        img: imgUrl(s.images[0], { w: 160 }),
+        hint: { reason: m?.reason ?? null, fit: m ? m.budgetFit : budgetFitOf(Number(s.price), budgetMax), linkedSold: m?.linkedSold },
+        best: s === best,
+        disabled: !s.available,
+        note: s.available ? undefined : b.savedUnavailableHint,
+        onPick: () => pick(savedPick(s)),
+      })
+    }
+    return optionList(best ? row(best) : null, ranked.filter(s => s !== best).map(row))
   }
 
   return (
@@ -474,19 +527,23 @@ function SheetBody({ requestId, userType, modelText, budgetMin = null, budgetMax
       <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} accessibilityLabel={b.sheetClose} />
       <View style={[styles.sheet, colDir, { paddingBottom: insets.bottom }]} accessibilityViewIsModal>
         <View style={[styles.header, rowDir]}>
-          <View style={[styles.headerText, colDir]}>
-            <Text style={[styles.title, dirStyle]}>{b.sheetTitle}</Text>
-            {modelText ? <Text style={[styles.subtitle, dirStyle]} numberOfLines={1}>{b.sheetFor.replace('{model}', modelText)}</Text> : null}
+          <View style={[styles.tile, { backgroundColor: tile.bg }]}>
+            <Text style={styles.tileIcon}>{tile.icon}</Text>
           </View>
+          <View style={[styles.headerText, colDir]}>
+            <Text style={[styles.small, dirStyle]}>{b.sheetSmall}</Text>
+            <Text style={[styles.title, dirStyle]} numberOfLines={1}>{modelText || b.sheetTitle}</Text>
+          </View>
+          {budgetText ? <Text style={styles.budget} numberOfLines={1}>{budgetText}</Text> : null}
           <Pressable
             onPress={dismiss}
             disabled={closeBlocked}
-            hitSlop={10}
+            hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={b.sheetClose}
-            style={{ opacity: closeBlocked ? 0.4 : 1 }}
+            style={[styles.close, { opacity: closeBlocked ? 0.5 : 1 }]}
           >
-            <Ionicons name="close" size={22} color="rgba(255,255,255,0.8)" />
+            <Text style={styles.closeText}>✕</Text>
           </Pressable>
         </View>
 
@@ -523,19 +580,30 @@ function SheetBody({ requestId, userType, modelText, budgetMin = null, budgetMax
             <>
               <View style={[styles.tabs, rowDir]} accessibilityRole="tablist">
                 {([
-                  ...(showProductsTab ? [['products', b.tabFromProducts]] : []),
-                  ['scratch', b.tabScratch],
-                  ...(showSavedTab ? [['saved', b.tabSaved]] : []),
-                ] as [Tab, string][]).map(([k, label]) => (
-                  <BroButton
-                    key={k}
-                    label={label}
-                    variant={tab === k ? 'dark' : 'outline'}
-                    selected={tab === k}
-                    disabled={submitting || uploading}
-                    onPress={() => switchTab(k)}
-                  />
-                ))}
+                  ...(showProductsTab ? [['products', b.srcProducts]] : []),
+                  ...(showSavedTab ? [['saved', b.srcSaved]] : []),
+                  ['scratch', b.srcScratch],
+                ] as [Tab, string][]).map(([k, label]) => {
+                  const on = tab === k
+                  const count = tabCount(k)
+                  return (
+                    <Pressable
+                      key={k}
+                      onPress={() => switchTab(k)}
+                      disabled={submitting || uploading}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: on }}
+                      style={[styles.tab, rowDir, on && styles.tabOn]}
+                    >
+                      <Text style={[styles.tabText, on && styles.tabTextOn]} numberOfLines={1}>{label}</Text>
+                      {count ? (
+                        <Text style={[styles.badge, count.matched && styles.badgeMatched]} numberOfLines={1}>
+                          {count.matched ? b.srcMatched.replace('{n}', nf(count.n)) : nf(count.n)}
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  )
+                })}
               </View>
               {renderBody()}
               {/* Errors from the list views (the form shows its own). */}
@@ -549,7 +617,7 @@ function SheetBody({ requestId, userType, modelText, budgetMin = null, budgetMax
   )
 }
 
-const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.card,
@@ -559,42 +627,104 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     overflow: 'hidden',
   },
   header: {
-    backgroundColor: colors.hero,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
+    backgroundColor: colors.card,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 12,
   },
+  tile: { width: 46, height: 46, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  tileIcon: { fontSize: 24 },
   headerText: { flex: 1, minWidth: 0 },
-  title: { fontFamily: fonts.extraBold, fontSize: 16, color: colors.white },
-  subtitle: { fontFamily: fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  small: { fontFamily: fonts.extraBold, fontSize: 12, color: colors.muted },
+  title: { fontFamily: fonts.black, fontSize: 17, color: colors.heading },
+  budget: {
+    fontFamily: fonts.black,
+    fontSize: 13,
+    color: dark ? '#6ee7b7' : '#065f46',
+    backgroundColor: colors.greenBg,
+    borderWidth: 1,
+    borderColor: dark ? colors.border : '#c8eed9',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    overflow: 'hidden',
+    maxWidth: 140,
+  },
+  close: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.placeholder, alignItems: 'center', justifyContent: 'center' },
+  closeText: { fontFamily: fonts.bold, fontSize: 14, color: colors.muted },
   content: { padding: spacing.lg, gap: spacing.md },
-  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  list: { gap: spacing.sm },
-  hint: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
+  tabs: { flexDirection: 'row', gap: 6 },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    backgroundColor: colors.placeholder,
+  },
+  tabOn: { backgroundColor: colors.yellowBg, borderColor: colors.y },
+  tabText: { fontFamily: fonts.extraBold, fontSize: 13.5, color: colors.muted, flexShrink: 1 },
+  tabTextOn: { fontFamily: fonts.black, color: dark ? colors.heading : colors.dk },
+  badge: {
+    fontFamily: fonts.black,
+    fontSize: 10.5,
+    color: colors.g700,
+    backgroundColor: colors.g300,
+    borderRadius: 99,
+    paddingHorizontal: 7,
+    overflow: 'hidden',
+  },
+  badgeMatched: { color: colors.white, backgroundColor: colors.green },
+  backRow: { flexDirection: 'row' },
+  backText: { fontFamily: fonts.extraBold, fontSize: 12.5, color: '#2952cc' },
+  lbl: { fontFamily: fonts.black, fontSize: 12, color: colors.muted },
+  list: { gap: 10 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    padding: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: 14,
+    backgroundColor: colors.card,
   },
-  rowBest: { borderWidth: 2, borderColor: colors.y, backgroundColor: colors.yellowBg, flexWrap: 'wrap' },
-  bestLabel: { width: '100%', fontFamily: fonts.extraBold, fontSize: 12, color: colors.yellowText },
-  rowDim: { opacity: 0.7 },
-  thumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.placeholder },
+  rowBest: {
+    borderWidth: 2,
+    borderColor: colors.y,
+    backgroundColor: dark ? colors.yellowBg : '#fffdf5',
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 6,
+  },
+  rowDim: { opacity: 0.55 },
+  bestTag: { position: 'absolute', top: -11, backgroundColor: colors.y, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 1 },
+  bestTagText: { fontFamily: fonts.black, fontSize: 11, color: colors.dk },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.g300, backgroundColor: colors.white },
+  radioOn: { borderWidth: 7, borderColor: colors.dk },
+  thumb: { width: 38, height: 38, borderRadius: 10, backgroundColor: colors.placeholder },
+  thumbBest: { width: 48, height: 48, borderRadius: 12, backgroundColor: colors.placeholder },
   rowText: { flex: 1, minWidth: 0 },
-  rowTitle: { fontFamily: fonts.bold, fontSize: 13, color: colors.heading },
-  rowPrice: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
-  rowHint: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.red },
-  rowMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  rowReason: { fontFamily: fonts.bold, fontSize: 11, color: colors.muted },
-  rowFit: { fontFamily: fonts.bold, fontSize: 11 },
-  rowSold: { fontFamily: fonts.bold, fontSize: 11, color: '#c2410c' },
-  backRow: { flexDirection: 'row' },
+  rowTitle: { fontFamily: fonts.extraBold, fontSize: 13, color: colors.text },
+  rowTitleBest: { fontFamily: fonts.black, fontSize: 14.5, color: colors.heading },
+  rowPrice: { fontFamily: fonts.black, fontSize: 13.5, color: colors.price },
+  rowPriceBest: { fontFamily: fonts.black, fontSize: 15.5, color: colors.price },
+  sub: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.subtle, marginTop: 2 },
+  subBest: { fontFamily: fonts.bold, fontSize: 12, color: colors.muted, marginTop: 2 },
+  reason: { color: colors.subtle },
+  reasonBest: { color: colors.muted },
+  sold: { color: '#c2410c' },
+  note: { color: colors.red },
   notice: { alignItems: 'center', gap: 10, paddingVertical: spacing.md },
   noticeText: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted, textAlign: 'center' },
   center: { alignItems: 'center', gap: 8, paddingVertical: spacing.sm },
@@ -605,7 +735,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   error: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.red },
 })
 
-const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }
 function useStyles() {
   return themedStyles[useTheme().mode]
 }

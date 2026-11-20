@@ -1,41 +1,35 @@
-import { Image, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useLocale } from '@/contexts/locale'
 import { imgUrl } from '@/lib/api'
 import { hasActiveOffer, type BoardMatchReason, type BroBoardItem, type BudgetFit } from '@/lib/bro'
-import { BroButton } from '@/components/bro/BroButton'
 import { useBroCardFormat, useBroDir } from '@/components/bro/BroCardParts'
-import { colors, darkColors, fonts, lightColors, radius, shadow, type ThemeColors } from '@/constants/theme'
+import { darkColors, fonts, lightColors, shadow, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
 /** Emoji + tint per category, matched on the localised category name (ar or en). */
-const CATEGORY_ICONS: { re: RegExp; emoji: string; bg: string }[] = [
-  { re: /موبايل|هاتف|تليفون|phone|mobile/i, emoji: '📱', bg: '#EEF4FF' },
-  { re: /لابتوب|لاب توب|laptop|كمبيوتر|computer/i, emoji: '💻', bg: '#F1EEFF' },
-  { re: /تابلت|ايباد|آيباد|tablet|ipad/i, emoji: '📲', bg: '#ECFDF5' },
-  { re: /ساع|watch/i, emoji: '⌚', bg: '#FFF1F2' },
-  { re: /سماع|اكسسوار|إكسسوار|headphone|accessor/i, emoji: '🎧', bg: '#FFF7ED' },
-  { re: /العاب|ألعاب|بلايستيشن|console|gaming/i, emoji: '🎮', bg: '#F0F9FF' },
-  { re: /كاميرا|camera/i, emoji: '📷', bg: '#F5F5F4' },
-  { re: /شاش|تلفزيون|tv|monitor/i, emoji: '🖥️', bg: '#F1F5F9' },
+const CATEGORY_ICONS: { re: RegExp; icon: string; bg: string }[] = [
+  { re: /موبايل|هاتف|تليفون|phone|mobile/i, icon: '📱', bg: '#dde8ff' },
+  { re: /لابتوب|لاب توب|laptop|كمبيوتر|computer/i, icon: '💻', bg: '#e6dfff' },
+  { re: /تابلت|ايباد|آيباد|tablet|ipad/i, icon: '📲', bg: '#d6f4e6' },
+  { re: /ساع|watch/i, icon: '⌚', bg: '#ffdee3' },
+  { re: /سماع|اكسسوار|إكسسوار|headphone|accessor/i, icon: '🎧', bg: '#ffe9d2' },
+  { re: /العاب|ألعاب|بلايستيشن|console|gaming/i, icon: '🎮', bg: '#d5edff' },
+  { re: /كاميرا|camera/i, icon: '📷', bg: '#eeeded' },
+  { re: /شاش|تلفزيون|tv|monitor/i, icon: '🖥️', bg: '#e9eef4' },
 ]
 
-function categoryIcon(name: string | null) {
+export function categoryIcon(name: string | null | undefined): { icon: string; bg: string } {
   const hit = name ? CATEGORY_ICONS.find(c => c.re.test(name)) : undefined
-  return hit ?? { emoji: '📦', bg: colors.g100 }
+  return hit ?? { icon: '📦', bg: '#f0f2f5' }
 }
 
 const FRESH_MS = 60 * 60 * 1000
-const GREEN = '#16a34a'
 
-const CHIP_TONE: Record<BoardMatchReason, { bg: string; fg: string; icon: string } | null> = {
-  product: { bg: '#dcfce7', fg: '#15803d', icon: '✅' },
-  saved: { bg: '#e0edff', fg: '#1d4ed8', icon: '📋' },
-  // category / brand fall back to the neutral pill colours
-  category: null,
-  brand: null,
+const SCORE_BG: Record<BoardMatchReason, string> = {
+  product: '#12B886', saved: '#2952cc', category: '#667085', brand: '#667085',
 }
 
-const FIT_COLOR: Record<BudgetFit, string> = { in: GREEN, near: '#ca8a04', over: '#ea580c' }
+const FIT_COLOR: Record<BudgetFit, string> = { in: '#0b7a52', near: '#b45309', over: '#c2410c' }
 
 export type BroOfferPick = { kind: 'product' | 'saved'; id: number }
 
@@ -45,7 +39,7 @@ export function BroBoardCard({ item, onMakeOffer }: {
   onMakeOffer: (item: BroBoardItem, pick?: BroOfferPick) => void
 }) {
   const { t, locale } = useLocale()
-  const { dirStyle, rowDir, colDir } = useBroDir()
+  const { ar, dirStyle, rowDir, colDir } = useBroDir()
   const { colors, isDark } = useTheme()
   const styles = themedStyles[isDark ? 'dark' : 'light']
   const b = t.bro
@@ -54,7 +48,6 @@ export function BroBoardCard({ item, onMakeOffer }: {
   const now = Date.now()
   const { ago } = useBroCardFormat(now)
   const fresh = now - new Date(item.createdAt).getTime() < FRESH_MS
-  const timeLabel = ago(item.createdAt)
 
   const min = item.budgetMin != null ? Number(item.budgetMin) : null
   const max = item.budgetMax != null ? Number(item.budgetMax) : null
@@ -67,75 +60,98 @@ export function BroBoardCard({ item, onMakeOffer }: {
           ? b.budgetAmtFrom.replace('{min}', nf(min))
           : null
 
+  // Buyers type bare numbers ("128"); give them a unit.
   const storage = item.storage
     ? /^\d+$/.test(item.storage.trim())
-      ? `${item.storage.trim()} ${b.storageUnit}`
+      ? `${nf(Number(item.storage))} ${b.storageUnit}`
       : item.storage
     : null
-  const title = storage ? `${item.modelText} · ${storage}` : item.modelText
   const meta = [item.categoryName, item.brandName].filter(Boolean).join(' · ')
 
   const wantLabel = { cheaper: b.wantCheaper, better_condition: b.wantBetterCondition, with_box: b.wantWithBox }
-  const wants = item.wants.length ? item.wants.map(w => wantLabel[w]) : [b.anyCondition]
+  const wants = [
+    ...(storage ? [storage] : []),
+    ...(item.wants.length ? item.wants.map(w => wantLabel[w] ?? w) : [b.anyCondition]),
+  ]
 
+  const noOffers = item.offerCount <= 0
+  const offers =
+    noOffers ? null
+    : item.offerCount === 1 ? b.offersCountOne
+    : b.offersCount.replace('{n}', nf(item.offerCount))
   const canOffer = !item.isMine && !hasActiveOffer(item)
-  const icon = categoryIcon(item.categoryName)
+  const sent = !item.isMine && !canOffer
+  const { icon, bg } = categoryIcon(item.categoryName)
 
   const chipText: Record<BoardMatchReason, string> = {
-    product: b.chipHaveProduct, saved: b.chipHaveSaved, category: b.chipCategory, brand: b.chipBrand,
+    product: `✓ ${b.chipHaveProduct}`, saved: b.chipHaveSaved, category: b.chipCategory, brand: b.chipBrand,
   }
   const fitText: Record<BudgetFit, string> = { in: b.fitIn, near: b.fitNear, over: b.fitOver }
   const chip = canOffer && item.matchReason ? item.matchReason : null
-  const chipTone = chip ? CHIP_TONE[chip] : null
   const matched = canOffer ? item.matched ?? null : null
   const matchedImg = matched ? imgUrl(matched.image, { w: 120 }) : null
 
+  const hot = noOffers && canOffer
+  const ribbon = hot
+    ? { bg: isDark ? 'rgba(245,184,0,0.16)' : colors.yl, fg: isDark ? colors.y : '#8a5a00' }
+    : sent ? { bg: isDark ? 'rgba(18,184,134,0.14)' : '#EBFBEE', fg: isDark ? '#4ade80' : '#0b7a52' }
+    : { bg: isDark ? colors.placeholder : colors.g100, fg: colors.muted }
+
   return (
-    <View style={styles.card}>
-      <View style={[styles.top, rowDir]}>
-        <View style={[styles.tile, { backgroundColor: isDark ? colors.placeholder : icon.bg }]}>
-          <Text style={styles.tileEmoji}>{icon.emoji}</Text>
+    <View style={[styles.card, hot && styles.cardHot, sent && styles.cardSent]}>
+      {chip ? (
+        // The card is pinned to ltr, so the end edge is picked by hand.
+        <View style={[styles.score, { backgroundColor: SCORE_BG[chip] }, ar ? { left: 16 } : { right: 16 }]}>
+          <Text style={styles.scoreText}>{chipText[chip]}</Text>
+        </View>
+      ) : null}
+
+      <View style={[styles.ribbon, rowDir, { backgroundColor: ribbon.bg }, chip ? { paddingTop: 16 } : null]}>
+        <View style={[styles.ribbonStart, rowDir]}>
+          {hot ? (
+            <View style={styles.bolt}>
+              <Text style={styles.boltText}>⚡</Text>
+            </View>
+          ) : null}
+          <Text style={[styles.ribbonText, { color: ribbon.fg }]} numberOfLines={1}>
+            {hot ? b.ribbonFirst : sent ? `✓ ${b.offerSent}` : (offers ?? b.offersCountNone)}
+          </Text>
+        </View>
+        <Text style={[styles.time, hot && fresh ? { color: '#b45309' } : null]}>{ago(item.createdAt)}</Text>
+      </View>
+
+      <View style={[styles.head, rowDir]}>
+        <View style={[styles.tile, { backgroundColor: isDark ? colors.placeholder : bg }]}>
+          <Text style={styles.tileEmoji}>{icon}</Text>
         </View>
         <View style={[styles.headText, colDir]}>
-          <Text style={[styles.title, dirStyle]} numberOfLines={2}>
-            {title}
-          </Text>
           {meta ? (
             <Text style={[styles.meta, dirStyle]} numberOfLines={1}>
               {meta}
             </Text>
           ) : null}
-          {chip ? (
-            <View style={[styles.chip, chipTone && { backgroundColor: chipTone.bg }]}>
-              <Text style={[styles.chipText, chipTone && { color: chipTone.fg }]}>
-                {chipTone?.icon ?? '🎯'} {chipText[chip]}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-        <View style={[styles.time, rowDir]}>
-          {fresh ? <View style={styles.dot} /> : null}
-          <Text style={[styles.timeText, fresh && { color: GREEN }]}>{timeLabel}</Text>
+          <Text style={[styles.title, dirStyle]} numberOfLines={2}>
+            {item.modelText}
+          </Text>
+          <View style={[styles.wants, rowDir]}>
+            {wants.map(w => (
+              <View key={w} style={styles.want}>
+                <Text style={styles.wantText}>{w}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
 
-      <View style={[styles.budget, { backgroundColor: budget ? colors.yellowBg : colors.placeholder }]}>
-        <Text style={[styles.budgetLabel, dirStyle]}>{b.budgetLabel}</Text>
+      <View style={[styles.budget, budget ? styles.budgetSet : styles.budgetOpenBox]}>
+        <Text style={[styles.budgetLabel, dirStyle, budget ? styles.budgetLabelSet : null]}>{b.budgetBarBuyer}</Text>
         {budget ? (
-          <Text style={[styles.budgetAmt, dirStyle]}>
+          <Text style={[styles.budgetAmt, dirStyle]} numberOfLines={1}>
             {budget} <Text style={styles.budgetCur}>{b.budgetCurrency}</Text>
           </Text>
         ) : (
           <Text style={[styles.budgetOpen, dirStyle]}>{b.budgetOpen}</Text>
         )}
-      </View>
-
-      <View style={[styles.pills, rowDir]}>
-        {wants.map(w => (
-          <View key={w} style={styles.pill}>
-            <Text style={styles.pillText}>{w}</Text>
-          </View>
-        ))}
       </View>
 
       {item.locationName ? (
@@ -147,118 +163,179 @@ export function BroBoardCard({ item, onMakeOffer }: {
           {matchedImg ? (
             <Image source={{ uri: matchedImg }} style={styles.matchedImg} />
           ) : (
-            <View style={[styles.matchedImg, { backgroundColor: colors.placeholder }]} />
+            <View style={[styles.matchedImg, styles.matchedPh, { backgroundColor: matched.kind === 'saved' ? '#ffe28a' : '#3a404c' }]}>
+              <Text style={styles.matchedPhText}>{matched.kind === 'saved' ? '📄' : ''}</Text>
+            </View>
           )}
           <View style={[styles.matchedText, colDir]}>
             <Text style={[styles.matchedTitle, dirStyle]} numberOfLines={1}>
-              {matched.title}
+              {matched.title} · {b.priceEgp.replace('{price}', nf(Number(matched.price)))}
             </Text>
-            <Text style={[styles.matchedPrice, dirStyle]} numberOfLines={1}>
-              {b.priceEgp.replace('{price}', nf(Number(matched.price)))}
-              {matched.budgetFit ? (
-                <Text style={{ color: FIT_COLOR[matched.budgetFit] }}> · {fitText[matched.budgetFit]}</Text>
-              ) : null}
+            <Text
+              style={[
+                styles.matchedSub,
+                dirStyle,
+                matched.budgetFit ? { color: FIT_COLOR[matched.budgetFit], fontFamily: fonts.extraBold } : null,
+              ]}
+              numberOfLines={1}
+            >
+              {matched.budgetFit
+                ? fitText[matched.budgetFit]
+                : matched.kind === 'saved' ? b.matchFromSaved : b.matchFromProducts}
             </Text>
           </View>
-          <BroButton
-            label={b.sendIt}
+          <Pressable
             onPress={() => onMakeOffer(item, { kind: matched.kind, id: matched.id })}
-            variant="yellow"
-            size="sm"
-          />
+            style={({ pressed }) => [styles.btn, styles.btnDk, styles.btnSm, pressed && styles.pressed]}
+          >
+            <Text style={[styles.btnText, styles.btnDkText]}>{b.sendIt}</Text>
+          </Pressable>
         </View>
       ) : null}
 
-      {!item.isMine ? (
-        <View style={styles.action}>
-          {canOffer ? (
-            <BroButton
-              label={item.myOffer ? b.makeOfferAgain : b.makeOffer}
-              onPress={() => onMakeOffer(item)}
-              variant="yellow"
-              size="md"
-              fullWidth
-            />
-          ) : (
-            <BroButton label={b.offerSent} onPress={() => {}} disabled size="md" fullWidth icon="checkmark" />
-          )}
-        </View>
-      ) : null}
-
-      {item.offerCount > 0 ? (
-        <Text style={[styles.count, dirStyle]}>
-          {item.offerCount === 1 ? b.offersCountOne : b.offersCount.replace('{n}', String(item.offerCount))}
-        </Text>
-      ) : canOffer ? (
-        <Text style={[styles.count, styles.firstHint, dirStyle]}>{b.firstOfferHint}</Text>
-      ) : null}
+      <View style={[styles.foot, rowDir]}>
+        {item.isMine ? (
+          <Text style={styles.footText}>{offers ?? b.offersCountNone}</Text>
+        ) : canOffer ? (
+          <>
+            <Text
+              style={[styles.footText, styles.footStrong, hot ? { color: isDark ? colors.y : '#8a5a00' } : null]}
+              numberOfLines={1}
+            >
+              {hot ? b.offersCountNone : matched ? offers : b.noMatchProduct}
+            </Text>
+            {matched ? (
+              <Pressable
+                onPress={() => onMakeOffer(item)}
+                style={({ pressed }) => [styles.btn, styles.btnOut, pressed && styles.pressed]}
+              >
+                <Text style={[styles.btnText, styles.btnOutText]}>{b.customOffer}</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => onMakeOffer(item)}
+                style={({ pressed }) => [styles.btn, styles.btnLg, hot ? styles.btnY : styles.btnDk, pressed && styles.pressed]}
+              >
+                <Text style={[styles.btnText, hot ? styles.btnYText : styles.btnDkText]}>
+                  {item.myOffer ? b.makeOfferAgain : b.makeOffer}
+                </Text>
+              </Pressable>
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={styles.footText}>{offers ?? b.offersCountNone}</Text>
+            <View style={[styles.btn, styles.btnOut, styles.btnDisabled]}>
+              <Text style={[styles.btnText, styles.btnOutText]}>{b.offerSent}</Text>
+            </View>
+          </>
+        )}
+      </View>
     </View>
   )
 }
 
 const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   card: {
+    direction: 'ltr',
     backgroundColor: colors.card,
-    borderRadius: radius.lg,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: dark ? colors.border : colors.g100,
-    padding: 14,
-    marginBottom: 12,
-    gap: 10,
+    borderColor: dark ? colors.border : '#eaecf0',
+    marginTop: 6,
+    marginBottom: 14,
     ...(dark ? null : shadow.ss),
   },
-  top: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  tile: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  tileEmoji: { fontSize: 22 },
-  headText: { flex: 1, gap: 2 },
-  chip: {
-    alignSelf: 'flex-start',
-    marginTop: 4,
-    backgroundColor: colors.placeholder,
-    borderRadius: radius.full,
-    paddingHorizontal: 9,
-    paddingVertical: 2,
+  cardHot: { borderWidth: 1.5, borderColor: dark ? 'rgba(245,184,0,0.5)' : '#f6d77a' },
+  cardSent: { borderColor: dark ? 'rgba(18,184,134,0.4)' : '#bfe9d4' },
+  score: { position: 'absolute', top: -11, zIndex: 1, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 2 },
+  scoreText: { fontFamily: fonts.black, fontSize: 11, color: '#fff' },
+  ribbon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopLeftRadius: 19,
+    borderTopRightRadius: 19,
   },
-  chipText: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.text },
+  ribbonStart: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  bolt: { width: 20, height: 20, borderRadius: 7, backgroundColor: colors.y, alignItems: 'center', justifyContent: 'center' },
+  boltText: { fontSize: 11 },
+  ribbonText: { fontFamily: fonts.black, fontSize: 12.5 },
+  time: { fontFamily: fonts.extraBold, fontSize: 12, color: colors.muted },
+  head: { flexDirection: 'row', gap: 14, paddingHorizontal: 16, paddingTop: 14 },
+  tile: { width: 58, height: 58, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  tileEmoji: { fontSize: 28 },
+  headText: { flex: 1, minWidth: 0 },
+  meta: { fontFamily: fonts.extraBold, fontSize: 11.5, color: colors.subtle },
+  title: { fontFamily: fonts.black, fontSize: 17, color: colors.heading, lineHeight: 24 },
+  wants: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 6 },
+  want: {
+    backgroundColor: dark ? colors.placeholder : colors.g100,
+    borderWidth: 1,
+    borderColor: dark ? colors.border : '#eaecf0',
+    borderRadius: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 1,
+  },
+  wantText: { fontFamily: fonts.extraBold, fontSize: 11.5, color: colors.text },
+  budget: { marginHorizontal: 16, marginTop: 14, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1 },
+  budgetSet: {
+    backgroundColor: dark ? 'rgba(18,184,134,0.12)' : '#ecf9f2',
+    borderColor: dark ? 'rgba(18,184,134,0.35)' : '#c8eed9',
+  },
+  budgetOpenBox: { backgroundColor: dark ? colors.placeholder : colors.g100, borderColor: dark ? colors.border : '#eaecf0' },
+  budgetLabel: { fontFamily: fonts.extraBold, fontSize: 11.5, color: colors.muted },
+  budgetLabelSet: { color: dark ? '#4ade80' : '#0f7a53' },
+  budgetAmt: { fontFamily: fonts.black, fontSize: 21, color: dark ? '#6ee7b7' : '#065f46' },
+  budgetCur: { fontFamily: fonts.extraBold, fontSize: 13 },
+  budgetOpen: { fontFamily: fonts.extraBold, fontSize: 15, color: colors.text },
+  loc: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.muted, paddingHorizontal: 16, paddingTop: 10 },
   matched: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    padding: 8,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: dark ? '#166534' : '#86efac',
-    backgroundColor: dark ? 'rgba(22,163,74,0.12)' : '#f0fdf4',
-  },
-  matchedImg: { width: 40, height: 40, borderRadius: 8 },
-  matchedText: { flex: 1, minWidth: 0 },
-  matchedTitle: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.heading },
-  matchedPrice: { fontFamily: fonts.semiBold, fontSize: 11.5, color: colors.muted },
-  title: { fontFamily: fonts.bold, fontSize: 15, color: colors.heading, lineHeight: 22 },
-  meta: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
-  time: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 2 },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: GREEN },
-  timeText: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.muted },
-  budget: { borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 12 },
-  budgetLabel: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.muted },
-  budgetAmt: { fontFamily: fonts.black, fontSize: 19, color: colors.price },
-  budgetCur: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
-  budgetOpen: { fontFamily: fonts.bold, fontSize: 15, color: colors.text },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  pill: {
-    backgroundColor: colors.placeholder,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.full,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingVertical: 9,
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: dark ? 'rgba(122,154,240,0.5)' : '#b9c9f5',
+    backgroundColor: dark ? 'rgba(41,82,204,0.12)' : '#f5f8ff',
   },
-  pillText: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.text },
-  loc: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
-  action: { marginTop: 2 },
-  count: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.muted, textAlign: 'center' },
-  firstHint: { color: dark ? colors.orange : '#c2410c' },
+  matchedImg: { width: 38, height: 38, borderRadius: 10 },
+  matchedPh: { alignItems: 'center', justifyContent: 'center' },
+  matchedPhText: { fontSize: 18 },
+  matchedText: { flex: 1, minWidth: 0 },
+  matchedTitle: { fontFamily: fonts.black, fontSize: 12.5, color: colors.heading },
+  matchedSub: { fontFamily: fonts.bold, fontSize: 12, color: colors.muted },
+  foot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 16,
+  },
+  footText: { flexShrink: 1, fontFamily: fonts.extraBold, fontSize: 12.5, color: colors.muted },
+  footStrong: { fontFamily: fonts.black },
+  btn: { borderRadius: 12, paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  btnSm: { paddingVertical: 7, paddingHorizontal: 12 },
+  btnLg: { paddingVertical: 10, paddingHorizontal: 18 },
+  btnY: { backgroundColor: colors.y },
+  btnDk: { backgroundColor: dark ? colors.y : colors.dk },
+  btnOut: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: dark ? colors.border : '#d0d5dd' },
+  btnDisabled: { opacity: 0.55 },
+  btnText: { fontFamily: fonts.extraBold, fontSize: 13 },
+  btnYText: { color: colors.dk },
+  btnDkText: { color: dark ? colors.dk : '#fff' },
+  btnOutText: { color: colors.heading },
+  pressed: { opacity: 0.85 },
 })
 
 const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }

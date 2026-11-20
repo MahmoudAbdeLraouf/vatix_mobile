@@ -27,12 +27,13 @@ import { useTheme } from '@/contexts/theme'
 type Sort = 'newest' | 'budget'
 type BoardTab = 'noOffers' | 'mine' | 'all'
 
-interface SheetState { id: number; modelText?: string; budgetMin: number | null; budgetMax: number | null; pick?: BroOfferPick }
+interface SheetState { id: number; modelText?: string; categoryName?: string | null; budgetMin: number | null; budgetMax: number | null; pick?: BroOfferPick }
 
 function sheetFor(item: BroBoardItem, pick?: BroOfferPick): SheetState {
   return {
     id: item.id,
     modelText: item.modelText,
+    categoryName: item.categoryName,
     budgetMin: item.budgetMin != null ? Number(item.budgetMin) : null,
     budgetMax: item.budgetMax != null ? Number(item.budgetMax) : null,
     pick,
@@ -355,30 +356,37 @@ export default function RequestsTab() {
       {/* Offer quota sits with the board it applies to, away from the Ask-Geeko banner. */}
       {userType === 'client' && usage ? <BroUsageMeter usage={usage} style={styles.meter} upgrade /> : null}
 
-      {userType ? (
-        <View style={styles.sortRow}>
-          {([
-            ['noOffers', b.tabNoOffers, counts?.noOffers],
-            ['mine', b.tabMatch, counts?.mine],
-            ['all', b.tabAll, counts?.all],
-          ] as const).map(([key, label, n]) => {
-            const on = tab === key
-            return (
-              <Pressable key={key} onPress={() => switchTab(key)} style={[styles.sortBtn, on && styles.sortBtnOn]}>
-                <Text style={[styles.sortText, on && styles.sortTextOn]} numberOfLines={1}>{label}</Text>
-                {n != null ? (
-                  <View style={[styles.tabBadge, on && styles.tabBadgeOn]}>
-                    <Text style={[styles.tabBadgeText, on && styles.tabBadgeTextOn]}>{n}</Text>
-                  </View>
-                ) : null}
-              </Pressable>
-            )
-          })}
-        </View>
-      ) : null}
+      {/* Guests get every tab except 🎯, which needs the viewer's categories. */}
+      <View style={styles.folderRow}>
+        {([
+          ['noOffers', b.tabNoOffers, counts?.noOffers],
+          ['mine', b.tabMatch, counts?.mine],
+          ['all', b.tabAll, counts?.all],
+        ] as const).filter(([key]) => userType || key !== 'mine').map(([key, label, n]) => {
+          const on = tab === key
+          return (
+            <Pressable key={key} onPress={() => switchTab(key)} style={[styles.folderTab, on && styles.folderTabOn]}>
+              <Text style={[styles.folderText, on && styles.folderTextOn]} numberOfLines={2}>{label}</Text>
+              {n != null ? (
+                <View style={[styles.tabBadge, on && styles.tabBadgeOn]}>
+                  <Text style={[styles.tabBadgeText, on && styles.tabBadgeTextOn]}>{n}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          )
+        })}
+      </View>
 
       {tab === 'mine' && prefs ? (
-        <MatchPrefsStrip prefs={prefs} categories={categories} brands={brands} onEdit={() => setPrefsOpen(true)} />
+        <MatchPrefsStrip
+          prefs={prefs}
+          categories={categories}
+          brands={brands}
+          total={counts?.all ?? undefined}
+          onEdit={() => setPrefsOpen(true)}
+          onSkip={() => switchTab('all')}
+          onSaved={onPrefsSaved}
+        />
       ) : null}
 
       {!loading && !failed ? (
@@ -411,11 +419,30 @@ export default function RequestsTab() {
       <Button label={b.retry} variant="dk" size="md" onPress={() => { resetBoard(); void loadPage(1, false) }} />
     </View>
   ) : (
-    <View style={styles.center}>
-      <Ionicons name="search-outline" size={40} color={colors.subtle} />
-      <Text style={[styles.cardBody, dirStyle]}>
-        {tab === 'mine' ? b.matchEmpty : tab === 'noOffers' ? b.noOffersEmpty : b.boardEmpty}
+    <View style={styles.emptyBox}>
+      <View style={styles.emptyIcon}>
+        <Ionicons
+          name={tab === 'mine' ? 'locate-outline' : tab === 'noOffers' ? 'flash-outline' : 'search-outline'}
+          size={26}
+          color={colors.muted}
+        />
+      </View>
+      <Text style={[styles.emptyTitle, dirStyle]}>
+        {tab === 'mine' ? b.emptyMatchTitle : tab === 'noOffers' ? b.emptyNoOffersTitle : b.emptyAllTitle}
       </Text>
+      {tab === 'mine' || tab === 'noOffers' ? (
+        <Text style={[styles.cardBody, dirStyle]}>{tab === 'mine' ? b.emptyMatchBody : b.emptyNoOffersBody}</Text>
+      ) : null}
+      {tab === 'mine' ? (
+        <View style={styles.emptyActions}>
+          <Button label={b.emptyWiden} variant="dk" size="md" onPress={() => setPrefsOpen(true)} />
+          <Button label={b.tabAll} variant="outline" size="md" onPress={() => switchTab('all')} />
+        </View>
+      ) : tab === 'noOffers' ? (
+        <Button label={b.tabAll} variant="outline" size="md" onPress={() => switchTab('all')} />
+      ) : hasFilters ? (
+        <Button label={b.boardClearFilters} variant="outline" size="md" onPress={clearFilters} />
+      ) : null}
     </View>
   )
 
@@ -438,7 +465,10 @@ export default function RequestsTab() {
     <SafeAreaView style={[styles.safe, { direction: isRtl ? 'rtl' : 'ltr' }]} edges={['top']}>
       <View style={styles.header}>
         {topBar}
-        <Text style={[styles.sub, dirStyle]} numberOfLines={2}>{b.boardSubtitle}</Text>
+        <Text style={[styles.hero, dirStyle]}>
+          {b.deskTitleA}<Text style={styles.heroHi}>{b.deskTitleHi}</Text>{b.deskTitleB}
+        </Text>
+        <Text style={[styles.sub, dirStyle]} numberOfLines={3}>{b.deskSub}</Text>
       </View>
 
       <CategoryBar
@@ -474,6 +504,7 @@ export default function RequestsTab() {
           requestId={sheet.id}
           userType={userType}
           modelText={sheet.modelText}
+          categoryName={sheet.categoryName}
           budgetMin={sheet.budgetMin}
           budgetMax={sheet.budgetMax}
           initialPick={sheet.pick}
@@ -515,6 +546,8 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  hero: { fontFamily: fonts.extraBold, fontSize: 19, lineHeight: 30, color: colors.white, marginTop: spacing.xs },
+  heroHi: { color: colors.y },
   sub: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 20, color: 'rgba(255,255,255,0.7)' },
   pressed: { opacity: 0.88 },
   content: {
@@ -586,6 +619,26 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   tabBadgeOn: { backgroundColor: colors.y },
   tabBadgeText: { fontFamily: fonts.extraBold, fontSize: 11, lineHeight: 17, color: colors.muted },
   tabBadgeTextOn: { color: colors.dk },
+  // Folder tabs: the active tab joins the board below it.
+  folderRow: { flexDirection: 'row', gap: 6, borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: -spacing.xs },
+  folderTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+    borderTopLeftRadius: radius.md,
+    borderTopRightRadius: radius.md,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: 'transparent',
+    marginBottom: -1,
+  },
+  folderTabOn: { backgroundColor: colors.card, borderColor: colors.border, borderTopWidth: 3, borderTopColor: colors.y },
+  folderText: { flexShrink: 1, fontFamily: fonts.bold, fontSize: 12, lineHeight: 18, color: colors.muted, textAlign: 'center' },
+  folderTextOn: { color: colors.heading },
   filterRow: { flexDirection: 'row', alignItems: 'stretch', gap: 10 },
   filterCell: { flex: 1 },
 
@@ -610,6 +663,27 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     padding: 12,
   },
   noticeText: { flex: 1, fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 20, color: colors.heading },
+  emptyBox: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
+  },
+  emptyIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.placeholder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: { fontFamily: fonts.extraBold, fontSize: 15, lineHeight: 24, color: colors.heading, textAlign: 'center' },
+  emptyActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.xs },
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxl, gap: spacing.md },
   footer: { gap: spacing.sm, alignItems: 'stretch', marginTop: spacing.xs },
   err: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.red, textAlign: 'center' },

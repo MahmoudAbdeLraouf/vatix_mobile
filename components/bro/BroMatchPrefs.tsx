@@ -11,29 +11,62 @@ import { useTheme } from '@/contexts/theme'
 
 const MAX_PICKS = 20
 
-/** Interests line above the 🎯 tab, or a setup card when nothing is known yet. */
-export function MatchPrefsStrip({ prefs, categories, brands, onEdit }: {
+/** Setup card when nothing is known yet, otherwise the interests bar + "تمام؟" hint above the 🎯 tab. */
+export function MatchPrefsStrip({ prefs, categories, brands, total, onEdit, onSkip, onSaved }: {
   prefs: MatchPrefs
   categories: Category[]
   brands: Brand[]
+  /** Open requests on the board, shown on the setup card. */
+  total?: number
   onEdit: () => void
+  onSkip: () => void
+  onSaved: (prefs: MatchPrefs) => void
 }) {
   const { locale, t } = useLocale()
   const b = t.bro
   const { dirStyle, rowDir, colDir } = useBroDir()
   const styles = useStyles()
+  const [saving, setSaving] = useState(false)
+  const [saveFailed, setSaveFailed] = useState(false)
 
   if (prefs.categoryIds.length === 0 && prefs.brandIds.length === 0) {
     return (
-      <View style={[styles.setup, rowDir]}>
-        <Text style={styles.setupEmoji}>🎯</Text>
-        <View style={[styles.setupText, colDir]}>
-          <Text style={[styles.setupTitle, dirStyle]}>{b.interestsSetupTitle}</Text>
-          <Text style={[styles.setupBody, dirStyle]}>{b.interestsSetupBody}</Text>
+      <View style={styles.setup}>
+        <View style={[styles.setupHead, rowDir]}>
+          <Text style={styles.setupEmoji}>🎯</Text>
+          <View style={[styles.setupText, colDir]}>
+            <Text style={[styles.setupTitle, dirStyle]}>{b.setupTitle}</Text>
+            <Text style={[styles.setupBody, dirStyle]}>{b.setupBody}</Text>
+          </View>
         </View>
-        <BroButton label={b.interestsSetupCta} variant="yellow" onPress={onEdit} />
+        <View style={styles.setupPanel}>
+          {total != null && (
+            <>
+              <Text style={styles.setupCount}>{total.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')}</Text>
+              <Text style={styles.setupCountLabel}>{b.setupOpenCount}</Text>
+            </>
+          )}
+          <View style={styles.setupCta}>
+            <BroButton label={b.interestsSetupCta} variant="yellow" size="md" onPress={onEdit} />
+          </View>
+          <Pressable onPress={onSkip} hitSlop={8} accessibilityRole="button">
+            <Text style={styles.setupSkip}>{b.setupSkip}</Text>
+          </Pressable>
+        </View>
       </View>
     )
+  }
+
+  async function confirm() {
+    setSaving(true)
+    setSaveFailed(false)
+    try {
+      onSaved(await saveMatchPrefs({ categoryIds: prefs.categoryIds, brandIds: prefs.brandIds }))
+    } catch {
+      setSaveFailed(true)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const catName = new Map(categories.map(c => [c.id, localeName(c.translations, locale)]))
@@ -46,15 +79,36 @@ export function MatchPrefsStrip({ prefs, categories, brands, onEdit }: {
   ]
 
   return (
-    <View style={[styles.strip, rowDir]}>
-      <Text style={[styles.stripLabel, dirStyle]}>{b.interestsLabel}</Text>
-      {chips.map((c, i) => (
-        <Text key={`${c}-${i}`} style={styles.stripChip}>{c}</Text>
-      ))}
-      {!prefs.isManual && <Text style={styles.stripInferred}>{b.interestsInferred}</Text>}
-      <Pressable onPress={onEdit} hitSlop={8} accessibilityRole="button">
-        <Text style={styles.stripEdit}>{b.interestsEdit}</Text>
-      </Pressable>
+    <View style={styles.bar}>
+      <View style={[styles.strip, rowDir]}>
+        <Text style={[styles.stripLabel, dirStyle]}>{b.mbarLabel}</Text>
+        {chips.map((c, i) => (
+          <View key={`${c}-${i}`} style={[styles.onPill, rowDir]}>
+            <Text style={styles.onPillTick}>✓</Text>
+            <Text style={styles.onPillText}>{c}</Text>
+          </View>
+        ))}
+        <Pressable onPress={onEdit} hitSlop={6} accessibilityRole="button" style={styles.editBtn}>
+          <Text style={styles.editText}>{b.interestsEdit}</Text>
+        </Pressable>
+      </View>
+      {!prefs.isManual && (
+        <View style={[styles.hint, rowDir]}>
+          <Text style={[styles.hintText, dirStyle]}>
+            🎯 <Text style={styles.hintBold}>{b.interestsHintBold}</Text> {b.interestsHintAsk}
+          </Text>
+          <View style={[styles.hintLinks, rowDir]}>
+            <Pressable onPress={confirm} disabled={saving} hitSlop={6} accessibilityRole="button">
+              <Text style={[styles.link, saving && styles.linkBusy]}>{b.interestsConfirmYes}</Text>
+            </Pressable>
+            <Text style={styles.hintText}>·</Text>
+            <Pressable onPress={onEdit} disabled={saving} hitSlop={6} accessibilityRole="button">
+              <Text style={styles.link}>{b.interestsConfirmEdit}</Text>
+            </Pressable>
+          </View>
+          {saveFailed && <Text style={styles.error} accessibilityRole="alert">{b.prefsSaveFailed}</Text>}
+        </View>
+      )}
     </View>
   )
 }
@@ -213,35 +267,60 @@ function PrefsBody({ prefs, categories, brands, onClose, onSaved }: {
 
 const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   setup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: dark ? 'rgba(245,184,0,0.12)' : colors.yl,
-    borderWidth: 1,
-    borderColor: dark ? 'rgba(245,184,0,0.35)' : '#fde68a',
-  },
-  setupEmoji: { fontSize: 28 },
-  setupText: { flex: 1, minWidth: 0 },
-  setupTitle: { fontFamily: fonts.black, fontSize: 15, color: colors.heading },
-  setupBody: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.muted, marginTop: 2 },
-  strip: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  stripLabel: { fontFamily: fonts.extraBold, fontSize: 13, color: colors.muted },
-  stripChip: {
-    fontFamily: fonts.bold,
-    fontSize: 12.5,
-    color: colors.heading,
-    paddingVertical: 3,
-    paddingHorizontal: 10,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
     backgroundColor: colors.card,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.y,
     overflow: 'hidden',
   },
-  stripInferred: { fontFamily: fonts.bold, fontSize: 12, color: colors.subtle },
-  stripEdit: { fontFamily: fonts.extraBold, fontSize: 13, color: colors.yd, textDecorationLine: 'underline' },
+  setupHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 18 },
+  setupEmoji: { fontSize: 32, lineHeight: 38 },
+  setupText: { flex: 1, minWidth: 0 },
+  setupTitle: { fontFamily: fonts.black, fontSize: 18, lineHeight: 26, color: colors.heading },
+  setupBody: { fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 21, color: colors.muted, marginTop: 4 },
+  setupPanel: {
+    alignItems: 'center',
+    gap: 4,
+    padding: 18,
+    backgroundColor: dark ? 'rgba(245,184,0,0.12)' : colors.yl,
+    borderTopWidth: 1,
+    borderTopColor: dark ? 'rgba(245,184,0,0.35)' : '#f6d77a',
+  },
+  setupCount: { fontFamily: fonts.black, fontSize: 40, lineHeight: 50, color: colors.heading },
+  setupCountLabel: { fontFamily: fonts.extraBold, fontSize: 13, color: dark ? colors.yellowText : '#8a5a00' },
+  setupCta: { alignSelf: 'stretch', marginTop: 8 },
+  setupSkip: { fontFamily: fonts.extraBold, fontSize: 12.5, color: colors.muted, marginTop: 6 },
+  bar: { gap: 10 },
+  strip: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  stripLabel: { fontFamily: fonts.black, fontSize: 13.5, color: colors.heading },
+  onPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: radius.full,
+    backgroundColor: colors.dk,
+    borderWidth: 1.5,
+    borderColor: dark ? colors.dk3 : colors.dk,
+  },
+  onPillTick: { fontFamily: fonts.black, fontSize: 13, color: colors.y },
+  onPillText: { fontFamily: fonts.extraBold, fontSize: 13, color: colors.white },
+  editBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: dark ? colors.border : '#c7d4f8',
+    backgroundColor: colors.card,
+  },
+  editText: { fontFamily: fonts.black, fontSize: 13, color: dark ? '#8fb0ff' : '#2952cc' },
+  hint: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 4 },
+  hintText: { fontFamily: fonts.bold, fontSize: 13.5, color: colors.text },
+  hintBold: { fontFamily: fonts.black, color: colors.heading },
+  hintLinks: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  link: { fontFamily: fonts.black, fontSize: 13.5, color: dark ? '#8fb0ff' : '#2952cc' },
+  linkBusy: { opacity: 0.5 },
   backdrop: { flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.card,

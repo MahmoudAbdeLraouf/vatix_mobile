@@ -17,9 +17,7 @@ const MAX_PHOTOS = 5
 const MAX_PRICE = 10_000_000
 const PRICE_RE = /^\d+(\.\d{1,2})?$/
 const SCRATCHES: BroScratches[] = ['none', 'minor', 'repaired']
-const FIT_COLOR = { in: '#16a34a', near: '#ca8a04', over: '#ea580c' } as const
-
-/** Green zone = the buyer's budget, dot = the seller's price. */
+/** Green zone = the buyer's budget, knob = the seller's price. */
 function BudgetBar({ price, min, max }: { price: number; min: number | null; max: number }) {
   const { locale, t } = useLocale()
   const styles = useStyles()
@@ -40,13 +38,13 @@ function BudgetBar({ price, min, max }: { price: number; min: number | null; max
       <View style={styles.budgetTrack}>
         <View style={[styles.budgetZone, start(lo), { width: `${pct(max) - pct(lo)}%` }]} />
         {fit ? (
-          <View style={[styles.budgetDot, start(price), ar ? { marginRight: -7 } : { marginLeft: -7 }, { backgroundColor: FIT_COLOR[fit] }]} />
+          <View style={[styles.budgetKnob, start(price), ar ? { marginRight: -10 } : { marginLeft: -10 }]} />
         ) : null}
       </View>
       <View style={[styles.budgetLabels, rowDir]}>
         <Text style={[styles.budgetBuyer, dirStyle]}>{b.budgetBarBuyer}: {amount} {b.budgetCurrency}</Text>
         {fit ? (
-          <Text style={[styles.budgetFit, { color: FIT_COLOR[fit] }]}>
+          <Text style={styles.budgetBuyer}>
             {fit === 'in' ? b.fitIn : fit === 'near' ? b.fitNear : b.fitOver}
           </Text>
         ) : null}
@@ -68,6 +66,7 @@ export function BroOfferForm({
   onUploadingChange,
   submitLabel,
   budget,
+  notice,
 }: {
   initial: OfferContent
   productImages: string[]
@@ -79,6 +78,8 @@ export function BroOfferForm({
   submitLabel?: { idle: string; busy: string }
   /** The buyer's budget: shows where the typed price lands against it. */
   budget?: { min: number | null; max: number | null }
+  /** Blue info box above the fields (e.g. "prefilled from the request"). */
+  notice?: string
 }) {
   const { t, locale } = useLocale()
   const { colors } = useTheme()
@@ -136,6 +137,9 @@ export function BroOfferForm({
   const priceNum = Number(price)
   const priceOk = PRICE_RE.test(price.trim()) && priceNum > 0 && priceNum <= MAX_PRICE
   const locked = busy || uploading
+  const hasBudget = budget?.max != null && budget.max > 0
+  const fit = budgetFitOf(priceOk ? priceNum : 0, budget?.max)
+  const full = images.length >= MAX_PHOTOS
 
   async function addPhotos() {
     const remaining = MAX_PHOTOS - images.length
@@ -208,6 +212,8 @@ export function BroOfferForm({
 
   return (
     <View style={styles.wrap}>
+      {notice ? <Text style={[styles.notice, dirStyle]}>{notice}</Text> : null}
+
       <View style={styles.field}>
         <Text style={[styles.label, dirStyle]}>{b.offerTitleLabel}</Text>
         <TextInput
@@ -222,21 +228,28 @@ export function BroOfferForm({
         {showErrors && !titleOk ? <Text style={[styles.err, dirStyle]}>{b.errOfferTitle}</Text> : null}
       </View>
 
-      <View style={styles.field}>
-        <Text style={[styles.label, dirStyle]}>{b.offerPriceLabel}</Text>
-        <TextInput
-          value={price}
-          onChangeText={v => setPrice(v.replace(/[^\d.]/g, ''))}
-          keyboardType="decimal-pad"
-          placeholder="0"
-          placeholderTextColor={colors.subtle}
-          editable={!locked}
-          style={[styles.input, inputDir, showErrors && !priceOk && styles.inputError]}
-        />
+      <View style={styles.priceBox}>
+        <View style={[styles.priceRow, rowDir]}>
+          <Text style={[styles.priceLabel, dirStyle]}>{hasBudget ? b.priceYourOffer : b.offerPriceLabel}</Text>
+          <View style={[styles.priceRight, rowDir]}>
+            {fit ? (
+              <Text style={[styles.fitTag, { color: fit === 'over' ? FIT_OVER : FIT_IN }]}>
+                {fit === 'over' ? b.overBudgetTag : b.inBudgetTag}
+              </Text>
+            ) : null}
+            <TextInput
+              value={price}
+              onChangeText={v => setPrice(v.replace(/[^\d.]/g, ''))}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor={colors.subtle}
+              editable={!locked}
+              style={[styles.priceInput, inputDir, showErrors && !priceOk && styles.inputError]}
+            />
+          </View>
+        </View>
         {showErrors && !priceOk ? <Text style={[styles.err, dirStyle]}>{b.errOfferPrice}</Text> : null}
-        {budget?.max != null && budget.max > 0 ? (
-          <BudgetBar price={priceOk ? priceNum : 0} min={budget.min} max={budget.max} />
-        ) : null}
+        {hasBudget ? <BudgetBar price={priceOk ? priceNum : 0} min={budget!.min} max={budget!.max!} /> : null}
       </View>
 
       <View style={styles.field}>
@@ -315,7 +328,7 @@ export function BroOfferForm({
                   accessibilityLabel={b.removePhoto}
                   disabled={locked}
                   onPress={() => setImages(prev => prev.filter(u => u !== url))}
-                  style={styles.thumbRemove}
+                  style={[styles.thumbRemove, ar ? { left: -6 } : { right: -6 }]}
                   hitSlop={6}
                 >
                   <Ionicons name="close" size={12} color={colors.white} />
@@ -323,121 +336,245 @@ export function BroOfferForm({
               </View>
             )
           })}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={b.addPhotos}
+            disabled={locked || full}
+            onPress={addPhotos}
+            style={[styles.addTile, uploading && styles.addTileBusy, full && styles.addTileFull]}
+          >
+            <Text style={uploading ? styles.addTileBusyText : styles.addTilePlus}>{uploading ? b.uploadingPhotos : '+'}</Text>
+          </Pressable>
         </View>
-        <BroButton
-          label={uploading ? b.uploadingPhotos : `+ ${b.addPhotos}`}
-          icon="images-outline"
-          disabled={locked || images.length >= MAX_PHOTOS}
-          onPress={addPhotos}
-        />
         {uploadError ? <Text style={[styles.err, dirStyle]}>{b.photosUploadFailed}</Text> : null}
       </View>
 
-      {showSave ? (
-        <CheckRow label={b.saveOffer} checked={save} disabled={locked} onToggle={() => setSave(v => !v)} />
-      ) : null}
-      {showSaveProduct ? (
-        <CheckRow label={b.saveAsProduct} checked={saveProduct} disabled={locked} onToggle={() => setSaveProduct(v => !v)} />
+      {showSave || showSaveProduct ? (
+        <View style={styles.after}>
+          <Text style={[styles.afterLabel, dirStyle]}>{b.afterSend}</Text>
+          {showSaveProduct ? (
+            <ToggleRow highlight title={b.saveAsProductTitle} sub={b.saveAsProductSub} on={saveProduct} disabled={locked} onToggle={() => setSaveProduct(v => !v)} />
+          ) : null}
+          {showSave ? (
+            <ToggleRow title={b.saveOfferTitle} sub={b.saveOfferSub} on={save} disabled={locked} onToggle={() => setSave(v => !v)} />
+          ) : null}
+        </View>
       ) : null}
 
-      {error ? <Text style={[styles.err, styles.submitErr, dirStyle]}>{error}</Text> : null}
-
-      <BroButton
-        variant="yellow"
-        size="md"
-        fullWidth
-        disabled={locked}
-        label={busy ? (submitLabel?.busy ?? b.offerSubmitting) : (submitLabel?.idle ?? b.offerSubmit)}
-        onPress={submit}
-      />
+      <View style={styles.submitBox}>
+        {error ? <Text style={[styles.err, styles.submitErr, dirStyle]}>{error}</Text> : null}
+        <BroButton
+          variant="yellow"
+          size="md"
+          fullWidth
+          disabled={locked}
+          label={busy ? (submitLabel?.busy ?? b.offerSubmitting) : (submitLabel?.idle ?? b.offerSubmit)}
+          onPress={submit}
+        />
+      </View>
     </View>
   )
 }
 
-function CheckRow({
-  label,
-  checked,
+function ToggleRow({
+  title,
+  sub,
+  on,
+  highlight,
   disabled,
   onToggle,
 }: {
-  label: string
-  checked: boolean
+  title: string
+  sub: string
+  on: boolean
+  highlight?: boolean
   disabled?: boolean
   onToggle: () => void
 }) {
-  const { ar, rowDir } = useBroDir()
-  const { colors } = useTheme()
+  const { ar, dirStyle, rowDir } = useBroDir()
   const styles = useStyles()
   return (
     <Pressable
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked, disabled: !!disabled }}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: on, disabled: !!disabled }}
+      accessibilityLabel={title}
       disabled={disabled}
       onPress={onToggle}
-      style={[styles.checkRow, rowDir]}
+      style={[styles.toggleRow, highlight && styles.toggleRowHi, rowDir]}
     >
-      <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={22} color={checked ? colors.heading : colors.subtle} />
-      <Text style={[styles.checkLabel, { writingDirection: ar ? 'rtl' : 'ltr', textAlign: ar ? 'right' : 'left' }]}>{label}</Text>
+      <View style={styles.toggleText}>
+        <Text style={[styles.toggleTitle, dirStyle]}>{title}</Text>
+        <Text style={[styles.toggleSub, dirStyle]}>{sub}</Text>
+      </View>
+      {/* Track pinned to ltr; "on" sits at the reading end. */}
+      <View style={[styles.switch, on && styles.switchOn]}>
+        <View style={[styles.switchKnob, on === ar ? { left: 3 } : { left: 19 }]} />
+      </View>
     </Pressable>
   )
 }
 
-const makeStyles = (colors: ThemeColors) => StyleSheet.create({
-  wrap: { gap: spacing.md },
-  field: { gap: 6 },
-  label: { fontFamily: fonts.bold, fontSize: 13, color: colors.text },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    color: colors.heading,
-    backgroundColor: colors.inputBg,
-  },
-  inputError: { borderColor: colors.red },
-  textarea: { minHeight: 80, textAlignVertical: 'top' },
-  err: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.red },
-  submitErr: { fontSize: 13 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  photos: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  thumb: { width: 64, height: 64, borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.placeholder },
-  thumbImg: { width: '100%', height: '100%' },
-  thumbRemove: {
-    position: 'absolute',
-    top: 3,
-    end: 3,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 2 },
-  checkLabel: { fontFamily: fonts.semiBold, fontSize: 14, color: colors.heading, flexShrink: 1 },
-  budget: { marginTop: spacing.sm, gap: 6 },
-  budgetTrack: { direction: 'ltr', position: 'relative', height: 8, borderRadius: radius.full, backgroundColor: colors.border },
-  budgetZone: { position: 'absolute', top: 0, bottom: 0, borderRadius: radius.full, backgroundColor: colors === darkColors ? 'rgba(22,163,74,0.35)' : '#bbf7d0' },
-  budgetDot: { position: 'absolute', top: -3, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#fff' },
-  budgetLabels: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  budgetBuyer: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.muted, flexShrink: 1 },
-  budgetFit: { fontFamily: fonts.bold, fontSize: 11.5 },
-  budgetWarn: {
-    fontFamily: fonts.bold,
-    fontSize: 12,
-    color: colors === darkColors ? '#fb923c' : '#c2410c',
-    backgroundColor: colors === darkColors ? colors.orangeBg : '#fff7ed',
-    borderWidth: 1,
-    borderColor: colors === darkColors ? 'rgba(249,115,22,0.35)' : '#fed7aa',
-    borderRadius: radius.sm,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    overflow: 'hidden',
-  },
-})
+const FIT_IN = '#0b7a52'
+const FIT_OVER = '#b45309'
+
+const makeStyles = (colors: ThemeColors) => {
+  const dark = colors === darkColors
+  return StyleSheet.create({
+    wrap: { gap: 12 },
+    field: { gap: 6 },
+    label: { fontFamily: fonts.black, fontSize: 12, color: colors.muted },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontFamily: fonts.regular,
+      fontSize: 14,
+      color: colors.heading,
+      backgroundColor: colors.inputBg,
+    },
+    inputError: { borderColor: colors.red },
+    textarea: { minHeight: 72, textAlignVertical: 'top' },
+    err: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.red },
+    submitErr: { fontSize: 13 },
+    notice: {
+      fontFamily: fonts.bold,
+      fontSize: 12.5,
+      color: dark ? '#9db8ff' : '#2952cc',
+      backgroundColor: dark ? colors.blueBg : '#f5f8ff',
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      overflow: 'hidden',
+    },
+    priceBox: { backgroundColor: colors.placeholder, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, gap: 6 },
+    priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
+    priceLabel: { fontFamily: fonts.black, fontSize: 13, color: dark ? colors.text : colors.g700, flexShrink: 1 },
+    priceRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    fitTag: { fontFamily: fonts.black, fontSize: 12 },
+    priceInput: {
+      width: 150,
+      backgroundColor: colors.inputBg,
+      borderWidth: 1.5,
+      borderColor: dark ? colors.border : colors.g300,
+      borderRadius: 10,
+      paddingVertical: 5,
+      paddingHorizontal: 12,
+      fontFamily: fonts.black,
+      fontSize: 17,
+      color: colors.heading,
+    },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    photos: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingTop: 6, direction: 'ltr' },
+    thumb: { width: 56, height: 56 },
+    thumbImg: {
+      width: 56,
+      height: 56,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.placeholder,
+    },
+    thumbRemove: {
+      position: 'absolute',
+      top: -6,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: dark ? colors.dk3 : colors.dk,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addTile: {
+      minWidth: 56,
+      height: 56,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderStyle: 'dashed',
+      borderColor: dark ? colors.border : colors.g300,
+      backgroundColor: colors.placeholder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addTileBusy: { paddingHorizontal: 8 },
+    addTileFull: { opacity: 0.5 },
+    addTilePlus: { fontFamily: fonts.extraBold, fontSize: 22, color: colors.muted, lineHeight: 28 },
+    addTileBusyText: { fontFamily: fonts.extraBold, fontSize: 11, color: colors.muted },
+    after: {
+      borderTopWidth: 1,
+      borderStyle: 'dashed',
+      borderTopColor: dark ? colors.border : colors.g300,
+      paddingTop: 12,
+      gap: 10,
+    },
+    afterLabel: { fontFamily: fonts.black, fontSize: 12, color: colors.muted },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderRadius: 14,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: 'transparent',
+      backgroundColor: colors.placeholder,
+    },
+    toggleRowHi: {
+      backgroundColor: dark ? colors.blueBg : '#f5f8ff',
+      borderColor: dark ? 'rgba(59,130,246,0.35)' : '#d5e0fb',
+    },
+    toggleText: { flex: 1, gap: 2 },
+    toggleTitle: { fontFamily: fonts.black, fontSize: 13.5, color: colors.heading },
+    toggleSub: { fontFamily: fonts.bold, fontSize: 12, color: colors.muted },
+    switch: {
+      direction: 'ltr',
+      width: 40,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: dark ? colors.border : colors.g300,
+    },
+    switchOn: { backgroundColor: colors.green },
+    switchKnob: { position: 'absolute', top: 3, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.white },
+    submitBox: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 2, paddingTop: 12, gap: 8 },
+    budget: { gap: 4 },
+    budgetTrack: {
+      direction: 'ltr',
+      position: 'relative',
+      height: 10,
+      borderRadius: 9,
+      marginTop: 12,
+      marginBottom: 4,
+      backgroundColor: dark ? colors.border : colors.g200,
+    },
+    budgetZone: { position: 'absolute', top: 0, bottom: 0, borderRadius: 9, backgroundColor: dark ? 'rgba(18,184,134,0.45)' : '#9de2c4' },
+    budgetKnob: {
+      position: 'absolute',
+      top: -5,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 3,
+      borderColor: colors.white,
+      backgroundColor: dark ? colors.y : colors.dk,
+    },
+    budgetLabels: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
+    budgetBuyer: { fontFamily: fonts.extraBold, fontSize: 11, color: colors.subtle, flexShrink: 1 },
+    budgetWarn: {
+      marginTop: 6,
+      fontFamily: fonts.bold,
+      fontSize: 12,
+      color: dark ? '#fb923c' : '#b45309',
+      backgroundColor: dark ? colors.orangeBg : '#fff7ed',
+      borderWidth: 1,
+      borderColor: dark ? 'rgba(249,115,22,0.35)' : '#fed7aa',
+      borderRadius: 10,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      overflow: 'hidden',
+    },
+  })
+}
 
 const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }
 function useStyles() {
