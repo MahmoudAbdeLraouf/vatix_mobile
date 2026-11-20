@@ -7,10 +7,14 @@ import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { useLoginGate } from '@/contexts/loginGate'
 import { getBrands, getCategories, getLocations, localeName, type Brand, type Category, type LocationNode } from '@/lib/api'
-import { getBroBoard, getBroUsage, type BroBoardItem, type BroUsage, type CreateBroOfferResult } from '@/lib/bro'
+import {
+  getBroBoard, getBroUsage, getMatchPrefs,
+  type BroBoardCounts, type BroBoardItem, type BroUsage, type CreateBroOfferResult, type MatchPrefs,
+} from '@/lib/bro'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { BroAvatar } from '@/components/bro/BroAvatar'
-import { BroBoardCard } from '@/components/bro/BroBoardCard'
+import { BroBoardCard, type BroOfferPick } from '@/components/bro/BroBoardCard'
+import { MatchPrefsModal, MatchPrefsStrip } from '@/components/bro/BroMatchPrefs'
 import { BroOfferSheet } from '@/components/bro/BroOfferSheet'
 import { BroUsageMeter } from '@/components/bro/BroUsageMeter'
 import { CategoryBar } from '@/components/CategoryBar'
@@ -21,6 +25,19 @@ import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/th
 import { useTheme } from '@/contexts/theme'
 
 type Sort = 'newest' | 'budget'
+type BoardTab = 'noOffers' | 'mine' | 'all'
+
+interface SheetState { id: number; modelText?: string; budgetMin: number | null; budgetMax: number | null; pick?: BroOfferPick }
+
+function sheetFor(item: BroBoardItem, pick?: BroOfferPick): SheetState {
+  return {
+    id: item.id,
+    modelText: item.modelText,
+    budgetMin: item.budgetMin != null ? Number(item.budgetMin) : null,
+    budgetMax: item.budgetMax != null ? Number(item.budgetMax) : null,
+    pick,
+  }
+}
 
 /** Route param -> filter value: only positive integers pass, anything else means "no filter". */
 function positiveIntParam(raw: string | string[] | undefined): string {
@@ -51,6 +68,10 @@ export default function RequestsTab() {
   const [brandId, setBrandId] = useState(() => positiveIntParam(brandParam))
   const [locationId, setLocationId] = useState('')
   const [sort, setSort] = useState<Sort>('newest')
+  const [tab, setTab] = useState<BoardTab>('all')
+  const [counts, setCounts] = useState<BroBoardCounts | null>(null)
+  const [prefs, setPrefs] = useState<MatchPrefs | null>(null)
+  const [prefsOpen, setPrefsOpen] = useState(false)
 
   const [items, setItems] = useState<BroBoardItem[]>([])
   const [total, setTotal] = useState(0)
@@ -61,7 +82,7 @@ export default function RequestsTab() {
   const [failed, setFailed] = useState(false)
   const [boardGone, setBoardGone] = useState(false)
   const [usage, setUsage] = useState<BroUsage | null>(null)
-  const [sheet, setSheet] = useState<{ id: number; modelText?: string } | null>(null)
+  const [sheet, setSheet] = useState<SheetState | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const reqSeq = useRef(0)
   // Home's "Client Requests" strip deep-links here with ?offer=<id> to open the sheet.
@@ -72,7 +93,7 @@ export default function RequestsTab() {
     const id = Number(offerParam)
     router.setParams({ offer: undefined, model: undefined })
     if (!id || !userType) return
-    setSheet({ id, modelText: modelParam || undefined })
+    setSheet({ id, modelText: modelParam || undefined, budgetMin: null, budgetMax: null })
   }, [offerParam, modelParam, authLoading, userType])
 
   useEffect(() => {
@@ -98,9 +119,12 @@ export default function RequestsTab() {
       locationId: locationId ? Number(locationId) : undefined,
       page: nextPage,
       sort,
+      match: tab === 'mine' ? 'mine' : undefined,
+      noOffers: tab === 'noOffers' || undefined,
     }).then(res => {
       if (seq !== reqSeq.current) return
       setItems(prev => (append ? [...prev, ...res.items] : res.items))
+      if (res.counts) setCounts(res.counts)
       setTotal(res.total)
       setPage(res.page)
       setFailed(false)
@@ -116,7 +140,7 @@ export default function RequestsTab() {
         setRefreshing(false)
       }
     })
-  }, [categoryId, brandId, locationId, sort])
+  }, [categoryId, brandId, locationId, sort, tab])
 
   // Drop the previous result set before a (re)load of page 1, so a failure there shows the
   // error + retry branch instead of stale cards from the old filter.
@@ -144,6 +168,27 @@ export default function RequestsTab() {
     if (!broEnabled || authLoading) return
     loadUsage()
   }, [broEnabled, authLoading, loadUsage])
+
+  // Interests behind the 🎯 tab (saved picks, or inferred from the viewer's listings).
+  useEffect(() => {
+    if (!broEnabled || authLoading || !userType) return
+    let alive = true
+    getMatchPrefs().then(p => { if (alive && p) setPrefs(p) })
+    return () => { alive = false }
+  }, [broEnabled, authLoading, userType])
+
+  function switchTab(next: BoardTab) {
+    if (next === tab) return
+    resetBoard()
+    setTab(next)
+  }
+
+  function onPrefsSaved(next: MatchPrefs) {
+    setPrefs(next)
+    setPrefsOpen(false)
+    resetBoard()
+    void loadPage(1, false)
+  }
 
   // The tab stays mounted, so a later deep link (digest push) must re-apply its filters.
   // Consume the params once applied so a repeat link with the same ids still lands.
@@ -193,14 +238,19 @@ export default function RequestsTab() {
     return tpl.replace('{n}', String(n))
   }
 
-  function makeOffer(item: BroBoardItem) {
+  function makeOffer(item: BroBoardItem, pick?: BroOfferPick) {
     setNotice(null)
     if (!requireLogin()) return
     if (!userType) return // admin sessions cannot post offers
-    setSheet({ id: item.id, modelText: item.modelText })
+    setSheet(sheetFor(item, pick))
   }
 
   function onSent(offer: CreateBroOfferResult) {
+    setCounts(c => c && {
+      ...c,
+      noOffers: items.some(i => i.id === offer.requestId && i.offerCount === 0) ? Math.max(0, c.noOffers - 1) : c.noOffers,
+      mine: tab === 'mine' ? Math.max(0, c.mine - 1) : c.mine,
+    })
     setItems(prev => prev.map(i => i.id === offer.requestId
       ? { ...i, offerCount: i.offerCount + 1, myOffer: { id: offer.id, status: offer.status } }
       : i))
@@ -305,6 +355,32 @@ export default function RequestsTab() {
       {/* Offer quota sits with the board it applies to, away from the Ask-Geeko banner. */}
       {userType === 'client' && usage ? <BroUsageMeter usage={usage} style={styles.meter} upgrade /> : null}
 
+      {userType ? (
+        <View style={styles.sortRow}>
+          {([
+            ['noOffers', b.tabNoOffers, counts?.noOffers],
+            ['mine', b.tabMatch, counts?.mine],
+            ['all', b.tabAll, counts?.all],
+          ] as const).map(([key, label, n]) => {
+            const on = tab === key
+            return (
+              <Pressable key={key} onPress={() => switchTab(key)} style={[styles.sortBtn, on && styles.sortBtnOn]}>
+                <Text style={[styles.sortText, on && styles.sortTextOn]} numberOfLines={1}>{label}</Text>
+                {n != null ? (
+                  <View style={[styles.tabBadge, on && styles.tabBadgeOn]}>
+                    <Text style={[styles.tabBadgeText, on && styles.tabBadgeTextOn]}>{n}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            )
+          })}
+        </View>
+      ) : null}
+
+      {tab === 'mine' && prefs ? (
+        <MatchPrefsStrip prefs={prefs} categories={categories} brands={brands} onEdit={() => setPrefsOpen(true)} />
+      ) : null}
+
       {!loading && !failed ? (
         <View style={styles.resultsRow}>
           <Text style={[styles.count, dirStyle]}>{countLabel(total)}</Text>
@@ -337,7 +413,9 @@ export default function RequestsTab() {
   ) : (
     <View style={styles.center}>
       <Ionicons name="search-outline" size={40} color={colors.subtle} />
-      <Text style={[styles.cardBody, dirStyle]}>{b.boardEmpty}</Text>
+      <Text style={[styles.cardBody, dirStyle]}>
+        {tab === 'mine' ? b.matchEmpty : tab === 'noOffers' ? b.noOffersEmpty : b.boardEmpty}
+      </Text>
     </View>
   )
 
@@ -379,7 +457,7 @@ export default function RequestsTab() {
         <FlatList
           data={items}
           keyExtractor={i => String(i.id)}
-          renderItem={({ item }) => <BroBoardCard item={item} onMakeOffer={() => makeOffer(item)} />}
+          renderItem={({ item }) => <BroBoardCard item={item} onMakeOffer={makeOffer} />}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={empty}
           ListFooterComponent={footer}
@@ -396,8 +474,21 @@ export default function RequestsTab() {
           requestId={sheet.id}
           userType={userType}
           modelText={sheet.modelText}
+          budgetMin={sheet.budgetMin}
+          budgetMax={sheet.budgetMax}
+          initialPick={sheet.pick}
           onClose={() => setSheet(null)}
           onSent={onSent}
+        />
+      ) : null}
+      {prefs ? (
+        <MatchPrefsModal
+          visible={prefsOpen}
+          prefs={prefs}
+          categories={categories}
+          brands={brands}
+          onClose={() => setPrefsOpen(false)}
+          onSaved={onPrefsSaved}
         />
       ) : null}
     </SafeAreaView>
@@ -491,6 +582,10 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   sortBtnOn: { backgroundColor: colors.fab },
   sortText: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 18, color: colors.muted },
   sortTextOn: { color: colors.white },
+  tabBadge: { minWidth: 20, paddingHorizontal: 6, borderRadius: radius.full, backgroundColor: colors.border, alignItems: 'center' },
+  tabBadgeOn: { backgroundColor: colors.y },
+  tabBadgeText: { fontFamily: fonts.extraBold, fontSize: 11, lineHeight: 17, color: colors.muted },
+  tabBadgeTextOn: { color: colors.dk },
   filterRow: { flexDirection: 'row', alignItems: 'stretch', gap: 10 },
   filterCell: { flex: 1 },
 
