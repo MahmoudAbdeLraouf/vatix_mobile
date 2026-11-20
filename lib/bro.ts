@@ -4,6 +4,7 @@
 import { apiFetch, type VerificationCheck } from '@/lib/api'
 import {
   authDelete,
+  authDeleteJson,
   authFetch,
   authPatch,
   authPost,
@@ -220,6 +221,76 @@ export interface BroBoardItem {
   boardExpiresAt: string
   isMine: boolean
   myOffer: { id: number; status: BroOfferStatus } | null
+  /** Why this request fits the signed-in seller (null for guests / no fit). */
+  matchReason?: BoardMatchReason | null
+  /** The seller's own listing or saved offer that best fits this request. */
+  matched?: BroBoardMatched | null
+}
+
+export type BudgetFit = 'in' | 'near' | 'over'
+export type OptionReason = 'model' | 'brand' | 'category' | 'other'
+
+/** Mirrors the backend: within max, within max + 10%, or over. */
+export function budgetFitOf(price: number, budgetMax: number | null | undefined): BudgetFit | null {
+  if (budgetMax == null || !(budgetMax > 0) || !(price > 0)) return null
+  if (price <= budgetMax) return 'in'
+  return price <= budgetMax * 1.1 ? 'near' : 'over'
+}
+
+export type BoardMatchReason = 'product' | 'saved' | 'category' | 'brand'
+
+export interface BroBoardMatched {
+  kind: 'product' | 'saved'
+  id: number
+  title: string
+  price: number
+  image: string | null
+  budgetFit: BudgetFit | null
+}
+
+/** The seller's 🎯 interests. `isManual` false means inferred from activity. */
+export interface MatchPrefs {
+  categoryIds: number[]
+  brandIds: number[]
+  isManual: boolean
+  sources: { products: number; offers: number; saved: number }
+}
+
+export interface OfferOptionProduct {
+  id: number
+  title: string
+  price: number
+  image: string | null
+  reason: OptionReason
+  budgetFit: BudgetFit | null
+}
+
+export interface OfferOptionSaved extends OfferOptionProduct {
+  available: boolean
+  linkedSold: boolean
+}
+
+/** Ranked listings + saved offers for one request, with the best pick first. */
+export interface OfferOptions {
+  suggested: { source: 'product' | 'saved' | 'scratch'; productId?: number; savedOfferId?: number }
+  products: OfferOptionProduct[]
+  saved: OfferOptionSaved[]
+  productTotal: number
+}
+
+export interface BroBoardCounts {
+  all: number
+  noOffers: number
+  mine: number
+}
+
+export interface BroBoardPage {
+  items: BroBoardItem[]
+  total: number
+  page: number
+  limit: number
+  /** Tab counts; signed-in viewers only. */
+  counts?: BroBoardCounts
 }
 
 /** True only for a live offer. A withdrawn offer does not block sending a new one. */
@@ -260,6 +331,9 @@ export interface BroBoardQuery {
   locationId?: number | null
   page?: number
   sort?: 'newest' | 'budget'
+  /** `mine`: only requests that fit the viewer's 🎯 interests. */
+  match?: 'mine'
+  noOffers?: boolean
 }
 
 /** Error thrown by offer calls; carries the HTTP status and parsed body (e.g. cap details). */
@@ -404,24 +478,55 @@ async function broRaw<T>(path: string, method: string, body?: unknown): Promise<
 }
 
 /** Public board; signed-in callers also get `isMine` / `myOffer`. A 404 means Bro is off. */
-export async function getBroBoard(
-  q: BroBoardQuery = {},
-): Promise<{ items: BroBoardItem[]; total: number; page: number; limit: number }> {
+export async function getBroBoard(q: BroBoardQuery = {}): Promise<BroBoardPage> {
   const params = new URLSearchParams()
   if (q.categoryId != null) params.set('categoryId', String(q.categoryId))
   if (q.brandId != null) params.set('brandId', String(q.brandId))
   if (q.locationId != null) params.set('locationId', String(q.locationId))
   if (q.page != null) params.set('page', String(q.page))
   if (q.sort && q.sort !== 'newest') params.set('sort', q.sort)
+  if (q.match) params.set('match', q.match)
+  if (q.noOffers) params.set('noOffers', 'true')
   const qs = params.toString()
   const path = `/bro/board${qs ? `?${qs}` : ''}`
-  type Page = { items: BroBoardItem[]; total: number; page: number; limit: number }
   if (await isLoggedIn()) {
-    const res = await authFetch<Page>(path)
+    const res = await authFetch<BroBoardPage>(path)
     if (!res) throw new Error('تعذّر تحميل الطلبات')
     return res
   }
-  return apiFetch<Page>(path)
+  return apiFetch<BroBoardPage>(path)
+}
+
+/** `null` means the call failed. */
+export async function getMatchPrefs(): Promise<MatchPrefs | null> {
+  try {
+    return await authFetch<MatchPrefs>('/bro/me/match-prefs')
+  } catch {
+    return null
+  }
+}
+
+/** Throws a `BroApiError` on failure. */
+export function saveMatchPrefs(body: { categoryIds: number[]; brandIds: number[] }): Promise<MatchPrefs> {
+  return broRaw<MatchPrefs>('/bro/me/match-prefs', 'PUT', body)
+}
+
+/** Drops the manual prefs; returns the inferred ones. `null` means the call failed. */
+export async function resetMatchPrefs(): Promise<MatchPrefs | null> {
+  try {
+    return await authDeleteJson<MatchPrefs>('/bro/me/match-prefs')
+  } catch {
+    return null
+  }
+}
+
+/** `null` means the call failed. */
+export async function getOfferOptions(requestId: number): Promise<OfferOptions | null> {
+  try {
+    return await authFetch<OfferOptions>(`/bro/board/${requestId}/offer-options`)
+  } catch {
+    return null
+  }
 }
 
 /** `null` means not found or the call failed. */

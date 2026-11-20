@@ -1105,6 +1105,45 @@ export interface Translations {
     sheetTitle: string
     sheetFor: string
     sheetClose: string
+    tabNoOffers: string
+    tabMatch: string
+    tabAll: string
+    interestsLabel: string
+    interestsEdit: string
+    interestsInferred: string
+    interestsFromActivity: string
+    interestsAllBrands: string
+    interestsSetupTitle: string
+    interestsSetupBody: string
+    interestsSetupCta: string
+    prefsTitle: string
+    prefsCategories: string
+    prefsBrands: string
+    prefsBrandsHint: string
+    prefsMax: string
+    prefsSave: string
+    prefsSaving: string
+    prefsReset: string
+    prefsSaveFailed: string
+    prefsNeedCategory: string
+    prefsCancel: string
+    matchEmpty: string
+    noOffersEmpty: string
+    chipHaveProduct: string
+    chipHaveSaved: string
+    chipCategory: string
+    chipBrand: string
+    sendIt: string
+    bestPick: string
+    reasonModel: string
+    reasonBrand: string
+    reasonCategory: string
+    fitIn: string
+    fitNear: string
+    fitOver: string
+    budgetBarBuyer: string
+    budgetBarYou: string
+    overBudgetWarn: string
     sheetLoadFailed: string
     sheetNotFound: string
     offerOpenFailed: string
@@ -1113,6 +1152,7 @@ export interface Translations {
     noSavedOffers: string
     useThis: string
     savedUnavailableHint: string
+    linkedSold: string
     backToList: string
     viewOffers: string
     seeAll: string
@@ -1985,7 +2025,7 @@ export const translations: Record<Locale, Translations> = {
       getStarted: 'ابدأ الآن',
       slide1: {
         title: 'أهلاً بك في ڤاتيكس',
-        desc: 'سوق الإلكترونيات الأول في مصر — تصفّح أحدث المنتجات من متاجر موثوقة قريبة منك.',
+        desc: 'سوق الإلكترونيات الأول في مصر — تصفّح أحدث المنتجات من متاجر موثوقة في كل المحافظات.',
       },
       slide2: {
         title: 'انشر إعلانك في دقائق',
@@ -2367,7 +2407,7 @@ export const translations: Record<Locale, Translations> = {
       intakeFooter: '🔒 جيكو بيعرّف نفسه للبيّاعين إنه مساعد فاتكس بيسأل لمشتري حقيقي، ومبيشاركش رقمك ولا اسمك غير لما تكلّم البيّاع بنفسك.',
       errModelRequired: 'اكتب اسم الموديل', errAreaRequired: 'اختار المنطقة', errBudgetRange: 'أقل ميزانية لازم تكون أقل من أعلى ميزانية',
       intakeLoadFailed: 'مقدرناش نحمّل الأقسام والمناطق، جرّب تاني', errCategoryRequired: 'اختار القسم', areaPlaceholder: 'اختار المنطقة',
-      intakeHeroTitle: 'أنا جيكو، هدوّرلك أنا 👋', intakeHint: 'قولّي على الجهاز اللي عايزه، وأنا أسأل البيّاعين القريبين منك وأرجعلك بالمتاح بس.',
+      intakeHeroTitle: 'أنا جيكو، هدوّرلك أنا 👋', intakeHint: 'قولّي على الجهاز اللي عايزه، وأنا أسأل كل البيّاعين وأرجعلك بالمتاح بس.',
       sectionDevice: 'الجهاز', sectionWhere: 'المنطقة والميزانية', categoryPlaceholder: 'اختار القسم', brandPlaceholder: 'أي ماركة',
       // Request page
       askingProgress: 'بسأل {asked} بيّاعين… {available} أكّدوا',
@@ -2496,6 +2536,45 @@ export const translations: Record<Locale, Translations> = {
       sheetTitle: 'قدّم عرضك',
       sheetFor: 'على طلب: {model}',
       sheetClose: 'إغلاق',
+      tabNoOffers: '⚡ لسه محدش قدّم',
+      tabMatch: '🎯 مناسب لك',
+      tabAll: 'كل الطلبات',
+      interestsLabel: 'اهتماماتك:',
+      interestsEdit: '⚙️ عدّل اهتماماتك',
+      interestsInferred: 'اخترناها من نشاطك. تمام؟',
+      interestsFromActivity: 'من نشاطك',
+      interestsAllBrands: 'كل الماركات',
+      interestsSetupTitle: 'قولّنا بتبيع إيه',
+      interestsSetupBody: 'اختار الأقسام والماركات اللي بتبيعها، ونجمعلك هنا الطلبات اللي تناسبك.',
+      interestsSetupCta: 'اختار اهتماماتك',
+      prefsTitle: 'اهتماماتك',
+      prefsCategories: 'الأقسام',
+      prefsBrands: 'الماركات',
+      prefsBrandsHint: 'سيب الماركات فاضية لو بتبيع كل الماركات في الأقسام دي.',
+      prefsMax: 'لحد {n}',
+      prefsSave: 'احفظ',
+      prefsSaving: 'بحفظ…',
+      prefsReset: 'رجّعها من نشاطي',
+      prefsSaveFailed: 'مقدرناش نحفظ اهتماماتك، جرّب تاني',
+      prefsNeedCategory: 'اختار قسم واحد على الأقل أو ماركة.',
+      prefsCancel: 'إلغاء',
+      matchEmpty: 'مفيش طلبات تناسب اهتماماتك دلوقتي. وسّع اهتماماتك أو شوف كل الطلبات.',
+      noOffersEmpty: 'كل الطلبات المفتوحة عليها عروض دلوقتي.',
+      chipHaveProduct: 'عندك المنتج ده',
+      chipHaveSaved: 'عندك عرض جاهز',
+      chipCategory: 'من فئتك',
+      chipBrand: 'من ماركاتك',
+      sendIt: 'ابعته',
+      bestPick: '⭐ الأنسب',
+      reasonModel: 'نفس الموديل',
+      reasonBrand: 'نفس الماركة',
+      reasonCategory: 'نفس القسم',
+      fitIn: 'جوه ميزانية المشتري',
+      fitNear: 'قريب من الميزانية',
+      fitOver: 'أعلى من الميزانية',
+      budgetBarBuyer: 'ميزانية المشتري',
+      budgetBarYou: 'سعرك',
+      overBudgetWarn: 'سعرك أعلى من ميزانية المشتري ({max} ج.م). ده بيقلل فرصتك.',
       sheetLoadFailed: 'مقدرناش نحمّل البيانات، جرّب تاني',
       sheetNotFound: 'الطلب ده مش متاح للعروض دلوقتي',
       offerOpenFailed: 'معرفناش نفتح الطلب ده. جرّب تاني',
@@ -2504,6 +2583,7 @@ export const translations: Record<Locale, Translations> = {
       noSavedOffers: 'مفيش عروض محفوظة لسه. احفظ عرض من تبويب «عرض جديد».',
       useThis: 'استخدم ده',
       savedUnavailableHint: 'الإعلان المرتبط بالعرض ده مبقاش متاح',
+      linkedSold: 'الإعلان المرتبط اتباع',
       backToList: 'رجوع للقائمة',
       viewOffers: 'العروض ({n})',
       seeAll: 'عرض الكل',
@@ -3385,7 +3465,7 @@ export const translations: Record<Locale, Translations> = {
       getStarted: 'Get Started',
       slide1: {
         title: 'Welcome to Vatix',
-        desc: "Egypt's leading electronics marketplace — browse the latest products from trusted stores near you.",
+        desc: "Egypt's leading electronics marketplace — browse the latest products from trusted stores across the country.",
       },
       slide2: {
         title: 'Post your ad in minutes',
@@ -3767,7 +3847,7 @@ export const translations: Record<Locale, Translations> = {
       intakeFooter: '🔒 Geeko tells sellers he is a Vatix assistant asking for a real buyer, and never shares your number or name until you contact the seller yourself.',
       errModelRequired: 'Enter the model name', errAreaRequired: 'Choose an area', errBudgetRange: 'Minimum budget must be lower than maximum budget',
       intakeLoadFailed: 'We could not load the categories and areas, try again', errCategoryRequired: 'Choose a category', areaPlaceholder: 'Choose an area',
-      intakeHeroTitle: "I'm Geeko, I'll do the hunting 👋", intakeHint: "Tell me the device you want. I'll ask nearby sellers and come back with only what's available.",
+      intakeHeroTitle: "I'm Geeko, I'll do the hunting 👋", intakeHint: "Tell me the device you want. I'll ask all sellers and come back with only what's available.",
       sectionDevice: 'The device', sectionWhere: 'Area & budget', categoryPlaceholder: 'Choose a category', brandPlaceholder: 'Any brand',
       // Request page
       askingProgress: 'Asking {asked} sellers… {available} confirmed',
@@ -3896,6 +3976,45 @@ export const translations: Record<Locale, Translations> = {
       sheetTitle: 'Make your offer',
       sheetFor: 'For request: {model}',
       sheetClose: 'Close',
+      tabNoOffers: '⚡ No offers yet',
+      tabMatch: '🎯 For you',
+      tabAll: 'All requests',
+      interestsLabel: 'Your interests:',
+      interestsEdit: '⚙️ Edit interests',
+      interestsInferred: 'We picked these from your activity. Look right?',
+      interestsFromActivity: 'from your activity',
+      interestsAllBrands: 'All brands',
+      interestsSetupTitle: 'Tell us what you sell',
+      interestsSetupBody: 'Pick the categories and brands you sell, and we will gather the requests that fit you here.',
+      interestsSetupCta: 'Pick your interests',
+      prefsTitle: 'Your interests',
+      prefsCategories: 'Categories',
+      prefsBrands: 'Brands',
+      prefsBrandsHint: 'Leave brands empty if you sell every brand in these categories.',
+      prefsMax: 'up to {n}',
+      prefsSave: 'Save',
+      prefsSaving: 'Saving…',
+      prefsReset: 'Reset from my activity',
+      prefsSaveFailed: "We couldn't save your interests, please try again",
+      prefsNeedCategory: 'Pick at least one category or brand.',
+      prefsCancel: 'Cancel',
+      matchEmpty: 'No requests match your interests right now. Widen your interests or browse all requests.',
+      noOffersEmpty: 'Every open request already has offers.',
+      chipHaveProduct: 'You have this product',
+      chipHaveSaved: 'You have a ready offer',
+      chipCategory: 'In your category',
+      chipBrand: 'Your brand',
+      sendIt: 'Send it',
+      bestPick: '⭐ Best match',
+      reasonModel: 'Same model',
+      reasonBrand: 'Same brand',
+      reasonCategory: 'Same category',
+      fitIn: "Within the buyer's budget",
+      fitNear: 'Close to the budget',
+      fitOver: 'Above the budget',
+      budgetBarBuyer: "Buyer's budget",
+      budgetBarYou: 'Your price',
+      overBudgetWarn: "Your price is above the buyer's budget ({max} EGP). That lowers your chances.",
       sheetLoadFailed: 'We couldn\'t load the data, please try again',
       sheetNotFound: 'This request is no longer open for offers',
       offerOpenFailed: 'We couldn\'t open this request. Please try again',
@@ -3904,6 +4023,7 @@ export const translations: Record<Locale, Translations> = {
       noSavedOffers: 'No saved offers yet. Save one from the "New offer" tab.',
       useThis: 'Use this',
       savedUnavailableHint: 'The listing linked to this offer is no longer available',
+      linkedSold: 'The linked listing was sold',
       backToList: 'Back to list',
       viewOffers: 'Offers ({n})',
       seeAll: 'See all',

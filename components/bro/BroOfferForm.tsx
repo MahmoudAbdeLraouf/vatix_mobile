@@ -6,7 +6,7 @@ import { darkColors, fonts, lightColors, radius, spacing, type ThemeColors } fro
 import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { getLocations, imgUrl, localeName, type LocationNode } from '@/lib/api'
-import { uploadBroOfferImages, type BroScratches, type OfferContent } from '@/lib/bro'
+import { budgetFitOf, uploadBroOfferImages, type BroScratches, type OfferContent } from '@/lib/bro'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { BroButton } from './BroButton'
 import { useBroDir } from './BroCardParts'
@@ -17,6 +17,46 @@ const MAX_PHOTOS = 5
 const MAX_PRICE = 10_000_000
 const PRICE_RE = /^\d+(\.\d{1,2})?$/
 const SCRATCHES: BroScratches[] = ['none', 'minor', 'repaired']
+const FIT_COLOR = { in: '#16a34a', near: '#ca8a04', over: '#ea580c' } as const
+
+/** Green zone = the buyer's budget, dot = the seller's price. */
+function BudgetBar({ price, min, max }: { price: number; min: number | null; max: number }) {
+  const { locale, t } = useLocale()
+  const styles = useStyles()
+  const b = t.bro
+  const { ar, dirStyle, rowDir } = useBroDir()
+  const nf = (n: number) => n.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')
+  const fit = budgetFitOf(price, max)
+  const scale = Math.max(max * 1.4, price * 1.05)
+  const pct = (n: number) => Math.min(100, Math.max(0, (n / scale) * 100))
+  const lo = min != null && min < max ? min : 0
+  // The track is pinned to ltr, so the start edge is picked by hand.
+  const start = (n: number) => (ar ? { right: `${pct(n)}%` as const } : { left: `${pct(n)}%` as const })
+  const amount = min != null && min < max
+    ? b.budgetAmtRange.replace('{min}', nf(min)).replace('{max}', nf(max))
+    : b.budgetAmtUpTo.replace('{max}', nf(max))
+  return (
+    <View style={styles.budget}>
+      <View style={styles.budgetTrack}>
+        <View style={[styles.budgetZone, start(lo), { width: `${pct(max) - pct(lo)}%` }]} />
+        {fit ? (
+          <View style={[styles.budgetDot, start(price), ar ? { marginRight: -7 } : { marginLeft: -7 }, { backgroundColor: FIT_COLOR[fit] }]} />
+        ) : null}
+      </View>
+      <View style={[styles.budgetLabels, rowDir]}>
+        <Text style={[styles.budgetBuyer, dirStyle]}>{b.budgetBarBuyer}: {amount} {b.budgetCurrency}</Text>
+        {fit ? (
+          <Text style={[styles.budgetFit, { color: FIT_COLOR[fit] }]}>
+            {fit === 'in' ? b.fitIn : fit === 'near' ? b.fitNear : b.fitOver}
+          </Text>
+        ) : null}
+      </View>
+      {fit === 'over' ? (
+        <Text style={[styles.budgetWarn, dirStyle]}>{b.overBudgetWarn.replace('{max}', nf(max))}</Text>
+      ) : null}
+    </View>
+  )
+}
 
 export function BroOfferForm({
   initial,
@@ -27,6 +67,7 @@ export function BroOfferForm({
   error,
   onUploadingChange,
   submitLabel,
+  budget,
 }: {
   initial: OfferContent
   productImages: string[]
@@ -36,6 +77,8 @@ export function BroOfferForm({
   error?: string | null
   onUploadingChange?: (uploading: boolean) => void
   submitLabel?: { idle: string; busy: string }
+  /** The buyer's budget: shows where the typed price lands against it. */
+  budget?: { min: number | null; max: number | null }
 }) {
   const { t, locale } = useLocale()
   const { colors } = useTheme()
@@ -191,6 +234,9 @@ export function BroOfferForm({
           style={[styles.input, inputDir, showErrors && !priceOk && styles.inputError]}
         />
         {showErrors && !priceOk ? <Text style={[styles.err, dirStyle]}>{b.errOfferPrice}</Text> : null}
+        {budget?.max != null && budget.max > 0 ? (
+          <BudgetBar price={priceOk ? priceNum : 0} min={budget.min} max={budget.max} />
+        ) : null}
       </View>
 
       <View style={styles.field}>
@@ -372,6 +418,25 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 2 },
   checkLabel: { fontFamily: fonts.semiBold, fontSize: 14, color: colors.heading, flexShrink: 1 },
+  budget: { marginTop: spacing.sm, gap: 6 },
+  budgetTrack: { direction: 'ltr', position: 'relative', height: 8, borderRadius: radius.full, backgroundColor: colors.border },
+  budgetZone: { position: 'absolute', top: 0, bottom: 0, borderRadius: radius.full, backgroundColor: colors === darkColors ? 'rgba(22,163,74,0.35)' : '#bbf7d0' },
+  budgetDot: { position: 'absolute', top: -3, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#fff' },
+  budgetLabels: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
+  budgetBuyer: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.muted, flexShrink: 1 },
+  budgetFit: { fontFamily: fonts.bold, fontSize: 11.5 },
+  budgetWarn: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: colors === darkColors ? '#fb923c' : '#c2410c',
+    backgroundColor: colors === darkColors ? colors.orangeBg : '#fff7ed',
+    borderWidth: 1,
+    borderColor: colors === darkColors ? 'rgba(249,115,22,0.35)' : '#fed7aa',
+    borderRadius: radius.sm,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    overflow: 'hidden',
+  },
 })
 
 const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }

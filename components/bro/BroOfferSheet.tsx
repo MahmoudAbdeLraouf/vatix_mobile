@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -20,14 +20,19 @@ import { useLocale } from '@/contexts/locale'
 import { imgUrl, type Product } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
 import {
+  budgetFitOf,
   createBroOffer,
   getBroUsage,
+  getOfferOptions,
   listSavedBroOffers,
   type BroApiError,
   type BroSavedOffer,
   type BroUsage,
+  type BudgetFit,
   type CreateBroOfferResult,
   type OfferContent,
+  type OfferOptions,
+  type OptionReason,
 } from '@/lib/bro'
 import { BroOfferForm } from '@/components/bro/BroOfferForm'
 import { BroUsageMeter } from '@/components/bro/BroUsageMeter'
@@ -35,6 +40,7 @@ import { BroButton } from '@/components/bro/BroButton'
 import { useBroDir } from '@/components/bro/BroCardParts'
 import { UpgradeModal } from '@/components/UpgradeModal'
 import { BroOfferCapPicks } from '@/components/bro/BroOfferCapPicks'
+import type { BroOfferPick } from '@/components/bro/BroBoardCard'
 
 type Tab = 'products' | 'scratch' | 'saved'
 
@@ -50,12 +56,68 @@ type Picked =
   | { kind: 'product'; key: string; initial: OfferContent; images: string[] }
   | { kind: 'saved'; key: string; initial: OfferContent; savedOfferId: number }
 
+function productPick(p: MyProduct): Picked {
+  return {
+    kind: 'product',
+    key: `p${p.id}`,
+    initial: {
+      title: p.title,
+      price: Number(p.price),
+      locationId: p.location?.id ?? null,
+      productId: p.id,
+      // Prefill the note with the product description (form + DTO cap it at 280).
+      sellerNote: p.description?.trim().slice(0, 280) || null,
+    },
+    images: [...p.images].sort((a, c) => (a.sortOrder ?? 0) - (c.sortOrder ?? 0)).map(i => i.url),
+  }
+}
+
+function savedPick(s: BroSavedOffer): Picked {
+  return {
+    kind: 'saved',
+    key: `s${s.id}`,
+    savedOfferId: s.id,
+    initial: {
+      title: s.title,
+      price: Number(s.price),
+      locationId: s.locationId,
+      scratches: s.scratches,
+      hasBox: s.hasBox,
+      hasInvoice: s.hasInvoice,
+      hasWarranty: s.hasWarranty,
+      warrantyNote: s.warrantyNote,
+      sellerNote: s.sellerNote,
+      images: s.images,
+      productId: s.productId,
+    },
+  }
+}
+
+/** Why a row fits this request, shown under its price. */
+interface Hint { reason: OptionReason | null; fit: BudgetFit | null; linkedSold?: boolean }
+
+/** Server ranking first; anything it didn't rank keeps its original order at the end. */
+function rankBy<T extends { id: number }>(list: T[], ranked: { id: number }[] | undefined): T[] {
+  if (!ranked?.length) return list
+  const pos = new Map(ranked.map((r, i) => [r.id, i]))
+  return list
+    .map((item, i) => ({ item, i }))
+    .sort((a, c) => (pos.get(a.item.id) ?? ranked.length + a.i) - (pos.get(c.item.id) ?? ranked.length + c.i))
+    .map(x => x.item)
+}
+
+const FIT_COLOR: Record<BudgetFit, string> = { in: '#16a34a', near: '#ca8a04', over: '#ea580c' }
+
 interface Props {
   visible: boolean
   requestId: number
   userType: 'client' | 'store'
   /** Shown in the header ("for request: <model>") when known. */
   modelText?: string
+  budgetMin?: number | null
+  budgetMax?: number | null
+  /** Open straight into this listing / saved offer (the board card's "matched" shortcut). */
+  initialPick?: BroOfferPick
   onClose: () => void
   onSent: (offer: CreateBroOfferResult) => void
 }
@@ -82,14 +144,18 @@ function Notice({ text, onRetry, retryLabel, busy }: { text?: string; onRetry?: 
   )
 }
 
-function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
+function SheetBody({ requestId, userType, modelText, budgetMin = null, budgetMax = null, initialPick, onClose, onSent }: Props) {
   const { locale, t } = useLocale()
   const b = t.bro
   const { dirStyle, rowDir, colDir } = useBroDir()
   const styles = useStyles()
   const insets = useSafeAreaInsets()
 
-  const [tab, setTab] = useState<Tab>('products')
+  // null until the user picks a tab; until then the server's suggestion (or what has content) decides.
+  const [userTab, setUserTab] = useState<Tab | null>(null)
+  const [options, setOptions] = useState<OfferOptions | null>(null)
+  const [optionsDone, setOptionsDone] = useState(false)
+  const pendingPick = useRef(initialPick)
   const [usage, setUsage] = useState<BroUsage | null>(null)
   const [usageFailed, setUsageFailed] = useState(false)
   const [products, setProducts] = useState<MyProduct[] | null>(null)
@@ -129,24 +195,65 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
       .catch(() => null)
       .then(list => {
         if (!alive) return
-        if (list) { setProducts(list.filter(isAvailable)); setProductsFailed(false) } else setProductsFailed(true)
+        if (!list) { setProductsFailed(true); return }
+        const live = list.filter(isAvailable)
+        setProducts(live)
+        setProductsFailed(false)
+        if (pendingPick.current?.kind === 'product') {
+          const want = pendingPick.current.id
+          pendingPick.current = undefined
+          const hit = live.find(p => p.id === want)
+          if (hit) { setPicked(productPick(hit)); setUserTab('products') }
+        }
       })
     return () => { alive = false }
   }, [productsNonce])
 
-  // Saved offers load lazily, the first time the tab is opened.
-  const savedWanted = tab === 'saved'
+  // Saved offers load up front too: the default tab depends on whether any exist.
   useEffect(() => {
-    if (!savedWanted) return
     let alive = true
     listSavedBroOffers()
       .catch(() => null)
       .then(list => {
         if (!alive) return
-        if (list) { setSaved(list); setSavedFailed(false) } else setSavedFailed(true)
+        if (!list) { setSavedFailed(true); return }
+        setSaved(list)
+        setSavedFailed(false)
+        if (pendingPick.current?.kind === 'saved') {
+          const want = pendingPick.current.id
+          pendingPick.current = undefined
+          const hit = list.find(s => s.id === want && s.available)
+          if (hit) { setPicked(savedPick(hit)); setUserTab('saved') }
+        }
       })
     return () => { alive = false }
-  }, [savedWanted, savedNonce])
+  }, [savedNonce])
+
+  useEffect(() => {
+    let alive = true
+    getOfferOptions(requestId)
+      .catch(() => null)
+      .then(o => {
+        if (!alive) return
+        setOptions(o)
+        setOptionsDone(true)
+      })
+    return () => { alive = false }
+  }, [requestId])
+
+  const suggestedTab: Tab | null =
+    options?.suggested.source === 'product' ? 'products'
+      : options?.suggested.source === 'saved' ? 'saved'
+        : options ? 'scratch' : null
+  const fallbackTab: Tab | null =
+    productsFailed || (products && products.length > 0) ? 'products'
+      : products === null ? null
+        : savedFailed || saved?.some(s => s.available) ? 'saved'
+          : saved === null ? null : 'scratch'
+  const tab: Tab | null = userTab ?? (optionsDone ? suggestedTab ?? fallbackTab : null)
+  // Hide a tab only once it is known to be empty.
+  const showProductsTab = !(products && products.length === 0)
+  const showSavedTab = !(saved && saved.length === 0)
 
   const loadUsage = useCallback(() => setUsageNonce(n => n + 1), [])
 
@@ -172,48 +279,14 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
   }
 
   function switchTab(next: Tab) {
-    setTab(next)
+    setUserTab(next)
     setPicked(null)
     setError(null)
   }
 
-  function pickProduct(p: MyProduct) {
+  function pick(p: Picked) {
     setError(null)
-    setPicked({
-      kind: 'product',
-      key: `p${p.id}`,
-      initial: {
-        title: p.title,
-        price: Number(p.price),
-        locationId: p.location?.id ?? null,
-        productId: p.id,
-        // Prefill the note with the product description (form + DTO cap it at 280).
-        sellerNote: p.description?.trim().slice(0, 280) || null,
-      },
-      images: [...p.images].sort((a, c) => (a.sortOrder ?? 0) - (c.sortOrder ?? 0)).map(i => i.url),
-    })
-  }
-
-  function pickSaved(s: BroSavedOffer) {
-    setError(null)
-    setPicked({
-      kind: 'saved',
-      key: `s${s.id}`,
-      savedOfferId: s.id,
-      initial: {
-        title: s.title,
-        price: Number(s.price),
-        locationId: s.locationId,
-        scratches: s.scratches,
-        hasBox: s.hasBox,
-        hasInvoice: s.hasInvoice,
-        hasWarranty: s.hasWarranty,
-        warrantyNote: s.warrantyNote,
-        sellerNote: s.sellerNote,
-        images: s.images,
-        productId: s.productId,
-      },
-    })
+    setPicked(p)
   }
 
   async function submit(content: OfferContent, saveAsTemplate: boolean, saveAsProduct: boolean) {
@@ -221,9 +294,9 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
     setSubmitting(true)
     try {
       const body =
-        tab === 'saved' && picked?.kind === 'saved'
+        picked?.kind === 'saved'
           ? { ...content, source: 'saved' as const, savedOfferId: picked.savedOfferId, saveAsProduct }
-          : tab === 'products'
+          : picked?.kind === 'product'
             ? { ...content, source: 'product' as const }
             : { ...content, source: 'scratch' as const, saveAsTemplate, saveAsProduct }
       const offer = await createBroOffer(requestId, body)
@@ -255,19 +328,52 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
     }
   }
 
-  function renderRow(key: number, title: string, priceValue: number | string, img: string | null, onUse: () => void, opts?: { disabled?: boolean; hint?: string }) {
+  function reasonLabel(r: OptionReason | null): string | null {
+    if (r === 'model') return b.reasonModel
+    if (r === 'brand') return b.reasonBrand
+    if (r === 'category') return b.reasonCategory
+    return null
+  }
+
+  function fitLabel(f: BudgetFit): string {
+    return f === 'in' ? b.fitIn : f === 'near' ? b.fitNear : b.fitOver
+  }
+
+  function optionRow(o: {
+    key: number
+    title: string
+    priceValue: number | string
+    img: string | null
+    hint: Hint
+    best: boolean
+    disabled?: boolean
+    note?: string
+    onPick: () => void
+  }) {
+    const reason = reasonLabel(o.hint.reason)
+    const dim = o.disabled || (!o.best && o.hint.reason === 'other')
     return (
-      <View key={key} style={[styles.row, rowDir, opts?.disabled && styles.rowDim]}>
-        {img ? <Image source={{ uri: img }} style={styles.thumb} /> : <View style={styles.thumb} />}
+      <View key={o.key} style={[styles.row, rowDir, o.best && styles.rowBest, dim && styles.rowDim]}>
+        {o.best ? <Text style={[styles.bestLabel, dirStyle]}>{b.bestPick}</Text> : null}
+        {o.img ? <Image source={{ uri: o.img }} style={styles.thumb} /> : <View style={styles.thumb} />}
         <View style={[styles.rowText, colDir]}>
-          <Text style={[styles.rowTitle, dirStyle]} numberOfLines={1}>{title}</Text>
-          <Text style={[styles.rowPrice, dirStyle]}>{price(priceValue)}</Text>
-          {opts?.hint ? <Text style={[styles.rowHint, dirStyle]}>{opts.hint}</Text> : null}
+          <Text style={[styles.rowTitle, dirStyle]} numberOfLines={1}>{o.title}</Text>
+          <Text style={[styles.rowPrice, dirStyle]}>{price(o.priceValue)}</Text>
+          {reason || o.hint.fit ? (
+            <View style={[styles.rowMeta, rowDir]}>
+              {reason ? <Text style={styles.rowReason}>{reason}</Text> : null}
+              {o.hint.fit ? <Text style={[styles.rowFit, { color: FIT_COLOR[o.hint.fit] }]}>{fitLabel(o.hint.fit)}</Text> : null}
+            </View>
+          ) : null}
+          {o.hint.linkedSold ? <Text style={[styles.rowSold, dirStyle]}>{b.linkedSold}</Text> : null}
+          {o.note ? <Text style={[styles.rowHint, dirStyle]}>{o.note}</Text> : null}
         </View>
-        <BroButton label={b.useThis} variant="yellow" disabled={opts?.disabled} onPress={onUse} />
+        <BroButton label={b.useThis} variant="yellow" disabled={o.disabled} onPress={o.onPick} />
       </View>
     )
   }
+
+  const budget = { min: budgetMin, max: budgetMax }
 
   function renderBody() {
     if (picked) {
@@ -282,6 +388,7 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
             productImages={picked.kind === 'product' ? picked.images : []}
             showSave={false}
             showSaveProduct={picked.kind === 'saved' && picked.initial.productId == null}
+            budget={budget}
             onSubmit={submit}
             onUploadingChange={setUploading}
             error={error}
@@ -290,14 +397,17 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
       )
     }
 
+    if (tab === null) return <Notice busy />
+
     if (tab === 'scratch') {
       return (
         <BroOfferForm
           key="scratch"
-          initial={{ title: '', price: 0 }}
+          initial={{ title: modelText ?? '', price: 0 }}
           productImages={[]}
           showSave
           showSaveProduct
+          budget={budget}
           onSubmit={submit}
           onUploadingChange={setUploading}
           error={error}
@@ -309,10 +419,25 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
       if (productsFailed) return <Notice text={b.sheetLoadFailed} retryLabel={b.retry} onRetry={() => { setProductsFailed(false); setProducts(null); setProductsNonce(n => n + 1) }} />
       if (products === null) return <Notice busy />
       if (products.length === 0) return <Notice text={b.noProducts} />
+      const meta = new Map(options?.products.map(o => [o.id, o]))
+      const bestId = options?.suggested.source === 'product' ? options.suggested.productId : undefined
+      const ranked = rankBy(products, options?.products)
+      const list = bestId == null ? ranked : [...ranked.filter(p => p.id === bestId), ...ranked.filter(p => p.id !== bestId)]
       return (
         <View style={styles.list}>
           <Text style={[styles.hint, dirStyle]}>{b.pickProduct}</Text>
-          {products.map(p => renderRow(p.id, p.title, p.price, imgUrl(p.images[0]?.url, { w: 160 }), () => pickProduct(p)))}
+          {list.map(p => {
+            const m = meta.get(p.id)
+            return optionRow({
+              key: p.id,
+              title: p.title,
+              priceValue: p.price,
+              img: imgUrl(p.images[0]?.url, { w: 160 }),
+              hint: { reason: m?.reason ?? null, fit: m ? m.budgetFit : budgetFitOf(Number(p.price), budgetMax) },
+              best: p.id === bestId,
+              onPick: () => pick(productPick(p)),
+            })
+          })}
         </View>
       )
     }
@@ -320,14 +445,26 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
     if (savedFailed) return <Notice text={b.sheetLoadFailed} retryLabel={b.retry} onRetry={() => { setSavedFailed(false); setSaved(null); setSavedNonce(n => n + 1) }} />
     if (saved === null) return <Notice busy />
     if (saved.length === 0) return <Notice text={b.noSavedOffers} />
+    const meta = new Map(options?.saved.map(o => [o.id, o]))
+    const bestId = options?.suggested.source === 'saved' ? options.suggested.savedOfferId : undefined
+    const ranked = rankBy(saved, options?.saved)
+    const list = bestId == null ? ranked : [...ranked.filter(s => s.id === bestId), ...ranked.filter(s => s.id !== bestId)]
     return (
       <View style={styles.list}>
-        {saved.map(s =>
-          renderRow(s.id, s.title, s.price, imgUrl(s.images[0], { w: 160 }), () => pickSaved(s), {
+        {list.map(s => {
+          const m = meta.get(s.id)
+          return optionRow({
+            key: s.id,
+            title: s.title,
+            priceValue: s.price,
+            img: imgUrl(s.images[0], { w: 160 }),
+            hint: { reason: m?.reason ?? null, fit: m ? m.budgetFit : budgetFitOf(Number(s.price), budgetMax), linkedSold: m?.linkedSold },
+            best: s.id === bestId && s.available,
             disabled: !s.available,
-            hint: s.available ? undefined : b.savedUnavailableHint,
-          }),
-        )}
+            note: s.available ? undefined : b.savedUnavailableHint,
+            onPick: () => pick(savedPick(s)),
+          })
+        })}
       </View>
     )
   }
@@ -386,10 +523,10 @@ function SheetBody({ requestId, userType, modelText, onClose, onSent }: Props) {
             <>
               <View style={[styles.tabs, rowDir]} accessibilityRole="tablist">
                 {([
-                  ['products', b.tabFromProducts],
+                  ...(showProductsTab ? [['products', b.tabFromProducts]] : []),
                   ['scratch', b.tabScratch],
-                  ['saved', b.tabSaved],
-                ] as const).map(([k, label]) => (
+                  ...(showSavedTab ? [['saved', b.tabSaved]] : []),
+                ] as [Tab, string][]).map(([k, label]) => (
                   <BroButton
                     key={k}
                     label={label}
@@ -445,12 +582,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 10,
   },
+  rowBest: { borderWidth: 2, borderColor: colors.y, backgroundColor: colors.yellowBg, flexWrap: 'wrap' },
+  bestLabel: { width: '100%', fontFamily: fonts.extraBold, fontSize: 12, color: colors.yellowText },
   rowDim: { opacity: 0.7 },
   thumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.placeholder },
   rowText: { flex: 1, minWidth: 0 },
   rowTitle: { fontFamily: fonts.bold, fontSize: 13, color: colors.heading },
   rowPrice: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   rowHint: { fontFamily: fonts.semiBold, fontSize: 11, color: colors.red },
+  rowMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  rowReason: { fontFamily: fonts.bold, fontSize: 11, color: colors.muted },
+  rowFit: { fontFamily: fonts.bold, fontSize: 11 },
+  rowSold: { fontFamily: fonts.bold, fontSize: 11, color: '#c2410c' },
   backRow: { flexDirection: 'row' },
   notice: { alignItems: 'center', gap: 10, paddingVertical: spacing.md },
   noticeText: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted, textAlign: 'center' },

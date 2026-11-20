@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { Image, StyleSheet, Text, View } from 'react-native'
 import { useLocale } from '@/contexts/locale'
-import { hasActiveOffer, type BroBoardItem } from '@/lib/bro'
+import { imgUrl } from '@/lib/api'
+import { hasActiveOffer, type BoardMatchReason, type BroBoardItem, type BudgetFit } from '@/lib/bro'
 import { BroButton } from '@/components/bro/BroButton'
 import { useBroCardFormat, useBroDir } from '@/components/bro/BroCardParts'
 import { colors, darkColors, fonts, lightColors, radius, shadow, type ThemeColors } from '@/constants/theme'
@@ -26,8 +27,23 @@ function categoryIcon(name: string | null) {
 const FRESH_MS = 60 * 60 * 1000
 const GREEN = '#16a34a'
 
-/** One buy request on the offers board. */
-export function BroBoardCard({ item, onMakeOffer }: { item: BroBoardItem; onMakeOffer: () => void }) {
+const CHIP_TONE: Record<BoardMatchReason, { bg: string; fg: string; icon: string } | null> = {
+  product: { bg: '#dcfce7', fg: '#15803d', icon: '✅' },
+  saved: { bg: '#e0edff', fg: '#1d4ed8', icon: '📋' },
+  // category / brand fall back to the neutral pill colours
+  category: null,
+  brand: null,
+}
+
+const FIT_COLOR: Record<BudgetFit, string> = { in: GREEN, near: '#ca8a04', over: '#ea580c' }
+
+export type BroOfferPick = { kind: 'product' | 'saved'; id: number }
+
+/** One buy request on the offers board. `pick` opens the sheet straight on that listing / saved offer. */
+export function BroBoardCard({ item, onMakeOffer }: {
+  item: BroBoardItem
+  onMakeOffer: (item: BroBoardItem, pick?: BroOfferPick) => void
+}) {
   const { t, locale } = useLocale()
   const { dirStyle, rowDir, colDir } = useBroDir()
   const { colors, isDark } = useTheme()
@@ -65,6 +81,15 @@ export function BroBoardCard({ item, onMakeOffer }: { item: BroBoardItem; onMake
   const canOffer = !item.isMine && !hasActiveOffer(item)
   const icon = categoryIcon(item.categoryName)
 
+  const chipText: Record<BoardMatchReason, string> = {
+    product: b.chipHaveProduct, saved: b.chipHaveSaved, category: b.chipCategory, brand: b.chipBrand,
+  }
+  const fitText: Record<BudgetFit, string> = { in: b.fitIn, near: b.fitNear, over: b.fitOver }
+  const chip = canOffer && item.matchReason ? item.matchReason : null
+  const chipTone = chip ? CHIP_TONE[chip] : null
+  const matched = canOffer ? item.matched ?? null : null
+  const matchedImg = matched ? imgUrl(matched.image, { w: 120 }) : null
+
   return (
     <View style={styles.card}>
       <View style={[styles.top, rowDir]}>
@@ -79,6 +104,13 @@ export function BroBoardCard({ item, onMakeOffer }: { item: BroBoardItem; onMake
             <Text style={[styles.meta, dirStyle]} numberOfLines={1}>
               {meta}
             </Text>
+          ) : null}
+          {chip ? (
+            <View style={[styles.chip, chipTone && { backgroundColor: chipTone.bg }]}>
+              <Text style={[styles.chipText, chipTone && { color: chipTone.fg }]}>
+                {chipTone?.icon ?? '🎯'} {chipText[chip]}
+              </Text>
+            </View>
           ) : null}
         </View>
         <View style={[styles.time, rowDir]}>
@@ -110,12 +142,39 @@ export function BroBoardCard({ item, onMakeOffer }: { item: BroBoardItem; onMake
         <Text style={[styles.loc, dirStyle]}>📍 {b.cardInArea.replace('{area}', item.locationName)}</Text>
       ) : null}
 
+      {matched ? (
+        <View style={[styles.matched, rowDir]}>
+          {matchedImg ? (
+            <Image source={{ uri: matchedImg }} style={styles.matchedImg} />
+          ) : (
+            <View style={[styles.matchedImg, { backgroundColor: colors.placeholder }]} />
+          )}
+          <View style={[styles.matchedText, colDir]}>
+            <Text style={[styles.matchedTitle, dirStyle]} numberOfLines={1}>
+              {matched.title}
+            </Text>
+            <Text style={[styles.matchedPrice, dirStyle]} numberOfLines={1}>
+              {b.priceEgp.replace('{price}', nf(Number(matched.price)))}
+              {matched.budgetFit ? (
+                <Text style={{ color: FIT_COLOR[matched.budgetFit] }}> · {fitText[matched.budgetFit]}</Text>
+              ) : null}
+            </Text>
+          </View>
+          <BroButton
+            label={b.sendIt}
+            onPress={() => onMakeOffer(item, { kind: matched.kind, id: matched.id })}
+            variant="yellow"
+            size="sm"
+          />
+        </View>
+      ) : null}
+
       {!item.isMine ? (
         <View style={styles.action}>
           {canOffer ? (
             <BroButton
               label={item.myOffer ? b.makeOfferAgain : b.makeOffer}
-              onPress={onMakeOffer}
+              onPress={() => onMakeOffer(item)}
               variant="yellow"
               size="md"
               fullWidth
@@ -152,6 +211,30 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   tile: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   tileEmoji: { fontSize: 22 },
   headText: { flex: 1, gap: 2 },
+  chip: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    backgroundColor: colors.placeholder,
+    borderRadius: radius.full,
+    paddingHorizontal: 9,
+    paddingVertical: 2,
+  },
+  chipText: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.text },
+  matched: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 8,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: dark ? '#166534' : '#86efac',
+    backgroundColor: dark ? 'rgba(22,163,74,0.12)' : '#f0fdf4',
+  },
+  matchedImg: { width: 40, height: 40, borderRadius: 8 },
+  matchedText: { flex: 1, minWidth: 0 },
+  matchedTitle: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.heading },
+  matchedPrice: { fontFamily: fonts.semiBold, fontSize: 11.5, color: colors.muted },
   title: { fontFamily: fonts.bold, fontSize: 15, color: colors.heading, lineHeight: 22 },
   meta: { fontFamily: fonts.regular, fontSize: 12, color: colors.muted },
   time: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 2 },
