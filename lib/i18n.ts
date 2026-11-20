@@ -1108,6 +1108,7 @@ export interface Translations {
     tabNoOffers: string
     tabMatch: string
     tabAll: string
+    tabAllShort: string
     interestsLabel: string
     interestsEdit: string
     interestsInferred: string
@@ -2578,9 +2579,10 @@ export const translations: Record<Locale, Translations> = {
       sheetTitle: 'قدّم عرضك',
       sheetFor: 'على طلب: {model}',
       sheetClose: 'إغلاق',
-      tabNoOffers: '⚡ لسه محدش قدّم',
-      tabMatch: '🎯 مناسب لك',
+      tabNoOffers: '⚡ كن الأول',
+      tabMatch: '🎯 ليك',
       tabAll: 'كل الطلبات',
+      tabAllShort: 'الكل',
       interestsLabel: 'اهتماماتك:',
       interestsEdit: '⚙️ عدّل اهتماماتك',
       interestsInferred: 'اخترناها من نشاطك. تمام؟',
@@ -2631,9 +2633,9 @@ export const translations: Record<Locale, Translations> = {
       emptyAllTitle: 'مفيش طلبات مفتوحة دلوقتي',
       emptyWiden: 'وسّع اهتماماتك',
       sheetSmall: 'عرضك على طلب',
-      srcProducts: '📦 منتجاتك',
-      srcSaved: '📄 المحفوظة',
-      srcScratch: '✍️ عرض جديد',
+      srcProducts: '📦 منتجاتي',
+      srcSaved: '📄 محفوظة',
+      srcScratch: '✍️ جديد',
       srcMatched: '{n} مطابق',
       bestForThis: 'الأنسب للطلب ده',
       bestTag: 'الأنسب',
@@ -4060,9 +4062,10 @@ export const translations: Record<Locale, Translations> = {
       sheetTitle: 'Make your offer',
       sheetFor: 'For request: {model}',
       sheetClose: 'Close',
-      tabNoOffers: '⚡ No offers yet',
+      tabNoOffers: '⚡ Be first',
       tabMatch: '🎯 For you',
       tabAll: 'All requests',
+      tabAllShort: 'All',
       interestsLabel: 'Your interests:',
       interestsEdit: '⚙️ Edit interests',
       interestsInferred: 'We picked these from your activity. Look right?',
@@ -4113,9 +4116,9 @@ export const translations: Record<Locale, Translations> = {
       emptyAllTitle: 'No open requests right now',
       emptyWiden: 'Widen your interests',
       sheetSmall: 'Your offer on',
-      srcProducts: '📦 Your products',
+      srcProducts: '📦 Products',
       srcSaved: '📄 Saved',
-      srcScratch: '✍️ New offer',
+      srcScratch: '✍️ New',
       srcMatched: '{n} match',
       bestForThis: 'Best fit for this request',
       bestTag: 'Best',

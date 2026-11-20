@@ -597,8 +597,13 @@ function SheetBody({ requestId, userType, modelText, categoryName = null, budget
                     >
                       <Text style={[styles.tabText, on && styles.tabTextOn]} numberOfLines={1}>{label}</Text>
                       {count ? (
-                        <Text style={[styles.badge, count.matched && styles.badgeMatched]} numberOfLines={1}>
-                          {count.matched ? b.srcMatched.replace('{n}', nf(count.n)) : nf(count.n)}
+                        // Bare number keeps the pill label whole; green marks matches, the label says it for screen readers.
+                        <Text
+                          style={[styles.badge, count.matched && styles.badgeMatched]}
+                          numberOfLines={1}
+                          accessibilityLabel={count.matched ? b.srcMatched.replace('{n}', nf(count.n)) : undefined}
+                        >
+                          {nf(count.n)}
                         </Text>
                       ) : null}
                     </Pressable>
@@ -680,7 +685,10 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     color: colors.g700,
     backgroundColor: colors.g300,
     borderRadius: 99,
-    paddingHorizontal: 7,
+    minWidth: 20,
+    lineHeight: 20,
+    paddingHorizontal: 5,
+    textAlign: 'center',
     overflow: 'hidden',
   },
   badgeMatched: { color: colors.white, backgroundColor: colors.green },

@@ -34,9 +34,11 @@ const FIT_COLOR: Record<BudgetFit, string> = { in: '#0b7a52', near: '#b45309', o
 export type BroOfferPick = { kind: 'product' | 'saved'; id: number }
 
 /** One buy request on the offers board. `pick` opens the sheet straight on that listing / saved offer. */
-export function BroBoardCard({ item, onMakeOffer }: {
+/** `fill` stretches the card to its parent's height with the action row pinned to the bottom (home strip). */
+export function BroBoardCard({ item, onMakeOffer, fill }: {
   item: BroBoardItem
   onMakeOffer: (item: BroBoardItem, pick?: BroOfferPick) => void
+  fill?: boolean
 }) {
   const { t, locale } = useLocale()
   const { ar, dirStyle, rowDir, colDir } = useBroDir()
@@ -98,7 +100,7 @@ export function BroBoardCard({ item, onMakeOffer }: {
     : { bg: isDark ? colors.placeholder : colors.g100, fg: colors.muted }
 
   return (
-    <View style={[styles.card, hot && styles.cardHot, sent && styles.cardSent]}>
+    <View style={[styles.card, fill && styles.cardFill, hot && styles.cardHot, sent && styles.cardSent]}>
       {chip ? (
         // The card is pinned to ltr, so the end edge is picked by hand.
         <View style={[styles.score, { backgroundColor: SCORE_BG[chip] }, ar ? { left: 16 } : { right: 16 }]}>
@@ -193,7 +195,7 @@ export function BroBoardCard({ item, onMakeOffer }: {
         </View>
       ) : null}
 
-      <View style={[styles.foot, rowDir]}>
+      <View style={[styles.foot, rowDir, fill && styles.footFill]}>
         {item.isMine ? (
           <Text style={styles.footText}>{offers ?? b.offersCountNone}</Text>
         ) : canOffer ? (
@@ -246,6 +248,7 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     marginBottom: 14,
     ...(dark ? null : shadow.ss),
   },
+  cardFill: { flex: 1, marginBottom: 4 },
   cardHot: { borderWidth: 1.5, borderColor: dark ? 'rgba(245,184,0,0.5)' : '#f6d77a' },
   cardSent: { borderColor: dark ? 'rgba(18,184,134,0.4)' : '#bfe9d4' },
   score: { position: 'absolute', top: -11, zIndex: 1, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 2 },
@@ -322,6 +325,7 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 16,
   },
+  footFill: { marginTop: 'auto' },
   footText: { flexShrink: 1, fontFamily: fonts.extraBold, fontSize: 12.5, color: colors.muted },
   footStrong: { fontFamily: fonts.black },
   btn: { borderRadius: 12, paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },

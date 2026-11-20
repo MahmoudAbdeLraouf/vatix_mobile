@@ -361,12 +361,12 @@ export default function RequestsTab() {
         {([
           ['noOffers', b.tabNoOffers, counts?.noOffers],
           ['mine', b.tabMatch, counts?.mine],
-          ['all', b.tabAll, counts?.all],
+          ['all', b.tabAllShort, counts?.all],
         ] as const).filter(([key]) => userType || key !== 'mine').map(([key, label, n]) => {
           const on = tab === key
           return (
             <Pressable key={key} onPress={() => switchTab(key)} style={[styles.folderTab, on && styles.folderTabOn]}>
-              <Text style={[styles.folderText, on && styles.folderTextOn]} numberOfLines={2}>{label}</Text>
+              <Text style={[styles.folderText, on && styles.folderTextOn]} numberOfLines={1}>{label}</Text>
               {n != null ? (
                 <View style={[styles.tabBadge, on && styles.tabBadgeOn]}>
                   <Text style={[styles.tabBadgeText, on && styles.tabBadgeTextOn]}>{n}</Text>
@@ -389,15 +389,14 @@ export default function RequestsTab() {
         />
       ) : null}
 
-      {!loading && !failed ? (
+      {/* The tabs already carry the totals; this line only matters once filters narrow them. */}
+      {!loading && !failed && hasFilters ? (
         <View style={styles.resultsRow}>
           <Text style={[styles.count, dirStyle]}>{countLabel(total)}</Text>
-          {hasFilters ? (
-            <Pressable onPress={clearFilters} hitSlop={8} style={styles.clearBtn}>
-              <Ionicons name="close-circle" size={15} color={colors.muted} />
-              <Text style={styles.clearText}>{b.boardClearFilters}</Text>
-            </Pressable>
-          ) : null}
+          <Pressable onPress={clearFilters} hitSlop={8} style={styles.clearBtn}>
+            <Ionicons name="close-circle" size={15} color={colors.muted} />
+            <Text style={styles.clearText}>{b.boardClearFilters}</Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -621,13 +620,13 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   tabBadgeTextOn: { color: colors.dk },
   // Folder tabs: the active tab joins the board below it.
   folderRow: { flexDirection: 'row', gap: 6, borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: -spacing.xs },
+  // Label over count keeps every tab on one line and the same height.
   folderTab: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 9,
+    gap: 3,
+    paddingVertical: 8,
     paddingHorizontal: 6,
     borderTopLeftRadius: radius.md,
     borderTopRightRadius: radius.md,

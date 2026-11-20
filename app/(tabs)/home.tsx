@@ -783,7 +783,7 @@ export default function HomeScreen() {
             >
               {requests.map(item => (
                 <View key={item.id} style={styles.requestCardWrap}>
-                  <BroBoardCard item={item} onMakeOffer={() => makeOffer(item)} />
+                  <BroBoardCard item={item} onMakeOffer={() => makeOffer(item)} fill />
                 </View>
               ))}
             </ScrollView>
