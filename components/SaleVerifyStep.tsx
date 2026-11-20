@@ -104,7 +104,7 @@ export function SaleVerifyStep({ product, onDone, onLater, onConflict }: Props) 
           fullWidth
           onPress={() => {
             onDone()
-            router.push('/products/new')
+            router.push('/products/add')
           }}
         />
         <Button label={s.close} variant="outline" fullWidth onPress={onDone} />

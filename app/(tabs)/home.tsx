@@ -186,11 +186,11 @@ function openPromo(id: PromoId, user: StoredUser | null) {
       } as never)
       return
     case 'add':
-      if (user) router.push('/products/new')
+      if (user) router.push('/products/add')
       else
         router.push({
           pathname: '/(auth)/login',
-          params: { redirect: '/products/new' },
+          params: { redirect: '/products/add' },
         })
       return
     case 'open':

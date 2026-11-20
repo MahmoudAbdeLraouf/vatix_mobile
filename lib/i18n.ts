@@ -549,6 +549,9 @@ export interface Translations {
     optEasyOrders: string
     optExcel: string
     backToOptions: string
+    bulkImportCta: string
+    bulkImportTitle: string
+    backToMyAds: string
     shopifyTitle: string
     easyOrdersTitle: string
     excelTitle: string
@@ -2099,6 +2102,9 @@ export const translations: Record<Locale, Translations> = {
       optEasyOrders: 'عندي متجر على EasyOrders',
       optExcel: 'عندي شيت Excel بالمنتجات',
       backToOptions: 'رجوع لاختيار طريقة الإضافة',
+      bulkImportCta: 'استيراد بالجملة',
+      bulkImportTitle: 'استيراد منتجات بالجملة',
+      backToMyAds: 'رجوع لإعلاناتي',
       shopifyTitle: 'استيراد من Shopify',
       easyOrdersTitle: 'استيراد من Easy Orders',
       excelTitle: 'استيراد من Excel / CSV',
@@ -3582,6 +3588,9 @@ export const translations: Record<Locale, Translations> = {
       optEasyOrders: 'I have an EasyOrders store',
       optExcel: 'I have an Excel sheet with my products',
       backToOptions: 'Back to add options',
+      bulkImportCta: 'Bulk import',
+      bulkImportTitle: 'Bulk import products',
+      backToMyAds: 'Back to My Ads',
       shopifyTitle: 'Import from Shopify',
       easyOrdersTitle: 'Import from Easy Orders',
       excelTitle: 'Import from Excel / CSV',

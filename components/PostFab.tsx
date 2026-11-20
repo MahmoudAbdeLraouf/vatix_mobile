@@ -44,7 +44,7 @@ export function usePostFab() {
   const styles = useMemo(() => makeStyles(colors), [colors])
 
   function goPostProduct() {
-    if (pathname !== '/products/new' && pathname !== '/products/add') router.push('/products/new')
+    if (pathname !== '/products/add') router.push('/products/add')
   }
 
   function onFabPress() {

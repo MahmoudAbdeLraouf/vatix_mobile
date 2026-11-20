@@ -77,7 +77,7 @@ export function PromoGiftCard({ offer, gifts, onPick }: Props) {
           variant="y"
           size="sm"
           fullWidth={false}
-          onPress={() => router.push('/products/new' as never)}
+          onPress={() => router.push('/products/add' as never)}
         />
       </View>
     )

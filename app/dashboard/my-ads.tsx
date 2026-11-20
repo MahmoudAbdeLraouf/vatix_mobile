@@ -42,6 +42,7 @@ import { getMyGifts, type PromoGiftOffer, type PromotionGiftItem } from '@/lib/p
 import { PromoGiftCard } from '@/components/PromoGiftCard'
 import { PromoGiftPicker } from '@/components/PromoGiftPicker'
 import { CapReachedChoice } from '@/components/CapReachedChoice'
+import { BulkImportSheet } from '@/components/import/BulkImportSheet'
 import { StoreUpsellBanner } from '@/components/StoreUpsellBanner'
 import { ConvertOrDivider, ConvertToStorePick, goConvertToStore, useConvertPickEligible } from '@/components/ConvertToStorePick'
 
@@ -103,6 +104,7 @@ export default function MyAdsScreen() {
   const [soldDialogMode, setSoldDialogMode] = useState<'sell' | 'delete'>('sell')
   const [markingSold, setMarkingSold] = useState(false)
   const [capOpen, setCapOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   useEffect(() => {
     getSiteSettings().then(setSettings).catch(() => {})
@@ -379,6 +381,15 @@ export default function MyAdsScreen() {
               )}
             </View>
             <View style={styles.ctaGroup}>
+              <Pressable
+                onPress={() => setImportOpen(true)}
+                style={({ pressed }) => [styles.importChip, pressed && { opacity: 0.85 }]}
+                accessibilityRole="button"
+                accessibilityLabel={t.importProducts.bulkImportCta}
+              >
+                <Ionicons name="cloud-download-outline" size={14} color={colors.heading} />
+                <Text style={styles.importChipText}>{t.importProducts.bulkImportCta}</Text>
+              </Pressable>
               {/* At the cap the post CTA opens the convert / buy-slots choice (§4). */}
               <Pressable
                 onPress={() => {
@@ -386,7 +397,7 @@ export default function MyAdsScreen() {
                     setCapOpen(true)
                     return
                   }
-                  router.push('/products/new')
+                  router.push('/products/add')
                 }}
                 style={({ pressed }) => [
                   styles.postCta,
@@ -486,11 +497,21 @@ export default function MyAdsScreen() {
       ) : error ? (
         <ErrorState kind="network" onRetry={load} />
       ) : products && products.length === 0 ? (
-        <EmptyState
-          title={ar ? 'لم تضف إعلانات بعد.' : 'No ads posted yet.'}
-          actionLabel={ar ? 'أضف إعلانك الأول' : 'Post your first ad'}
-          onAction={() => router.push('/products/new')}
-        />
+        <View>
+          <EmptyState
+            title={ar ? 'لم تضف إعلانات بعد.' : 'No ads posted yet.'}
+            actionLabel={ar ? 'أضف إعلانك الأول' : 'Post your first ad'}
+            onAction={() => router.push('/products/add')}
+          />
+          <Pressable
+            onPress={() => setImportOpen(true)}
+            style={({ pressed }) => [styles.importChip, styles.importChipCentered, pressed && { opacity: 0.85 }]}
+            accessibilityRole="button"
+          >
+            <Ionicons name="cloud-download-outline" size={14} color={colors.heading} />
+            <Text style={styles.importChipText}>{t.importProducts.bulkImportCta}</Text>
+          </Pressable>
+        </View>
       ) : visibleProducts.length === 0 ? (
         <EmptyState
           title={
@@ -1084,6 +1105,7 @@ export default function MyAdsScreen() {
         onConvert={goConvert}
         onBuySlots={() => router.push('/dashboard/buy-slots?resumeTo=add' as never)}
       />
+      <BulkImportSheet visible={importOpen} onClose={() => setImportOpen(false)} />
     </DashboardLayout>
   )
 }
@@ -1419,7 +1441,7 @@ const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
     gap: 6,
     flexShrink: 1,
   },
-  buySlotsChip: {
+  importChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -1430,7 +1452,8 @@ const makeStyles = (colors: ThemeColors, dark = false) => StyleSheet.create({
     paddingVertical: 8,
     borderRadius: radius.md,
   },
-  buySlotsChipText: {
+  importChipCentered: { alignSelf: 'center', marginTop: -spacing.md },
+  importChipText: {
     fontFamily: fonts.bold,
     fontSize: 11,
     color: colors.heading,

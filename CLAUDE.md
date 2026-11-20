@@ -41,8 +41,8 @@ app/
     stores.tsx          Stores grid
     dashboard.tsx       User profile + menu tiles
   products/[id].tsx     Product detail
-  products/new.tsx      "Where are your products?" chooser — manual / Shopify / EasyOrders / Excel
-  products/add.tsx      Manual add-product form (buy-slots resumes here directly, skipping the chooser;
+  products/new.tsx      Legacy redirect → products/add (old chooser; bulk import now opens from My Ads)
+  products/add.tsx      Add-product form — every "Add Product" entry lands here (buy-slots resumes here;
                         resumeTo=import&screen=… returns to the import screen instead)
   products/import/
     easyorders.tsx      Connect EasyOrders Api-Key → preview → confirm
@@ -60,7 +60,8 @@ components/
   ui/Logo.tsx           Vatix wordmark + yellow dot
   ProductCard.tsx       Card for product grid/lists
   StoreCard.tsx         Avatar card for store lists
-  import/               Shared import UI: ImportBackLink, DefaultCategoryBrand, ImportRowCard, ImportErrors,
+  import/               Shared import UI: BulkImportSheet (Shopify / EasyOrders / Excel picker on My Ads),
+                        ImportBackLink (→ My Ads), DefaultCategoryBrand, ImportRowCard, ImportErrors,
                         ClientCapCard (client lifetime-cap progress + buy slots / convert-to-store upsell)
 
 hooks/

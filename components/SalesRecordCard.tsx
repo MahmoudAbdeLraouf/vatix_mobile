@@ -93,7 +93,7 @@ export function SalesRecordCard() {
         label={s.dashCta}
         variant="y"
         fullWidth
-        onPress={() => router.push('/products/new')}
+        onPress={() => router.push('/products/add')}
       />
       <Text style={[styles.foot, dirStyle]}>{s.dashNoCommission}</Text>
     </View>

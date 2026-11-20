@@ -362,7 +362,7 @@ export default function ProductsScreen() {
         <View style={styles.heroMetaRow}>
           <TouchableOpacity
             style={styles.postAdBtn}
-            onPress={() => router.push('/products/new')}
+            onPress={() => router.push('/products/add')}
             activeOpacity={0.85}
           >
             <Ionicons name="add" size={15} color={colors.dk} />

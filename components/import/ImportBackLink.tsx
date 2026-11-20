@@ -6,7 +6,7 @@ import { useLocale } from '@/contexts/locale'
 import { fonts, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
-// "Back to options" link at the top of each import screen, same as add.tsx.
+// "Back to My Ads" link at the top of each import screen (bulk import is opened from My Ads).
 export function ImportBackLink() {
   const { t, locale } = useLocale()
   const { colors } = useTheme()
@@ -18,13 +18,13 @@ export function ImportBackLink() {
 
   return (
     <Pressable
-      onPress={() => (router.canGoBack() ? router.back() : router.replace('/products/new'))}
+      onPress={() => (router.canGoBack() ? router.back() : router.replace('/dashboard/my-ads'))}
       hitSlop={8}
       style={({ pressed }) => [styles.link, rowDir, pressed && { opacity: 0.7 }]}
       accessibilityRole="link"
     >
       <Ionicons name={ar ? 'arrow-forward' : 'arrow-back'} size={16} color={colors.muted} />
-      <Text style={styles.text}>{t.importProducts.backToOptions}</Text>
+      <Text style={styles.text}>{t.importProducts.backToMyAds}</Text>
     </Pressable>
   )
 }

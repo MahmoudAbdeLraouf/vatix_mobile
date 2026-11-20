@@ -44,7 +44,7 @@ export function PromoGiftOfferDialog({ visible = true, offer, onClose }: Props) 
     setBusy(true)
     // The trigger already marked this display as seen when the dialog opened.
     onClose()
-    router.push('/products/new' as never)
+    router.push('/products/add' as never)
   }
 
   return (
