@@ -79,6 +79,15 @@ export function authErrorMessage(err: unknown, t: Translations): string {
     case AUTH_ERR.IAP_PRODUCT_UNAVAILABLE:
     case 'sku-not-found':
       return t.iapProductUnavailable
+    // Backend sign-up / OTP errors, raw English or Arabic → current locale.
+    case 'Phone number already registered':
+      return t.phoneTaken
+    case 'رمز التحقق غير صحيح':
+      return t.otpCodeInvalid
+    case 'انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد':
+      return t.otpCodeExpired
+    case 'تم تجاوز عدد المحاولات المسموح بها، يرجى طلب رمز جديد':
+      return t.otpTooManyAttempts
     default:
       return err.message || t.serverError
   }

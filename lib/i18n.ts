@@ -219,6 +219,9 @@ export interface Translations {
   requiredField: string
   invalidPhone: string
   phoneTaken: string
+  otpCodeInvalid: string
+  otpCodeExpired: string
+  otpTooManyAttempts: string
   passwordTooShort: string
   passwordMismatch: string
   serverError: string
@@ -1765,6 +1768,9 @@ export const translations: Record<Locale, Translations> = {
     requiredField: 'هذا الحقل مطلوب',
     invalidPhone: 'رقم هاتف غير صحيح',
     phoneTaken: 'رقم الهاتف مسجّل بالفعل، يرجى تسجيل الدخول',
+    otpCodeInvalid: 'رمز التحقق غير صحيح',
+    otpCodeExpired: 'انتهت صلاحية رمز التحقق، يرجى طلب رمز جديد',
+    otpTooManyAttempts: 'تم تجاوز عدد المحاولات المسموح بها، يرجى طلب رمز جديد',
     passwordTooShort: 'كلمة المرور قصيرة جداً (8 أحرف على الأقل)',
     passwordMismatch: 'كلمتا المرور غير متطابقتين',
     serverError: 'خطأ في الخادم، يرجى المحاولة لاحقاً',
@@ -3251,6 +3257,9 @@ export const translations: Record<Locale, Translations> = {
     requiredField: 'This field is required',
     invalidPhone: 'Invalid phone number',
     phoneTaken: 'Phone already registered, please sign in',
+    otpCodeInvalid: 'Invalid verification code',
+    otpCodeExpired: 'The verification code has expired, please request a new one',
+    otpTooManyAttempts: 'Too many attempts, please request a new code',
     passwordTooShort: 'Password too short (min 8 characters)',
     passwordMismatch: 'Passwords do not match',
     serverError: 'Server error, please try again',
