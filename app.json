@@ -84,7 +84,8 @@
         {
           "microphonePermission": "بنحتاج المايك عشان تسجل رسائل صوتية في الشات"
         }
-      ]
+      ],
+      "./plugins/withOptionalHardwareFeatures"
     ],
     "extra": {
       "router": {},
