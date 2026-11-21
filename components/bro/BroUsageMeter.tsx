@@ -8,6 +8,8 @@ import { useTheme } from '@/contexts/theme'
 import { useBroDir } from '@/components/bro/BroCardParts'
 import { Button } from '@/components/ui/Button'
 import { UpgradeModal } from '@/components/UpgradeModal'
+import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
+import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 
 const RED = '#dc2626'
 
@@ -23,6 +25,7 @@ export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsa
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { dirStyle, rowDir } = useBroDir()
   const b = t.bro
+  const { app: application, open: applied } = useMyStoreApplication()
   const { used, cap, purchased } = usage.offers
   if (cap == null || cap <= 0) return null
 
@@ -53,8 +56,11 @@ export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsa
           {resetLabel ? <Text style={[styles.count, dirStyle]}>{b.capBannerResets.replace('{date}', resetLabel)}</Text> : null}
         </View>
         {track}
+        {applied && application ? <StoreApplicationStatusCard app={application} /> : null}
         <View style={[styles.actions, rowDir]}>
-          <Button label={b.capBannerStore} variant="y" size="sm" fullWidth={false} onPress={() => setShowUpgrade(true)} style={{ flex: 1.4 }} />
+          {applied ? null : (
+            <Button label={b.capBannerStore} variant="y" size="sm" fullWidth={false} onPress={() => setShowUpgrade(true)} style={{ flex: 1.4 }} />
+          )}
           <Button
             label={t.storeValue.offerCapPacksBuy}
             variant="outline"

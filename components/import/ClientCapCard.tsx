@@ -7,6 +7,8 @@ import { useLocale } from '@/contexts/locale'
 import { authFetch } from '@/lib/auth'
 import { StoreValue } from '@/components/StoreValue'
 import { CapReachedChoiceBody } from '@/components/CapReachedChoice'
+import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
+import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 import { useStoreValueParams } from '@/lib/storeValue'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
@@ -49,6 +51,7 @@ export function ClientCapCard({ screen }: { screen: ImportScreen }) {
   const [status, setStatus] = useState<CapStatus | null>(null)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const { app: application, open: applied } = useMyStoreApplication()
 
   useFocusEffect(
     useCallback(() => {
@@ -111,17 +114,24 @@ export function ClientCapCard({ screen }: { screen: ImportScreen }) {
         />
       ) : (
         // Under the cap: compact store pitch, convert first, slots second.
+        // Already applied: the application status replaces the pitch.
         <>
-          <StoreValue variant="compact" params={svp} shortChips style={styles.pitch} />
+          {applied && application ? (
+            <StoreApplicationStatusCard app={application} style={styles.pitch} />
+          ) : (
+            <StoreValue variant="compact" params={svp} shortChips style={styles.pitch} />
+          )}
           <View style={[styles.actions, rowDir]}>
-            <Button
-              label={sv.capConvertCtaPlain}
-              variant="y"
-              size="sm"
-              fullWidth={false}
-              style={styles.action}
-              onPress={() => setShowUpgrade(true)}
-            />
+            {applied ? null : (
+              <Button
+                label={sv.capConvertCtaPlain}
+                variant="y"
+                size="sm"
+                fullWidth={false}
+                style={styles.action}
+                onPress={() => setShowUpgrade(true)}
+              />
+            )}
             <Button
               label={ip.capBuySlots}
               variant="outline"

@@ -8,6 +8,8 @@ import { useLocale } from '@/contexts/locale'
 import { useTheme } from '@/contexts/theme'
 import { useAuth } from '@/contexts/auth'
 import { Button } from '@/components/ui/Button'
+import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
+import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 import { SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { authFetch } from '@/lib/auth'
 import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
@@ -68,6 +70,7 @@ export default function AnalyticsScreen() {
   const { user } = useAuth()
   // Clients don't get store-page contacts — show the locked teaser (§8 analytics row).
   const showStoreLock = user?.type === 'client' && SUBSCRIPTION_UI_ENABLED
+  const { app: application, open: applied } = useMyStoreApplication()
   const sv = t.storeValue
   const pa = t.promotedAnalytics
 
@@ -346,14 +349,18 @@ export default function AnalyticsScreen() {
                   </View>
                 ))}
               </View>
-              <Button
-                label={sv.analyticsLockCta}
-                variant="y"
-                size="sm"
-                onPress={() =>
-                  router.push({ pathname: '/dashboard/subscription', params: { upgrade: 'store' } } as never)
-                }
-              />
+              {applied && application ? (
+                <StoreApplicationStatusCard app={application} />
+              ) : (
+                <Button
+                  label={sv.analyticsLockCta}
+                  variant="y"
+                  size="sm"
+                  onPress={() =>
+                    router.push({ pathname: '/dashboard/subscription', params: { upgrade: 'store' } } as never)
+                  }
+                />
+              )}
             </View>
           )}
 

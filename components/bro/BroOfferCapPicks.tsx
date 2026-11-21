@@ -8,6 +8,8 @@ import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { Button } from '@/components/ui/Button'
 import { StoreValueChips } from '@/components/StoreValue'
+import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
+import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 import { IS_IOS, PAID_UI_ENABLED } from '@/lib/platform'
 import { getClientOfferPacks, type ClientOfferPack } from '@/lib/api'
 import { fmtPrice, svText, useStoreValueParams, type StoreValueItemKey } from '@/lib/storeValue'
@@ -22,11 +24,14 @@ export function BroOfferCapPicks({
   resetsAt,
   onUpgrade,
   onBuyPack,
+  onNavigate,
 }: {
   cap: number
   resetsAt?: string
   onUpgrade: () => void
   onBuyPack: (packId: number) => void
+  /** Runs before the application card navigates away (closes the hosting sheet). */
+  onNavigate?: () => void
 }) {
   const { colors, isDark } = useTheme()
   const { t, locale } = useLocale()
@@ -34,6 +39,8 @@ export function BroOfferCapPicks({
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
   const p = useStoreValueParams()
   const sv = t.storeValue
+  // Already applied to become a store: show the application status instead of the convert pick.
+  const { app: application, open: applied } = useMyStoreApplication()
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
 
   const [packs, setPacks] = useState<ClientOfferPack[]>([])
@@ -65,6 +72,9 @@ export function BroOfferCapPicks({
         {resetLabel ? svText(sv, 'offerCapSub', p, locale, { date: resetLabel }) : sv.offerCapSubNoDate}
       </Text>
 
+      {applied && application ? (
+        <StoreApplicationStatusCard app={application} onNavigate={onNavigate} style={{ marginTop: 16 }} />
+      ) : (
       <View style={[styles.pick, styles.pickRec, { marginTop: 16 }]}>
         <View style={[styles.rib, ar ? { right: 12 } : { left: 12 }]}>
           <Text style={styles.ribText}>{sv.capRibbon}</Text>
@@ -89,6 +99,7 @@ export function BroOfferCapPicks({
         ) : null}
         <Button label={sv.offerCapConvertCta} variant="y" size="sm" onPress={onUpgrade} style={{ marginTop: 4 }} />
       </View>
+      )}
 
       {packs.length ? (
         <View style={[styles.pick, { marginTop: 10 }]}>

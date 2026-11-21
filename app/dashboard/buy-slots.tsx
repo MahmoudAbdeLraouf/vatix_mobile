@@ -43,6 +43,8 @@ import {
   getIapProduct,
 } from '@/lib/iap-products'
 import { Button } from '@/components/ui/Button'
+import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
+import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 import { Input } from '@/components/ui/Input'
 import { PaymentScreenshotUpload } from '@/components/ui/PaymentScreenshotUpload'
 import { InstapayQrCard } from '@/components/InstapayQrCard'
@@ -703,7 +705,10 @@ function StoreHint() {
   const { colors } = useTheme()
   const styles = useStyles()
   const p = useStoreValueParams()
+  const { app: application, open: applied } = useMyStoreApplication()
   if (!SUBSCRIPTION_UI_ENABLED || user?.type !== 'client') return null
+  // Already applied: point at the application instead of pitching the conversion.
+  if (applied && application) return <StoreApplicationStatusCard app={application} />
   const sv = t.storeValue
   return (
     <Pressable

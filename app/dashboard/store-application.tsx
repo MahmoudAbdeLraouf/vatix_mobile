@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/auth'
 import { authErrorMessage } from '@/lib/auth'
 import { imgUrl } from '@/lib/api'
 import { finalizePaymentSuccess } from '@/lib/payment'
+import { refreshMyStoreApplication } from '@/hooks/useMyStoreApplication'
 import {
   REASON_EN,
   getMyStoreApplication,
@@ -93,6 +94,7 @@ export default function StoreApplicationScreen() {
         cover: cover || undefined,
       })
       fill(updated)
+      refreshMyStoreApplication()
       setMsg({
         ok: true,
         text: ar ? 'تم إرسال طلبك للمراجعة ✓' : 'Your application was sent for review ✓',

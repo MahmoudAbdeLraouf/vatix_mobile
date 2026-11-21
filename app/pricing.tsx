@@ -13,6 +13,8 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
 import { ConvertToStorePick, useConvertPickEligible } from '@/components/ConvertToStorePick'
+import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
+import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 import {
   Bundle,
   ClientOfferPack,
@@ -137,6 +139,8 @@ export default function PricingScreen() {
     .join(ar ? '، ' : ', ')
 
   const isStore = !!user?.isStore
+  // Already applied to become a store: show the application status, not the pitch.
+  const { app: application, open: applied } = useMyStoreApplication()
   const trial = fmt(TRIAL_DAYS)
 
   const goConvert = () => {
@@ -385,6 +389,8 @@ export default function PricingScreen() {
                   <Text style={s.manageBtnText}>{tx('إدارة الاشتراك', 'Manage subscription')}</Text>
                 </Pressable>
               </View>
+            ) : applied && application ? (
+              <StoreApplicationStatusCard app={application} />
             ) : (
               <>
                 <Pressable onPress={goConvert} style={({ pressed }) => [s.ctaY, pressed && { opacity: 0.85 }]}>
@@ -480,9 +486,11 @@ export default function PricingScreen() {
               renderTopUp(tx('💬 عروض إضافية', '💬 Extra offers'), tx('عرض', 'offer'), offerTiles, (id) =>
                 router.push(`/dashboard/buy-offers?pack=${id}` as never),
               )}
-            <Pressable onPress={goConvert} style={s.nudge}>
-              <Text style={s.nudgeText}>{tx('أو حوّل لمتجر وخلّيها ∞ ←', 'Or switch to a store and make it ∞ →')}</Text>
-            </Pressable>
+            {!applied && (
+              <Pressable onPress={goConvert} style={s.nudge}>
+                <Text style={s.nudgeText}>{tx('أو حوّل لمتجر وخلّيها ∞ ←', 'Or switch to a store and make it ∞ →')}</Text>
+              </Pressable>
+            )}
           </View>
         )}
 
@@ -594,7 +602,7 @@ export default function PricingScreen() {
         </View>
 
         {/* Final CTA */}
-        {!isStore && (
+        {!isStore && !applied && (
           <View style={s.finalCta}>
             <Text style={s.finalEmoji}>🏪</Text>
             <Text style={s.finalTitle}>{tx('جاهز تفتح متجرك؟', 'Ready to open your store?')}</Text>

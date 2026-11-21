@@ -9,6 +9,7 @@ import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
+import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 import { authFetch } from '@/lib/auth'
 import type { UserProfile } from '@/lib/api'
 import { PAID_UI_ENABLED } from '@/lib/platform'
@@ -30,9 +31,10 @@ function loadEligible(key: string): Promise<boolean> {
   return cache.promise
 }
 
-/** True only for a logged-in client whose free trial is used up. */
+/** True only for a logged-in client whose free trial is used up and who has no open store application. */
 export function useConvertPickEligible(): boolean {
   const { user } = useAuth()
+  const { open: applied } = useMyStoreApplication()
   const [eligible, setEligible] = useState(false)
   const key = user && !user.isStore ? String(user.id) : null
   useEffect(() => {
@@ -46,7 +48,7 @@ export function useConvertPickEligible(): boolean {
       alive = false
     }
   }, [key])
-  return eligible
+  return eligible && !applied
 }
 
 export function goConvertToStore() {

@@ -63,6 +63,7 @@ import { useTheme } from '@/contexts/theme'
 import { geekoXml, requestXml } from '@/assets/promo/art'
 import { slide2Xml } from '@/assets/onboarding/slide-2'
 import { slide3Xml } from '@/assets/onboarding/slide-3'
+import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 
 const { width: SCREEN_W } = Dimensions.get('window')
 const GRID_GAP = 14
@@ -328,9 +329,14 @@ const promoStyles = StyleSheet.create({
 function PromoCarousel() {
   const { user } = useAuth()
   const broEnabled = useBroEnabled()
+  // A client who already applied to become a store isn't pitched "open your store" again.
+  const { open: applied } = useMyStoreApplication()
   const slides = useMemo(
-    () => (broEnabled ? PROMO_SLIDES : PROMO_SLIDES.filter(s => !BRO_SLIDES.includes(s.id))),
-    [broEnabled],
+    () =>
+      PROMO_SLIDES.filter(
+        s => (broEnabled || !BRO_SLIDES.includes(s.id)) && !(applied && s.id === 'open'),
+      ),
+    [broEnabled, applied],
   )
 
   const scrollRef = useRef<ScrollView>(null)

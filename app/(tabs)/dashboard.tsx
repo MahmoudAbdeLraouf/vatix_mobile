@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import Constants from 'expo-constants'
 import * as StoreReview from 'expo-store-review'
@@ -20,7 +20,8 @@ import { authFetch } from '@/lib/auth'
 import { useChatEvents, useFallbackPoll } from '@/lib/chatSocket'
 import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { getStorePromotionOffer } from '@/lib/api'
-import { getMyStoreApplication } from '@/lib/storeApplication'
+import { getMyStoreApplication, type MyStoreApplication } from '@/lib/storeApplication'
+import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
 import type { PendingUpgradeRequest, Product, PromoInfo, StorePromotionOffer, UserProfile, WalletBalance } from '@/lib/api'
 import { markRated } from '@/lib/rate-app-engagement'
 import { useStoreValueParams } from '@/lib/storeValue'
@@ -107,7 +108,7 @@ export default function MoreScreen() {
   const [promotedUntil, setPromotedUntil] = useState<string | null | undefined>(undefined)
   const [promotionOffer, setPromotionOffer] = useState<StorePromotionOffer | null>(null)
   const [guestSettingsOpen, setGuestSettingsOpen] = useState(false)
-  const [hasStoreApplication, setHasStoreApplication] = useState(false)
+  const [storeApplication, setStoreApplication] = useState<MyStoreApplication | null>(null)
 
   // Bumped by every `unread:count` socket push. A REST read that started before a push is stale
   // and must not overwrite the newer socket count.
@@ -157,7 +158,7 @@ export default function MoreScreen() {
 
       const [adsR, paymentsR, profileR, unreadR, walletR, promoR, offerR, applicationR] = results
 
-      if (applicationR.status === 'fulfilled') setHasStoreApplication(!!applicationR.value)
+      if (applicationR.status === 'fulfilled') setStoreApplication(applicationR.value as MyStoreApplication | null)
 
       if (adsR.status === 'fulfilled') {
         const mine = (adsR.value as Product[] | null) ?? []
@@ -213,6 +214,16 @@ export default function MoreScreen() {
       cancelled = true
     }
   }, [isAuthenticated])
+
+  // The tab stays mounted: re-read the application on focus so adding the first product
+  // or a review decision shows up without a restart.
+  const isStoreUser = user?.type === 'store'
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated || isStoreUser) return
+      getMyStoreApplication().then(setStoreApplication).catch(() => {})
+    }, [isAuthenticated, isStoreUser]),
+  )
 
   if (loading) return null
 
@@ -357,8 +368,12 @@ export default function MoreScreen() {
           </View>
         </View>
 
+        {/* Store application status replaces the "open your store" pitch once they applied */}
+        {isClient && storeApplication && (
+          <StoreApplicationStatusCard app={storeApplication} />
+        )}
         {/* Banner — passive client → store pitch (§5), dismissible for 30 days */}
-        {isClient && SUBSCRIPTION_UI_ENABLED && activeAds != null && (
+        {isClient && !storeApplication && SUBSCRIPTION_UI_ENABLED && activeAds != null && (
           <StoreUpsellBanner
             used={activeAds}
             cap={svParams.cap + extraSlots}
@@ -449,7 +464,7 @@ export default function MoreScreen() {
 
         {/* Dashboard */}
         <Section title={ar ? 'لوحة التحكم' : 'Dashboard'} dirStyle={dirStyle}>
-          {!isStore && hasStoreApplication && (
+          {!isStore && !!storeApplication && (
             <MoreRow {...rowProps} icon="document-text-outline" label={ar ? 'طلب المتجر' : 'Store application'} onPress={() => router.push('/dashboard/store-application' as never)} />
           )}
           <MoreRow {...rowProps} icon="stats-chart-outline" label={t.analytics} onPress={() => router.push('/dashboard/analytics')} last />

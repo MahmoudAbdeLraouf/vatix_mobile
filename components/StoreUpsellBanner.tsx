@@ -11,6 +11,8 @@ import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { Button } from '@/components/ui/Button'
 import { StoreValueChips } from '@/components/StoreValue'
+import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
+import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 import { PAID_UI_ENABLED } from '@/lib/platform'
 import { fmtPrice, svText, useStoreValueParams, type StoreValueParams } from '@/lib/storeValue'
 
@@ -57,6 +59,7 @@ export function StoreUpsellBanner({ used, cap: capProp, params, onConvert, dismi
   const storeKey = dismissKey ? `store_upsell_dismissed_${dismissKey}` : null
   // Hidden until the dismiss timestamp is read, so a dismissed banner never flashes.
   const [hidden, setHidden] = useState<boolean>(!!storeKey)
+  const { app: application, open: applied } = useMyStoreApplication()
 
   useEffect(() => {
     if (!storeKey) return
@@ -73,6 +76,8 @@ export function StoreUpsellBanner({ used, cap: capProp, params, onConvert, dismi
     }
   }, [storeKey])
 
+  // Already applied: show where the application stands, even if the pitch was dismissed.
+  if (applied && application) return <StoreApplicationStatusCard app={application} style={style} />
   if (hidden) return null
 
   const atCap = used >= cap

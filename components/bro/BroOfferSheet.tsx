@@ -39,6 +39,8 @@ import { BroButton } from '@/components/bro/BroButton'
 import { useBroDir } from '@/components/bro/BroCardParts'
 import { UpgradeModal } from '@/components/UpgradeModal'
 import { BroOfferCapPicks } from '@/components/bro/BroOfferCapPicks'
+import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
+import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 import { categoryIcon, type BroOfferPick } from '@/components/bro/BroBoardCard'
 
 type Tab = 'products' | 'scratch' | 'saved'
@@ -166,6 +168,7 @@ function SheetBody({ requestId, userType, modelText, categoryName = null, budget
   const [picked, setPicked] = useState<Picked | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showUpgrade, setShowUpgrade] = useState(false)
+  const { app: application, open: applied } = useMyStoreApplication()
   // Set when the offer went out but the product hit the client cap: the sheet stays open to explain
   // and offer the store upgrade; dismissing it then reports the sent offer.
   const [capResult, setCapResult] = useState<CreateBroOfferResult | null>(null)
@@ -557,11 +560,14 @@ function SheetBody({ requestId, userType, modelText, categoryName = null, budget
             <View style={styles.center} accessibilityRole="alert">
               <Text style={styles.centerTitle}>{b.offerSentToast}</Text>
               <Text style={styles.centerBody}>
-                {(capResult.canUpgradeToStore ? b.productCapSkippedUpgrade : b.productCapSkipped)
+                {(capResult.canUpgradeToStore && !applied ? b.productCapSkippedUpgrade : b.productCapSkipped)
                   .replace('{cap}', String(capResult.productCap ?? ''))}
               </Text>
+              {capResult.canUpgradeToStore && applied && application ? (
+                <StoreApplicationStatusCard app={application} onNavigate={dismiss} style={{ alignSelf: 'stretch' }} />
+              ) : null}
               <View style={styles.centerActions}>
-                {capResult.canUpgradeToStore && (
+                {capResult.canUpgradeToStore && !applied && (
                   <BroButton label={b.upgradeToStore} variant="yellow" size="md" onPress={() => setShowUpgrade(true)} />
                 )}
                 <BroButton label={b.done} size="md" onPress={dismiss} />
@@ -573,6 +579,7 @@ function SheetBody({ requestId, userType, modelText, categoryName = null, budget
                 cap={cap ?? 0}
                 resetsAt={usage?.resetsAt}
                 onUpgrade={() => setShowUpgrade(true)}
+                onNavigate={onClose}
                 onBuyPack={buyPack}
               />
             </View>

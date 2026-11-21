@@ -10,6 +10,8 @@ import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { Button } from '@/components/ui/Button'
 import { StoreValueChips } from '@/components/StoreValue'
+import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
+import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 import { PAID_UI_ENABLED } from '@/lib/platform'
 import { getClientSlotBundles, type ClientSlotBundle } from '@/lib/api'
 import { fmtPrice, svText, useStoreValueParams, type StoreValueParams } from '@/lib/storeValue'
@@ -62,6 +64,8 @@ interface CapReachedChoiceBodyProps {
   publishCta?: boolean
   onConvert: () => void
   onBuySlots: () => void
+  /** Runs before the application card navigates away (the modal closes itself). */
+  onNavigate?: () => void
 }
 
 /** The sheet contents without the modal chrome (title row excluded). */
@@ -73,6 +77,7 @@ export function CapReachedChoiceBody({
   publishCta = false,
   onConvert,
   onBuySlots,
+  onNavigate,
 }: CapReachedChoiceBodyProps) {
   const { colors, isDark } = useTheme()
   const { t, locale } = useLocale()
@@ -85,6 +90,9 @@ export function CapReachedChoiceBody({
   const sv = t.storeValue
   const quote = useSlotBundleQuote()
   const pct = cap > 0 ? Math.min(1, used / cap) : 1
+  // Already applied to become a store: show where the application stands instead
+  // of pitching the conversion again. Buying slots stays available.
+  const { app: application, open: applied } = useMyStoreApplication()
 
   return (
     <View>
@@ -93,36 +101,45 @@ export function CapReachedChoiceBody({
       </View>
       {savedLine ? <Text style={[styles.saved, dirStyle]}>{sv.capSaved}</Text> : null}
 
-      <View style={[styles.pick, styles.pickRec, { marginTop: savedLine ? 6 : 14 }]}>
-        <View style={[styles.rib, ar ? { right: 12 } : { left: 12 }]}>
-          <Text style={styles.ribText}>{sv.capRibbon}</Text>
-        </View>
-        <Text style={[styles.pickTitle, dirStyle]}>{sv.capConvertTitle}</Text>
-        <StoreValueChips params={p} short giftFull />
-        {PAID_UI_ENABLED ? (
-          <Text style={[styles.pp, dirStyle]}>
-            <Text style={styles.ppBig}>{fmtPrice(p.price)}</Text> {sv.perMonthShort}
-            {p.list > p.price ? (
-              <>
-                {' '}
-                <Text style={styles.strike}>{fmtPrice(p.list)}</Text>
-              </>
-            ) : null}
-          </Text>
-        ) : (
-          <Text style={[styles.pp, dirStyle]}>{sv.iosStoreSub}</Text>
-        )}
-        {p.trialDays > 0 ? (
-          <Text style={[styles.pp, styles.trial, dirStyle]}>{svText(sv, 'trialFirst', p, locale)}</Text>
-        ) : null}
-        <Button
-          label={publishCta ? sv.capConvertCta : sv.capConvertCtaPlain}
-          variant="y"
-          size="sm"
-          onPress={onConvert}
-          style={{ marginTop: 4 }}
+      {applied && application ? (
+        <StoreApplicationStatusCard
+          app={application}
+          onNavigate={onNavigate}
+          hideAddProduct={savedLine}
+          style={{ marginTop: savedLine ? 6 : 14 }}
         />
-      </View>
+      ) : (
+        <View style={[styles.pick, styles.pickRec, { marginTop: savedLine ? 6 : 14 }]}>
+          <View style={[styles.rib, ar ? { right: 12 } : { left: 12 }]}>
+            <Text style={styles.ribText}>{sv.capRibbon}</Text>
+          </View>
+          <Text style={[styles.pickTitle, dirStyle]}>{sv.capConvertTitle}</Text>
+          <StoreValueChips params={p} short giftFull />
+          {PAID_UI_ENABLED ? (
+            <Text style={[styles.pp, dirStyle]}>
+              <Text style={styles.ppBig}>{fmtPrice(p.price)}</Text> {sv.perMonthShort}
+              {p.list > p.price ? (
+                <>
+                  {' '}
+                  <Text style={styles.strike}>{fmtPrice(p.list)}</Text>
+                </>
+              ) : null}
+            </Text>
+          ) : (
+            <Text style={[styles.pp, dirStyle]}>{sv.iosStoreSub}</Text>
+          )}
+          {p.trialDays > 0 ? (
+            <Text style={[styles.pp, styles.trial, dirStyle]}>{svText(sv, 'trialFirst', p, locale)}</Text>
+          ) : null}
+          <Button
+            label={publishCta ? sv.capConvertCta : sv.capConvertCtaPlain}
+            variant="y"
+            size="sm"
+            onPress={onConvert}
+            style={{ marginTop: 4 }}
+          />
+        </View>
+      )}
 
       <View style={[styles.pick, styles.pickRow, rowDir, { marginTop: 10 }]}>
         <View style={[{ flex: 1 }, colDir]}>
@@ -139,7 +156,7 @@ export function CapReachedChoiceBody({
         <Button label={sv.capSlotsBuy} variant="outline" size="sm" fullWidth={false} onPress={onBuySlots} />
       </View>
 
-      {PAID_UI_ENABLED && quote ? (
+      {PAID_UI_ENABLED && quote && !applied ? (
         <View style={[styles.cmp, { marginTop: 10 }]}>
           <Text style={[styles.cmpText, dirStyle]}>
             {svText(sv, 'capCompare', p, locale, {
@@ -192,6 +209,7 @@ export function CapReachedChoice({ visible, onClose, onConvert, onBuySlots, ...r
               params={p}
               cap={cap}
               used={used}
+              onNavigate={onClose}
               onConvert={() => {
                 onClose()
                 onConvert()

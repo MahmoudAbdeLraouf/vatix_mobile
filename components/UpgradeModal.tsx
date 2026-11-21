@@ -54,6 +54,8 @@ import {
 } from '@/lib/iap-products'
 import { finalizePaymentSuccess, verifyIapPurchase } from '@/lib/payment'
 import { StoreValue } from '@/components/StoreValue'
+import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
+import { refreshMyStoreApplication, useMyStoreApplication } from '@/hooks/useMyStoreApplication'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { slugify, storeValueParamsFrom, svText, type StoreValueParams } from '@/lib/storeValue'
 
@@ -139,6 +141,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   // already a store (renewing).
   const hasStoreAlready = user?.type === 'store'
   const needsStoreCreation = mode !== 'cancel-store' && !hasStoreAlready
+  // Already applied to become a store: show the application status instead of
+  // the convert flow (every "convert to a store" entry point lands here).
+  const { app: application, open: applied } = useMyStoreApplication()
+  const pendingApplication = needsStoreCreation && applied ? application : null
 
   const [step, setStep] = useState<Step>(
     needsStoreCreation ? 'value' : 'pay-method',
@@ -366,6 +372,7 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
       })
       // Approval mode: the user stays a client and gets an application to track.
       if (res && 'storeApplication' in res) {
+        refreshMyStoreApplication()
         onClose()
         router.replace('/dashboard/store-application')
         return
@@ -616,8 +623,11 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   const priceLabel = iosDisplayPrice
     ? iosDisplayPrice
     : `${selectedPlan.amount} ${currencyLabel} / ${t.monthlyBilling}`
-  const title =
-    mode === 'cancel-store'
+  const title = pendingApplication
+    ? ar
+      ? 'طلب متجرك'
+      : 'Your store application'
+    : mode === 'cancel-store'
       ? t.cancelStore
       : step === 'value'
         ? t.storeValue.modalTitle
@@ -656,7 +666,9 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
               contentContainerStyle={{ padding: spacing.lg }}
               keyboardShouldPersistTaps="handled"
             >
-              {mode === 'cancel-store' ? (
+              {pendingApplication ? (
+                <StoreApplicationStatusCard app={pendingApplication} onNavigate={onClose} />
+              ) : mode === 'cancel-store' ? (
                 <CancelStorePanel
                   err={err}
                   busy={busy}
