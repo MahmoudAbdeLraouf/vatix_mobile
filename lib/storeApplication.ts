@@ -22,6 +22,9 @@ export interface MyStoreApplication {
   submittedAt: string
   reviewedAt: string | null
   reviewSlaHours: number
+  /** Live products right now; below `minProducts` the review waits on the merchant. */
+  activeProductCount?: number
+  minProducts?: number
 }
 
 // Backend labels are Arabic-only; English copy is keyed by reason code.
@@ -30,6 +33,7 @@ export const REASON_EN: Record<string, string> = {
   generic_name: 'The store name is too generic or not allowed',
   not_electronics: 'Your business is not electronics-related',
   suspected_fake: 'The account details could not be trusted',
+  individual_seller: 'Your account fits an individual seller rather than a store',
 }
 
 /** Null when the user never applied. */

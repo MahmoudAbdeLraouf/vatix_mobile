@@ -122,6 +122,10 @@ export default function StoreApplicationScreen() {
       : (REASON_EN[app.reasonCode] ?? app.reasonLabel ?? '')
     : ''
   const editable = app?.status === 'needs_changes' || app?.status === 'rejected'
+  const individual = app?.status === 'rejected' && app.reasonCode === 'individual_seller'
+  // Review can't finish until the merchant has a live product.
+  const needsProduct =
+    app?.status === 'pending' && (app.activeProductCount ?? 1) < (app.minProducts ?? 1)
 
   const banner =
     app &&
@@ -144,15 +148,25 @@ export default function StoreApplicationScreen() {
           ? 'عدّل البيانات أدناه وأعد الإرسال في أي وقت.'
           : 'Update the details below and resubmit any time.',
       },
-      rejected: {
-        icon: '❌',
-        bg: colors.redBg,
-        bd: colors.red,
-        title: ar ? 'لم تتم الموافقة على طلبك' : 'Your application was not approved',
-        body: ar
-          ? 'يمكنك تعديل البيانات وإعادة الإرسال في أي وقت.'
-          : 'You can update the details and resubmit any time.',
-      },
+      rejected: individual
+        ? {
+            icon: '👤',
+            bg: colors.yl,
+            bd: colors.y,
+            title: ar ? 'حسابك هيفضل حساب عادي' : 'Your account stays a regular account',
+            body: ar
+              ? 'تقدر تكمل نشر منتجاتك كبائع فردي زي ما انت. ولو عندك متجر فعلي، عدّل البيانات وأعد التقديم في أي وقت.'
+              : 'You can keep listing your products as an individual seller. If you do run a real store, update the details and resubmit any time.',
+          }
+        : {
+            icon: '❌',
+            bg: colors.redBg,
+            bd: colors.red,
+            title: ar ? 'لم تتم الموافقة على طلبك' : 'Your application was not approved',
+            body: ar
+              ? 'يمكنك تعديل البيانات وإعادة الإرسال في أي وقت.'
+              : 'You can update the details and resubmit any time.',
+          },
       approved: {
         icon: '🎉',
         bg: colors.greenBg,
@@ -222,6 +236,29 @@ export default function StoreApplicationScreen() {
               />
             ) : null}
           </View>
+
+          {needsProduct ? (
+            <View style={[styles.card, styles.banner, { borderColor: colors.y }]}>
+              <View style={[styles.bannerRow, dirContainer]}>
+                <Text style={styles.bannerIcon}>📦</Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[styles.bannerTitle, dirStyle]}>
+                    {ar ? 'خطوة أخيرة: أضف أول منتج' : 'One last step: add your first product'}
+                  </Text>
+                  <Text style={[styles.bannerBody, dirStyle]}>
+                    {ar
+                      ? 'لازم يكون عندك منتج واحد على الأقل منشور علشان نقدر نوافق على متجرك. طلبك هيفضل قيد المراجعة لحد ما تضيفه.'
+                      : 'You need at least one live product before we can approve your store. Your application stays under review until you add one.'}
+                  </Text>
+                </View>
+              </View>
+              <Button
+                label={ar ? 'أضف منتج الآن' : 'Add a product now'}
+                onPress={() => router.push('/products/add')}
+                style={{ marginTop: spacing.md }}
+              />
+            </View>
+          ) : null}
 
           {editable ? (
             <View style={styles.card}>
