@@ -20,6 +20,7 @@ import { authFetch } from '@/lib/auth'
 import { useChatEvents, useFallbackPoll } from '@/lib/chatSocket'
 import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { getStorePromotionOffer } from '@/lib/api'
+import { getMyStoreApplication } from '@/lib/storeApplication'
 import type { PendingUpgradeRequest, Product, PromoInfo, StorePromotionOffer, UserProfile, WalletBalance } from '@/lib/api'
 import { markRated } from '@/lib/rate-app-engagement'
 import { useStoreValueParams } from '@/lib/storeValue'
@@ -106,6 +107,7 @@ export default function MoreScreen() {
   const [promotedUntil, setPromotedUntil] = useState<string | null | undefined>(undefined)
   const [promotionOffer, setPromotionOffer] = useState<StorePromotionOffer | null>(null)
   const [guestSettingsOpen, setGuestSettingsOpen] = useState(false)
+  const [hasStoreApplication, setHasStoreApplication] = useState(false)
 
   // Bumped by every `unread:count` socket push. A REST read that started before a push is stale
   // and must not overwrite the newer socket count.
@@ -149,10 +151,13 @@ export default function MoreScreen() {
         PAID_UI_ENABLED ? authFetch<WalletBalance>('/payments/wallet/balance') : Promise.resolve(null),
         PROMOTION_UI_ENABLED ? authFetch<PromoInfo>('/payments/promo-credits') : Promise.resolve(null),
         PROMOTION_UI_ENABLED ? getStorePromotionOffer() : Promise.resolve(null),
+        user?.type === 'store' ? Promise.resolve(null) : getMyStoreApplication(),
       ])
       if (cancelled) return
 
-      const [adsR, paymentsR, profileR, unreadR, walletR, promoR, offerR] = results
+      const [adsR, paymentsR, profileR, unreadR, walletR, promoR, offerR, applicationR] = results
+
+      if (applicationR.status === 'fulfilled') setHasStoreApplication(!!applicationR.value)
 
       if (adsR.status === 'fulfilled') {
         const mine = (adsR.value as Product[] | null) ?? []
@@ -444,6 +449,9 @@ export default function MoreScreen() {
 
         {/* Dashboard */}
         <Section title={ar ? 'لوحة التحكم' : 'Dashboard'} dirStyle={dirStyle}>
+          {!isStore && hasStoreApplication && (
+            <MoreRow {...rowProps} icon="document-text-outline" label={ar ? 'طلب المتجر' : 'Store application'} onPress={() => router.push('/dashboard/store-application' as never)} />
+          )}
           <MoreRow {...rowProps} icon="stats-chart-outline" label={t.analytics} onPress={() => router.push('/dashboard/analytics')} last />
         </Section>
 

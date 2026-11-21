@@ -249,7 +249,11 @@ export default function SignupStoreScreen() {
         logo: logoUrl,
         ...(coverUrl ? { cover: coverUrl } : {}),
       })
-      await login(response, redirect)
+      // Approval mode: the account starts as a client with a pending application.
+      await login(
+        response,
+        response.user.type === 'client' ? '/dashboard/store-application' : redirect,
+      )
       void track({ name: 'sign_up', params: { method: 'phone', user_type: 'store' } })
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))

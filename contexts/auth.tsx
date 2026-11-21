@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { AppState } from 'react-native'
 import { router } from 'expo-router'
 import {
+  authFetch,
   clearSession,
   getStoredUser,
   isLoggedIn,
@@ -8,6 +10,7 @@ import {
   startTokenRefresher,
   StoredUser,
   updateStoredDisplayName,
+  updateStoredUser,
 } from '@/lib/auth'
 import { AuthResponse } from '@/lib/api'
 import { registerForPushNotifications, unregisterPushNotifications } from '@/lib/notifications'
@@ -64,6 +67,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       stopRefresher?.()
     }
   }, [])
+
+  // An admin can turn a client into a store while the app is open (store
+  // application approved, subscription confirmed). Re-read the type on launch
+  // and on every foreground so the store UI appears without a re-login.
+  const isClient = user?.type === 'client'
+  useEffect(() => {
+    if (!isClient) return
+    const sync = async () => {
+      try {
+        const profile = await authFetch<{ type?: string }>('/user/profile')
+        if (!profile?.type || profile.type === 'client') return
+        await updateStoredUser(profile)
+        setUser(await getStoredUser())
+      } catch {
+        // Offline or token trouble — the next foreground retries.
+      }
+    }
+    void sync()
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void sync()
+    })
+    return () => sub.remove()
+  }, [isClient])
 
   const login = useCallback(async (response: AuthResponse, redirect?: string) => {
     await saveSession(response.accessToken, response.refreshToken, response.user)

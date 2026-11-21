@@ -364,6 +364,12 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
         logo: effLogo || undefined,
         cover: effCover || undefined,
       })
+      // Approval mode: the user stays a client and gets an application to track.
+      if (res && 'storeApplication' in res) {
+        onClose()
+        router.replace('/dashboard/store-application')
+        return
+      }
       await updateStoredUser((res as { user?: Parameters<typeof updateStoredUser>[0] })?.user ?? null)
       await refetchUser()
       onSuccess?.()
