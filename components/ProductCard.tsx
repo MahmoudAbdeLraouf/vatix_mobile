@@ -11,6 +11,7 @@ import { getCategoryIcon } from '@/lib/category-icons'
 import { soldCountText } from '@/lib/salesRecord'
 import { FavoriteButton } from '@/components/FavoriteButton'
 import { VerifiedSeal } from '@/components/VerifiedBadge'
+import { CardContact } from '@/components/CardContact'
 
 interface ProductCardProps {
   product: Product
@@ -181,6 +182,8 @@ function ProductGridCard({
             {` · ${timeAgo(product.createdAt, t)}`}
           </Text>
         )}
+
+        <CardContact product={product} iconOnly style={styles.contact} />
       </View>
     </Pressable>
   )
@@ -342,6 +345,8 @@ function ProductRowCard({ product, style }: { product: Product; style?: ViewStyl
           )}
         </Pressable>
       ) : null}
+
+      <CardContact product={product} style={styles.contact} />
     </Pressable>
   )
 }
@@ -430,6 +435,7 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     justifyContent: 'center',
   },
   body: {
+    flexGrow: 1,
     paddingTop: 8,
     paddingHorizontal: 6,
     paddingBottom: 6,
@@ -529,6 +535,12 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     fontSize: 10,
     lineHeight: 16,
     color: colors.yellowText,
+  },
+  // Pinned to the card foot so the buttons line up across a grid row even when
+  // one card has a sold pill and its neighbour doesn't.
+  contact: {
+    marginTop: 'auto',
+    paddingTop: 8,
   },
 })
 
@@ -769,6 +781,10 @@ const makeRowStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create(
     fontSize: 11,
     lineHeight: 15,
     color: colors.heading,
+  },
+  contact: {
+    marginHorizontal: 10,
+    marginBottom: 10,
   },
 })
 

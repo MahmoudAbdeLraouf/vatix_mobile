@@ -77,7 +77,9 @@ type IoniconName = SharedIoniconName
 
 // ─── Promo Carousel ───────────────────────────────────────────────────────────
 
-const PROMO_H = 150
+// 2:1 banner, clamped so small phones keep room for the text and big ones
+// don't push the categories off screen.
+const PROMO_H = Math.round(Math.min(Math.max(PROMO_W / 2, 160), 200))
 const PROMO_INTERVAL = PROMO_W + spacing.md
 const PROMO_AUTO_MS = 5000
 
@@ -238,7 +240,7 @@ function PromoCard({ item, onPress }: { item: PromoSlide; onPress: () => void })
             <Text style={[promoStyles.title, { color: theme.title }]} numberOfLines={1}>
               {t[item.titleKey]}
             </Text>
-            <Text style={[promoStyles.sub, { color: theme.sub }]} numberOfLines={1}>
+            <Text style={[promoStyles.sub, { color: theme.sub }]} numberOfLines={2}>
               {t[item.subKey]}
             </Text>
             <View style={[promoStyles.btn, { backgroundColor: theme.btnBg }]}>
@@ -251,7 +253,7 @@ function PromoCard({ item, onPress }: { item: PromoSlide; onPress: () => void })
             </View>
           </View>
 
-          <SvgXml xml={item.art} width={128} height={128} />
+          <SvgXml xml={item.art} width={136} height={136} />
         </View>
       </View>
     </TouchableOpacity>
@@ -306,7 +308,7 @@ const promoStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 10,
+    marginTop: 14,
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: radius.full,

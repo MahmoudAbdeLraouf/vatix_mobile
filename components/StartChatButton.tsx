@@ -23,6 +23,8 @@ interface StartChatButtonProps {
   productId?: number
   label?: string
   iconOnly?: boolean
+  // 'sm': compact pill for the contact row inside product cards.
+  size?: 'md' | 'sm'
   style?: ViewStyle
 }
 
@@ -31,12 +33,14 @@ export function StartChatButton({
   productId,
   label,
   iconOnly,
+  size = 'md',
   style,
 }: StartChatButtonProps) {
   const { t } = useLocale()
   const { requireLogin } = useLoginGate()
   const [loading, setLoading] = useState(false)
   const styles = themedStyles[useTheme().mode]
+  const sm = size === 'sm'
 
   const start = async () => {
     if (!requireLogin()) return
@@ -69,6 +73,7 @@ export function StartChatButton({
       style={({ pressed }) => [
         styles.btn,
         iconOnly && styles.btnIconOnly,
+        sm && styles.btnSm,
         style,
         pressed && { opacity: 0.85 },
       ]}
@@ -79,12 +84,12 @@ export function StartChatButton({
         <>
           <Ionicons
             name="chatbubble-ellipses-outline"
-            size={iconOnly ? 22 : 18}
+            size={sm ? 16 : iconOnly ? 22 : 18}
             color={colors.white}
-            style={iconOnly ? undefined : styles.iconStart}
+            style={iconOnly ? undefined : sm ? styles.iconStartSm : styles.iconStart}
           />
           {!iconOnly && (
-            <Text style={styles.label} numberOfLines={1}>
+            <Text style={[styles.label, sm && styles.labelSm]} numberOfLines={1}>
               {label ?? t.startChat}
             </Text>
           )}
@@ -110,13 +115,29 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 56,
     paddingHorizontal: 0,
   },
+  // Sizing comes from the caller (flex:1 in the card row), so drop the fixed width.
+  btnSm: {
+    width: undefined,
+    minHeight: 34,
+    paddingVertical: 0,
+    paddingHorizontal: 8,
+    borderRadius: radius.sm,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   iconStart: {
     marginEnd: 8,
+  },
+  iconStartSm: {
+    marginEnd: 5,
   },
   label: {
     fontFamily: fonts.bold,
     fontSize: 15,
     color: colors.white,
+  },
+  labelSm: {
+    fontSize: 12,
   },
 })
 

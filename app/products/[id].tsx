@@ -43,6 +43,7 @@ import { FavoriteButton } from '@/components/FavoriteButton'
 import { MessagesBell } from '@/components/MessagesBell'
 import { BroEntryCard } from '@/components/bro/BroEntryCard'
 import { RevealPhone } from '@/components/RevealPhone'
+import { buildWaLink } from '@/lib/whatsapp'
 import { StartChatButton } from '@/components/StartChatButton'
 import { StarRating } from '@/components/StarRating'
 import { RatingSection } from '@/components/RatingSection'
@@ -89,30 +90,6 @@ const SELLER_RING: [number, string][] = [
   [0.85, '#FFD84D'],
   [1, '#FFE27A'],
 ]
-
-function normalizeWhatsapp(raw: string | null | undefined): string | null {
-  if (!raw) return null
-  let digits = raw.replace(/\s+/g, '')
-  if (digits.startsWith('+')) digits = digits.slice(1)
-  else if (digits.startsWith('0')) digits = '20' + digits.slice(1)
-  return digits.replace(/\D/g, '') || null
-}
-
-function buildWaLink(
-  whatsapp: string | null | undefined,
-  title: string,
-  price: number,
-  productIdent: number | string,
-  ar: boolean,
-): string | null {
-  const n = normalizeWhatsapp(whatsapp)
-  if (!n) return null
-  const url = `${SITE_URL}/products/${productIdent}`
-  const msg = ar
-    ? `مرحباً، أنا مهتم بالمنتج:\n${title}\nالسعر: ${price} جنيه\n${url}`
-    : `Hi, I'm interested in:\n${title}\nPrice: ${price} EGP\n${url}`
-  return `https://wa.me/${n}?text=${encodeURIComponent(msg)}`
-}
 
 function formatDate(iso: string, locale: 'ar' | 'en'): string {
   try {
