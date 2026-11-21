@@ -25,7 +25,7 @@ export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsa
   const styles = useMemo(() => makeStyles(colors), [colors])
   const { dirStyle, rowDir } = useBroDir()
   const b = t.bro
-  const { app: application, open: applied } = useMyStoreApplication()
+  const { app: application, open: applied, loaded: appLoaded } = useMyStoreApplication()
   const { used, cap, purchased } = usage.offers
   if (cap == null || cap <= 0) return null
 
@@ -58,7 +58,7 @@ export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsa
         {track}
         {applied && application ? <StoreApplicationStatusCard app={application} /> : null}
         <View style={[styles.actions, rowDir]}>
-          {applied ? null : (
+          {applied || !appLoaded ? null : (
             <Button label={b.capBannerStore} variant="y" size="sm" fullWidth={false} onPress={() => setShowUpgrade(true)} style={{ flex: 1.4 }} />
           )}
           <Button

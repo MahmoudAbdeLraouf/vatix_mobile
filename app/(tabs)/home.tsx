@@ -330,13 +330,13 @@ function PromoCarousel() {
   const { user } = useAuth()
   const broEnabled = useBroEnabled()
   // A client who already applied to become a store isn't pitched "open your store" again.
-  const { open: applied } = useMyStoreApplication()
+  const { open: applied, loaded: appLoaded } = useMyStoreApplication()
   const slides = useMemo(
     () =>
       PROMO_SLIDES.filter(
-        s => (broEnabled || !BRO_SLIDES.includes(s.id)) && !(applied && s.id === 'open'),
+        s => (broEnabled || !BRO_SLIDES.includes(s.id)) && !((applied || !appLoaded) && s.id === 'open'),
       ),
-    [broEnabled, applied],
+    [broEnabled, applied, appLoaded],
   )
 
   const scrollRef = useRef<ScrollView>(null)

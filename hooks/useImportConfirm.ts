@@ -5,6 +5,7 @@ import { useLocale } from '@/contexts/locale'
 import { authErrorMessage } from '@/lib/auth'
 import { buySlotsForImportHref, type ImportScreen } from '@/components/import/ClientCapCard'
 import { CapReachedChoice } from '@/components/CapReachedChoice'
+import { isMyStoreApplicationOpen } from '@/hooks/useMyStoreApplication'
 import { ImportApiError, type ImportConfirmResult } from '@/lib/import'
 import type { Translations } from '@/lib/i18n'
 
@@ -52,7 +53,9 @@ export function useImportConfirm(screen: ImportScreen) {
         if (err instanceof ImportApiError) {
           if (err.code === 'CLIENT_PRODUCT_CAP_REACHED') {
             const msg =
-              err.cap != null ? ip.capReachedError.replace('{cap}', String(err.cap)) : ip.capReached
+              err.cap != null
+                ? (isMyStoreApplicationOpen() ? ip.capReachedErrorApplicant : ip.capReachedError).replace('{cap}', String(err.cap))
+                : ip.capReached
             setError(msg)
             // §4 two-way choice: convert to store (recommended) or buy slots.
             setCapInfo({ cap: err.cap ?? undefined })

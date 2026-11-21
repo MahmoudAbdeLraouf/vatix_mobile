@@ -51,7 +51,7 @@ export function ClientCapCard({ screen }: { screen: ImportScreen }) {
   const [status, setStatus] = useState<CapStatus | null>(null)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  const { app: application, open: applied } = useMyStoreApplication()
+  const { app: application, open: applied, loaded: appLoaded } = useMyStoreApplication()
 
   useFocusEffect(
     useCallback(() => {
@@ -116,13 +116,13 @@ export function ClientCapCard({ screen }: { screen: ImportScreen }) {
         // Under the cap: compact store pitch, convert first, slots second.
         // Already applied: the application status replaces the pitch.
         <>
-          {applied && application ? (
+          {!appLoaded ? null : applied && application ? (
             <StoreApplicationStatusCard app={application} style={styles.pitch} />
           ) : (
             <StoreValue variant="compact" params={svp} shortChips style={styles.pitch} />
           )}
           <View style={[styles.actions, rowDir]}>
-            {applied ? null : (
+            {applied || !appLoaded ? null : (
               <Button
                 label={sv.capConvertCtaPlain}
                 variant="y"

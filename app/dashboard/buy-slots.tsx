@@ -705,9 +705,10 @@ function StoreHint() {
   const { colors } = useTheme()
   const styles = useStyles()
   const p = useStoreValueParams()
-  const { app: application, open: applied } = useMyStoreApplication()
+  const { app: application, open: applied, loaded: appLoaded } = useMyStoreApplication()
   if (!SUBSCRIPTION_UI_ENABLED || user?.type !== 'client') return null
   // Already applied: point at the application instead of pitching the conversion.
+  if (!appLoaded) return null
   if (applied && application) return <StoreApplicationStatusCard app={application} />
   const sv = t.storeValue
   return (

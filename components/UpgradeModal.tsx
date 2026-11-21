@@ -143,8 +143,10 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
   const needsStoreCreation = mode !== 'cancel-store' && !hasStoreAlready
   // Already applied to become a store: show the application status instead of
   // the convert flow (every "convert to a store" entry point lands here).
-  const { app: application, open: applied } = useMyStoreApplication()
+  const { app: application, open: applied, loaded: appLoaded } = useMyStoreApplication()
   const pendingApplication = needsStoreCreation && applied ? application : null
+  // Still checking: don't pitch the upgrade to someone who may have just applied.
+  const checkingApplication = needsStoreCreation && !appLoaded
 
   const [step, setStep] = useState<Step>(
     needsStoreCreation ? 'value' : 'pay-method',
@@ -666,7 +668,9 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
               contentContainerStyle={{ padding: spacing.lg }}
               keyboardShouldPersistTaps="handled"
             >
-              {pendingApplication ? (
+              {checkingApplication ? (
+                <ActivityIndicator style={{ paddingVertical: spacing.xl }} color={colors.y} />
+              ) : pendingApplication ? (
                 <StoreApplicationStatusCard app={pendingApplication} onNavigate={onClose} />
               ) : mode === 'cancel-store' ? (
                 <CancelStorePanel

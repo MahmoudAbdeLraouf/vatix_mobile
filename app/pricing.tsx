@@ -140,7 +140,7 @@ export default function PricingScreen() {
 
   const isStore = !!user?.isStore
   // Already applied to become a store: show the application status, not the pitch.
-  const { app: application, open: applied } = useMyStoreApplication()
+  const { app: application, open: applied, loaded: appLoaded } = useMyStoreApplication()
   const trial = fmt(TRIAL_DAYS)
 
   const goConvert = () => {
@@ -389,7 +389,7 @@ export default function PricingScreen() {
                   <Text style={s.manageBtnText}>{tx('إدارة الاشتراك', 'Manage subscription')}</Text>
                 </Pressable>
               </View>
-            ) : applied && application ? (
+            ) : !appLoaded ? null : applied && application ? (
               <StoreApplicationStatusCard app={application} />
             ) : (
               <>
@@ -486,7 +486,7 @@ export default function PricingScreen() {
               renderTopUp(tx('💬 عروض إضافية', '💬 Extra offers'), tx('عرض', 'offer'), offerTiles, (id) =>
                 router.push(`/dashboard/buy-offers?pack=${id}` as never),
               )}
-            {!applied && (
+            {appLoaded && !applied && (
               <Pressable onPress={goConvert} style={s.nudge}>
                 <Text style={s.nudgeText}>{tx('أو حوّل لمتجر وخلّيها ∞ ←', 'Or switch to a store and make it ∞ →')}</Text>
               </Pressable>
@@ -602,7 +602,7 @@ export default function PricingScreen() {
         </View>
 
         {/* Final CTA */}
-        {!isStore && !applied && (
+        {!isStore && appLoaded && !applied && (
           <View style={s.finalCta}>
             <Text style={s.finalEmoji}>🏪</Text>
             <Text style={s.finalTitle}>{tx('جاهز تفتح متجرك؟', 'Ready to open your store?')}</Text>

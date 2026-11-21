@@ -40,7 +40,7 @@ export function BroOfferCapPicks({
   const p = useStoreValueParams()
   const sv = t.storeValue
   // Already applied to become a store: show the application status instead of the convert pick.
-  const { app: application, open: applied } = useMyStoreApplication()
+  const { app: application, open: applied, loaded: appLoaded } = useMyStoreApplication()
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: 'auto' as const }
 
   const [packs, setPacks] = useState<ClientOfferPack[]>([])
@@ -72,7 +72,7 @@ export function BroOfferCapPicks({
         {resetLabel ? svText(sv, 'offerCapSub', p, locale, { date: resetLabel }) : sv.offerCapSubNoDate}
       </Text>
 
-      {applied && application ? (
+      {!appLoaded ? null : applied && application ? (
         <StoreApplicationStatusCard app={application} onNavigate={onNavigate} style={{ marginTop: 16 }} />
       ) : (
       <View style={[styles.pick, styles.pickRec, { marginTop: 16 }]}>

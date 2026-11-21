@@ -34,7 +34,7 @@ function loadEligible(key: string): Promise<boolean> {
 /** True only for a logged-in client whose free trial is used up and who has no open store application. */
 export function useConvertPickEligible(): boolean {
   const { user } = useAuth()
-  const { open: applied } = useMyStoreApplication()
+  const { open: applied, loaded: appLoaded } = useMyStoreApplication()
   const [eligible, setEligible] = useState(false)
   const key = user && !user.isStore ? String(user.id) : null
   useEffect(() => {
@@ -48,7 +48,7 @@ export function useConvertPickEligible(): boolean {
       alive = false
     }
   }, [key])
-  return eligible && !applied
+  return eligible && appLoaded && !applied
 }
 
 export function goConvertToStore() {

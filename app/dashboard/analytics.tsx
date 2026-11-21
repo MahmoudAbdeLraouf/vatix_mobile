@@ -70,7 +70,7 @@ export default function AnalyticsScreen() {
   const { user } = useAuth()
   // Clients don't get store-page contacts — show the locked teaser (§8 analytics row).
   const showStoreLock = user?.type === 'client' && SUBSCRIPTION_UI_ENABLED
-  const { app: application, open: applied } = useMyStoreApplication()
+  const { app: application, open: applied, loaded: appLoaded } = useMyStoreApplication()
   const sv = t.storeValue
   const pa = t.promotedAnalytics
 
@@ -349,7 +349,7 @@ export default function AnalyticsScreen() {
                   </View>
                 ))}
               </View>
-              {applied && application ? (
+              {!appLoaded ? null : applied && application ? (
                 <StoreApplicationStatusCard app={application} />
               ) : (
                 <Button

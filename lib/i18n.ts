@@ -594,6 +594,7 @@ export interface Translations {
     brandNotFound: string
     capReached: string
     capReachedError: string
+    capReachedErrorApplicant: string
     capTitle: string
     capUsed: string
     capRemaining: string
@@ -2150,6 +2151,7 @@ export const translations: Record<Locale, Translations> = {
       brandNotFound: 'الماركة غير موجودة في الصف {row}.',
       capReached: 'وصلت للحد الأقصى من الإعلانات. اشترِ مساحات إضافية للمتابعة.',
       capReachedError: 'عدد المنتجات أكبر من رصيدك المتبقي (الحد {cap} إعلان). اشترِ إعلانات إضافية أو حوّل حسابك لمتجر.',
+      capReachedErrorApplicant: 'عدد المنتجات أكبر من رصيدك المتبقي (الحد {cap} إعلان). اشترِ إعلانات إضافية أو استنى مراجعة طلب متجرك — الحد بيتشال بعد الموافقة.',
       capTitle: 'رصيد إعلاناتك',
       capUsed: '{count} من {cap} إعلان',
       capRemaining: 'متبقي {remaining}',
@@ -3639,6 +3641,7 @@ export const translations: Record<Locale, Translations> = {
       brandNotFound: 'Brand not found on row {row}.',
       capReached: 'You\'ve reached your listing limit. Buy extra slots to continue.',
       capReachedError: 'This import is bigger than your remaining allowance (limit {cap} listings). Buy extra slots or convert to a store.',
+      capReachedErrorApplicant: 'This import is bigger than your remaining allowance (limit {cap} listings). Buy extra slots or wait for your store application review — the limit is lifted once approved.',
       capTitle: 'Your listing allowance',
       capUsed: '{count} of {cap} listings',
       capRemaining: '{remaining} left',

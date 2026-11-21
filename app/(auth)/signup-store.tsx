@@ -39,6 +39,7 @@ import { validatePassword } from '@/lib/password-policy'
 import { PLACEHOLDER_SLUG, StoreUrl, StoreValueChips } from '@/components/StoreValue'
 import { PAID_UI_ENABLED } from '@/lib/platform'
 import { fmtPrice, slugify, svText, useStoreValueParams } from '@/lib/storeValue'
+import { refreshMyStoreApplication } from '@/hooks/useMyStoreApplication'
 
 function useDir() {
   const { locale } = useLocale()
@@ -254,6 +255,7 @@ export default function SignupStoreScreen() {
         response,
         response.user.type === 'client' ? '/dashboard/store-application' : redirect,
       )
+      if (response.user.type === 'client') refreshMyStoreApplication()
       void track({ name: 'sign_up', params: { method: 'phone', user_type: 'store' } })
     } catch (e: unknown) {
       setError(authErrorMessage(e, t))

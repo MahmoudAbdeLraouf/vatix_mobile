@@ -76,7 +76,7 @@ export default function SubscriptionScreen() {
   // drop the user directly into the purchase modal.
   const params = useLocalSearchParams<{ upgrade?: string }>()
   // Clients who already applied see their application status, not the pitch.
-  const { app: application, open: applied } = useMyStoreApplication()
+  const { app: application, open: applied, loaded: appLoaded } = useMyStoreApplication()
 
   const [modal, setModal] = useState<UpgradeMode | null>(null)
   const [walletModal, setWalletModal] = useState(false)
@@ -281,7 +281,7 @@ export default function SubscriptionScreen() {
           {/* Client: upgrade pitch with one obvious CTA. iOS routes the
               purchase through Apple IAP inside the modal. */}
           {isClient && applied && application && <StoreApplicationStatusCard app={application} />}
-          {isClient && SUBSCRIPTION_UI_ENABLED && !applied && (
+          {isClient && SUBSCRIPTION_UI_ENABLED && appLoaded && !applied && (
             <View style={styles.planCard}>
               <View style={colDir}>
                 <Text style={[styles.planHeadText, dirStyle]}>{t.subUpgradeKicker}</Text>

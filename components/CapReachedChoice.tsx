@@ -92,7 +92,7 @@ export function CapReachedChoiceBody({
   const pct = cap > 0 ? Math.min(1, used / cap) : 1
   // Already applied to become a store: show where the application stands instead
   // of pitching the conversion again. Buying slots stays available.
-  const { app: application, open: applied } = useMyStoreApplication()
+  const { app: application, open: applied, loaded: appLoaded } = useMyStoreApplication()
 
   return (
     <View>
@@ -101,7 +101,7 @@ export function CapReachedChoiceBody({
       </View>
       {savedLine ? <Text style={[styles.saved, dirStyle]}>{sv.capSaved}</Text> : null}
 
-      {applied && application ? (
+      {!appLoaded ? null : applied && application ? (
         <StoreApplicationStatusCard
           app={application}
           onNavigate={onNavigate}
@@ -156,7 +156,7 @@ export function CapReachedChoiceBody({
         <Button label={sv.capSlotsBuy} variant="outline" size="sm" fullWidth={false} onPress={onBuySlots} />
       </View>
 
-      {PAID_UI_ENABLED && quote && !applied ? (
+      {PAID_UI_ENABLED && quote && appLoaded && !applied ? (
         <View style={[styles.cmp, { marginTop: 10 }]}>
           <Text style={[styles.cmpText, dirStyle]}>
             {svText(sv, 'capCompare', p, locale, {
