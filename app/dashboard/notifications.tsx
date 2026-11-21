@@ -71,7 +71,7 @@ export default function NotificationsScreen() {
     }
   }
 
-  // Links are website paths; only the Bro request, store-verification, promo-gift and subscription ones have a matching mobile screen, so follow those.
+  // Links are website paths; only the Bro request, store-verification, promo-gift, subscription and store-name-review ones have a matching mobile screen, so follow those.
   function open(item: Notification) {
     if (!item.isRead) markRead(item.id)
     if (item.link?.startsWith('/bro/requests/')) router.push(item.link as never)
@@ -81,6 +81,8 @@ export default function NotificationsScreen() {
       router.push('/dashboard/my-ads' as never)
     } else if (item.type?.startsWith('subscription_') || item.link?.startsWith('/dashboard/subscription')) {
       router.push('/dashboard/subscription' as never)
+    } else if (item.type === 'store_name_review') {
+      router.push('/dashboard/store' as never)
     }
   }
 
@@ -150,7 +152,7 @@ export default function NotificationsScreen() {
                     </Text>
                     {!item.isRead && <View style={styles.dot} />}
                   </View>
-                  <Text style={[styles.itemBody, dirStyle]} numberOfLines={2}>{item.body}</Text>
+                  <Text style={[styles.itemBody, dirStyle]}>{item.body}</Text>
                   <Text style={[styles.itemDate, dirStyle]}>
                     {new Date(item.createdAt).toLocaleDateString(ar ? 'ar-EG' : 'en-EG')}
                   </Text>
