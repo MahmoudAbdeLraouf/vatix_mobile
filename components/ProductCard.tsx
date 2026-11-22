@@ -197,7 +197,7 @@ function initials(name: string) {
   return letters.join('').toUpperCase()
 }
 
-// Marketplace list row (Products tab, My Ads): square thumb + title-first info
+// Marketplace list row (Products tab, My Ads): square thumb + price-first info
 // column, then a footer with the seller (avatar + name) and round call /
 // WhatsApp / chat buttons. Promoted rows get a warm amber card.
 function ProductRowCard({ product, style }: { product: Product; style?: ViewStyle }) {
@@ -308,16 +308,16 @@ function ProductRowCard({ product, style }: { product: Product; style?: ViewStyl
         </View>
 
         <View style={styles.info}>
-          <View style={styles.titleRow}>
-            <Text style={[styles.title, textDirStyle]} numberOfLines={2}>
-              {product.title}
+          <View style={styles.priceRow}>
+            <Text style={[styles.price, textDirStyle]} numberOfLines={1}>
+              {Number(product.price).toLocaleString(ar ? 'ar-EG' : 'en-EG')}{' '}
+              <Text style={styles.priceUnit}>{t.egp}</Text>
             </Text>
             <FavoriteButton productId={product.id} size={22} color={colors.muted} style={styles.heart} />
           </View>
 
-          <Text style={[styles.price, textDirStyle]} numberOfLines={1}>
-            {Number(product.price).toLocaleString(ar ? 'ar-EG' : 'en-EG')}{' '}
-            <Text style={styles.priceUnit}>{t.egp}</Text>
+          <Text style={[styles.title, textDirStyle]} numberOfLines={2}>
+            {product.title}
           </Text>
 
           <Text style={[styles.meta, textDirStyle]} numberOfLines={1}>
@@ -631,13 +631,12 @@ const makeRowStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create(
     minWidth: 0,
     gap: 4,
   },
-  titleRow: {
+  priceRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 6,
   },
   title: {
-    flex: 1,
     fontFamily: fonts.bold,
     fontSize: 15,
     lineHeight: 22,
@@ -646,10 +645,10 @@ const makeRowStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create(
   heart: {
     width: 30,
     height: 30,
-    marginTop: -4,
     marginEnd: -4,
   },
   price: {
+    flex: 1,
     fontFamily: fonts.black,
     fontSize: 22,
     lineHeight: 30,
