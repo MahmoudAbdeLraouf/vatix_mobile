@@ -5,7 +5,7 @@ import { Product } from '@/lib/api'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { useTheme } from '@/contexts/theme'
-import { track, trackProductPhoneClick, trackProductWhatsappClick } from '@/lib/analytics'
+import { track, trackCardContactView, trackProductPhoneClick, trackProductWhatsappClick } from '@/lib/analytics'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
 import { buildWaLink } from '@/lib/whatsapp'
 import { StartChatButton } from '@/components/StartChatButton'
@@ -25,6 +25,8 @@ interface CardContactProps {
 // Call / WhatsApp / chat row at the foot of a product card. Same rules and
 // tracking as the details-page action bar: phone + WhatsApp only when the
 // listing shows the phone and the owner isn't an expired store; chat always.
+// A contact here also counts a product view (trackCardContactView), since the
+// buyer may never open the details page.
 export function CardContact({ product, iconOnly = false, variant = 'pill', style }: CardContactProps) {
   const { locale } = useLocale()
   const { user } = useAuth()
@@ -44,6 +46,7 @@ export function CardContact({ product, iconOnly = false, variant = 'pill', style
 
   const onCall = () => {
     trackProductPhoneClick(product.id)
+    trackCardContactView(product.id)
     void track({ name: 'contact_seller', params: { product_id: product.id, channel: 'phone' } })
     void bumpEngagement('inquiry')
     Linking.openURL(`tel:${phone}`).catch(() => {})
@@ -52,6 +55,7 @@ export function CardContact({ product, iconOnly = false, variant = 'pill', style
   const onWhatsapp = () => {
     if (!waLink) return
     trackProductWhatsappClick(product.id)
+    trackCardContactView(product.id)
     void track({ name: 'contact_seller', params: { product_id: product.id, channel: 'whatsapp' } })
     void bumpEngagement('inquiry')
     Linking.openURL(waLink).catch(() => {})
@@ -85,6 +89,7 @@ export function CardContact({ product, iconOnly = false, variant = 'pill', style
         <StartChatButton
           recipientId={owner.id}
           productId={product.id}
+          onStarted={() => trackCardContactView(product.id)}
           iconOnly
           iconColor={mode === 'dark' ? colors.text : colors.dk}
           style={styles.roundChat}
@@ -127,6 +132,7 @@ export function CardContact({ product, iconOnly = false, variant = 'pill', style
       <StartChatButton
         recipientId={owner.id}
         productId={product.id}
+        onStarted={() => trackCardContactView(product.id)}
         size="sm"
         iconOnly={iconOnly && !!phone}
         style={styles.chatBtn}

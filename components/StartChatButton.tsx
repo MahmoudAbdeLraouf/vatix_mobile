@@ -28,6 +28,8 @@ interface StartChatButtonProps {
   style?: ViewStyle
   // Outline variants (white bg) need a dark icon instead of the default white.
   iconColor?: string
+  // Runs after the conversation is created.
+  onStarted?: () => void
 }
 
 export function StartChatButton({
@@ -38,6 +40,7 @@ export function StartChatButton({
   size = 'md',
   style,
   iconColor = colors.white,
+  onStarted,
 }: StartChatButtonProps) {
   const { t } = useLocale()
   const { requireLogin } = useLoginGate()
@@ -61,6 +64,7 @@ export function StartChatButton({
         })
       }
       void bumpEngagement('inquiry')
+      onStarted?.()
       router.push(`/dashboard/messages/${conv.id}`)
     } catch (e: unknown) {
       Alert.alert(t.startChat, authErrorMessage(e, t))

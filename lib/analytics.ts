@@ -33,8 +33,26 @@ export function trackHomepageView() {
   fireAndForget(`${API}/analytics/homepage-view`, { method: 'POST' })
 }
 
+// Products whose view has been counted this app session, and the subset counted by
+// a card contact button. A card contact stands in for the details-page view, so
+// the next details open of that product is skipped instead of counting twice.
+const viewedProducts = new Set<number>()
+const viewedFromCard = new Set<number>()
+
+/** Details page open. Skipped once if a card contact already counted this product. */
 export function trackProductView(productId: number) {
   if (!Number.isFinite(productId) || productId <= 0) return
+  if (viewedFromCard.delete(productId)) return
+  viewedProducts.add(productId)
+  fireAndForget(`${API}/products/${productId}/view`, { method: 'POST' })
+}
+
+/** Call / WhatsApp / chat on a product card — counts a view unless one was already counted. */
+export function trackCardContactView(productId: number) {
+  if (!Number.isFinite(productId) || productId <= 0) return
+  if (viewedProducts.has(productId)) return
+  viewedProducts.add(productId)
+  viewedFromCard.add(productId)
   fireAndForget(`${API}/products/${productId}/view`, { method: 'POST' })
 }
 
