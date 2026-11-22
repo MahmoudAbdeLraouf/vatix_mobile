@@ -197,19 +197,19 @@ function initials(name: string) {
   return letters.join('').toUpperCase()
 }
 
-// Marketplace list row (Products tab): cover thumb + price-first info column, and
-// a full-width store bar under store listings so the seller reads at a glance.
-// Client listings get no bar — "individual seller" sits on the location line.
+// Marketplace list row (Products tab, My Ads): square thumb + title-first info
+// column, then a footer with the seller (avatar + name) and round call /
+// WhatsApp / chat buttons. Promoted rows get a warm amber card.
 function ProductRowCard({ product, style }: { product: Product; style?: ViewStyle }) {
   const { locale, t, isRtl } = useLocale()
   const { mode, colors } = useTheme()
   const styles = themedRowStyles[mode]
+  const ar = locale === 'ar'
   const thumb = imgUrl(product.images[0]?.url, { w: 400 })
   const photoCount = product.images.length
   const locationName = product.location ? localeName(product.location.translations, locale) : ''
   const isPromoted = !!product.promotedUntil && new Date(product.promotedUntil) > new Date()
 
-  const isNew = product.condition === 'new'
   const conditionLabel =
     {
       new: t.conditionNew,
@@ -217,11 +217,14 @@ function ProductRowCard({ product, style }: { product: Product; style?: ViewStyl
       used_good: t.conditionUsedGood,
       used_acceptable: t.conditionUsedAcceptable,
     }[product.condition ?? ''] ?? t.conditionUsed
+  const metaLine = [conditionLabel, timeAgo(product.createdAt, t), locationName].filter(Boolean).join(' • ')
 
   const owner = product.owner
   const isStore = owner?.type === 'store' && !!owner.storeProfile
-  const storeName = owner?.storeProfile?.name
-  const storeLogo = imgUrl(owner?.storeProfile?.logo, { w: 96 })
+  const clientName = [owner?.clientProfile?.firstName, owner?.clientProfile?.lastName].filter(Boolean).join(' ')
+  const sellerName = isStore ? (owner?.storeProfile?.name ?? '') : clientName || t.individualSeller
+  const storeLogo = isStore ? imgUrl(owner?.storeProfile?.logo, { w: 96 }) : null
+  const avatarLetter = isStore || clientName ? [...sellerName.trim()][0]?.toUpperCase() : undefined
   const verification = owner?.storeProfile?.verification ?? owner?.verification
   // `owner.salesRecord` is omitted by the backend when the sales-record flag is off.
   const salesTotal = isStore ? (owner?.salesRecord?.total ?? 0) : 0
@@ -231,9 +234,45 @@ function ProductRowCard({ product, style }: { product: Product; style?: ViewStyl
     textAlign: 'auto' as const,
   }
 
+  const seller = (
+    <>
+      {storeLogo ? (
+        <Image source={{ uri: storeLogo }} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" />
+      ) : (
+        <View style={[styles.avatar, styles.avatarFallback]}>
+          {avatarLetter ? (
+            <Text style={styles.avatarText}>{avatarLetter}</Text>
+          ) : (
+            <Ionicons name="person" size={16} color={styles.avatarText.color} />
+          )}
+        </View>
+      )}
+      <View style={styles.sellerText}>
+        <View style={styles.sellerNameRow}>
+          <Text style={[styles.sellerName, textDirStyle]} numberOfLines={1}>
+            {sellerName}
+          </Text>
+          {isStore && verification?.verified ? (
+            <View style={styles.verifiedSeal} accessibilityLabel={t.verified.badge}>
+              <VerifiedSeal size={15} />
+            </View>
+          ) : null}
+        </View>
+        {salesTotal > 0 ? (
+          <Text style={[styles.sold, textDirStyle]} numberOfLines={1}>
+            {soldCountText(t.salesRecord.cardSold, salesTotal, t.salesRecord)}
+          </Text>
+        ) : null}
+      </View>
+      {isStore ? (
+        <Ionicons name={isRtl ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.subtle} />
+      ) : null}
+    </>
+  )
+
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, style, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.card, isPromoted && styles.cardPromoted, style, pressed && styles.cardPressed]}
       onPress={() => router.push(`/products/${product.id}`)}
     >
       <View style={styles.top}>
@@ -250,103 +289,60 @@ function ProductRowCard({ product, style }: { product: Product; style?: ViewStyl
             />
           ) : (
             <View style={[styles.thumb, styles.thumbPlaceholder]}>
-              <Ionicons name={getCategoryIcon(product.category)} size={40} color={colors.subtle} />
+              <Ionicons name="image-outline" size={36} color={styles.thumbIcon.color} />
             </View>
           )}
+          {/* Icon + text instead of a "★" emoji inside the Text — Android dropped the Arabic
+              glyphs of the mixed emoji/Arabic run on some recycled rows, leaving only the star. */}
           {isPromoted ? (
             <View style={styles.featuredBadge}>
-              <Ionicons name="star" size={10} color={styles.featuredText.color} />
               <Text style={styles.featuredText} numberOfLines={1}>{t.featured}</Text>
+              <Ionicons name="star" size={10} color={styles.featuredText.color} />
             </View>
           ) : null}
           {photoCount > 1 ? (
             <View style={styles.photoChip}>
-              <Ionicons name="camera" size={11} color="#fff" />
-              <Text style={styles.photoChipText}>{photoCount}</Text>
+              <Text style={styles.photoChipText}>{ar ? `${photoCount} صور` : `${photoCount} photos`}</Text>
             </View>
           ) : null}
         </View>
 
         <View style={styles.info}>
-          <View style={styles.priceRow}>
-            <Text style={[styles.price, textDirStyle]} numberOfLines={1}>
-              {Number(product.price).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-EG')}{' '}
-              <Text style={styles.priceUnit}>{t.egp}</Text>
+          <View style={styles.titleRow}>
+            <Text style={[styles.title, textDirStyle]} numberOfLines={2}>
+              {product.title}
             </Text>
-            <FavoriteButton productId={product.id} size={20} color={colors.muted} style={styles.heart} />
+            <FavoriteButton productId={product.id} size={22} color={colors.muted} style={styles.heart} />
           </View>
 
-          <Text style={[styles.title, textDirStyle]} numberOfLines={2}>
-            {product.title}
+          <Text style={[styles.price, textDirStyle]} numberOfLines={1}>
+            {Number(product.price).toLocaleString(ar ? 'ar-EG' : 'en-EG')}{' '}
+            <Text style={styles.priceUnit}>{t.egp}</Text>
           </Text>
 
-          <View style={styles.meta}>
-            <View style={styles.metaLine}>
-              <View style={[styles.conditionDot, !isNew && styles.conditionDotUsed]} />
-              <Text style={styles.condition} numberOfLines={1}>{conditionLabel}</Text>
-              <View style={styles.sep} />
-              <Text style={styles.metaMuted} numberOfLines={1}>{timeAgo(product.createdAt, t)}</Text>
-            </View>
-            {locationName || !isStore ? (
-              <View style={styles.metaLine}>
-                {locationName ? (
-                  <>
-                    <Ionicons name="location-outline" size={12} color={colors.subtle} />
-                    <Text style={[styles.metaMuted, styles.shrink]} numberOfLines={1}>{locationName}</Text>
-                  </>
-                ) : null}
-                {locationName && !isStore ? <View style={styles.sep} /> : null}
-                {!isStore ? (
-                  <Text style={styles.metaMuted} numberOfLines={1}>{t.individualSeller}</Text>
-                ) : null}
-              </View>
-            ) : null}
-          </View>
+          <Text style={[styles.meta, textDirStyle]} numberOfLines={1}>
+            {metaLine}
+          </Text>
         </View>
       </View>
 
-      {isStore && owner ? (
-        <Pressable
-          style={({ pressed }) => [styles.storeBar, pressed && styles.storeBarPressed]}
-          onPress={() => router.push(`/store/${owner.id}`)}
-          accessibilityRole="link"
-          accessibilityLabel={`${t.visitStore}: ${storeName ?? ''}`}
-        >
-          <View style={styles.logoRing}>
-            {storeLogo ? (
-              <Image source={{ uri: storeLogo }} style={styles.logo} contentFit="cover" cachePolicy="memory-disk" />
-            ) : (
-              <View style={[styles.logo, styles.logoFallback]}>
-                <Ionicons name="storefront" size={14} color={colors.subtle} />
-              </View>
-            )}
-          </View>
-          <View style={styles.storeNameWrap}>
-            <Text style={[styles.storeName, textDirStyle]} numberOfLines={1}>
-              {storeName}
-            </Text>
-            {verification?.verified ? (
-              <View style={styles.verifiedSeal} accessibilityLabel={t.verified.badge}>
-                <VerifiedSeal size={16} />
-              </View>
-            ) : null}
-          </View>
-          {salesTotal > 0 ? (
-            <View style={styles.soldPill}>
-              <Text style={styles.soldPillText} numberOfLines={1}>
-                {soldCountText(t.salesRecord.cardSold, salesTotal, t.salesRecord)}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.visit}>
-              <Text style={styles.visitText}>{t.visitStore}</Text>
-              <Ionicons name={isRtl ? 'chevron-back' : 'chevron-forward'} size={12} color={styles.visitText.color} />
-            </View>
-          )}
-        </Pressable>
-      ) : null}
+      <View style={styles.divider} />
 
-      <CardContact product={product} style={styles.contact} />
+      <View style={styles.footer}>
+        {isStore && owner ? (
+          <Pressable
+            style={({ pressed }) => [styles.seller, pressed && styles.sellerPressed]}
+            onPress={() => router.push(`/store/${owner.id}`)}
+            accessibilityRole="link"
+            accessibilityLabel={`${t.visitStore}: ${sellerName}`}
+          >
+            {seller}
+          </Pressable>
+        ) : (
+          <View style={styles.seller}>{seller}</View>
+        )}
+        <CardContact product={product} variant="round" />
+      </View>
     </Pressable>
   )
 }
@@ -411,17 +407,16 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     position: 'absolute',
     top: 6,
     start: 6,
-    backgroundColor: colors.dk,
+    backgroundColor: colors.y,
     paddingHorizontal: 9,
     paddingVertical: 1,
     borderRadius: 6,
-    ...(dark ? { borderWidth: 1, borderColor: 'rgba(245,184,0,0.35)' } : null),
   },
   tagText: {
     fontFamily: fonts.extraBold,
     fontSize: 10,
     lineHeight: 16,
-    color: colors.y,
+    color: colors.dk,
   },
   heart: {
     position: 'absolute',
@@ -547,14 +542,18 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
 // Built once per theme — this card renders in long lists.
 const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }
 
+const ROW_THUMB = 120
+
 const makeRowStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   card: {
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     backgroundColor: colors.card,
     overflow: 'hidden',
-    // Light: soft lift, no border. Dark: border only — shadows vanish on navy.
+    borderWidth: 1,
+    // Light: soft lift with a near-invisible edge. Dark: border only — shadows vanish on navy.
+    borderColor: dark ? colors.border : 'transparent',
     ...(dark
-      ? { borderWidth: 1, borderColor: colors.border }
+      ? null
       : {
           shadowColor: '#101828',
           shadowOffset: { width: 0, height: 4 },
@@ -563,228 +562,172 @@ const makeRowStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create(
           elevation: 2,
         }),
   },
+  cardPromoted: {
+    backgroundColor: dark ? '#282D35' : '#FFFAEB',
+    borderColor: dark ? 'rgba(245,184,0,0.35)' : '#F0C14B',
+  },
   cardPressed: {
     opacity: 0.92,
     transform: [{ scale: 0.99 }],
   },
   top: {
     flexDirection: 'row',
-    padding: 10,
+    padding: 12,
     gap: 12,
   },
   thumbWrap: {
-    width: 112,
-    height: 112,
+    width: ROW_THUMB,
+    height: ROW_THUMB,
   },
   thumb: {
-    width: 112,
-    height: 112,
-    borderRadius: radius.md,
-    backgroundColor: colors.placeholder,
+    width: ROW_THUMB,
+    height: ROW_THUMB,
+    borderRadius: radius.lg,
+    backgroundColor: dark ? colors.placeholder : '#EEF2F8',
   },
   thumbPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Icon + text instead of a "⭐" emoji inside the Text — Android dropped the Arabic
-  // glyphs of the mixed emoji/Arabic run on some recycled rows, leaving only the star.
+  thumbIcon: {
+    color: dark ? colors.subtle : '#A9B6CC',
+  },
   featuredBadge: {
     position: 'absolute',
-    top: 6,
-    start: 6,
+    top: 8,
+    start: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     backgroundColor: colors.y,
-    borderRadius: 6,
-    paddingHorizontal: 7,
+    borderRadius: 999,
+    paddingHorizontal: 8,
     paddingVertical: 2,
     ...shadow.ss,
   },
   featuredText: {
     fontFamily: fonts.extraBold,
-    fontSize: 10,
+    fontSize: 11,
     color: colors.dk,
     includeFontPadding: false,
   },
   photoChip: {
     position: 'absolute',
-    bottom: 6,
-    start: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(16,24,40,0.6)',
+    bottom: 8,
+    end: 8,
+    backgroundColor: 'rgba(16,24,40,0.65)',
     borderRadius: 999,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 1,
   },
   photoChipText: {
     fontFamily: fonts.bold,
     fontSize: 10,
-    lineHeight: 15,
+    lineHeight: 16,
     color: '#fff',
   },
   info: {
     flex: 1,
     minWidth: 0,
-    gap: 3,
+    gap: 4,
   },
-  priceRow: {
+  titleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: 6,
   },
-  price: {
-    flexShrink: 1,
-    fontFamily: fonts.black,
-    fontSize: 20,
-    lineHeight: 26,
-    color: colors.price,
-  },
-  priceUnit: {
+  title: {
+    flex: 1,
     fontFamily: fonts.bold,
-    fontSize: 11,
-    color: colors.muted,
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.text,
   },
   heart: {
     width: 30,
     height: 30,
+    marginTop: -4,
     marginEnd: -4,
   },
-  title: {
-    fontFamily: fonts.semiBold,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.text,
+  price: {
+    fontFamily: fonts.black,
+    fontSize: 22,
+    lineHeight: 30,
+    color: colors.price,
+  },
+  priceUnit: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
   },
   meta: {
     marginTop: 'auto',
-    gap: 2,
-  },
-  metaLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  conditionDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.green,
-  },
-  conditionDotUsed: {
-    backgroundColor: colors.yd,
-  },
-  condition: {
-    fontFamily: fonts.bold,
-    fontSize: 11,
-    lineHeight: 16,
-    color: colors.muted,
-    flexShrink: 1,
-  },
-  sep: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: colors.dot,
-  },
-  metaMuted: {
     fontFamily: fonts.regular,
-    fontSize: 11,
-    lineHeight: 16,
-    color: colors.subtle,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.muted,
   },
-  shrink: {
-    flexShrink: 1,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 12,
+    backgroundColor: dark ? colors.border : colors.g200,
   },
-  // Inset panel inside the card's white frame — a full-bleed strip in a near-page-bg
-  // tint read as sitting outside the card on iOS.
-  storeBar: {
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginHorizontal: 10,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    backgroundColor: dark ? colors.pressed : '#EAF0F9',
-    borderColor: dark ? colors.border : '#D6E0EF',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
   },
-  storeBarPressed: {
-    opacity: 0.8,
-  },
-  logoRing: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: dark ? colors.border : '#D3DDEC',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: dark ? colors.card : '#fff',
-    backgroundColor: colors.placeholder,
-  },
-  logoFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  storeNameWrap: {
+  seller: {
     flex: 1,
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: spacing.sm,
   },
-  storeName: {
+  sellerPressed: {
+    opacity: 0.7,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.placeholder,
+  },
+  avatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: dark ? colors.blueBg : '#E8F0FE',
+  },
+  avatarText: {
+    fontFamily: fonts.extraBold,
+    fontSize: 15,
+    color: dark ? '#7FB0FF' : '#1257D6',
+  },
+  sellerText: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  sellerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  sellerName: {
     flexShrink: 1,
     fontFamily: fonts.extraBold,
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 19,
     color: colors.heading,
   },
-  // Bare VerifiedSeal — the full pill would crowd the store name off a 1-line bar.
+  // Bare VerifiedSeal — the full pill would crowd the name in the footer.
   verifiedSeal: { flexShrink: 0 },
-  soldPill: {
-    flexShrink: 0,
-    maxWidth: '55%',
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    backgroundColor: dark ? colors.yellowBg : '#FFF3C4',
-    borderColor: dark ? 'rgba(245,184,0,0.35)' : '#F6DD85',
-  },
-  soldPillText: {
-    fontFamily: fonts.extraBold,
-    fontSize: 11,
-    lineHeight: 15,
-    color: colors.yellowText,
-  },
-  visit: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    opacity: 0.7,
-  },
-  visitText: {
+  sold: {
     fontFamily: fonts.bold,
     fontSize: 11,
     lineHeight: 15,
-    color: colors.heading,
-  },
-  contact: {
-    marginHorizontal: 10,
-    marginBottom: 10,
+    color: colors.yellowText,
   },
 })
 

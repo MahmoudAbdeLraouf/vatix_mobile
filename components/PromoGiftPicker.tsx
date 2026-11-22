@@ -330,12 +330,12 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: radius.full,
-    backgroundColor: colors.yellowBg,
+    backgroundColor: colors.y,
   },
   pillText: {
     fontFamily: fonts.bold,
     fontSize: 10,
-    color: colors.yellowText,
+    color: colors.dk,
   },
   error: {
     fontFamily: fonts.bold,

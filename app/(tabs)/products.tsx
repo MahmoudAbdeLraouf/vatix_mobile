@@ -48,10 +48,10 @@ import { ErrorState } from '@/components/ui/ErrorState'
 
 type SortValue = 'newest' | 'oldest' | 'price_asc' | 'price_desc'
 
-// Height of one product row cell (131px card + spacing.md gap). Re-measured from
+// Height of one product row cell (~211px card + spacing.md gap). Re-measured from
 // the first real cell at runtime; this is just the starting guess.
-const DEFAULT_ROW_PITCH = 147
-const BACKDROP_ROWS = Math.ceil(Dimensions.get('window').height / 131) + 2
+const DEFAULT_ROW_PITCH = 227
+const BACKDROP_ROWS = Math.ceil(Dimensions.get('window').height / 211) + 2
 
 type CellLayout = { index: number; y: number; height: number }
 
@@ -566,7 +566,7 @@ export default function ProductsScreen() {
         </View>
 
         <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color={colors.muted} />
+          <Ionicons name="search-outline" size={20} color={colors.muted} />
           <TextInput
             style={[styles.searchInput, { textAlign: 'auto' }]}
             value={search}
@@ -693,8 +693,8 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: colors.bg,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     overflow: 'hidden',
   },
 
@@ -703,8 +703,8 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     backgroundColor: colors.hero,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-    gap: spacing.sm,
+    paddingBottom: spacing.md,
+    gap: spacing.md,
   },
   titleRow: {
     flexDirection: 'row',
@@ -717,14 +717,14 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     gap: spacing.sm,
   },
   title: {
-    fontFamily: fonts.bold,
-    fontSize: 20,
+    fontFamily: fonts.black,
+    fontSize: 26,
     color: colors.white,
   },
   iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -734,9 +734,9 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.searchBg,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
-    height: 46,
+    height: 50,
   },
   searchInput: {
     flex: 1,

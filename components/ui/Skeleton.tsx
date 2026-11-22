@@ -97,15 +97,23 @@ export function SkeletonProductRow() {
 
   return (
     <View style={s.productRow}>
-      <View style={s.productImageWrap}>
+      <View style={s.productTop}>
         <Animated.View style={[s.productImage, { opacity }]} />
+        <Animated.View style={[s.productInfo, { opacity }]}>
+          <View style={[s.bar, { height: 15, width: '90%' }]} />
+          <View style={[s.bar, { height: 15, width: '60%' }]} />
+          <View style={[s.bar, { height: 22, width: '45%', marginTop: 6 }]} />
+          <View style={[s.bar, { height: 11, width: '70%', marginTop: 'auto' }]} />
+        </Animated.View>
       </View>
-      <Animated.View style={[s.productInfo, { opacity }]}>
-        <View style={[s.bar, { height: 20, width: '45%' }]} />
-        <View style={[s.bar, { height: 14, width: '90%', marginTop: 4 }]} />
-        <View style={[s.bar, { height: 14, width: '65%' }]} />
-        <View style={[s.bar, { height: 11, width: '50%', marginTop: 'auto' }]} />
-        <View style={[s.bar, { height: 11, width: '35%' }]} />
+      <View style={s.productDivider} />
+      <Animated.View style={[s.productFooter, { opacity }]}>
+        <View style={s.avatar} />
+        <View style={[s.bar, { height: 13, width: 90 }]} />
+        <View style={s.footerSpacer} />
+        <View style={s.roundBtn} />
+        <View style={s.roundBtn} />
+        <View style={s.roundBtn} />
       </Animated.View>
     </View>
   )
@@ -149,28 +157,55 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   gridItem: {
     width: '48%',
   },
+  // Mirrors ProductRowCard: 120px thumb row, hairline divider, seller + round contact footer.
   productRow: {
-    flexDirection: 'row',
-    padding: 10,
-    gap: 12,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     overflow: 'hidden',
   },
-  productImageWrap: {
-    width: 112,
+  productTop: {
+    flexDirection: 'row',
+    padding: 12,
+    gap: 12,
   },
   productImage: {
-    width: 112,
-    height: 112,
-    borderRadius: radius.md,
+    width: 120,
+    height: 120,
+    borderRadius: radius.lg,
+    backgroundColor: colors.border,
+  },
+  productDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 12,
+    backgroundColor: colors.border,
+  },
+  productFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    paddingTop: 10,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.border,
+  },
+  footerSpacer: {
+    flex: 1,
+  },
+  roundBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.border,
   },
   productInfo: {
     flex: 1,
-    gap: 5,
+    gap: 6,
   },
   bar: {
     borderRadius: radius.sm,

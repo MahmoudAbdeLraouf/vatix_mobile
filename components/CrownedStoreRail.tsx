@@ -22,7 +22,7 @@ import { useAuth } from '@/contexts/auth'
 import { authFetch } from '@/lib/auth'
 import { imgUrl, type CrownedStore, type UserProfile } from '@/lib/api'
 import { VerifiedSeal } from '@/components/VerifiedBadge'
-import { fonts } from '@/constants/theme'
+import { colors, fonts } from '@/constants/theme'
 
 /*
  * Gold "crowned" (paid promotion) store rail + the crowned seller strip.
@@ -268,8 +268,7 @@ export function CrownedPill({ full = false }: { full?: boolean }) {
     : locale === 'ar' ? 'متوّج' : 'Crowned'
   return (
     <View style={[styles.pill, full && styles.pillFull]}>
-      <GoldFill />
-      <CrownIcon size={full ? 13 : 11} compact />
+      <CrownIcon size={full ? 13 : 11} compact color={colors.dk} />
       <Text style={[styles.pillText, full && styles.pillTextFull]}>{label}</Text>
     </View>
   )
@@ -856,8 +855,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 8,
     overflow: 'hidden',
+    backgroundColor: colors.y,
   },
-  pillText: { fontFamily: fonts.black, fontSize: 11, lineHeight: 20, color: NAVY, includeFontPadding: false },
+  pillText: { fontFamily: fonts.black, fontSize: 11, lineHeight: 20, color: colors.dk, includeFontPadding: false },
   pillFull: { gap: 4, paddingHorizontal: 10 },
   pillTextFull: { fontSize: 12, lineHeight: 24 },
 

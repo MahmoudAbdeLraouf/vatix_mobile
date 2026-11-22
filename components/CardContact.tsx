@@ -17,13 +17,15 @@ interface CardContactProps {
   product: Product
   // Grid cards are too narrow for labels; row cards show icon + label.
   iconOnly?: boolean
+  // 'round': fixed-size circular icon buttons for the row card footer.
+  variant?: 'pill' | 'round'
   style?: ViewStyle
 }
 
 // Call / WhatsApp / chat row at the foot of a product card. Same rules and
 // tracking as the details-page action bar: phone + WhatsApp only when the
 // listing shows the phone and the owner isn't an expired store; chat always.
-export function CardContact({ product, iconOnly = false, style }: CardContactProps) {
+export function CardContact({ product, iconOnly = false, variant = 'pill', style }: CardContactProps) {
   const { locale } = useLocale()
   const { user } = useAuth()
   const { mode, colors } = useTheme()
@@ -53,6 +55,42 @@ export function CardContact({ product, iconOnly = false, style }: CardContactPro
     void track({ name: 'contact_seller', params: { product_id: product.id, channel: 'whatsapp' } })
     void bumpEngagement('inquiry')
     Linking.openURL(waLink).catch(() => {})
+  }
+
+  if (variant === 'round') {
+    return (
+      <View style={[styles.roundRow, style]}>
+        {phone ? (
+          <Pressable
+            onPress={onCall}
+            style={({ pressed }) => [styles.round, styles.roundCall, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={callLabel}
+            hitSlop={4}
+          >
+            <Ionicons name="call" size={19} color={mode === 'dark' ? colors.dk : colors.white} />
+          </Pressable>
+        ) : null}
+        {waLink ? (
+          <Pressable
+            onPress={onWhatsapp}
+            style={({ pressed }) => [styles.round, styles.waBtn, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={waLabel}
+            hitSlop={4}
+          >
+            <Ionicons name="logo-whatsapp" size={21} color="#fff" />
+          </Pressable>
+        ) : null}
+        <StartChatButton
+          recipientId={owner.id}
+          productId={product.id}
+          iconOnly
+          iconColor={mode === 'dark' ? colors.text : colors.dk}
+          style={styles.roundChat}
+        />
+      </View>
+    )
   }
 
   return (
@@ -97,7 +135,37 @@ export function CardContact({ product, iconOnly = false, style }: CardContactPro
   )
 }
 
-const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+const ROUND = 44
+
+const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
+  roundRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  round: {
+    width: ROUND,
+    height: ROUND,
+    borderRadius: ROUND / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roundCall: {
+    backgroundColor: dark ? colors.y : colors.dk,
+  },
+  roundChat: {
+    width: ROUND,
+    height: ROUND,
+    minHeight: ROUND,
+    borderRadius: ROUND / 2,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    backgroundColor: colors.card,
+    borderWidth: 1.5,
+    borderColor: dark ? colors.text : colors.dk,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   row: {
     flexDirection: 'row',
     gap: 6,
@@ -137,4 +205,4 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
 })
 
-const themedStyles = { light: makeStyles(lightColors), dark: makeStyles(darkColors) }
+const themedStyles = { light: makeStyles(lightColors, false), dark: makeStyles(darkColors, true) }

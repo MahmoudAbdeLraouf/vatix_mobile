@@ -26,6 +26,8 @@ interface StartChatButtonProps {
   // 'sm': compact pill for the contact row inside product cards.
   size?: 'md' | 'sm'
   style?: ViewStyle
+  // Outline variants (white bg) need a dark icon instead of the default white.
+  iconColor?: string
 }
 
 export function StartChatButton({
@@ -35,6 +37,7 @@ export function StartChatButton({
   iconOnly,
   size = 'md',
   style,
+  iconColor = colors.white,
 }: StartChatButtonProps) {
   const { t } = useLocale()
   const { requireLogin } = useLoginGate()
@@ -79,13 +82,13 @@ export function StartChatButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={colors.white} />
+        <ActivityIndicator size="small" color={iconColor} />
       ) : (
         <>
           <Ionicons
             name="chatbubble-ellipses-outline"
             size={sm ? 16 : iconOnly ? 22 : 18}
-            color={colors.white}
+            color={iconColor}
             style={iconOnly ? undefined : sm ? styles.iconStartSm : styles.iconStart}
           />
           {!iconOnly && (
