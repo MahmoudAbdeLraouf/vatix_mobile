@@ -192,8 +192,8 @@ export default function SubscriptionScreen() {
     ? `${storeIosPrice} / ${t.monthlyBilling}`
     : `${fmt(storeMonthly)} ${ar ? 'ج.م' : 'EGP'} / ${t.monthlyBilling}`
 
-  const isTrial = subInfo?.subscriptionStatus === 'trial'
-  const isActive = subInfo?.subscriptionStatus === 'active'
+  const isTrial = isStore && subInfo?.subscriptionStatus === 'trial'
+  const isActive = isStore && subInfo?.subscriptionStatus === 'active'
   const daysLeft = subInfo?.daysLeft ?? null
   const subDaysLeft = subInfo?.subDaysLeft ?? null
 

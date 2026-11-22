@@ -56,7 +56,7 @@ export function BroUsageMeter({ usage, style, upgrade = false }: { usage: BroUsa
           {resetLabel ? <Text style={[styles.count, dirStyle]}>{b.capBannerResets.replace('{date}', resetLabel)}</Text> : null}
         </View>
         {track}
-        {applied && application ? <StoreApplicationStatusCard app={application} /> : null}
+        {applied && application ? <StoreApplicationStatusCard app={application} style={{ marginBottom: 10 }} /> : null}
         <View style={[styles.actions, rowDir]}>
           {applied || !appLoaded ? null : (
             <Button label={b.capBannerStore} variant="y" size="sm" fullWidth={false} onPress={() => setShowUpgrade(true)} style={{ flex: 1.4 }} />

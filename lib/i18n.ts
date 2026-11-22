@@ -1493,6 +1493,8 @@ export interface Translations {
     signupUrlLabel: string
     signupCta: string
     signupMicro: string
+    signupRequestCta: string
+    signupRequestMicro: string
     modalTitle: string
     modalUsed: string
     modalCta: string
@@ -2984,6 +2986,8 @@ export const translations: Record<Locale, Translations> = {
       signupUrlLabel: "رابط متجرك",
       signupCta: "ابدأ تجربتي المجانية ←",
       signupMicro: "مفيش أي خصم تلقائي — هنفكّرك قبل ما التجربة تخلص.",
+      signupRequestCta: "قدّم طلب المتجر ←",
+      signupRequestMicro: "هنراجع طلبك ونبلّغك على واتساب — التجربة المجانية تبدأ بعد الموافقة.",
       modalTitle: "حوّل حسابك لمتجر",
       modalUsed: "استخدمت {used} من {cap} إعلانات",
       modalCta: "ابدأ {trialDays} يوم مجاناً ←",
@@ -4474,6 +4478,8 @@ export const translations: Record<Locale, Translations> = {
       signupUrlLabel: "Your store link",
       signupCta: "Start my free trial →",
       signupMicro: "No automatic charge — we'll remind you before the trial ends.",
+      signupRequestCta: "Submit store request →",
+      signupRequestMicro: "We'll review your request and let you know on WhatsApp — your free trial starts once approved.",
       modalTitle: "Turn your account into a store",
       modalUsed: "You've used {used} of {cap} listings",
       modalCta: "Start {trialDays} days free →",

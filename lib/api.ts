@@ -978,6 +978,8 @@ export interface SiteSettings {
   mobileWalletAccount: string | null
   mobileWalletName: string | null
   otpVerificationEnabled: boolean
+  /** Store signup files a request for admin approval instead of creating the store directly. */
+  storeApprovalRequired?: boolean
   email: string | null
   phone: string | null
   whatsapp: string | null

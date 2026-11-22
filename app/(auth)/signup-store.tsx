@@ -100,10 +100,12 @@ export default function SignupStoreScreen() {
   const [coverUploading, setCoverUploading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // Store approval on: signup files a request for admin review; the trial starts on approval.
+  const [approvalRequired, setApprovalRequired] = useState(false)
 
   useEffect(() => {
     getSiteSettings()
-      .then(s => setOtpEnabled(s.otpVerificationEnabled))
+      .then(s => { setOtpEnabled(s.otpVerificationEnabled); setApprovalRequired(!!s.storeApprovalRequired) })
       .catch(() => {})
   }, [])
 
@@ -471,8 +473,8 @@ export default function SignupStoreScreen() {
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               )}
-              <Button label={sv.signupCta} onPress={handleSubmit} loading={loading} />
-              <Text style={[styles.micro, { writingDirection: dirStyle.writingDirection }]}>{sv.signupMicro}</Text>
+              <Button label={approvalRequired ? sv.signupRequestCta : sv.signupCta} onPress={handleSubmit} loading={loading} />
+              <Text style={[styles.micro, { writingDirection: dirStyle.writingDirection }]}>{approvalRequired ? sv.signupRequestMicro : sv.signupMicro}</Text>
             </>
           )}
         </ScrollView>
