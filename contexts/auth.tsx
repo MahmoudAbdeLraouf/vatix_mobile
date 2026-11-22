@@ -6,6 +6,8 @@ import {
   clearSession,
   getStoredUser,
   isLoggedIn,
+  normalizeUserType,
+  refreshAccessToken,
   saveSession,
   startTokenRefresher,
   StoredUser,
@@ -68,17 +70,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // An admin can turn a client into a store while the app is open (store
-  // application approved, subscription confirmed). Re-read the type on launch
-  // and on every foreground so the store UI appears without a re-login.
-  const isClient = user?.type === 'client'
+  // The account type can change outside this screen (store application
+  // approved, admin downgrade, a downgrade from another device). Re-read it on
+  // launch and on every foreground so the UI matches without a re-login.
+  const storedType = user?.type === 'client' || user?.type === 'store' ? user.type : null
   useEffect(() => {
-    if (!isClient) return
+    if (!storedType) return
     const sync = async () => {
       try {
         const profile = await authFetch<{ type?: string }>('/user/profile')
-        if (!profile?.type || profile.type === 'client') return
+        if (!profile?.type || normalizeUserType(profile.type) === storedType) return
         await updateStoredUser(profile)
+        await refreshAccessToken()
         setUser(await getStoredUser())
       } catch {
         // Offline or token trouble — the next foreground retries.
@@ -89,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (state === 'active') void sync()
     })
     return () => sub.remove()
-  }, [isClient])
+  }, [storedType])
 
   const login = useCallback(async (response: AuthResponse, redirect?: string) => {
     await saveSession(response.accessToken, response.refreshToken, response.user)

@@ -18,7 +18,7 @@ import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColo
 import { useTheme } from '@/contexts/theme'
 import { useLocale } from '@/contexts/locale'
 import { useAuth } from '@/contexts/auth'
-import { AUTH_ERR, authErrorMessage, authFetch, authPost, updateStoredUser } from '@/lib/auth'
+import { AUTH_ERR, authErrorMessage, authFetch, authPost, refreshAccessToken, updateStoredUser } from '@/lib/auth'
 import {
   getSiteSettings,
   getSubscriptionPlans,
@@ -329,11 +329,14 @@ export function UpgradeModal({ visible, mode, onClose, onSuccess }: Props) {
     setBusy(true)
     setErr('')
     try {
-      const res = await authPost<{ user?: unknown }>('/user/cancel-store', {
+      // The endpoint returns the user itself, not `{ user }`.
+      const updated = await authPost<Parameters<typeof updateStoredUser>[0]>('/user/cancel-store', {
         reason: cancelReason,
         detail: needsDetail ? detailTrimmed : (detailTrimmed || undefined),
       })
-      await updateStoredUser((res as { user?: Parameters<typeof updateStoredUser>[0] })?.user ?? null)
+      await updateStoredUser(updated)
+      // The access token still carries type=store until it is reissued.
+      await refreshAccessToken()
       await refetchUser()
       onSuccess?.()
       onClose()
