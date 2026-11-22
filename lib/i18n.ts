@@ -45,6 +45,7 @@ export interface Translations {
   loginSubtitle: string
   registerTitle: string
   registerSubtitle: string
+  registerShopHint: string
   iAmClient: string
   iAmStore: string
   // Client signup
@@ -54,7 +55,6 @@ export interface Translations {
   createClientAccount: string
   // Store signup
   storeName: string
-  createStoreAccount: string
   // OTP
   otpTitle: string
   otpSubtitle: string
@@ -1466,35 +1466,8 @@ export interface Translations {
     lossVerified: string
     lossAnalytics: string
     lossGift: string
-    regTitle: string
-    regSub: string
-    regStoreRibbon: string
-    regStoreTitle: string
-    regStoreMeta: string
-    regStoreCta: string
-    regClientTitle: string
-    regClientMeta: string
-    regClientSub: string
-    regClientCap: string
-    regClientOffers: string
-    regClientSwitch: string
-    regFree: string
-    regFreeForever: string
-    regClientCta: string
-    regClientChipCap: string
-    regClientChipOffers: string
-    regClientChipSwitch: string
-    regNoSub: string
-    regHaveAccount: string
-    regLoginLink: string
-    perMonthSlash: string
     signupTrial: string
     signupThen: string
-    signupUrlLabel: string
-    signupCta: string
-    signupMicro: string
-    signupRequestCta: string
-    signupRequestMicro: string
     modalTitle: string
     modalUsed: string
     modalCta: string
@@ -1599,7 +1572,8 @@ export const translations: Record<Locale, Translations> = {
     loginTitle: 'مرحباً بعودتك',
     loginSubtitle: 'سجّل دخولك للمتابعة',
     registerTitle: 'إنشاء حساب جديد',
-    registerSubtitle: 'اختر نوع حسابك',
+    registerSubtitle: 'سجّل مجاناً — اشتري وبيع على ڤاتيكس',
+    registerShopHint: '🏪 عندك محل؟ سجّل هنا، وبعدها اضغط «حوّل لمتجر» من حسابك.',
     iAmClient: 'أنا عميل',
     iAmStore: 'أنا متجر',
     firstName: 'الاسم الأول',
@@ -1607,7 +1581,6 @@ export const translations: Record<Locale, Translations> = {
     contactPhone: 'رقم التواصل',
     createClientAccount: 'إنشاء حساب عميل',
     storeName: 'اسم المتجر',
-    createStoreAccount: 'إنشاء حساب متجر',
     otpTitle: 'التحقق من الهاتف',
     otpSubtitle: 'أدخل رمز التحقق المرسل على واتساب إلى',
     otpCode: 'رمز التحقق',
@@ -2959,35 +2932,8 @@ export const translations: Record<Locale, Translations> = {
       lossVerified: "شارة موثّق هتتشال",
       lossAnalytics: "إحصائيات صفحة متجرك هتختفي",
       lossGift: "ومش هتاخد ترويج المنتج الهدية",
-      regTitle: "هتبيع على ڤاتيكس إزاي؟",
-      regSub: "تقدر تحوّل لمتجر في أي وقت بعدين.",
-      regStoreRibbon: "الأنسب للتجار",
-      regStoreTitle: "أنا متجر",
-      regStoreMeta: "لأصحاب المحلات والتجار",
-      regStoreCta: "افتح متجري مجاناً ←",
-      regClientTitle: "أنا عميل",
-      regClientMeta: "مجاناً · لحد {cap} إعلانات",
-      regClientSub: "لو بتبيع حاجة من وقت للتاني",
-      regClientCap: "لحد {cap} إعلانات",
-      regClientOffers: "{offers} عروض على الطلبات في الشهر",
-      regClientSwitch: "تقدر تحوّل لمتجر في أي وقت",
-      regFree: "مجاناً",
-      regFreeForever: "على طول",
-      regClientCta: "متابعة كعميل",
-      regClientChipCap: "{cap} إعلانات",
-      regClientChipOffers: "{offers} عروض / شهر",
-      regClientChipSwitch: "تحوّل لمتجر",
-      regNoSub: "بدون اشتراك",
-      regHaveAccount: "عندك حساب؟",
-      regLoginLink: "سجّل دخول",
-      perMonthSlash: " / شهر",
       signupTrial: "🎉 أول {trialDays} يوم مجاناً",
       signupThen: " — بعدها {price} ج.م/شهر",
-      signupUrlLabel: "رابط متجرك",
-      signupCta: "ابدأ تجربتي المجانية ←",
-      signupMicro: "مفيش أي خصم تلقائي — هنفكّرك قبل ما التجربة تخلص.",
-      signupRequestCta: "قدّم طلب المتجر ←",
-      signupRequestMicro: "هنراجع طلبك ونبلّغك على واتساب — التجربة المجانية تبدأ بعد الموافقة.",
       modalTitle: "حوّل حسابك لمتجر",
       modalUsed: "استخدمت {used} من {cap} إعلانات",
       modalCta: "ابدأ {trialDays} يوم مجاناً ←",
@@ -3091,7 +3037,8 @@ export const translations: Record<Locale, Translations> = {
     loginTitle: 'Welcome Back',
     loginSubtitle: 'Sign in to continue',
     registerTitle: 'Create New Account',
-    registerSubtitle: 'Choose your account type',
+    registerSubtitle: 'Sign up free — buy and sell on Vatix',
+    registerShopHint: '🏪 Own a shop? Sign up here, then tap “Convert to store” in your account.',
     iAmClient: "I'm a client",
     iAmStore: "I'm a store",
     firstName: 'First Name',
@@ -3099,7 +3046,6 @@ export const translations: Record<Locale, Translations> = {
     contactPhone: 'Contact Number',
     createClientAccount: 'Create Client Account',
     storeName: 'Store Name',
-    createStoreAccount: 'Create Store Account',
     otpTitle: 'Phone Verification',
     otpSubtitle: 'Enter the code we sent on WhatsApp to',
     otpCode: 'Verification Code',
@@ -4451,35 +4397,8 @@ export const translations: Record<Locale, Translations> = {
       lossVerified: "The verified badge is removed",
       lossAnalytics: "Your store-page analytics disappear",
       lossGift: "And you won't get the free product promotion",
-      regTitle: "How will you sell on Vatix?",
-      regSub: "You can switch to a store any time later.",
-      regStoreRibbon: "Best for sellers",
-      regStoreTitle: "I'm a store",
-      regStoreMeta: "For shop owners and traders",
-      regStoreCta: "Open my store for free →",
-      regClientTitle: "I'm a client",
-      regClientMeta: "Free · up to {cap} listings",
-      regClientSub: "If you sell something now and then",
-      regClientCap: "Up to {cap} listings",
-      regClientOffers: "{offers} offers on requests per month",
-      regClientSwitch: "Switch to a store any time",
-      regFree: "Free",
-      regFreeForever: "forever",
-      regClientCta: "Continue as client",
-      regClientChipCap: "{cap} listings",
-      regClientChipOffers: "{offers} offers / mo",
-      regClientChipSwitch: "Upgrade anytime",
-      regNoSub: "No subscription",
-      regHaveAccount: "Have an account?",
-      regLoginLink: "Log in",
-      perMonthSlash: " / month",
       signupTrial: "🎉 First {trialDays} days free",
       signupThen: " — then {price} EGP/mo",
-      signupUrlLabel: "Your store link",
-      signupCta: "Start my free trial →",
-      signupMicro: "No automatic charge — we'll remind you before the trial ends.",
-      signupRequestCta: "Submit store request →",
-      signupRequestMicro: "We'll review your request and let you know on WhatsApp — your free trial starts once approved.",
       modalTitle: "Turn your account into a store",
       modalUsed: "You've used {used} of {cap} listings",
       modalCta: "Start {trialDays} days free →",

@@ -51,3 +51,17 @@ export function resubmitStoreApplication(body: {
 }) {
   return authPost<MyStoreApplication>('/store-applications/me/resubmit', body)
 }
+
+export type StoreNudgeTrigger = 'offer_cap' | 'product_cap' | 'offers' | 'products'
+
+/** GET /store-applications/me/nudge. `offers` is null while Bro is off. Ignores the
+ *  application itself — callers check `useMyStoreApplication()` before pitching. */
+export interface StoreNudge {
+  trigger: StoreNudgeTrigger | null
+  products: { used: number; cap: number }
+  offers: { used: number; cap: number } | null
+}
+
+export function getStoreNudge() {
+  return authFetch<StoreNudge>('/store-applications/me/nudge')
+}

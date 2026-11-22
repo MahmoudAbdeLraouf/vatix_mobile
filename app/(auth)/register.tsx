@@ -1,223 +1,257 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  TextInput,
   View,
 } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { Link, router, useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
+import { useAuth } from '@/contexts/auth'
+import {
+  checkOtp,
+  checkPhoneAvailable,
+  getSiteSettings,
+  registerClient,
+  sendOtp,
+} from '@/lib/api'
+import { authErrorMessage } from '@/lib/auth'
+import { track } from '@/lib/analytics'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { BottomTabBar } from '@/components/BottomTabBar'
-import { fonts, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
+import { OtpChannelHint } from '@/components/OtpChannelHint'
+import { OtpCodeInput } from '@/components/OtpCodeInput'
+import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
-import { StoreValueChips } from '@/components/StoreValue'
-import { IS_IOS, PAID_UI_ENABLED } from '@/lib/platform'
-import { fetchIosProducts } from '@/lib/iap'
-import { SUBSCRIPTION_SKUS } from '@/lib/iap-products'
-import { fmtPrice, svText, useStoreValueParams } from '@/lib/storeValue'
+import { validatePassword } from '@/lib/password-policy'
 
-type SignupRoute = '/(auth)/signup-client' | '/(auth)/signup-store'
+type Step = 'form' | 'otp'
 
-function useDir() {
-  const { locale } = useLocale()
-  const ar = locale === 'ar'
-  return {
-    ar,
-    rowDir: ar ? { direction: 'ltr' as const, flexDirection: 'row-reverse' as const } : null,
-    colDir: ar ? { direction: 'rtl' as const } : null,
-    dirStyle: {
-      writingDirection: ar ? ('rtl' as const) : ('ltr' as const),
-      textAlign: 'auto' as const,
-    },
-  }
+const STEP_ICONS: Record<Step, React.ComponentProps<typeof Ionicons>['name']> = {
+  form: 'person-add-outline',
+  otp: 'shield-checkmark-outline',
 }
 
-// Account-type chooser (mockups/register-price.html): store card carries the real
-// price (plans on Android, StoreKit on iOS); the client card matches its weight.
+// The one sign-up form for everyone — no account-type choice. Shop owners register
+// here too, then convert from حسابي's "حوّل لمتجر" card.
 export default function RegisterScreen() {
-  const { t, locale, isRtl, setLocale } = useLocale()
+  const { t, isRtl, locale } = useLocale()
+  const { login } = useAuth()
   const { redirect } = useLocalSearchParams<{ redirect?: string }>()
   const { colors, isDark } = useTheme()
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
-  const { ar, rowDir, colDir, dirStyle } = useDir()
-  const p = useStoreValueParams()
-  const sv = t.storeValue
-  const [iosPrice, setIosPrice] = useState<string | null>(null)
+
+  const [step, setStep] = useState<Step>('form')
+  // null = settings not loaded yet. The OTP step stays hidden unless OTP is
+  // confirmed on; when unknown, the /auth/verify/send response decides
+  // (the backend answers 'skipped' when verification is disabled).
+  const [otpEnabled, setOtpEnabled] = useState<boolean | null>(null)
+
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
+
+  const [code, setCode] = useState('')
+  const codeRef = useRef<TextInput>(null)
+
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!IS_IOS) return
-    let live = true
-    fetchIosProducts(SUBSCRIPTION_SKUS, 'subs')
-      .then(products => {
-        const prod = products.find(x => x?.id === SUBSCRIPTION_SKUS[0]) ?? products[0]
-        if (live && prod?.displayPrice) setIosPrice(prod.displayPrice)
-      })
-      .catch(e => console.warn('[IAP] register subs fetch threw:', e))
-    return () => {
-      live = false
-    }
+    getSiteSettings()
+      .then(s => setOtpEnabled(s.otpVerificationEnabled))
+      .catch(() => {})
   }, [])
 
-  const clientChips: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
-    { icon: 'cube-outline', label: svText(sv, 'regClientChipCap', p, locale) },
-    ...(p.offersOn
-      ? [{ icon: 'pricetag-outline' as const, label: svText(sv, 'regClientChipOffers', p, locale) }]
-      : []),
-    { icon: 'swap-horizontal-outline', label: sv.regClientChipSwitch },
-  ]
+  const STEPS: Step[] = otpEnabled ? ['form', 'otp'] : ['form']
 
-  const go = (route: SignupRoute) =>
-    router.push(redirect ? { pathname: route, params: { redirect } } : route)
+  async function registerAndLogin() {
+    const response = await registerClient({
+      phone: phone.trim(),
+      password,
+      firstName: firstName.trim(),
+      lastName: lastName.trim() || undefined,
+    })
+    await login(response, redirect)
+    void track({ name: 'sign_up', params: { method: 'phone', user_type: 'client' } })
+  }
+
+  async function handleNext() {
+    setError('')
+    if (!firstName.trim()) { setError(t.requiredField); return }
+    if (!phone.trim()) { setError(t.requiredField); return }
+    if (phone.trim().length < 11) { setError(t.invalidPhone); return }
+    const pwd = validatePassword(password, locale)
+    if (!pwd.valid) { setError(pwd.error!); return }
+    if (password !== confirmPassword) { setError(t.passwordMismatch); return }
+
+    setLoading(true)
+    try {
+      const { available } = await checkPhoneAvailable(phone.trim())
+      if (!available) { setError(t.phoneTaken); setLoading(false); return }
+      let enabled = otpEnabled
+      if (enabled !== false) {
+        const { status } = await sendOtp(phone.trim())
+        enabled = status !== 'skipped'
+        setOtpEnabled(enabled)
+      }
+      if (!enabled) {
+        await registerAndLogin()
+        return
+      }
+      setStep('otp')
+    } catch (e: unknown) {
+      setError(authErrorMessage(e, t))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleVerify() {
+    setError('')
+    if (code.length < 4) { setError(t.requiredField); return }
+    setLoading(true)
+    try {
+      const { verified } = await checkOtp(phone.trim(), code)
+      if (!verified) { setError(t.invalidPhone); return }
+      await registerAndLogin()
+    } catch (e: unknown) {
+      setError(authErrorMessage(e, t))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResend() {
+    try { await sendOtp(phone.trim()) } catch {}
+  }
+
+  function handleBack() {
+    if (step === 'otp') { setCode(''); setError(''); setStep('form'); return }
+    if (router.canGoBack()) router.back()
+    else router.replace('/(auth)/login')
+  }
+
+  const stepTitles: Record<Step, string> = {
+    form: t.registerTitle,
+    otp: t.otpTitle,
+  }
+  const stepSubtitles: Record<Step, string> = {
+    form: t.registerSubtitle,
+    otp: `${t.otpSubtitle} ${phone}`,
+  }
 
   return (
-    <SafeAreaView style={[styles.flex, { direction: isRtl ? 'rtl' : 'ltr' }]} edges={['top']}>
-      {/* Navy hero */}
+    <KeyboardAvoidingView
+      style={[styles.flex, { direction: isRtl ? 'rtl' : 'ltr' }]}
+      behavior="padding"
+      enabled={Platform.OS === 'ios'}
+    >
       <View style={styles.hero}>
-        <View style={styles.headerRow}>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(auth)/login'))}
-          >
-            <Ionicons
-              name={isRtl ? 'arrow-forward-outline' : 'arrow-back-outline'}
-              size={20}
-              color={colors.white}
-            />
-          </TouchableOpacity>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
-            >
-              <Ionicons name="globe-outline" size={20} color={colors.white} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => router.push('/dashboard/messages')}
-            >
-              <Ionicons name="chatbubble-outline" size={20} color={colors.white} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => router.push('/dashboard/notifications')}
-            >
-              <Ionicons name="notifications-outline" size={20} color={colors.white} />
-            </TouchableOpacity>
-          </View>
+        <Pressable style={styles.backBtn} onPress={handleBack}>
+          <Ionicons name="arrow-back-outline" size={22} color="rgba(255,255,255,0.75)" />
+        </Pressable>
+
+        <View style={styles.stepIconWrap}>
+          <Ionicons name={STEP_ICONS[step]} size={30} color={colors.dk} />
         </View>
 
-        <Text style={[styles.heroTitle, dirStyle]}>{sv.regTitle}</Text>
+        <Text style={styles.heroTitle}>{stepTitles[step]}</Text>
+        <Text style={styles.heroSubtitle}>{stepSubtitles[step]}</Text>
+
+        <View style={styles.stepDots}>
+          {STEPS.map((s, i) => (
+            <View
+              key={s}
+              style={[
+                styles.dot,
+                s === step && styles.dotActive,
+                STEPS.indexOf(step) > i && styles.dotDone,
+              ]}
+            />
+          ))}
+        </View>
       </View>
 
-      {/* White card */}
       <View style={styles.card}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* Store — recommended */}
-          <Pressable
-            style={({ pressed }) => [styles.storeCard, pressed && { opacity: 0.92 }]}
-            onPress={() => go('/(auth)/signup-store')}
-          >
-            <View style={[styles.rib, ar ? { right: 14 } : { left: 14 }]}>
-              <Text style={styles.ribText}>{sv.regStoreRibbon}</Text>
-            </View>
-            <View style={[styles.optHead, rowDir]}>
-              <View style={[styles.typeIconWrap, styles.typeIconStore]}>
-                <Ionicons name="storefront-outline" size={22} color={colors.dk} />
-              </View>
-              <View style={[{ flex: 1 }, colDir]}>
-                <Text style={[styles.typeLabel, dirStyle]}>{sv.regStoreTitle}</Text>
-                <Text style={[styles.typeMeta, dirStyle]}>{svText(sv, 'regStoreMeta', p, locale)}</Text>
-              </View>
-            </View>
-            <StoreValueChips params={p} short />
-            <View style={[styles.priceRow, rowDir]}>
-              {PAID_UI_ENABLED ? (
-                <Text style={[styles.priceText, dirStyle]}>
-                  <Text style={styles.priceBig}>{fmtPrice(p.price)}</Text> {sv.perMonthShort}
-                  {p.list > p.price ? (
-                    <>
-                      {' '}
-                      <Text style={styles.strike}>{fmtPrice(p.list)}</Text>
-                    </>
-                  ) : null}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {step === 'form' && (
+            <>
+              <View style={styles.shopHint}>
+                <Text style={[styles.shopHintText, { writingDirection: isRtl ? 'rtl' : 'ltr' }]}>
+                  {t.registerShopHint}
                 </Text>
-              ) : iosPrice ? (
-                <Text style={[styles.priceText, dirStyle]}>
-                  <Text style={styles.priceIos}>{iosPrice}</Text>
-                  {sv.perMonthSlash}
-                </Text>
-              ) : (
-                <Text style={[styles.priceText, dirStyle]}>{sv.iosStoreSub}</Text>
+              </View>
+              <Input label={t.firstName} value={firstName} onChangeText={setFirstName} autoCapitalize="words" />
+              <Input label={t.lastName} value={lastName} onChangeText={setLastName} autoCapitalize="words" />
+              <Input
+                label={t.phone}
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+                placeholder="01xxxxxxxxx"
+                // Phone numbers render LTR regardless of UI locale.
+                style={{ textAlign: 'left', writingDirection: 'ltr' }}
+              />
+              <Input
+                label={t.password}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPass}
+                rightIcon={<Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} />}
+                onRightIconPress={() => setShowPass(v => !v)}
+              />
+              <Input
+                label={t.confirmPassword}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showPass}
+              />
+              {!!error && (
+                <View style={styles.errorBox}>
+                  <Ionicons name="alert-circle-outline" size={16} color={isDark ? '#FC8181' : '#C53030'} />
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
               )}
-              {p.trialDays > 0 ? (
-                <View style={styles.trialPill}>
-                  <Text style={[styles.trialPillText, dirStyle]}>{svText(sv, 'trialPill', p, locale)}</Text>
-                </View>
-              ) : null}
-            </View>
-            <View style={styles.cta}>
-              <Text style={styles.ctaText}>{sv.regStoreCta}</Text>
-            </View>
-          </Pressable>
+              <Button label={t.next} onPress={handleNext} loading={loading} />
+            </>
+          )}
 
-          {/* Client — same weight as the store card */}
-          <Pressable
-            style={({ pressed }) => [styles.clientCard, pressed && { opacity: 0.85 }]}
-            onPress={() => go('/(auth)/signup-client')}
-          >
-            <View style={[styles.optHead, rowDir]}>
-              <View style={[styles.typeIconWrap, styles.typeIconClient]}>
-                <Ionicons name="person-outline" size={21} color={isDark ? colors.y : colors.dk} />
-              </View>
-              <View style={[{ flex: 1 }, colDir]}>
-                <Text style={[styles.typeLabel, dirStyle]}>{sv.regClientTitle}</Text>
-                <Text style={[styles.typeMeta, dirStyle]}>{sv.regClientSub}</Text>
-              </View>
-            </View>
-            <View style={[styles.chips, rowDir]}>
-              {clientChips.map(chip => (
-                <View key={chip.icon} style={[styles.chip, rowDir]}>
-                  <Ionicons name={chip.icon} size={14} color={colors.subtle} />
-                  <Text style={[styles.chipText, dirStyle]} numberOfLines={1}>
-                    {chip.label}
-                  </Text>
+          {step === 'otp' && (
+            <>
+              <OtpChannelHint />
+              <OtpCodeInput ref={codeRef} value={code} onChange={setCode} onComplete={() => { if (!loading) handleVerify() }} />
+              {!!error && (
+                <View style={styles.errorBox}>
+                  <Ionicons name="alert-circle-outline" size={16} color={isDark ? '#FC8181' : '#C53030'} />
+                  <Text style={styles.errorText}>{error}</Text>
                 </View>
-              ))}
-            </View>
-            <View style={[styles.priceRow, rowDir]}>
-              <Text style={[styles.priceText, dirStyle]}>
-                <Text style={styles.priceBig}>{sv.regFree}</Text> {sv.regFreeForever}
-              </Text>
-              <View style={styles.noSubPill}>
-                <Text style={[styles.noSubText, dirStyle]}>{sv.regNoSub}</Text>
-              </View>
-            </View>
-            <View style={styles.outlineBtn}>
-              <Text style={styles.outlineBtnText}>{sv.regClientCta}</Text>
-            </View>
-          </Pressable>
-
-          {/* Last item of the evenly spread column — never pinned to the tab bar */}
-          <View style={[styles.footer, rowDir]}>
-            <Text style={[styles.footerText, dirStyle]}>{sv.regHaveAccount} </Text>
-            <Link
-              href={redirect ? { pathname: '/(auth)/login', params: { redirect } } : '/(auth)/login'}
-              asChild
-            >
-              <Pressable hitSlop={8} style={styles.linkWrap}>
-                <Text style={[styles.link, dirStyle]}>{sv.regLoginLink}</Text>
+              )}
+              <Button label={t.verify} onPress={handleVerify} loading={loading} />
+              <Pressable style={styles.resendBtn} onPress={handleResend}>
+                <Text style={styles.resendText}>{t.resendCode}</Text>
               </Pressable>
-            </Link>
-          </View>
+            </>
+          )}
         </ScrollView>
       </View>
 
       <BottomTabBar />
-    </SafeAreaView>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -227,23 +261,14 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   hero: {
     alignItems: 'center',
     gap: spacing.xs,
-    paddingTop: spacing.sm,
-    paddingBottom: 14,
+    paddingTop: spacing.xxl + spacing.lg,
+    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
   },
-  headerRow: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  iconBtn: {
+  backBtn: {
+    position: 'absolute',
+    top: spacing.xxl,
+    start: spacing.lg,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -251,146 +276,102 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  stepIconWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: radius.full,
+    backgroundColor: colors.y,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
   heroTitle: {
     fontFamily: fonts.extraBold,
     fontSize: 22,
     color: colors.white,
     textAlign: 'center',
   },
+  heroSubtitle: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.65)',
+    textAlign: 'center',
+  },
+  stepDots: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  dotActive: {
+    backgroundColor: colors.y,
+    width: 20,
+  },
+  dotDone: {
+    backgroundColor: 'rgba(255,255,255,0.6)',
+  },
+
   card: {
     flex: 1,
     backgroundColor: colors.card,
     borderTopStartRadius: radius.xl,
     borderTopEndRadius: radius.xl,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.lg,
     paddingHorizontal: spacing.lg,
   },
-
-  // Grows to the card height and spreads store / client / login evenly; scrolls on short screens.
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'space-evenly',
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
-    gap: 12,
+  scrollContent: {
+    paddingBottom: spacing.xxl * 2,
   },
 
-  storeCard: {
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: colors.y,
-    backgroundColor: dark ? colors.card : '#FFFCF0',
-    padding: 12,
-    paddingTop: 16,
-    gap: 8,
-    ...(dark ? null : shadow.ss),
-  },
-  rib: {
-    position: 'absolute',
-    top: -11,
-    backgroundColor: colors.y,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 1,
-  },
-  ribText: { fontFamily: fonts.black, fontSize: 11, color: colors.dk },
-  optHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginTop: 2,
-  },
-  priceText: { fontFamily: fonts.bold, fontSize: 13, color: dark ? colors.muted : colors.g600 },
-  priceBig: { fontFamily: fonts.black, fontSize: 22, color: colors.heading },
-  priceIos: { fontFamily: fonts.black, fontSize: 20, color: colors.heading },
-  strike: { textDecorationLine: 'line-through', color: colors.subtle },
-  trialPill: {
-    backgroundColor: dark ? 'rgba(16,185,129,0.16)' : '#E7F8F1',
-    borderRadius: radius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  trialPillText: { fontFamily: fonts.extraBold, fontSize: 12, color: dark ? colors.green : '#0b7a57' },
-  cta: {
-    backgroundColor: colors.y,
-    borderRadius: radius.md,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  ctaText: { fontFamily: fonts.black, fontSize: 15, color: colors.dk },
 
-  clientCard: {
-    padding: 12,
-    gap: 8,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-  },
-  typeIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  typeIconStore: { backgroundColor: colors.y },
-  typeIconClient: {
+  shopHint: {
     backgroundColor: dark ? colors.placeholder : colors.g100,
     borderWidth: 1,
+    borderStyle: 'dashed',
     borderColor: colors.border,
-  },
-  typeLabel: { fontFamily: fonts.black, fontSize: 16, color: colors.heading },
-  // Neutral twin of StoreValueChips — same shape, grey instead of the store's accent.
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: dark ? colors.placeholder : colors.g100,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 30,
-    paddingVertical: 3,
-    paddingHorizontal: 9,
-  },
-  chipText: { fontFamily: fonts.extraBold, fontSize: 12, color: dark ? colors.muted : colors.g600 },
-  noSubPill: {
-    backgroundColor: dark ? colors.placeholder : colors.g100,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  noSubText: { fontFamily: fonts.extraBold, fontSize: 12, color: dark ? colors.muted : colors.g600 },
-  outlineBtn: {
-    borderWidth: 1.5,
-    borderColor: dark ? colors.y : colors.dk,
     borderRadius: radius.md,
-    paddingVertical: 9,
-    alignItems: 'center',
-    backgroundColor: colors.card,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
   },
-  outlineBtnText: { fontFamily: fonts.extraBold, fontSize: 14, color: dark ? colors.y : colors.dk },
-  typeMeta: { fontFamily: fonts.semiBold, fontSize: 12, color: colors.muted },
-
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footerText: {
+  shopHintText: {
     fontFamily: fonts.semiBold,
-    fontSize: 14.5,
+    fontSize: 13,
     color: dark ? colors.muted : colors.g600,
+    textAlign: 'auto',
   },
-  link: {
-    fontFamily: fonts.black,
-    fontSize: 14.5,
-    color: colors.heading,
+
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.redBg,
+    borderWidth: 1,
+    borderColor: dark ? 'rgba(229,62,62,0.35)' : '#FED7D7',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
   },
-  linkWrap: { borderBottomWidth: 2, borderBottomColor: colors.y },
+  errorText: {
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: dark ? '#FC8181' : '#C53030',
+  },
+
+  resendBtn: {
+    alignItems: 'center',
+    marginTop: spacing.lg,
+  },
+  resendText: {
+    fontFamily: fonts.bold,
+    fontSize: 14,
+    color: colors.y,
+  },
 })

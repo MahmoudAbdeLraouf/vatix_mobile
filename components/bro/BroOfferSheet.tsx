@@ -41,6 +41,7 @@ import { UpgradeModal } from '@/components/UpgradeModal'
 import { BroOfferCapPicks } from '@/components/bro/BroOfferCapPicks'
 import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
 import { useMyStoreApplication } from '@/hooks/useMyStoreApplication'
+import { refreshStoreNudge } from '@/hooks/useStoreNudge'
 import { categoryIcon, type BroOfferPick } from '@/components/bro/BroBoardCard'
 
 type Tab = 'products' | 'scratch' | 'saved'
@@ -304,6 +305,7 @@ function SheetBody({ requestId, userType, modelText, categoryName = null, budget
             ? { ...content, source: 'product' as const }
             : { ...content, source: 'scratch' as const, saveAsTemplate, saveAsProduct }
       const offer = await createBroOffer(requestId, body)
+      refreshStoreNudge()
       if (offer.productSkippedReason === 'cap') setCapResult(offer)
       else onSent(offer)
     } catch (err) {

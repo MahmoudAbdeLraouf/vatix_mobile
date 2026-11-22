@@ -39,6 +39,7 @@ import { authErrorMessage, authFetch, authPost } from '@/lib/auth'
 import { track } from '@/lib/analytics'
 import { PROMOTION_UI_ENABLED } from '@/lib/platform'
 import { bumpEngagement } from '@/lib/rate-app-engagement'
+import { refreshStoreNudge } from '@/hooks/useStoreNudge'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 
@@ -302,6 +303,7 @@ export default function AddProductScreen() {
         PROMOTION_UI_ENABLED && created?.promoGiftGranted ? created.promoGiftGranted.giftId : null,
       )
       setPublishedId(created?.id ?? '')
+      refreshStoreNudge()
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : ''
       if (msg.includes('CLIENT_PRODUCT_CAP_REACHED') || msg.includes('وصلت للحد الأقصى')) {

@@ -402,7 +402,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 }
 
 // Multipart-safe variant of the try/catch wrap in apiFetch. Multipart callers
-// (uploadPublic, registerStore) can't go through apiFetch because it forces
+// (uploadPublic) can't go through apiFetch because it forces
 // application/json — but they still need the same Sentry breadcrumb +
 // AUTH_ERR.NETWORK_ERROR translation on offline/DNS/TLS transport failures.
 // Otherwise the raw `TypeError: Network request failed` leaks up as an
@@ -721,26 +721,6 @@ export function registerClient(data: {
   contactPhone?: string
 }): Promise<AuthResponse> {
   return apiFetch('/auth/register/client', { method: 'POST', body: JSON.stringify(data) })
-}
-
-export function registerStore(data: {
-  phone: string
-  password: string
-  type: 'store'
-  storeName: string
-  description?: string
-  locationId?: number
-  logo: string
-  cover?: string
-}): Promise<AuthResponse> {
-  // Logo and cover are uploaded via /uploads/public before this call and sent
-  // as MinIO URL strings. The multipart variant produced intermittent
-  // "logo is required" errors — the picker-cache URI could be evicted between
-  // pick and submit, so FormData read an empty blob at upload time.
-  return apiFetch('/auth/register/store', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
 }
 
 // ─── Authenticated product creation ──────────────────────────────────────────

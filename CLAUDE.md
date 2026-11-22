@@ -31,9 +31,9 @@ app/
   index.tsx             Redirects to (auth)/login or (tabs)/home based on auth state
   (auth)/               Unauthenticated screens (Stack navigator)
     login.tsx
-    register.tsx        Choose client or store
-    signup-client.tsx
-    signup-store.tsx
+    register.tsx        The one sign-up form (client) — stores convert later from حسابي
+    signup-client.tsx   Legacy redirect → register
+    signup-store.tsx    Legacy redirect → register
     otp.tsx             Phone OTP verification
   (tabs)/               Authenticated screens (Tab navigator)
     home.tsx            Featured stores + latest products

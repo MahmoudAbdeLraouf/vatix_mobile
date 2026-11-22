@@ -31,6 +31,7 @@ import { UsePromoCreditsDialogTrigger } from '@/components/UsePromoCreditsDialog
 import { CategoriesBrandsDialogTrigger } from '@/components/CategoriesBrandsDialogTrigger'
 import { StoreVerifyDialogTrigger } from '@/components/StoreVerifyDialogTrigger'
 import { PromoGiftOfferDialogTrigger } from '@/components/PromoGiftOfferDialogTrigger'
+import { StoreNudgeCard } from '@/components/StoreNudge'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { installGlobalErrorHandler } from '@/lib/globalErrorHandler'
 import { beforeSend } from '@/lib/sentryScrub'
@@ -137,6 +138,7 @@ function RootLayout() {
               <CategoriesBrandsDialogTrigger />
               <StoreVerifyDialogTrigger />
               <PromoGiftOfferDialogTrigger />
+              <StoreNudgeCard />
             </LoginGateProvider>
           </AuthProvider>
         </ThemeProvider>

@@ -144,7 +144,7 @@ export default function PricingScreen() {
   const trial = fmt(TRIAL_DAYS)
 
   const goConvert = () => {
-    if (!user) router.push('/(auth)/signup-store')
+    if (!user) router.push('/(auth)/register')
     else router.push({ pathname: '/dashboard/subscription', params: { upgrade: 'store' } } as never)
   }
   const ctaLabel = tx(`حوّل لمتجر — ${trial} يوم مجاناً`, `Switch to a store — ${TRIAL_DAYS} days free`)

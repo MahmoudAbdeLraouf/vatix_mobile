@@ -11,7 +11,6 @@ import { SubscriptionExpiringDialog } from '@/components/SubscriptionExpiringDia
 import { NotificationBell } from '@/components/NotificationBell'
 import { SalesRecordCard } from '@/components/SalesRecordCard'
 import { BroAvatar } from '@/components/bro/BroAvatar'
-import { StoreUpsellBanner } from '@/components/StoreUpsellBanner'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
@@ -21,10 +20,9 @@ import { useChatEvents, useFallbackPoll } from '@/lib/chatSocket'
 import { IS_IOS, PAID_UI_ENABLED, PROMOTION_UI_ENABLED, SUBSCRIPTION_UI_ENABLED } from '@/lib/platform'
 import { getStorePromotionOffer } from '@/lib/api'
 import { getMyStoreApplication, type MyStoreApplication } from '@/lib/storeApplication'
-import { StoreApplicationStatusCard } from '@/components/StoreApplicationStatusCard'
+import { StoreAccountCard } from '@/components/StoreNudge'
 import type { PendingUpgradeRequest, Product, PromoInfo, StorePromotionOffer, UserProfile, WalletBalance } from '@/lib/api'
 import { markRated } from '@/lib/rate-app-engagement'
-import { useStoreValueParams } from '@/lib/storeValue'
 import { darkColors, fonts, lightColors, radius, shadow, spacing, type ThemeColors } from '@/constants/theme'
 
 type IconName = React.ComponentProps<typeof Ionicons>['name']
@@ -86,11 +84,8 @@ export default function MoreScreen() {
   const broEnabled = useBroEnabled()
   const insets = useSafeAreaInsets()
   const { rowDir, colDir, dirStyle } = useDir(ar)
-  const svParams = useStoreValueParams()
 
   const [adsCount, setAdsCount] = useState<number | null>(null)
-  const [activeAds, setActiveAds] = useState<number | null>(null)
-  const [extraSlots, setExtraSlots] = useState(0)
   const [msgUnread, setMsgUnread] = useState<number | null>(null)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [promoCredits, setPromoCredits] = useState<number | null>(null)
@@ -163,7 +158,6 @@ export default function MoreScreen() {
       if (adsR.status === 'fulfilled') {
         const mine = (adsR.value as Product[] | null) ?? []
         setAdsCount(mine.length)
-        setActiveAds(mine.filter((p) => p.isActive).length)
       } else setAdsError(true)
 
       // A socket push that landed while this batch was in flight is newer than the REST result.
@@ -200,7 +194,6 @@ export default function MoreScreen() {
         setShowLogoDialog(!!profile?.flags?.showStoreLogoDialog)
         setShowAddProductDialog(!!profile?.flags?.showAddProductDialog)
         setPendingUpgrade(profile?.pendingUpgrade ?? null)
-        setExtraSlots(Number(profile?.extraProductSlots ?? 0) || 0)
         const until = profile?.storeProfile?.promotedUntil ?? null
         setPromotedUntil(until && Date.parse(until) > Date.now() ? until : null)
         if (profile?.flags?.showSubscriptionExpiringDialog && profile?.flags?.subscriptionEndsAt) {
@@ -368,18 +361,10 @@ export default function MoreScreen() {
           </View>
         </View>
 
-        {/* Store application status replaces the "open your store" pitch once they applied */}
-        {isClient && storeApplication && (
-          <StoreApplicationStatusCard app={storeApplication} />
-        )}
-        {/* Banner — passive client → store pitch (§5), dismissible for 30 days */}
-        {isClient && !storeApplication && SUBSCRIPTION_UI_ENABLED && activeAds != null && (
-          <StoreUpsellBanner
-            used={activeAds}
-            cap={svParams.cap + extraSlots}
-            params={svParams}
+        {/* Persistent convert-to-store card (or the application status once they applied) */}
+        {isClient && SUBSCRIPTION_UI_ENABLED && (
+          <StoreAccountCard
             disabled={!!pendingUpgrade}
-            dismissKey="dashboard"
             onConvert={() => router.push({ pathname: '/dashboard/subscription', params: { upgrade: 'store' } } as never)}
           />
         )}
