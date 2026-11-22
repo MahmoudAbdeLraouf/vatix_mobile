@@ -74,6 +74,14 @@ export function useMyStoreApplication() {
     }
   }, [])
 
+  // While the user is a store, drop the cached pre-approval answer so a later
+  // downgrade to client fetches fresh instead of flashing the old "pending" card.
+  useEffect(() => {
+    if (key || !state) return
+    state = null
+    inflight = null
+  }, [key])
+
   useFocusEffect(
     useCallback(() => {
       if (key) void load(key)
