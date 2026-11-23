@@ -124,7 +124,7 @@ export default function StoreApplicationScreen() {
       : (REASON_EN[app.reasonCode] ?? app.reasonLabel ?? '')
     : ''
   const editable = app?.status === 'needs_changes' || app?.status === 'rejected'
-  const individual = app?.status === 'rejected' && app.reasonCode === 'individual_seller'
+  const individual = app?.status === 'rejected' && (app.reasonCode === 'individual_seller' || app.reasonCode === 'meant_to_add_product')
   // Review can't finish until the merchant has a live product.
   const needsProduct =
     app?.status === 'pending' && (app.activeProductCount ?? 1) < (app.minProducts ?? 1)

@@ -41,7 +41,7 @@ export function StoreApplicationStatusCard({
   const styles = useMemo(() => makeStyles(colors, isDark), [colors, isDark])
 
   const needsProduct = app.status === 'pending' && (app.activeProductCount ?? 1) < (app.minProducts ?? 1)
-  const individual = app.status === 'rejected' && app.reasonCode === 'individual_seller'
+  const individual = app.status === 'rejected' && (app.reasonCode === 'individual_seller' || app.reasonCode === 'meant_to_add_product')
   const reason = app.reasonCode
     ? ar
       ? (app.reasonLabel ?? '')
