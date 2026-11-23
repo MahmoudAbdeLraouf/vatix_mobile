@@ -34,6 +34,7 @@ export const REASON_EN: Record<string, string> = {
   not_electronics: 'Your business is not electronics-related',
   suspected_fake: 'The account details could not be trusted',
   individual_seller: 'Your account fits an individual seller rather than a store',
+  no_products: 'You did not add any product within 24 hours of applying',
 }
 
 /** Null when the user never applied. */
