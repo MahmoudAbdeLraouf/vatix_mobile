@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AppState } from 'react-native'
 import { router } from 'expo-router'
 import {
@@ -8,6 +8,7 @@ import {
   isLoggedIn,
   normalizeUserType,
   refreshAccessToken,
+  registerSessionHooks,
   saveSession,
   startTokenRefresher,
   StoredUser,
@@ -39,9 +40,31 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<StoredUser | null>(null)
   const [loading, setLoading] = useState(true)
+  // Mirrors `user` for the session-cleared listener, which outlives renders.
+  const userRef = useRef<StoredUser | null>(null)
+  userRef.current = user
+  const stopRefresherRef = useRef<(() => void) | null>(null)
+  const loggingOutRef = useRef(false)
+
+  // The session was wiped outside an explicit logout: the refresh token was
+  // rejected (expired, revoked, account disabled) or a request found no
+  // session. Drop the signed-in UI and send the user to login instead of
+  // leaving screens showing "session expired" errors.
+  useEffect(() => {
+    return registerSessionHooks({
+      onSessionCleared: () => {
+        stopRefresherRef.current?.()
+        stopRefresherRef.current = null
+        // Guests and the explicit logout (which navigates itself) don't redirect.
+        if (!userRef.current || loggingOutRef.current) return
+        userRef.current = null
+        setUser(null)
+        router.replace('/(auth)/login')
+      },
+    })
+  }, [])
 
   useEffect(() => {
-    let stopRefresher: (() => void) | null = null
 
     async function init() {
       try {
@@ -57,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         setUser(stored)
-        stopRefresher = startTokenRefresher()
+        stopRefresherRef.current = startTokenRefresher()
         registerForPushNotifications().catch(() => {})
       } finally {
         setLoading(false)
@@ -66,7 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     init()
     return () => {
-      stopRefresher?.()
+      stopRefresherRef.current?.()
+      stopRefresherRef.current = null
     }
   }, [])
 
@@ -98,16 +122,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await saveSession(response.accessToken, response.refreshToken, response.user)
     const stored = await getStoredUser()
     setUser(stored)
-    startTokenRefresher()
+    stopRefresherRef.current = startTokenRefresher()
     registerForPushNotifications().catch(() => {})
     router.replace(resolveRedirect(redirect) as never)
   }, [])
 
   const logout = useCallback(async () => {
-    await unregisterPushNotifications()
-    await clearSession()
-    setUser(null)
-    router.replace('/(auth)/login')
+    // Set first so the session-cleared listener leaves navigation to us.
+    loggingOutRef.current = true
+    try {
+      await unregisterPushNotifications()
+      await clearSession()
+      setUser(null)
+      router.replace('/(auth)/login')
+    } finally {
+      loggingOutRef.current = false
+    }
   }, [])
 
   const updateDisplayName = useCallback(async (name: string) => {

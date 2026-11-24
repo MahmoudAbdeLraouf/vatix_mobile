@@ -105,7 +105,8 @@ const SECURE_WRITE_OPTIONS: SecureStore.SecureStoreOptions = {
 }
 
 // ─── Session hooks ───────────────────────────────────────────────────────────
-// Lets the chat socket follow the session without auth.ts importing it (no cycle).
+// Lets the chat socket and AuthProvider follow the session without auth.ts
+// importing them (no cycle). Each registration adds a listener.
 
 type SessionHooks = {
   /** Tokens were written (login or any refresh): lets the chat socket start late. */
@@ -116,10 +117,24 @@ type SessionHooks = {
   onSessionCleared?: () => void
 }
 
-const _sessionHooks: SessionHooks = {}
+const _sessionListeners = new Set<SessionHooks>()
 
-export function registerSessionHooks(hooks: SessionHooks): void {
-  Object.assign(_sessionHooks, hooks)
+/** Returns an unsubscribe function. */
+export function registerSessionHooks(hooks: SessionHooks): () => void {
+  _sessionListeners.add(hooks)
+  return () => {
+    _sessionListeners.delete(hooks)
+  }
+}
+
+function emitSessionEvent(event: keyof SessionHooks): void {
+  for (const hooks of [..._sessionListeners]) {
+    try {
+      hooks[event]?.()
+    } catch {
+      // One listener failing must not stop the others.
+    }
+  }
 }
 
 // ─── Token storage ────────────────────────────────────────────────────────────
@@ -145,7 +160,7 @@ export async function saveTokens(accessToken: string, refreshToken: string): Pro
     SecureStore.setItemAsync(KEY_TOKEN, accessToken, SECURE_WRITE_OPTIONS),
     SecureStore.setItemAsync(KEY_REFRESH, refreshToken, SECURE_WRITE_OPTIONS),
   ])
-  _sessionHooks.onTokensSaved?.()
+  emitSessionEvent('onTokensSaved')
 }
 
 export async function clearSession(): Promise<void> {
@@ -155,7 +170,7 @@ export async function clearSession(): Promise<void> {
     SecureStore.deleteItemAsync(KEY_USER).catch(() => {}),
   ])
   // After the wipe, so anything that re-checks the session sees it gone.
-  _sessionHooks.onSessionCleared?.()
+  emitSessionEvent('onSessionCleared')
 }
 
 export async function isLoggedIn(): Promise<boolean> {
@@ -343,7 +358,7 @@ async function _doRefresh(): Promise<RefreshResult> {
       refreshToken: string
     }
     await saveTokens(accessToken, newRefresh)
-    _sessionHooks.onTokenRefreshed?.()
+    emitSessionEvent('onTokenRefreshed')
     return 'ok'
   } catch {
     return 'unavailable'
@@ -785,7 +800,10 @@ export function startTokenRefresher(): () => void {
   if (_refreshInterval) clearInterval(_refreshInterval)
   _refreshInterval = setInterval(async () => {
     const refresh = await getRefreshToken()
-    if (refresh) refreshAccessToken()
+    if (!refresh) return
+    // A rejected refresh token means the session is over: clearing it sends
+    // the user to login now rather than on their next tap. Offline keeps it.
+    if ((await refreshSession()) === 'rejected') await clearSession()
   }, 12 * 60 * 1000)
   return () => {
     if (_refreshInterval) {
