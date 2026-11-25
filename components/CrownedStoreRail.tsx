@@ -378,7 +378,8 @@ function StoreCard({
             <StoreCover store={store} />
             <GoldFill vertical stops={[[0, 'rgba(31,43,71,0)'], [0.45, 'rgba(31,43,71,0)'], [1, 'rgba(31,43,71,0.97)']]} />
             <AdTag style={styles.coverAd} />
-            <View style={styles.ribbon}>
+            {/* Fixed width per locale: iOS under-measures Arabic with a shadda, so auto-size clipped the ج. */}
+            <View style={[styles.ribbon, { width: ar ? 44 : 54 }]}>
               <Svg style={StyleSheet.absoluteFill} viewBox="0 0 30 48" preserveAspectRatio="none">
                 <Defs>
                   <LinearGradient id={`rb-${store.id}`} x1="0" y1="0" x2="1" y2="1">
@@ -390,7 +391,9 @@ function StoreCard({
                 <Polygon points="0,0 30,0 30,48 15,39.4 0,48" fill={`url(#rb-${store.id})`} />
               </Svg>
               <CrownIcon size={13} compact />
-              <Text style={styles.ribbonText}>{ar ? 'متوّج' : 'Crowned'}</Text>
+              <Text style={styles.ribbonText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+                {ar ? 'متوّج' : 'Crowned'}
+              </Text>
             </View>
           </View>
 
@@ -781,14 +784,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     end: 12,
-    minWidth: 30,
     height: 48,
     paddingTop: 6,
-    paddingHorizontal: 7,
+    paddingHorizontal: 4,
     alignItems: 'center',
     gap: 2,
   },
-  ribbonText: { fontFamily: fonts.black, fontSize: 9.5, lineHeight: 14, color: NAVY, includeFontPadding: false },
+  ribbonText: {
+    alignSelf: 'stretch',
+    textAlign: 'center',
+    fontFamily: fonts.black,
+    fontSize: 9.5,
+    lineHeight: 14,
+    color: NAVY,
+    includeFontPadding: false,
+  },
   idRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
