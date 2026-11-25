@@ -283,38 +283,22 @@ function AdTag({ style }: { style?: StyleProp<ViewStyle> }) {
   )
 }
 
-/** Cover → blurred logo → monogram, so a store without a cover still looks finished. */
+// Same art as the website's /default-store-cover.svg, rasterised (no SVG transformer in metro).
+const DEFAULT_COVER = require('@/assets/promo/default-store-cover.jpg')
+
+/** Store cover, or the crowned default art when the store hasn't uploaded one. */
 function StoreCover({ store }: { store: CrownedStore }) {
   const cover = imgUrl(store.cover, { w: 600 })
-  const logo = imgUrl(store.logo, { w: 120 })
-  if (cover) {
-    return (
-      <Image
-        source={{ uri: cover }}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-        transition={120}
-        recyclingKey={`cr-cover-${store.id}`}
-      />
-    )
-  }
-  if (logo) {
-    return (
-      <>
-        <Image
-          source={{ uri: logo }}
-          style={[StyleSheet.absoluteFill, { transform: [{ scale: 1.4 }] }]}
-          contentFit="cover"
-          blurRadius={16}
-          cachePolicy="memory-disk"
-          recyclingKey={`cr-blur-${store.id}`}
-        />
-        <GoldFill vertical stops={[[0, 'rgba(14,21,38,0.55)'], [1, 'rgba(14,21,38,0.82)']]} />
-      </>
-    )
-  }
-  return <GoldFill stops={[[0, '#3A2C00'], [0.7, '#0E1526'], [1, '#0E1526']]} />
+  return (
+    <Image
+      source={cover ? { uri: cover } : DEFAULT_COVER}
+      style={StyleSheet.absoluteFill}
+      contentFit="cover"
+      cachePolicy="memory-disk"
+      transition={120}
+      recyclingKey={`cr-cover-${store.id}`}
+    />
+  )
 }
 
 /** One soft shine across the card header. Physical LTR box so RTL doesn't flip `left` under an un-flipped translateX. */
@@ -799,9 +783,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     end: 12,
-    width: 30,
+    minWidth: 30,
     height: 48,
     paddingTop: 6,
+    paddingHorizontal: 7,
     alignItems: 'center',
     gap: 2,
   },
