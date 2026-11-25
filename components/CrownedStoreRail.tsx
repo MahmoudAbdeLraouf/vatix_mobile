@@ -285,6 +285,8 @@ function AdTag({ style }: { style?: StyleProp<ViewStyle> }) {
 
 // Same art as the website's /default-store-cover.svg, rasterised (no SVG transformer in metro).
 const DEFAULT_COVER = require('@/assets/promo/default-store-cover.jpg')
+/** Crowned stores' products without a photo get the same gold-on-navy art. */
+const DEFAULT_PRODUCT_IMG = require('@/assets/promo/default-product.jpg')
 
 /** Store cover, or the crowned default art when the store hasn't uploaded one. */
 function StoreCover({ store }: { store: CrownedStore }) {
@@ -453,16 +455,14 @@ function StoreCard({
                   style={({ pressed }) => [styles.thumb, { width: tile, height: tile }, pressed && { opacity: 0.85 }]}
                   accessibilityLabel={p.title}
                 >
-                  {src ? (
-                    <Image
-                      source={{ uri: src }}
-                      style={StyleSheet.absoluteFill}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                      transition={120}
-                      recyclingKey={`cr-p-${p.id}`}
-                    />
-                  ) : null}
+                  <Image
+                    source={src ? { uri: src } : DEFAULT_PRODUCT_IMG}
+                    style={StyleSheet.absoluteFill}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={120}
+                    recyclingKey={`cr-p-${p.id}`}
+                  />
                   <View style={styles.priceChip}>
                     <Text style={styles.priceText} numberOfLines={1}>
                       {priceText(p.price, ar)}
@@ -719,16 +719,14 @@ export function CrownedStrip({
               style={({ pressed }) => [styles.stripCard, { direction: isRtl ? 'rtl' : 'ltr' }, pressed && { opacity: 0.9 }]}
             >
               <View style={styles.stripImg}>
-                {src ? (
-                  <Image
-                    source={{ uri: src }}
-                    style={StyleSheet.absoluteFill}
-                    contentFit="contain"
-                    cachePolicy="memory-disk"
-                    transition={120}
-                    recyclingKey={`cs-p-${p.id}`}
-                  />
-                ) : null}
+                <Image
+                  source={src ? { uri: src } : DEFAULT_PRODUCT_IMG}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                  transition={120}
+                  recyclingKey={`cs-p-${p.id}`}
+                />
               </View>
               <View style={styles.stripBody}>
                 <Text style={[styles.stripName, dir]} numberOfLines={2}>
