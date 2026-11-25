@@ -379,7 +379,7 @@ function StoreCard({
             <GoldFill vertical stops={[[0, 'rgba(31,43,71,0)'], [0.45, 'rgba(31,43,71,0)'], [1, 'rgba(31,43,71,0.97)']]} />
             <AdTag style={styles.coverAd} />
             {/* Fixed width per locale: iOS under-measures Arabic with a shadda, so auto-size clipped the ج. */}
-            <View style={[styles.ribbon, { width: ar ? 44 : 54 }]}>
+            <View style={[styles.ribbon, { width: ar ? 54 : 64 }]}>
               <Svg style={StyleSheet.absoluteFill} viewBox="0 0 30 48" preserveAspectRatio="none">
                 <Defs>
                   <LinearGradient id={`rb-${store.id}`} x1="0" y1="0" x2="1" y2="1">
@@ -391,7 +391,7 @@ function StoreCard({
                 <Polygon points="0,0 30,0 30,48 15,39.4 0,48" fill={`url(#rb-${store.id})`} />
               </Svg>
               <CrownIcon size={13} compact />
-              <Text style={styles.ribbonText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              <Text style={styles.ribbonText} numberOfLines={1}>
                 {ar ? 'متوّج' : 'Crowned'}
               </Text>
             </View>
@@ -786,12 +786,13 @@ const styles = StyleSheet.create({
     end: 12,
     height: 48,
     paddingTop: 6,
-    paddingHorizontal: 4,
     alignItems: 'center',
     gap: 2,
   },
   ribbonText: {
-    alignSelf: 'stretch',
+    // Wider than the ribbon and centred, so iOS's short Arabic measure can't push glyphs off one side.
+    width: 80,
+    alignSelf: 'center',
     textAlign: 'center',
     fontFamily: fonts.black,
     fontSize: 9.5,
