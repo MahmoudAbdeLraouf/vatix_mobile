@@ -19,6 +19,7 @@ import {
   createBroRequest,
   getBroStatus,
   getModelSuggestions,
+  type BroModelSuggestion,
   listBroRequests,
   type BroRequestSource,
   type BroWant,
@@ -268,7 +269,9 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
   const [showErrors, setShowErrors] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [suggestions, setSuggestions] = useState<BroModelSuggestion[]>([])
+  // Catalog model behind the chip the buyer picked; sent only while the text still matches it.
+  const [picked, setPicked] = useState<{ brandId: number; id: number; name: string } | null>(null)
   const inFlight = useRef(false)
   const { known } = init
 
@@ -300,7 +303,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
         .then(items => {
           if (cancelled) return
           const cur = model.trim().toLowerCase()
-          setSuggestions((Array.isArray(items) ? items : []).filter(s => s.toLowerCase() !== cur).slice(0, 8))
+          setSuggestions(items.filter(s => s.name.toLowerCase() !== cur).slice(0, 8))
         })
         .catch(() => {
           if (!cancelled) setSuggestions([])
@@ -378,6 +381,9 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
       if (maxN) body.budgetMax = maxN
       if (wants.length) body.wants = wants
       if (init.productId != null) body.sourceProductId = init.productId
+      if (wantsSuggestions && picked && picked.brandId === brandId && picked.name === modelTrim) {
+        body.productModelId = picked.id
+      }
       const res = await createBroRequest(body)
       navigating = true
       router.replace(`/bro/requests/${res.request.id}` as never)
@@ -504,7 +510,11 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
                 />
                 {suggestions.length > 0 ? (
                   <View style={[styles.pills, rowDir]}>
-                    {suggestions.map(s => pill(s, s, false, () => setModel(s.slice(0, MODEL_MAX)), 'sparkles-outline'))}
+                    {suggestions.map(s => pill(s.name, s.name, false, () => {
+                      const name = s.name.slice(0, MODEL_MAX)
+                      setModel(name)
+                      setPicked(s.id != null && brandId != null ? { brandId, id: s.id, name } : null)
+                    }, 'sparkles-outline'))}
                   </View>
                 ) : null}
                 {errModel ? fieldError(b.errModelRequired) : null}

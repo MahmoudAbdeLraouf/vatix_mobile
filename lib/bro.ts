@@ -384,6 +384,8 @@ export interface CreateBroRequestBody {
   budgetMax?: number
   wants?: BroWant[]
   sourceProductId?: number
+  /** Catalog model the buyer picked from the suggestion chips. */
+  productModelId?: number
   source: BroRequestSource
 }
 
@@ -410,10 +412,17 @@ export function getBroStatus(): Promise<{ enabled: boolean }> {
   return apiFetch<{ enabled: boolean }>('/bro/status')
 }
 
-/** Model autocomplete for a brand. */
-export async function getModelSuggestions(brandId: number, q: string): Promise<string[]> {
-  const params = new URLSearchParams({ brandId: String(brandId), q })
-  return apiFetch<string[]>(`/bro/model-suggestions?${params}`)
+export interface BroModelSuggestion {
+  id: number | null
+  name: string
+}
+
+/** Model autocomplete for a brand, with catalog ids. */
+export async function getModelSuggestions(brandId: number, q: string): Promise<BroModelSuggestion[]> {
+  const params = new URLSearchParams({ brandId: String(brandId), q, withIds: '1' })
+  const items = await apiFetch<(string | BroModelSuggestion)[]>(`/bro/model-suggestions?${params}`)
+  // An older backend ignores withIds and returns names only.
+  return (Array.isArray(items) ? items : []).map(x => (typeof x === 'string' ? { id: null, name: x } : x))
 }
 
 // ─── Buyer (authenticated) ───────────────────────────────────────────────────
