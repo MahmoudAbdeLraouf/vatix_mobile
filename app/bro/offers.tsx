@@ -27,6 +27,7 @@ import {
   withdrawBroOffer,
   type BroApiError,
   type BroSavedOffer,
+  type MyOfferCounts,
   type MyOfferItem,
   type MyOfferState,
   type OfferContent,
@@ -34,7 +35,7 @@ import {
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
 import { BroButton } from '@/components/bro/BroButton'
 import { BroOfferForm } from '@/components/bro/BroOfferForm'
-import { useBroDir } from '@/components/bro/BroCardParts'
+import { useBroCardFormat, useBroDir } from '@/components/bro/BroCardParts'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -64,6 +65,15 @@ function usePrice() {
     t.bro.priceEgp.replace('{price}', Number(v).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US'))
 }
 
+type SentFilter = 'all' | 'active' | 'connected' | 'closed'
+
+function sentFilterMatch(o: MyOfferItem, f: SentFilter): boolean {
+  if (f === 'all') return true
+  if (f === 'connected') return !!o.buyerConnectedAt
+  if (f === 'active') return o.state === 'active'
+  return o.state !== 'active'
+}
+
 /** Seller's offers on buyer requests + their reusable saved offers (mirrors the website's /bro/offers). */
 export default function BroOffersScreen() {
   const { t } = useLocale()
@@ -86,14 +96,25 @@ export default function BroOffersScreen() {
         </View>
       ) : (
         <>
-          <View style={[styles.tabs, rowDir]}>
-            <BroButton
-              label={b.myOffersTitle}
-              chip
-              selected={tab === 'mine'}
-              onPress={() => setTab('mine')}
-            />
-            <BroButton label={b.savedTab} chip selected={tab === 'saved'} onPress={() => setTab('saved')} />
+          <View style={[styles.pageHead, rowDir]}>
+            <View style={styles.flex}>
+              <Text style={[styles.pageTitle, dirStyle]}>{b.myOffersTitle}</Text>
+              <Text style={[styles.pageSub, dirStyle]}>{b.offersSubtitle}</Text>
+            </View>
+            <BroButton label={b.newRequestsBtn} variant="yellow" onPress={() => router.push('/(tabs)/requests' as never)} />
+          </View>
+          <View style={[styles.segment, rowDir]}>
+            {(['mine', 'saved'] as const).map(k => (
+              <Pressable
+                key={k}
+                onPress={() => setTab(k)}
+                style={[styles.segItem, tab === k && styles.segItemOn]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: tab === k }}
+              >
+                <Text style={[styles.segText, tab === k && styles.segTextOn]}>{k === 'mine' ? b.sentTab : b.savedTab}</Text>
+              </Pressable>
+            ))}
           </View>
           {tab === 'mine' ? <MyOffersTab /> : <SavedOffersTab />}
         </>
@@ -103,13 +124,17 @@ export default function BroOffersScreen() {
 }
 
 function MyOffersTab() {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const b = t.bro
-  const { dirStyle, rowDir } = useBroDir()
+  const { ar, dirStyle, rowDir } = useBroDir()
   const price = usePrice()
   const seq = useRef(0)
   const [items, setItems] = useState<MyOfferItem[]>([])
   const [total, setTotal] = useState(0)
+  const [counts, setCounts] = useState<MyOfferCounts | null>(null)
+  const [nearbyCount, setNearbyCount] = useState(0)
+  const [filter, setFilter] = useState<SentFilter>('all')
+  const [now, setNow] = useState(() => Date.now())
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -121,6 +146,8 @@ function MyOffersTab() {
   const { colors, mode } = useTheme()
   const styles = useStyles()
   const STATE_COLORS = themedStateColors[mode]
+  const { ago } = useBroCardFormat(now)
+  const fmt = (n: number) => n.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')
 
   const loadFirst = useCallback(async (pull: boolean) => {
     const ticket = ++seq.current
@@ -137,7 +164,10 @@ function MyOffersTab() {
     else {
       setItems(res.items)
       setTotal(res.total)
+      setCounts(res.counts ?? null)
+      setNearbyCount(res.nearbyOpenCount ?? 0)
       setPage(1)
+      setNow(Date.now())
     }
     setLoading(false)
     setRefreshing(false)
@@ -180,6 +210,7 @@ function MyOffersTab() {
     try {
       await withdrawBroOffer(o.id)
       setItems(prev => prev.map(x => (x.id === o.id ? { ...x, state: 'withdrawn', status: 'withdrawn' } : x)))
+      setCounts(c => c && { ...c, active: c.active - 1, closed: c.closed + 1 })
     } catch (err) {
       setRowError({ id: o.id, msg: errMessage(err, b.withdrawFailed) })
     } finally {
@@ -206,6 +237,19 @@ function MyOffersTab() {
     unavailable: b.stateUnavailable,
     withdrawn: b.stateWithdrawn,
   }
+  const tally: MyOfferCounts = {
+    all: items.length,
+    active: items.filter(o => o.state === 'active').length,
+    connected: items.filter(o => !!o.buyerConnectedAt).length,
+    closed: items.filter(o => o.state !== 'active').length,
+  }
+  const chips: { key: SentFilter; label: string }[] = [
+    { key: 'all', label: b.filterAll },
+    { key: 'active', label: b.chipActive },
+    { key: 'connected', label: b.chipConnected },
+    { key: 'closed', label: b.chipClosed },
+  ]
+  const shown = items.filter(o => sentFilterMatch(o, filter))
 
   return (
     <ScrollView
@@ -215,56 +259,133 @@ function MyOffersTab() {
       }
     >
       {items.length === 0 ? (
-        <EmptyState
-          icon={<Ionicons name="pricetags-outline" size={40} color={colors.subtle} />}
-          title={b.myOffersEmpty}
-          actionLabel={b.browseRequests}
-          onAction={() => router.push('/(tabs)/requests' as never)}
-        />
+        <>
+          <EmptyState
+            icon={<Ionicons name="pricetags-outline" size={40} color={colors.subtle} />}
+            title={b.myOffersEmpty}
+            actionLabel={b.browseRequests}
+            onAction={() => router.push('/(tabs)/requests' as never)}
+          />
+          <BrowseCta nearbyCount={nearbyCount} />
+        </>
       ) : (
-        items.map(o => {
-          const c = STATE_COLORS[o.state] ?? STATE_COLORS.closed
-          const model = [o.request.modelText, o.request.storage].filter(Boolean).join(' · ')
-          return (
-            <View key={o.id} style={styles.card}>
-              <View style={[styles.headRow, rowDir]}>
-                <View style={styles.flex}>
-                  <Text style={[styles.model, dirStyle]} numberOfLines={2}>{model}</Text>
-                  <Text style={[styles.muted, dirStyle]}>{o.request.locationName ?? b.offerNoArea}</Text>
+        <>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.chips, rowDir]}>
+            {chips.map(c => {
+              const on = filter === c.key
+              return (
+                <Pressable key={c.key} onPress={() => setFilter(c.key)} style={[styles.chip, on && styles.chipOn]}>
+                  <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                    {c.label} {fmt(counts?.[c.key] ?? tally[c.key])}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </ScrollView>
+          {shown.length === 0 ? <Text style={[styles.none, dirStyle]}>{b.noneInFilter}</Text> : null}
+          {shown.map(o => {
+            const c = STATE_COLORS[o.state] ?? STATE_COLORS.closed
+            const model = [o.request.modelText, o.request.storage].filter(Boolean).join(' ')
+            const ended = o.state !== 'active'
+            const thumb = o.images?.[0]
+            return (
+              <View key={o.id} style={[styles.card, ended && styles.dim]}>
+                <View style={[styles.headRow, rowDir, styles.top]}>
+                  {thumb ? (
+                    <Image source={{ uri: imgUrl(thumb) ?? undefined }} style={styles.thumb} />
+                  ) : (
+                    <View style={[styles.thumb, styles.thumbEmpty]}>
+                      <Ionicons name="phone-portrait-outline" size={22} color={colors.subtle} />
+                    </View>
+                  )}
+                  <View style={[styles.flex, styles.gap4]}>
+                    <View style={[styles.reqTag, ar ? styles.selfEnd : styles.selfStart]}>
+                      <Text style={styles.reqTagText} numberOfLines={1}>
+                        {b.onRequest.replace('{request}', model)}
+                      </Text>
+                    </View>
+                    <Text style={[styles.offerTitle, dirStyle]} numberOfLines={2}>{o.title}</Text>
+                    <Text style={[styles.muted, dirStyle]} numberOfLines={1}>
+                      <Text style={styles.price}>{price(o.price)}</Text>
+                      {' · '}
+                      {o.request.locationName ?? b.offerNoArea}
+                    </Text>
+                  </View>
+                  <View style={[styles.badge, { backgroundColor: c.bg }]}>
+                    <Text style={[styles.badgeText, { color: c.fg }]}>{stateLabel[o.state]}</Text>
+                  </View>
                 </View>
-                <View style={[styles.badge, { backgroundColor: c.bg }]}>
-                  <Text style={[styles.badgeText, { color: c.fg }]}>{stateLabel[o.state]}</Text>
-                </View>
+                {o.buyerConnectedAt ? (
+                  <View style={[styles.connected, rowDir]}>
+                    <Text style={[styles.connectedText, styles.flex, dirStyle]}>
+                      {b.buyerConnected.replace('{ago}', ago(o.buyerConnectedAt))}
+                    </Text>
+                    <Pressable
+                      style={styles.replyBtn}
+                      onPress={() =>
+                        router.push(
+                          (o.conversationId ? `/dashboard/messages/${o.conversationId}` : '/dashboard/messages') as never,
+                        )
+                      }
+                    >
+                      <Text style={styles.replyText}>{b.replyToBuyer}</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+                {rowError?.id === o.id ? <Text style={[styles.error, dirStyle]}>{rowError.msg}</Text> : null}
+                {o.state === 'active' ? (
+                  <View style={[styles.actions, rowDir]}>
+                    <BroButton
+                      label={busyId === o.id ? b.withdrawing : b.withdraw}
+                      icon="close-circle-outline"
+                      disabled={busyId === o.id}
+                      onPress={() => confirmWithdraw(o)}
+                    />
+                  </View>
+                ) : (
+                  <Pressable onPress={() => router.push('/(tabs)/requests' as never)}>
+                    <Text style={[styles.elsewhere, dirStyle]}>{b.offerElsewhere}</Text>
+                  </Pressable>
+                )}
               </View>
-              <View style={[styles.headRow, rowDir]}>
-                <Text style={[styles.offerTitle, styles.flex, dirStyle]} numberOfLines={2}>{o.title}</Text>
-                <Text style={styles.price}>{price(o.price)}</Text>
-              </View>
-              {rowError?.id === o.id ? <Text style={[styles.error, dirStyle]}>{rowError.msg}</Text> : null}
-              {o.state === 'active' ? (
-                <View style={[styles.actions, rowDir]}>
-                  <BroButton
-                    label={busyId === o.id ? b.withdrawing : b.withdraw}
-                    icon="close-circle-outline"
-                    disabled={busyId === o.id}
-                    onPress={() => confirmWithdraw(o)}
-                  />
-                </View>
-              ) : null}
-            </View>
-          )
-        })
+            )
+          })}
+          {items.length < total ? (
+            <BroButton
+              label={loadingMore ? b.boardLoadingMore : b.boardLoadMore}
+              disabled={loadingMore}
+              size="md"
+              fullWidth
+              onPress={loadMore}
+            />
+          ) : (
+            <BrowseCta nearbyCount={nearbyCount} />
+          )}
+        </>
       )}
-      {items.length > 0 && items.length < total ? (
-        <BroButton
-          label={loadingMore ? b.boardLoadingMore : b.boardLoadMore}
-          disabled={loadingMore}
-          size="md"
-          fullWidth
-          onPress={loadMore}
-        />
-      ) : null}
     </ScrollView>
+  )
+}
+
+function BrowseCta({ nearbyCount }: { nearbyCount: number }) {
+  const { t, locale } = useLocale()
+  const b = t.bro
+  const { dirStyle, rowDir } = useBroDir()
+  const styles = useStyles()
+  const n = nearbyCount.toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US')
+  return (
+    <View style={[styles.cta, rowDir]}>
+      <Text style={styles.ctaEmoji}>🔎</Text>
+      <View style={styles.flex}>
+        <Text style={[styles.ctaTitle, dirStyle]}>{b.browseCtaTitle}</Text>
+        {nearbyCount > 0 ? (
+          <Text style={[styles.ctaNearby, dirStyle]}>{b.browseCtaNearby.replace('{n}', n)}</Text>
+        ) : (
+          <Text style={[styles.ctaBody, dirStyle]}>{b.browseCtaBody}</Text>
+        )}
+      </View>
+      <BroButton label={b.browseRequests} variant="yellow" onPress={() => router.push('/(tabs)/requests' as never)} />
+    </View>
   )
 }
 
@@ -500,6 +621,59 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   grow: { flexGrow: 1, justifyContent: 'center' },
   flex: { flex: 1, minWidth: 0 },
   tabs: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: spacing.md },
+  pageHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: spacing.md },
+  pageTitle: { fontFamily: fonts.extraBold, fontSize: 20, color: colors.heading },
+  pageSub: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted, marginTop: 2 },
+  segment: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: dark ? colors.card : '#f7f8fa',
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : null),
+  },
+  segItem: { flex: 1, paddingVertical: 8, borderRadius: 9, alignItems: 'center' },
+  segItemOn: { backgroundColor: dark ? colors.border : '#fff', ...(dark ? null : shadow.ss) },
+  segText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.muted },
+  segTextOn: { fontFamily: fonts.extraBold, color: colors.heading },
+  chips: { flexDirection: 'row', gap: spacing.sm },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  chipOn: { backgroundColor: colors.dk, borderColor: colors.dk },
+  chipText: { fontFamily: fonts.bold, fontSize: 12, color: colors.text },
+  chipTextOn: { color: '#fff' },
+  none: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.muted, textAlign: 'center', paddingVertical: spacing.md },
+  top: { alignItems: 'flex-start' },
+  gap4: { gap: 4 },
+  thumbEmpty: { alignItems: 'center', justifyContent: 'center' },
+  selfStart: { alignSelf: 'flex-start' },
+  selfEnd: { alignSelf: 'flex-end' },
+  reqTag: { backgroundColor: colors.yellowBg, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 2, maxWidth: '100%' },
+  reqTagText: { fontFamily: fonts.bold, fontSize: 11, color: dark ? colors.yellowText : '#8a6500' },
+  connected: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: dark ? colors.greenBg : '#e6f7ec',
+    borderRadius: 10,
+    padding: 10,
+  },
+  connectedText: { fontFamily: fonts.bold, fontSize: 12.5, color: dark ? colors.green : '#1a7f3c' },
+  replyBtn: { backgroundColor: dark ? colors.green : '#1a7f3c', borderRadius: radius.full, paddingHorizontal: 14, paddingVertical: 6 },
+  replyText: { fontFamily: fonts.bold, fontSize: 12, color: '#fff' },
+  elsewhere: { fontFamily: fonts.bold, fontSize: 12, color: colors.text, textDecorationLine: 'underline' },
+  cta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.dk, borderRadius: 16, padding: 16 },
+  ctaEmoji: { fontSize: 28 },
+  ctaTitle: { fontFamily: fonts.extraBold, fontSize: 14, color: '#fff' },
+  ctaNearby: { fontFamily: fonts.bold, fontSize: 12, color: colors.y, marginTop: 2 },
+  ctaBody: { fontFamily: fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,

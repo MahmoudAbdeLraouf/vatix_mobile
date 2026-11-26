@@ -52,6 +52,8 @@ export interface BroRequest {
   boardExpiresAt: string
   /** Present on some responses only. */
   offerCount?: number
+  /** Available offers the buyer hasn't seen yet. */
+  newOfferCount?: number
   createdAt: string
   updatedAt: string
 }
@@ -175,6 +177,7 @@ export interface BroOffer {
 /** A seller's own offer with derived state and a slim request summary. */
 export type MyOfferItem = Omit<BroOffer, 'request'> & {
   state: MyOfferState
+  conversationId: number | null
   request: {
     id: number
     modelText: string
@@ -548,9 +551,25 @@ export function withdrawBroOffer(id: number): Promise<BroOffer> {
   return authPost<BroOffer>(`/bro/offers/${id}/withdraw`, {})
 }
 
+export type MyOfferCounts = Record<'all' | 'active' | 'connected' | 'closed', number>
+
+export interface MyOffersPage {
+  items: MyOfferItem[]
+  total: number
+  /** Per-tab totals across all pages. */
+  counts?: MyOfferCounts
+  /** Open requests near the seller, for the browse prompt. */
+  nearbyOpenCount?: number | null
+}
+
 /** `null` means the call failed. */
-export function listMyBroOffers(page = 1): Promise<{ items: MyOfferItem[]; total: number } | null> {
-  return authFetch<{ items: MyOfferItem[]; total: number }>(`/bro/my-offers?page=${page}`)
+export function listMyBroOffers(page = 1): Promise<MyOffersPage | null> {
+  return authFetch<MyOffersPage>(`/bro/my-offers?page=${page}`)
+}
+
+/** Marks the request's offers as seen by the buyer (clears the new-offers badge). */
+export function markBroRequestSeen(id: number) {
+  return authPost(`/bro/requests/${id}/seen`, {})
 }
 
 export interface PickedImage {

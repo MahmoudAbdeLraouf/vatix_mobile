@@ -956,6 +956,64 @@ export interface Translations {
     widenArea: string
     dropBudget: string
     listTitle: string
+    listSubtitle: string
+    kpiSearching: string
+    kpiOffers: string
+    kpiFound: string
+    foundBanner: string
+    foundBannerCta: string
+    filterAll: string
+    filterSearching: string
+    filterFound: string
+    filterEnded: string
+    countAsked: string
+    countAvailable: string
+    countPending: string
+    leftDays: string
+    leftHours: string
+    bestOffersTitle: string
+    fitInBudget: string
+    fitUnder: string
+    fitNearBudget: string
+    allOffers: string
+    foundShort: string
+    foundConfirm: string
+    expiredTip: string
+    searchAgainBtn: string
+    listEmptyTitle: string
+    emptyStep1: string
+    emptyStep2: string
+    emptyStep3: string
+    emptyCta: string
+    noneInFilter: string
+    offersSubtitle: string
+    newRequestsBtn: string
+    sentTab: string
+    chipActive: string
+    chipConnected: string
+    chipClosed: string
+    onRequest: string
+    buyerConnected: string
+    replyToBuyer: string
+    offerElsewhere: string
+    browseCtaTitle: string
+    browseCtaBody: string
+    newOffersBadge: string
+    browseCtaNearby: string
+    statCheapest: string
+    statAverage: string
+    statBudget: string
+    budgetNone: string
+    sortCheapestOpt: string
+    sortNewestOpt: string
+    filterVerified: string
+    filterStores: string
+    offersAvailableN: string
+    unavailableSection: string
+    foundBarTitle: string
+    foundBarBtn: string
+    waitingTitle: string
+    waitingBody: string
     listEmpty: string
     tabLabel: string
     foundTitle: string
@@ -2453,6 +2511,24 @@ export const translations: Record<Locale, Translations> = {
       emptyTitle: 'ملقيتش حاجة دلوقتي', widenArea: 'وسّع المنطقة', dropBudget: 'شيل الميزانية',
       // Requests list
       listTitle: 'طلباتي مع جيكو', listEmpty: 'لسه مفيش طلبات. قول لجيكو عايز إيه وهو يدوّرلك.', newRequest: 'طلب جديد',
+      listSubtitle: 'جيكو بيدوّرلك عند المحلات والبائعين', kpiSearching: 'بيدوّر دلوقتي', kpiOffers: 'عرض وصلك', kpiFound: 'لقيته ✓',
+      foundBanner: 'جيكو لقى {n} جهاز متاح لطلباتك', foundBannerCta: 'شوفهم',
+      filterAll: 'الكل', filterSearching: 'بيدوّر', filterFound: 'لقيته', filterEnded: 'منتهي',
+      countAsked: 'اتسأل', countAvailable: 'متاح', countPending: 'مستني', leftDays: 'باقي {n} يوم', leftHours: 'باقي {n} ساعة',
+      bestOffersTitle: 'أحسن العروض اللي وصلتك', fitInBudget: 'في ميزانيتك', fitUnder: 'أقل من ميزانيتك بـ {amount}', fitNearBudget: 'قريب من ميزانيتك',
+      allOffers: 'كل العروض ({n})', foundShort: 'لقيته ✓', foundConfirm: 'تأكد إنك لقيت الجهاز؟ جيكو هيوقف البحث.',
+      expiredTip: '💡 جرّب توسّع المنطقة أو تشيل الميزانية', searchAgainBtn: '🔁 دوّر تاني',
+      listEmptyTitle: 'قولّي عايز إيه، وأنا أدوّرلك', emptyStep1: 'اكتب طلبك', emptyStep2: 'المحلات ترد', emptyStep3: 'اختار الأحسن',
+      emptyCta: 'ابدأ أول طلب', noneInFilter: 'مفيش حاجة هنا',
+      offersSubtitle: 'العروض اللي بعتها على طلبات الناس', newRequestsBtn: '🔎 طلبات جديدة', sentTab: 'المرسلة',
+      chipActive: 'نشط', chipConnected: 'المشتري كلّمك', chipClosed: 'مقفول', onRequest: 'على طلب: {request}',
+      buyerConnected: '🎉 المشتري تواصل معاك {ago}', replyToBuyer: 'رد عليه', offerElsewhere: 'اعرضه على طلب تاني',
+      browseCtaTitle: 'فيه ناس بتدوّر على أجهزة دلوقتي', browseCtaBody: 'قدّم عرضك قبل غيرك وبيع أسرع', newOffersBadge: '{n} جديد', browseCtaNearby: '{n} طلب مفتوح قريب منك',
+      statCheapest: 'أرخص عرض', statAverage: 'المتوسط', statBudget: 'ميزانيتك', budgetNone: 'مفتوحة',
+      sortCheapestOpt: 'الأرخص', sortNewestOpt: 'الأحدث', filterVerified: '✔ موثّق بس', filterStores: 'متاجر بس',
+      offersAvailableN: '{n} عروض متاحة', unavailableSection: 'عروض مش متاحة ({n})',
+      foundBarTitle: 'لقيت اللي بتدوّر عليه؟', foundBarBtn: '✓ لقيته',
+      waitingTitle: 'جيكو لسه بيسأل المحلات', waitingBody: 'اتبعت لـ {n} بائع قريب منك. هنبعتلك إشعار أول ما حد يرد.',
       tabLabel: 'Bro', foundTitle: 'اللي لقاه جيكو', foundSubtitle: 'أجهزة البيّاعين أكدوا إنها متاحة', foundEmpty: 'لسه جيكو ملقاش أجهزة. أول ما بيّاع يأكد إن جهازه متاح هيظهر هنا.', foundForRequest: 'لطلب: {model}', allRequests: 'كل طلباتي',
       statusSearching: 'بيدوّر', statusDone: 'خلص', statusExpired: 'انتهى', statusCancelled: 'اتلغى', statusFound: 'لقيت جهاز',
       // Match facts grid
@@ -3918,6 +3994,24 @@ export const translations: Record<Locale, Translations> = {
       emptyTitle: 'Nothing found right now', widenArea: 'Widen the area', dropBudget: 'Remove the budget',
       // Requests list
       listTitle: 'My Geeko requests', listEmpty: 'No requests yet. Tell Geeko what you want and he will search for you.', newRequest: 'New request',
+      listSubtitle: 'Geeko searches stores and sellers for you', kpiSearching: 'Searching now', kpiOffers: 'Offers received', kpiFound: 'Found ✓',
+      foundBanner: 'Geeko found {n} available devices for your requests', foundBannerCta: 'View',
+      filterAll: 'All', filterSearching: 'Searching', filterFound: 'Found', filterEnded: 'Ended',
+      countAsked: 'Asked', countAvailable: 'Available', countPending: 'Waiting', leftDays: '{n} d left', leftHours: '{n} h left',
+      bestOffersTitle: 'Best offers you got', fitInBudget: 'In your budget', fitUnder: '{amount} under your budget', fitNearBudget: 'Close to your budget',
+      allOffers: 'All offers ({n})', foundShort: 'Found it ✓', foundConfirm: 'Did you find the device? Geeko will stop searching.',
+      expiredTip: '💡 Try a wider area or remove the budget', searchAgainBtn: '🔁 Search again',
+      listEmptyTitle: 'Tell me what you want, and I will find it', emptyStep1: 'Write your request', emptyStep2: 'Stores reply', emptyStep3: 'Pick the best',
+      emptyCta: 'Start your first request', noneInFilter: 'Nothing here',
+      offersSubtitle: "Offers you sent on people's requests", newRequestsBtn: '🔎 New requests', sentTab: 'Sent',
+      chipActive: 'Active', chipConnected: 'Buyer contacted you', chipClosed: 'Closed', onRequest: 'On request: {request}',
+      buyerConnected: '🎉 The buyer contacted you {ago}', replyToBuyer: 'Reply', offerElsewhere: 'Offer it on another request',
+      browseCtaTitle: 'People are looking for devices right now', browseCtaBody: 'Send your offer first and sell faster', newOffersBadge: '{n} new', browseCtaNearby: '{n} open requests near you',
+      statCheapest: 'Cheapest', statAverage: 'Average', statBudget: 'Your budget', budgetNone: 'Open',
+      sortCheapestOpt: 'Cheapest', sortNewestOpt: 'Newest', filterVerified: '✔ Verified only', filterStores: 'Stores only',
+      offersAvailableN: '{n} offers available', unavailableSection: 'Unavailable offers ({n})',
+      foundBarTitle: 'Found what you were looking for?', foundBarBtn: '✓ Found it',
+      waitingTitle: 'Geeko is still asking stores', waitingBody: 'Sent to {n} sellers near you. We will notify you as soon as someone replies.',
       tabLabel: 'Bro', foundTitle: 'Geeko finds', foundSubtitle: 'Devices sellers confirmed are available', foundEmpty: 'Geeko has not found any devices yet. Once a seller confirms a device is available it shows up here.', foundForRequest: 'For: {model}', allRequests: 'All my requests',
       statusSearching: 'Searching', statusDone: 'Done', statusExpired: 'Expired', statusCancelled: 'Cancelled', statusFound: 'Found one',
       // Match facts grid

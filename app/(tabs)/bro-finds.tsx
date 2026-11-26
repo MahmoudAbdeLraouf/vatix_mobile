@@ -180,7 +180,6 @@ export default function BroFindsTab() {
 
         {loggedIn ? (
           <View style={[styles.actions, rowDir]}>
-            <Button label={b.newRequest} variant="dk" size="sm" onPress={() => router.push('/bro/new' as never)} />
             <Button label={b.allRequests} variant="outline" size="sm" onPress={() => router.push('/bro' as never)} />
           </View>
         ) : null}

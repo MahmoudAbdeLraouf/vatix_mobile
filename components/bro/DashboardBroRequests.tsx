@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useLocale } from '@/contexts/locale'
-import { getBroRequest, listBroRequests, type BroRequest } from '@/lib/bro'
+import { getBroRequest, listBroRequests, type BroRequest, type BroRequestStatus, type BroRequestView } from '@/lib/bro'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -24,7 +24,8 @@ export function DashboardBroRequests() {
   const dirStyle = { writingDirection: ar ? ('rtl' as const) : ('ltr' as const), textAlign: ar ? ('right' as const) : ('left' as const) }
 
   const [requests, setRequests] = useState<BroRequest[] | null>(null)
-  const [offerCounts, setOfferCounts] = useState<Record<number, number>>({})
+  const [views, setViews] = useState<Record<number, BroRequestView | null>>({})
+  const [now, setNow] = useState(0)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
   const seq = useRef(0)
@@ -48,12 +49,13 @@ export function DashboardBroRequests() {
     // A failed refresh keeps the last good list.
     if (latest) setRequests(latest)
     setFailed(cur => (latest ? false : cur || requestsRef.current == null))
+    setNow(Date.now())
     setLoading(false)
-    // The list endpoint may omit offer counts, so read them per shown request.
+    // The list endpoint carries no offers, so read each shown request's view.
     latest?.forEach(r => {
       getBroRequest(r.id)
         .then(v => {
-          if (v && ticket === seq.current) setOfferCounts(m => ({ ...m, [r.id]: v.offers.length }))
+          if (ticket === seq.current) setViews(m => ({ ...m, [r.id]: v ?? null }))
         })
         .catch(() => undefined)
     })
@@ -68,6 +70,14 @@ export function DashboardBroRequests() {
       }
     }, [load]),
   )
+
+  const statusLabel: Record<BroRequestStatus, string> = {
+    searching: b.statusSearching,
+    found: b.statusFound,
+    done: b.statusDone,
+    expired: b.statusExpired,
+    cancelled: b.statusCancelled,
+  }
 
   function retry() {
     setLoading(true)
@@ -91,7 +101,14 @@ export function DashboardBroRequests() {
     body = (
       <View style={styles.list}>
         {requests.map(r => (
-          <BroRequestRow key={r.id} request={r} offerCount={offerCounts[r.id] ?? r.offerCount ?? null} />
+          <BroRequestRow
+            key={r.id}
+            request={r}
+            statusLabel={statusLabel[r.status]}
+            view={views[r.id]}
+            now={now}
+            onChanged={() => void load()}
+          />
         ))}
       </View>
     )
