@@ -12,6 +12,7 @@ import { NotificationBell } from '@/components/NotificationBell'
 import { SalesRecordCard } from '@/components/SalesRecordCard'
 import { BroAvatar } from '@/components/bro/BroAvatar'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
+import { useMyOfferCounts } from '@/components/bro/useMyOfferCounts'
 import { useAuth } from '@/contexts/auth'
 import { useLocale } from '@/contexts/locale'
 import { useTheme } from '@/contexts/theme'
@@ -82,6 +83,7 @@ export default function MoreScreen() {
   const { user, isAuthenticated, loading, logout } = useAuth()
   const ar = locale === 'ar'
   const broEnabled = useBroEnabled()
+  const offerCounts = useMyOfferCounts(broEnabled)
   const insets = useSafeAreaInsets()
   const { rowDir, colDir, dirStyle } = useDir(ar)
 
@@ -483,7 +485,19 @@ export default function MoreScreen() {
               {...rowProps}
               iconNode={<BroAvatar size={28} radius={14} />}
               label={t.bro.listTitle}
+              sub={t.bro.listSub}
               onPress={() => router.push('/bro' as never)}
+            />
+          )}
+          {broEnabled && (
+            <MoreRow
+              {...rowProps}
+              icon="pricetags-outline"
+              label={t.bro.myOffersTitle}
+              sub={t.bro.myOffersSub}
+              trailing={offerCounts?.active ? String(offerCounts.active) : undefined}
+              badge={offerCounts?.connected ? t.bro.connectedBadge.replace('{n}', String(offerCounts.connected)) : undefined}
+              onPress={() => router.push('/bro/offers' as never)}
               last={!PROMOTION_UI_ENABLED && !isClient}
             />
           )}
@@ -595,6 +609,7 @@ function MoreRow({
   label,
   sub,
   trailing,
+  badge,
   danger,
   last,
   onPress,
@@ -605,6 +620,7 @@ function MoreRow({
   label: string
   sub?: string
   trailing?: string
+  badge?: string
   danger?: boolean
   last?: boolean
   onPress: () => void
@@ -624,6 +640,7 @@ function MoreRow({
         <Text style={[styles.rowLabel, danger && { color: colors.red }, dirStyle]}>{label}</Text>
         {!!sub && <Text style={[styles.rowSub, dirStyle]} numberOfLines={2}>{sub}</Text>}
       </View>
+      {!!badge && <Text style={styles.rowBadge}>{badge}</Text>}
       {!!trailing && <Text style={styles.rowTrailing}>{trailing}</Text>}
       {!danger && <Ionicons name={ar ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.subtle} />}
     </Pressable>
@@ -770,6 +787,16 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   rowLabel: { fontFamily: fonts.bold, fontSize: 15, color: colors.heading },
   rowSub: { fontFamily: fonts.regular, fontSize: 11, color: colors.muted, lineHeight: 16 },
   rowTrailing: { fontFamily: fonts.bold, fontSize: 13, color: colors.muted },
+  rowBadge: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.green,
+    backgroundColor: colors.greenBg,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: 'hidden',
+  },
 
   version: { fontFamily: fonts.regular, fontSize: 12, color: colors.subtle, textAlign: 'center', marginTop: spacing.sm },
 

@@ -270,6 +270,25 @@ function MyOffersTab() {
         </>
       ) : (
         <>
+          <View style={[styles.stats, rowDir]}>
+            {([
+              ['all', b.statSent],
+              ['active', b.statActive],
+              ['connected', b.statConnected],
+            ] as const).map(([key, label], i) => {
+              const n = counts?.[key] ?? tally[key]
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => setFilter(key)}
+                  style={[styles.stat, i > 0 && styles.statDivider, filter === key && styles.statOn]}
+                >
+                  <Text style={[styles.statNum, key === 'connected' && n > 0 && styles.statNumGreen]}>{fmt(n)}</Text>
+                  <Text style={styles.statLabel}>{label}</Text>
+                </Pressable>
+              )
+            })}
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.chips, rowDir]}>
             {chips.map(c => {
               const on = filter === c.key
@@ -637,6 +656,20 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
   segItemOn: { backgroundColor: dark ? colors.border : '#fff', ...(dark ? null : shadow.ss) },
   segText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.muted },
   segTextOn: { fontFamily: fonts.extraBold, color: colors.heading },
+  stats: {
+    flexDirection: 'row',
+    marginBottom: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.card,
+    overflow: 'hidden',
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
+  },
+  stat: { flex: 1, alignItems: 'center', paddingVertical: 12, gap: 2 },
+  statDivider: { borderStartWidth: 1, borderStartColor: colors.border },
+  statOn: { backgroundColor: dark ? colors.border : '#f7f8fa' },
+  statNum: { fontFamily: fonts.extraBold, fontSize: 20, lineHeight: 28, color: colors.heading },
+  statNumGreen: { color: colors.green },
+  statLabel: { fontFamily: fonts.semiBold, fontSize: 12, lineHeight: 18, color: colors.muted },
   chips: { flexDirection: 'row', gap: spacing.sm },
   chip: {
     paddingHorizontal: 12,

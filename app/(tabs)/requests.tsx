@@ -12,6 +12,7 @@ import {
   type BroBoardCounts, type BroBoardItem, type BroUsage, type CreateBroOfferResult, type MatchPrefs,
 } from '@/lib/bro'
 import { useBroEnabled } from '@/components/bro/BroEntryCard'
+import { useMyOfferCounts } from '@/components/bro/useMyOfferCounts'
 import { BroAvatar } from '@/components/bro/BroAvatar'
 import { BroBoardCard, type BroOfferPick } from '@/components/bro/BroBoardCard'
 import { MatchPrefsModal, MatchPrefsStrip } from '@/components/bro/BroMatchPrefs'
@@ -58,6 +59,7 @@ export default function RequestsTab() {
   const { user, loading: authLoading } = useAuth()
   const { requireLogin } = useLoginGate()
   const broEnabled = useBroEnabled()
+  const offerCounts = useMyOfferCounts(broEnabled)
   const userType = user?.type === 'client' || user?.type === 'store' ? user.type : null
 
   const [categories, setCategories] = useState<Category[]>([])
@@ -85,6 +87,11 @@ export default function RequestsTab() {
   const [usage, setUsage] = useState<BroUsage | null>(null)
   const [sheet, setSheet] = useState<SheetState | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  useEffect(() => {
+    if (!notice) return
+    const id = setTimeout(() => setNotice(null), 4000)
+    return () => clearTimeout(id)
+  }, [notice])
   const reqSeq = useRef(0)
   // Home's "Client Requests" strip deep-links here with ?offer=<id> to open the sheet.
   const { offer: offerParam, model: modelParam } = useLocalSearchParams<{ offer?: string; model?: string }>()
@@ -322,6 +329,24 @@ export default function RequestsTab() {
         </View>
       </Pressable>
 
+      {offerCounts && offerCounts.all > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/bro/offers' as never)}
+          style={({ pressed }) => [styles.offersStrip, pressed && styles.pressed]}
+        >
+          <Text style={styles.offersStripIcon}>🙋</Text>
+          <Text style={[styles.offersStripText, dirStyle]} numberOfLines={1}>
+            <Text style={styles.offersStripTitle}>{b.myOffersTitle}</Text>
+            {' · '}{b.offersStripActive.replace('{n}', String(offerCounts.active))}{' · '}
+            {offerCounts.connected > 0 ? (
+              <Text style={styles.offersStripGreen}>{b.offersStripConnected.replace('{n}', String(offerCounts.connected))}</Text>
+            ) : b.offersStripClosed.replace('{n}', String(offerCounts.closed))}
+          </Text>
+          <Ionicons name={isRtl ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.muted} />
+        </Pressable>
+      ) : null}
+
       <View style={styles.filterCard}>
         <View style={styles.sortRow}>
           {(['newest', 'budget'] as const).map(s => {
@@ -412,6 +437,9 @@ export default function RequestsTab() {
         <View style={styles.notice}>
           <Ionicons name="checkmark-circle" size={18} color={colors.yd} />
           <Text style={[styles.noticeText, dirStyle]}>{notice}</Text>
+          <Pressable onPress={() => { setNotice(null); router.push('/bro/offers' as never) }} hitSlop={8}>
+            <Text style={styles.noticeAction}>{b.seeMyOffers} {isRtl ? '←' : '→'}</Text>
+          </Pressable>
         </View>
       ) : null}
     </View>
@@ -601,6 +629,23 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
 
   meter: { marginBottom: 0 },
 
+  // Entry into the offers this user sent ("عروضي").
+  offersStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginTop: -spacing.xs,
+    ...(dark ? { borderWidth: 1, borderColor: colors.border } : shadow.ss),
+  },
+  offersStripIcon: { fontSize: 16 },
+  offersStripText: { flex: 1, fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 20, color: colors.muted },
+  offersStripTitle: { fontFamily: fonts.extraBold, color: colors.heading },
+  offersStripGreen: { fontFamily: fonts.bold, color: colors.green },
+
   // Sort + brand/area filters.
   filterCard: {
     backgroundColor: colors.card,
@@ -670,6 +715,7 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     padding: 12,
   },
   noticeText: { flex: 1, fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 20, color: colors.heading },
+  noticeAction: { fontFamily: fonts.extraBold, fontSize: 13, lineHeight: 20, color: colors.heading },
   emptyBox: {
     alignItems: 'center',
     gap: spacing.sm,

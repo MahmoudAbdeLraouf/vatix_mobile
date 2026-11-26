@@ -1000,6 +1000,16 @@ export interface Translations {
     browseCtaBody: string
     newOffersBadge: string
     browseCtaNearby: string
+    listSub: string
+    myOffersSub: string
+    connectedBadge: string
+    offersStripActive: string
+    offersStripConnected: string
+    offersStripClosed: string
+    seeMyOffers: string
+    statSent: string
+    statActive: string
+    statConnected: string
     statCheapest: string
     statAverage: string
     statBudget: string
@@ -2524,6 +2534,9 @@ export const translations: Record<Locale, Translations> = {
       chipActive: 'نشط', chipConnected: 'المشتري كلّمك', chipClosed: 'مقفول', onRequest: 'على طلب: {request}',
       buyerConnected: '🎉 المشتري تواصل معاك {ago}', replyToBuyer: 'رد عليه', offerElsewhere: 'اعرضه على طلب تاني',
       browseCtaTitle: 'فيه ناس بتدوّر على أجهزة دلوقتي', browseCtaBody: 'قدّم عرضك قبل غيرك وبيع أسرع', newOffersBadge: '{n} جديد', browseCtaNearby: '{n} طلب مفتوح قريب منك',
+      listSub: 'الأجهزة اللي بدوّر عليها', myOffersSub: 'العروض اللي بعتها للمشترين', connectedBadge: '{n} كلّمك',
+      offersStripActive: '{n} نشطة', offersStripConnected: '{n} مشتري كلّمك', offersStripClosed: '{n} مقفول',
+      seeMyOffers: 'شوف عروضي', statSent: 'مرسلة', statActive: 'نشطة', statConnected: 'كلّموك',
       statCheapest: 'أرخص عرض', statAverage: 'المتوسط', statBudget: 'ميزانيتك', budgetNone: 'مفتوحة',
       sortCheapestOpt: 'الأرخص', sortNewestOpt: 'الأحدث', filterVerified: '✔ موثّق بس', filterStores: 'متاجر بس',
       offersAvailableN: '{n} عروض متاحة', unavailableSection: 'عروض مش متاحة ({n})',
@@ -4007,6 +4020,9 @@ export const translations: Record<Locale, Translations> = {
       chipActive: 'Active', chipConnected: 'Buyer contacted you', chipClosed: 'Closed', onRequest: 'On request: {request}',
       buyerConnected: '🎉 The buyer contacted you {ago}', replyToBuyer: 'Reply', offerElsewhere: 'Offer it on another request',
       browseCtaTitle: 'People are looking for devices right now', browseCtaBody: 'Send your offer first and sell faster', newOffersBadge: '{n} new', browseCtaNearby: '{n} open requests near you',
+      listSub: "Devices I'm looking for", myOffersSub: 'Offers I sent to buyers', connectedBadge: '{n} contacted',
+      offersStripActive: '{n} active', offersStripConnected: '{n} buyer contacted you', offersStripClosed: '{n} closed',
+      seeMyOffers: 'See my offers', statSent: 'Sent', statActive: 'Active', statConnected: 'Contacted',
       statCheapest: 'Cheapest', statAverage: 'Average', statBudget: 'Your budget', budgetNone: 'Open',
       sortCheapestOpt: 'Cheapest', sortNewestOpt: 'Newest', filterVerified: '✔ Verified only', filterStores: 'Stores only',
       offersAvailableN: '{n} offers available', unavailableSection: 'Unavailable offers ({n})',
