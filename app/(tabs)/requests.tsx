@@ -88,6 +88,14 @@ export default function RequestsTab() {
   const reqSeq = useRef(0)
   // Home's "Client Requests" strip deep-links here with ?offer=<id> to open the sheet.
   const { offer: offerParam, model: modelParam } = useLocalSearchParams<{ offer?: string; model?: string }>()
+  // Store nudges deep-link with ?tab=mine; the tab stays mounted, so apply it on every arrival.
+  const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>()
+
+  useEffect(() => {
+    if (tabParam !== 'mine') return
+    router.setParams({ tab: undefined })
+    setTab('mine')
+  }, [tabParam])
 
   useEffect(() => {
     if (!offerParam || authLoading) return
