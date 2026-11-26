@@ -81,7 +81,7 @@ export default function NotificationsScreen() {
       router.push('/dashboard/my-ads' as never)
     } else if (item.type?.startsWith('subscription_') || item.link?.startsWith('/dashboard/subscription')) {
       router.push('/dashboard/subscription' as never)
-    } else if (item.type === 'store_name_review') {
+    } else if (item.type === 'store_name_review' || item.type === 'store_identity_review') {
       router.push('/dashboard/store' as never)
     }
   }
