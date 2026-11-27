@@ -418,8 +418,10 @@ export interface BroModelSuggestion {
 }
 
 /** Model autocomplete for a brand, with catalog ids. */
-export async function getModelSuggestions(brandId: number, q: string): Promise<BroModelSuggestion[]> {
+/** With a category, an empty `q` returns that category's popular models. */
+export async function getModelSuggestions(brandId: number, q: string, categoryId?: number): Promise<BroModelSuggestion[]> {
   const params = new URLSearchParams({ brandId: String(brandId), q, withIds: '1' })
+  if (categoryId != null) params.set('categoryId', String(categoryId))
   const items = await apiFetch<(string | BroModelSuggestion)[]>(`/bro/model-suggestions?${params}`)
   // An older backend ignores withIds and returns names only.
   return (Array.isArray(items) ? items : []).map(x => (typeof x === 'string' ? { id: null, name: x } : x))

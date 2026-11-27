@@ -35,7 +35,6 @@ import { useTheme } from '@/contexts/theme'
 const WANTS: BroWant[] = ['cheaper', 'better_condition', 'with_box']
 const SOURCES: BroRequestSource[] = ['product', 'product_sold', 'search', 'home', 'nav']
 const STORAGE_PRESETS = ['64', '128', '256', '512', '1TB']
-const PHONES_NAME = /phone|mobile|هواتف|هاتف|موبايل|محمول/i
 const MODEL_MAX = 120
 const STORAGE_MAX = 20
 
@@ -271,7 +270,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
   const [error, setError] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<BroModelSuggestion[]>([])
   // Catalog model behind the chip the buyer picked; sent only while the text still matches it.
-  const [picked, setPicked] = useState<{ brandId: number; id: number; name: string } | null>(null)
+  const [picked, setPicked] = useState<{ categoryId: number; brandId: number; id: number; name: string } | null>(null)
   const inFlight = useRef(false)
   const { known } = init
 
@@ -290,16 +289,17 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
     [locations, locale],
   )
 
-  // Model suggestions: phones only, needs a brand, debounced. Failures just show no chips.
-  const wantsSuggestions = !!selectedCategory && PHONES_NAME.test(selectedCategory.translations.map(x => x.name).join(' ')) && brandId != null
+  // Model suggestions: any category, needs a brand, debounced; the category's popular models
+  // show before typing. Failures just show no chips.
+  const wantsSuggestions = categoryId != null && brandId != null
   useEffect(() => {
-    if (!wantsSuggestions || brandId == null) {
+    if (!wantsSuggestions || brandId == null || categoryId == null) {
       setSuggestions([])
       return
     }
     let cancelled = false
     const timer = setTimeout(() => {
-      getModelSuggestions(brandId, model.trim())
+      getModelSuggestions(brandId, model.trim(), categoryId)
         .then(items => {
           if (cancelled) return
           const cur = model.trim().toLowerCase()
@@ -313,7 +313,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
       cancelled = true
       clearTimeout(timer)
     }
-  }, [wantsSuggestions, brandId, model])
+  }, [wantsSuggestions, brandId, categoryId, model])
 
   const modelTrim = model.trim()
   const minN = budgetMin ? Number(budgetMin) : null
@@ -381,7 +381,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
       if (maxN) body.budgetMax = maxN
       if (wants.length) body.wants = wants
       if (init.productId != null) body.sourceProductId = init.productId
-      if (wantsSuggestions && picked && picked.brandId === brandId && picked.name === modelTrim) {
+      if (wantsSuggestions && picked && picked.brandId === brandId && picked.categoryId === categoryId && picked.name === modelTrim) {
         body.productModelId = picked.id
       }
       const res = await createBroRequest(body)
@@ -513,7 +513,7 @@ function IntakeForm({ options, params }: { options: Options; params: Record<stri
                     {suggestions.map(s => pill(s.name, s.name, false, () => {
                       const name = s.name.slice(0, MODEL_MAX)
                       setModel(name)
-                      setPicked(s.id != null && brandId != null ? { brandId, id: s.id, name } : null)
+                      setPicked(s.id != null && brandId != null && categoryId != null ? { categoryId, brandId, id: s.id, name } : null)
                     }, 'sparkles-outline'))}
                   </View>
                 ) : null}
