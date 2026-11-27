@@ -112,12 +112,18 @@ type NotificationDataRoute = {
   inquiryId?: number | string
 }
 
+/** The website's /bro/requests/:id/offers lives at /bro/request-offers/:id on mobile. */
+export function mobileBroRoute(link: string): string {
+  const offers = link.match(/^\/bro\/requests\/(\d+)\/offers/)
+  return offers ? `/bro/request-offers/${offers[1]}` : link
+}
+
 function routeFromData(data: NotificationDataRoute | undefined): string | null {
   if (!data) return null
   if (data.route && typeof data.route === 'string') {
     // Backend notification links use the website path; mobile's route is hyphenated.
     if (data.route === '/dashboard/myads') return '/dashboard/my-ads'
-    return data.route
+    return mobileBroRoute(data.route)
   }
   if (data.broRequestId != null) return `/bro/requests/${data.broRequestId}`
   if (data.productId != null) return `/products/${data.productId}`

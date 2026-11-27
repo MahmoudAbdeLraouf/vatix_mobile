@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useLocale } from '@/contexts/locale'
 import { Notification } from '@/lib/api'
 import { authFetch, authPatch } from '@/lib/auth'
+import { mobileBroRoute } from '@/lib/notifications'
 import { fonts, radius, spacing, type ThemeColors } from '@/constants/theme'
 import { useTheme } from '@/contexts/theme'
 import { SkeletonRow } from '@/components/ui/Skeleton'
@@ -74,7 +75,7 @@ export default function NotificationsScreen() {
   // Links are website paths; only the Bro request, store-verification, promo-gift, subscription and store-name-review ones have a matching mobile screen, so follow those.
   function open(item: Notification) {
     if (!item.isRead) markRead(item.id)
-    if (item.link?.startsWith('/bro/requests/')) router.push(item.link as never)
+    if (item.link?.startsWith('/bro/requests/')) router.push(mobileBroRoute(item.link) as never)
     else if (item.type?.startsWith('store_verification_') || item.link?.startsWith('/dashboard/verify')) {
       router.push('/dashboard/verify' as never)
     } else if (item.type === 'promo_gift' || item.link === '/dashboard/myads') {
