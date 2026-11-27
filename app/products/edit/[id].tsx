@@ -13,6 +13,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { MultiImageUpload, ImageItem } from '@/components/MultiImageUpload'
+import { EMPTY_PICK, isPickComplete, pickToBody, ProductModelPicker, type ModelPick } from '@/components/ProductModelPicker'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { Button } from '@/components/ui/Button'
 import { useLocale } from '@/contexts/locale'
@@ -45,7 +46,8 @@ export default function EditProductScreen() {
   const [price, setPrice] = useState('')
   const [condition, setCondition] = useState<string>('new')
   const [categoryId, setCategoryId] = useState<number | null>(null)
-  const [brandId, setBrandId] = useState<number | null>(null)
+  const [pick, setPick] = useState<ModelPick>(EMPTY_PICK)
+  const updatePick = useCallback((patch: Partial<ModelPick>) => setPick(p => ({ ...p, ...patch })), [])
   const [locationId, setLocationId] = useState<number | null>(null)
   const [images, setImages] = useState<ImageItem[]>([])
   const [showPhone, setShowPhone] = useState(true)
@@ -79,7 +81,13 @@ export default function EditProductScreen() {
         setPrice(String(product.price))
         setCondition(product.condition || 'new')
         setCategoryId(product.category?.id ?? null)
-        setBrandId(product.brand?.id ?? null)
+        setPick({
+          ...EMPTY_PICK,
+          brandId: product.brand?.id ? String(product.brand.id) : '',
+          modelId: product.productModel?.id ? String(product.productModel.id) : '',
+          modelName: product.productModel?.name ?? '',
+          variant: product.variant ?? '',
+        })
         setLocationId(product.location?.id ?? null)
         setShowPhone(product.showPhone)
         setImages(
@@ -103,10 +111,6 @@ export default function EditProductScreen() {
     value: String(c.id),
     label: localeName(c.translations, locale),
   }))
-  const brandOptions = brands.map(b => ({
-    value: String(b.id),
-    label: localeName(b.translations, locale),
-  }))
   const locationOptions = locations.map(l => ({
     value: String(l.id),
     label: localeName(l.translations, locale),
@@ -129,6 +133,10 @@ export default function EditProductScreen() {
       setError(t.requiredField)
       return
     }
+    if (!isPickComplete(pick)) {
+      setError(ar ? 'اختر العلامة التجارية والموديل' : 'Choose the brand and model')
+      return
+    }
     if (uploading) {
       setError(t.waitForUploadsToFinish)
       return
@@ -136,6 +144,7 @@ export default function EditProductScreen() {
 
     setSubmitting(true)
     try {
+      const { modelWarning: _modelWarning, brandId, ...modelFields } = await pickToBody(pick, categoryId)
       const payload: CreateProductInput = {
         title: title.trim(),
         description: description.trim() || undefined,
@@ -143,6 +152,7 @@ export default function EditProductScreen() {
         price: numPrice,
         categoryId,
         brandId: brandId ?? undefined,
+        ...modelFields,
         locationId: locationId ?? undefined,
         showPhone,
         images: images
@@ -157,7 +167,7 @@ export default function EditProductScreen() {
     } finally {
       setSubmitting(false)
     }
-  }, [brandId, categoryId, condition, description, images, locationId, price, productId, showPhone, t, title, uploading])
+  }, [ar, categoryId, condition, description, images, locationId, pick, price, productId, showPhone, t, title, uploading])
 
   const conditions: { key: string; label: string }[] = [
     { key: 'new', label: t.conditionNew },
@@ -261,14 +271,7 @@ export default function EditProductScreen() {
             style={styles.section}
           />
 
-          <SearchableSelect
-            label={t.brand}
-            placeholder={t.selectBrand}
-            options={brandOptions}
-            value={brandId != null ? String(brandId) : ''}
-            onChange={(v) => setBrandId(v ? Number(v) : null)}
-            style={styles.section}
-          />
+          <ProductModelPicker categoryId={categoryId} brands={brands} value={pick} onChange={updatePick} />
 
           <SearchableSelect
             label={t.location}
