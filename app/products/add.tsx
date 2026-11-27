@@ -22,6 +22,7 @@ import { MultiImageUpload, ImageItem } from '@/components/MultiImageUpload'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { EMPTY_PICK, ModelPick, ProductModelPicker, isPickComplete, pickToBody, suggestedTitle } from '@/components/ProductModelPicker'
 import { CapReachedChoice } from '@/components/CapReachedChoice'
 import { UpgradeModal } from '@/components/UpgradeModal'
 import { useLocale } from '@/contexts/locale'
@@ -51,7 +52,9 @@ interface Draft {
   price: string
   condition: string
   categoryId: number | null
-  brandId: number | null
+  /** Legacy drafts saved before the model picker */
+  brandId?: number | null
+  pick?: ModelPick
   locationId: number | null
   images: ImageItem[]
   showPhone: boolean
@@ -82,7 +85,9 @@ export default function AddProductScreen() {
   const [price, setPrice] = useState('')
   const [condition, setCondition] = useState<string>('new')
   const [categoryId, setCategoryId] = useState<number | null>(null)
-  const [brandId, setBrandId] = useState<number | null>(null)
+  const [pick, setPick] = useState<ModelPick>(EMPTY_PICK)
+  const titleTouched = useRef(false)
+  const updatePick = useCallback((patch: Partial<ModelPick>) => setPick(p => ({ ...p, ...patch })), [])
   const [locationId, setLocationId] = useState<number | null>(null)
   const [images, setImages] = useState<ImageItem[]>([])
   const [showPhone, setShowPhone] = useState(true)
@@ -120,12 +125,13 @@ export default function AddProductScreen() {
         if (!raw) return
         try {
           const d = JSON.parse(raw) as Partial<Draft>
-          if (d.title) setTitle(d.title)
+          if (d.title) { setTitle(d.title); titleTouched.current = true }
           if (d.description) setDescription(d.description)
           if (d.price) setPrice(d.price)
           if (d.condition) setCondition(d.condition)
           if (typeof d.categoryId === 'number') setCategoryId(d.categoryId)
-          if (typeof d.brandId === 'number') setBrandId(d.brandId)
+          if (d.pick) setPick({ ...EMPTY_PICK, ...d.pick, hasCatalog: null })
+          else if (typeof d.brandId === 'number') setPick({ ...EMPTY_PICK, brandId: String(d.brandId) })
           if (typeof d.locationId === 'number') setLocationId(d.locationId)
           if (Array.isArray(d.images)) {
             setImages(d.images.filter((i): i is ImageItem => !!i && !!i.url && !i.uploading))
@@ -182,7 +188,7 @@ export default function AddProductScreen() {
         price,
         condition,
         categoryId,
-        brandId,
+        pick,
         locationId,
         images: images.filter((i) => i.url && !i.uploading),
         showPhone,
@@ -190,16 +196,18 @@ export default function AddProductScreen() {
       SecureStore.setItemAsync(DRAFT_KEY, JSON.stringify(draft)).catch(() => {})
     }, 400)
     return () => clearTimeout(timer)
-  }, [title, description, price, condition, categoryId, brandId, locationId, images, showPhone])
+  }, [title, description, price, condition, categoryId, pick, locationId, images, showPhone])
 
   const categoryOptions = categories.map(c => ({
     value: String(c.id),
     label: localeName(c.translations, locale),
   }))
-  const brandOptions = brands.map(b => ({
-    value: String(b.id),
-    label: localeName(b.translations, locale),
-  }))
+
+  // Title follows brand / model / variant until the user types their own
+  const autoTitle = suggestedTitle(pick)
+  useEffect(() => {
+    if (!titleTouched.current && autoTitle) setTitle(autoTitle)
+  }, [autoTitle])
   const locationOptions = locations.map(l => ({
     value: String(l.id),
     label: localeName(l.translations, locale),
@@ -264,6 +272,10 @@ export default function AddProductScreen() {
       setError(t.requiredField)
       return
     }
+    if (!isPickComplete(pick)) {
+      setError(ar ? 'اختر العلامة التجارية والموديل' : 'Choose the brand and model')
+      return
+    }
     if (uploading) {
       setError(t.waitForUploadsToFinish)
       return
@@ -271,6 +283,7 @@ export default function AddProductScreen() {
 
     setSubmitting(true)
     try {
+      const { modelWarning: _modelWarning, brandId, ...modelFields } = await pickToBody(pick, categoryId)
       const payload: CreateProductInput = {
         title: title.trim(),
         description: description.trim() || undefined,
@@ -278,6 +291,7 @@ export default function AddProductScreen() {
         price: numPrice,
         categoryId,
         brandId: brandId ?? undefined,
+        ...modelFields,
         locationId: locationId ?? undefined,
         showPhone,
         images: images
@@ -318,7 +332,7 @@ export default function AddProductScreen() {
     } finally {
       setSubmitting(false)
     }
-  }, [brandId, categoryId, condition, description, images, locationId, price, showPhone, t, title, uploading])
+  }, [ar, categoryId, condition, description, images, locationId, pick, price, showPhone, t, title, uploading])
 
   const goPromote = useCallback(() => {
     const id = publishedId
@@ -418,7 +432,7 @@ export default function AddProductScreen() {
               label={t.productTitle}
               required
               value={title}
-              onChangeText={setTitle}
+              onChangeText={(v) => { titleTouched.current = true; setTitle(v) }}
               placeholder={t.productTitle}
               maxLength={120}
             />
@@ -532,13 +546,11 @@ export default function AddProductScreen() {
               style={styles.selectSpacer}
             />
 
-            <SearchableSelect
-              label={t.brand}
-              placeholder={t.selectBrand}
-              options={brandOptions}
-              value={brandId != null ? String(brandId) : ''}
-              onChange={(v) => setBrandId(v ? Number(v) : null)}
-              style={styles.selectSpacer}
+            <ProductModelPicker
+              categoryId={categoryId}
+              brands={brands}
+              value={pick}
+              onChange={updatePick}
             />
 
             <SearchableSelect

@@ -51,6 +51,17 @@ export interface Brand {
   translations: Translation[]
 }
 
+export interface ProductModel {
+  id: number
+  name: string
+  brandId: number
+  categoryId: number
+  series?: string | null
+  releaseYear?: number | null
+  /** Arabic spellings ("ايفون 15 برو") used for search only — display `name` */
+  aliases?: string[] | null
+}
+
 export interface ProductImage {
   id: number
   url: string
@@ -112,6 +123,11 @@ export interface Product {
   images: ProductImage[]
   category: Category
   brand: Brand
+  productModelId?: number | null
+  /** Only on detail responses */
+  productModel?: { id: number; name: string } | null
+  /** Free text like "256GB" */
+  variant?: string | null
   // `owner` is only joined by some endpoints (e.g. /products, /products/:id).
   // Endpoints like /stores/:id/products omit it, so consumers must null-check.
   owner?: {
@@ -738,6 +754,11 @@ export interface CreateProductInput {
   price: number
   categoryId: number
   brandId?: number
+  /** null clears it (edit) */
+  productModelId?: number | null
+  /** Pending user-suggested model — linked once an admin approves it */
+  suggestedModelId?: number | null
+  variant?: string | null
   locationId?: number
   showPhone?: boolean
   images?: { url: string; sortOrder?: number }[]

@@ -21,6 +21,8 @@ export interface SelectOption {
   value: string
   label: string
   sub?: string
+  /** Extra search terms (e.g. Arabic aliases) — matched but never shown */
+  keywords?: string[]
 }
 
 interface Props {
@@ -31,9 +33,15 @@ interface Props {
   label?: string
   required?: boolean
   style?: ViewStyle
+  /** Custom matcher; defaults to a case-insensitive substring match on label / sub / keywords */
+  matches?: (query: string, option: SelectOption) => boolean
+  /** Pinned row under the list, e.g. "+ Model not listed". Receives the current search term. */
+  footerAction?: { label: (term: string) => string; onPress: (term: string) => void }
 }
 
-export function SearchableSelect({ options, value, onChange, placeholder, label, required, style }: Props) {
+export function SearchableSelect({
+  options, value, onChange, placeholder, label, required, style, matches, footerAction,
+}: Props) {
   const { locale } = useLocale()
   const ar = locale === 'ar'
   const dirStyle = {
@@ -62,10 +70,13 @@ export function SearchableSelect({ options, value, onChange, placeholder, label,
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return options
+    if (matches) return options.filter(o => matches(query.trim(), o))
     return options.filter(o =>
-      o.label.toLowerCase().includes(q) || o.sub?.toLowerCase().includes(q),
+      o.label.toLowerCase().includes(q) ||
+      o.sub?.toLowerCase().includes(q) ||
+      o.keywords?.some(k => k.toLowerCase().includes(q)),
     )
-  }, [options, query])
+  }, [options, query, matches])
 
   const searchPlaceholder = locale === 'ar' ? 'ابحث...' : 'Search...'
   const emptyText = locale === 'ar' ? 'لا توجد نتائج' : 'No results'
@@ -152,7 +163,22 @@ export function SearchableSelect({ options, value, onChange, placeholder, label,
             data={filtered}
             keyExtractor={item => item.value}
             keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={<Text style={styles.empty}>{emptyText}</Text>}
+            ListEmptyComponent={footerAction && query.trim() ? null : <Text style={styles.empty}>{emptyText}</Text>}
+            ListFooterComponent={footerAction ? (
+              <Pressable
+                onPress={() => {
+                  const term = query.trim()
+                  close()
+                  footerAction.onPress(term)
+                }}
+                style={({ pressed }) => [styles.option, styles.footerAction, pressed && styles.optionPressed]}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.optionLabel, styles.footerActionLabel, dirStyle]} numberOfLines={2}>
+                  {footerAction.label(query.trim())}
+                </Text>
+              </Pressable>
+            ) : null}
             renderItem={({ item }) => {
               const active = item.value === value
               return (
@@ -314,6 +340,13 @@ const makeStyles = (colors: ThemeColors, dark: boolean) => StyleSheet.create({
     color: colors.text,
   },
   optionLabelActive: {
+    fontFamily: fonts.bold,
+    color: dark ? colors.y : colors.yd,
+  },
+  footerAction: {
+    backgroundColor: colors.inputBg,
+  },
+  footerActionLabel: {
     fontFamily: fonts.bold,
     color: dark ? colors.y : colors.yd,
   },

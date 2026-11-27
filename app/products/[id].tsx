@@ -731,6 +731,26 @@ export default function ProductDetailScreen() {
                   dir={dir}
                   dirEnd={dirEnd}
                 />
+                {product.productModel?.name ? (
+                  <SpecRow
+                    icon="phone-portrait-outline"
+                    label={locale === 'ar' ? 'الموديل' : 'Model'}
+                    value={product.productModel.name}
+                    dir={dir}
+                    dirEnd={dirEnd}
+                    ltr
+                  />
+                ) : null}
+                {product.variant ? (
+                  <SpecRow
+                    icon="layers-outline"
+                    label={locale === 'ar' ? 'المواصفات' : 'Variant'}
+                    value={product.variant}
+                    dir={dir}
+                    dirEnd={dirEnd}
+                    ltr
+                  />
+                ) : null}
                 <SpecRow
                   icon="location-outline"
                   label={t.location}
@@ -1037,11 +1057,14 @@ function SpecRow({
   last,
   dir,
   dirEnd,
+  ltr,
 }: {
   icon: string
   label: string
   value: string
   last?: boolean
+  /** Latin values (model names) — keep LTR so "iPhone 15 Pro" isn't scrambled */
+  ltr?: boolean
   dir: DirStyle
   dirEnd: DirStyle
 }) {
@@ -1059,7 +1082,7 @@ function SpecRow({
         </View>
         <Text style={[specStyles.label, dir]}>{label}</Text>
       </View>
-      <Text style={[specStyles.value, dirEnd]} numberOfLines={2}>
+      <Text style={[specStyles.value, dirEnd, ltr && { writingDirection: 'ltr' }]} numberOfLines={2}>
         {value}
       </Text>
     </View>
