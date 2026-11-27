@@ -47,6 +47,7 @@ export function MultiImageUpload({ images, onChange, style }: Props) {
     textAlign: ar ? ('right' as const) : ('left' as const),
     writingDirection: ar ? ('rtl' as const) : ('ltr' as const),
   }
+  const rowDir = ar ? { direction: 'ltr' as const, flexDirection: 'row-reverse' as const } : null
 
   async function pick() {
     if (images.length >= MAX_IMAGES) return
@@ -209,7 +210,7 @@ export function MultiImageUpload({ images, onChange, style }: Props) {
         ) : null}
       </View>
 
-      <View style={styles.hintRow}>
+      <View style={[styles.hintRow, rowDir]}>
         <Text style={[styles.hintText, styles.hintTextFlex, dirStyle]}>
           {uploadedCount} / {MAX_IMAGES}{' '}
           {ar ? 'صورة · الصورة الأولى هي الرئيسية' : 'images · first image is the main'}

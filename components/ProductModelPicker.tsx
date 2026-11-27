@@ -257,7 +257,7 @@ export function ProductModelPicker({ categoryId, brands, value, onChange }: Prop
                 hitSlop={8}
                 style={styles.backLink}
               >
-                <Text style={[styles.backLinkText, { textAlign: ar ? 'right' : 'left' }]}>
+                <Text style={[styles.backLinkText, { textAlign: ar ? 'right' : 'left', writingDirection: ar ? 'rtl' : 'ltr' }]}>
                   {ar ? '← اختر من القائمة' : '← Pick from the list'}
                 </Text>
               </Pressable>

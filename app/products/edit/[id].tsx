@@ -40,6 +40,15 @@ export default function EditProductScreen() {
   const { colors } = useTheme()
   const styles = useMemo(() => makeStyles(colors), [colors])
   const ar = locale === 'ar'
+  const dirStyle = {
+    textAlign: ar ? ('right' as const) : ('left' as const),
+    writingDirection: ar ? ('rtl' as const) : ('ltr' as const),
+  }
+  // Same as add.tsx: pin rows to LTR + row-reverse in Arabic so the text sits on the right
+  // regardless of whether the RTL direction reaches inside the ScrollView.
+  const rowDir = ar
+    ? { direction: 'ltr' as const, flexDirection: 'row-reverse' as const }
+    : null
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -197,14 +206,14 @@ export default function EditProductScreen() {
         showsVerticalScrollIndicator={false}
       >
           <View style={styles.section}>
-            <Text style={[styles.label, { textAlign: ar ? 'right' : 'left' }]}>
+            <Text style={[styles.label, dirStyle]}>
               {t.addPhotos}
             </Text>
             <MultiImageUpload images={images} onChange={setImages} />
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.label, { textAlign: ar ? 'right' : 'left' }]}>
+            <Text style={[styles.label, dirStyle]}>
               {t.productTitle}
             </Text>
             <TextInput
@@ -217,7 +226,7 @@ export default function EditProductScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.label, { textAlign: ar ? 'right' : 'left' }]}>
+            <Text style={[styles.label, dirStyle]}>
               {t.price} ({t.egp})
             </Text>
             <TextInput
@@ -231,7 +240,7 @@ export default function EditProductScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.label, { textAlign: ar ? 'right' : 'left' }]}>
+            <Text style={[styles.label, dirStyle]}>
               {t.condition}
             </Text>
             <View style={styles.conditionList}>
@@ -240,6 +249,7 @@ export default function EditProductScreen() {
                   key={c.key}
                   style={[
                     styles.conditionRow,
+                    rowDir,
                     condition === c.key && styles.conditionRowActive,
                     i < conditions.length - 1 && styles.conditionRowBorder,
                   ]}
@@ -249,7 +259,7 @@ export default function EditProductScreen() {
                     style={[
                       styles.conditionRowText,
                       condition === c.key && styles.conditionRowTextActive,
-                      { textAlign: ar ? 'right' : 'left' },
+                      dirStyle,
                     ]}
                   >
                     {c.label}
@@ -283,7 +293,7 @@ export default function EditProductScreen() {
           />
 
           <View style={styles.section}>
-            <Text style={[styles.label, { textAlign: ar ? 'right' : 'left' }]}>
+            <Text style={[styles.label, dirStyle]}>
               {t.description}
             </Text>
             <TextInput
@@ -298,8 +308,8 @@ export default function EditProductScreen() {
             />
           </View>
 
-          <View style={styles.switchRow}>
-            <Text style={[styles.switchLabel, { textAlign: ar ? 'right' : 'left' }]}>
+          <View style={[styles.switchRow, rowDir]}>
+            <Text style={[styles.switchLabel, dirStyle]}>
               {t.showPhone}
             </Text>
             <Switch
@@ -311,7 +321,7 @@ export default function EditProductScreen() {
           </View>
 
           {error ? (
-            <Text style={[styles.error, { textAlign: ar ? 'right' : 'left' }]}>{error}</Text>
+            <Text style={[styles.error, dirStyle]}>{error}</Text>
           ) : null}
 
           <Button
